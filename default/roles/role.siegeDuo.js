@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {creepBodyHas} = require("bodyHelpers");
 
 // How long a creep can sit unpaired before we give up and recycle. Squad
 // formation legitimately takes 100-200 ticks (spawn + walk), so the floor
@@ -28,8 +29,8 @@ function getSiegeDuoPairsByDestination() {
         const dest = c.memory.destination;
         if (!dest) return;
         if (!_siegeDuoPairs[dest]) _siegeDuoPairs[dest] = {attackers: [], healers: []};
-        if (c.hasActiveBodyparts(ATTACK)) _siegeDuoPairs[dest].attackers.push(c);
-        else if (c.hasActiveBodyparts(HEAL)) _siegeDuoPairs[dest].healers.push(c);
+        if (creepBodyHas(c, ATTACK)) _siegeDuoPairs[dest].attackers.push(c);
+        else if (creepBodyHas(c, HEAL)) _siegeDuoPairs[dest].healers.push(c);
     };
     const military = global.world && global.world.militaryCreeps;
     if (military) {
@@ -79,7 +80,7 @@ class RoleSiegeDuo {
         if (!this.creep.memory.partner && this.creep.memory.destination) {
             const pairs = getSiegeDuoPairsByDestination()[this.creep.memory.destination];
             if (pairs) {
-                const isAttacker = this.creep.hasActiveBodyparts(ATTACK);
+                const isAttacker = creepBodyHas(this.creep, ATTACK);
                 const pool = isAttacker ? pairs.healers : pairs.attackers;
                 const candidate = pool.find(c => c.id !== this.creep.id && !c.memory.partner);
                 if (candidate) {
@@ -103,7 +104,10 @@ class RoleSiegeDuo {
     }
 
     handleLeader() {
-        const partner = Game.getObjectById(this.creep.memory.partner);
+        const creep = this.creep;
+        creep.memory.lastPos = {x: creep.pos.x, y: creep.pos.y, roomName: creep.pos.roomName};
+
+        const partner = Game.getObjectById(creep.memory.partner);
         if (!partner) return;
 
         if (this.shouldRetreat([this.creep, partner])) {
@@ -122,7 +126,7 @@ class RoleSiegeDuo {
             else this.creep.handleMilitaryCreep();
         } else {
             this.creep.memory.waitingToAssemble = true;
-            this.creep.findDefensivePosition();
+            if (!this.holdAtExitForPartner(partner)) this.creep.findDefensivePosition();
         }
     }
 
@@ -138,7 +142,14 @@ class RoleSiegeDuo {
         }
         if (partner.memory.waitingToAssemble) this.creep.memory.waitingToAssemble = true;
         else this.creep.memory.waitingToAssemble = undefined;
-        this.creep.shibMove(partner, {range: 0});
+        const lp = partner.memory.lastPos;
+        if (this.creep.pos.isNearTo(partner) && lp && lp.roomName === this.creep.pos.roomName) {
+            if (this.creep.pos.x !== lp.x || this.creep.pos.y !== lp.y) {
+                this.creep.shibMove(new RoomPosition(lp.x, lp.y, lp.roomName), {range: 0});
+            }
+        } else {
+            this.creep.shibMove(partner, {range: 1});
+        }
         if (this.creep.pos.isNearTo(partner) && partner.memory.idle) {
             this.creep.memory.idle = partner.memory.idle;
         }
@@ -147,6 +158,24 @@ class RoleSiegeDuo {
     handleSolo() {
         if (!this.creep.memory.soloSince) this.creep.memory.soloSince = Game.time;
         if (Game.time - this.creep.memory.soloSince > SOLO_RECYCLE_AFTER) return this.creep.recycleCreep();
+
+        const dest = this.creep.memory.destination;
+        const inDest = !!(dest && this.room.name === dest);
+        const threatened = !!(this.room.hostileCreeps.length || this.room.hostileStructures.length);
+        if (inDest || threatened) {
+            if (this.creep.ensureDenialStaging) this.creep.ensureDenialStaging();
+            const toward = (this.creep.memory.misc && this.creep.memory.misc.stagingRoom) || this.creep.memory.colony;
+            if (inDest) {
+                this.creep.moveToRoomExit(toward);
+                return;
+            }
+            if (toward && this.room.name !== toward) {
+                this.creep.shibMove(new RoomPosition(25, 25, toward), {range: 22});
+                return;
+            }
+            this.creep.fleeHome(true);
+            return;
+        }
         if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
     }
 
@@ -242,9 +271,22 @@ class RoleSiegeDuo {
         }
         // Safe territory and not yet near the target — don't force adjacency.
         if (!partner.room.hostileCreeps.length && !partner.room.hostileStructures.length && !this.nearDestination(leader)) return true;
-        // Partner straddling a room border (mid-transition) — treat as ready.
-        if (partner.pos.checkIfOutOfBounds()) return true;
         return partner.pos.isNearTo(leader.pos);
+    }
+
+    // In the dest (or any threatened room) sit on the exit until the partner
+    // is adjacent. findDefensivePosition walks to 25,25 — the bunker.
+    holdAtExitForPartner(partner) {
+        const creep = this.creep;
+        const inDest = !!(creep.memory.destination && creep.room.name === creep.memory.destination);
+        const threatened = !!(this.room.hostileCreeps.length || this.room.hostileStructures.length);
+        if (!inDest && !threatened) return false;
+        const toward = partner && partner.pos.roomName !== creep.pos.roomName
+            ? partner.pos.roomName
+            : (creep.memory.misc && creep.memory.misc.stagingRoom !== creep.room.name
+                ? creep.memory.misc.stagingRoom
+                : undefined);
+        return creep.moveToRoomExit(toward);
     }
 
     nearDestination(leader) {

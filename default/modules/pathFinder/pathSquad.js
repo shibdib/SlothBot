@@ -61,12 +61,19 @@ function squadMove(creep, path) {
     for (const member of members) {
         if (member.pos.getRangeTo(creep) > 1) continue;
         const nextPos = member.pos.positionAtDirection(move);
-        if (!nextPos || nextPos.checkForImpassible(false, true)) {
+        if (!nextPos) {
+            // Room-edge step: same direction crosses with the leader.
+            // shibMove(leader) would path to 25,25 of the next room.
+            member.move(move);
+        } else if (nextPos.checkForImpassible(false, true)) {
             member.shibMove(creep, {range: 0, forceSolo: true});
         } else {
             member.move(move);
         }
     }
+
+    // Followers run in undefined order; this tick's intent wins over getInPosition.
+    creep.memory.squadMoveTick = Game.time;
 
     if (creep.memory._shibSquadMove) creep.memory._shibSquadMove.path = path.slice(1);
     return true;
@@ -94,7 +101,7 @@ function isFootprintWalkable(leaderPos, orientation, squadSize = 4) {
     for (const v of vectors) {
         const mx = leaderPos.x - v.x;
         const my = leaderPos.y - v.y;
-        if (mx < 0 || mx > 49 || my < 0 || my > 49) continue;
+        if (mx < 0 || mx > 49 || my < 0 || my > 49) return false;
         if (terrain.get(mx, my) === TERRAIN_MASK_WALL) return false;
         if (new RoomPosition(mx, my, leaderPos.roomName).checkForImpassible(false, true)) return false;
     }

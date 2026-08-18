@@ -12,6 +12,7 @@ let _roadsBuiltCache = {};
 let _haulersBySource = {};
 let _haulersScanned = false;
 let _siegeDuoCache = {};
+let _roleDestCache = {};
 
 function ensureTickCaches() {
     if (_cacheTick === Game.time) return;
@@ -20,6 +21,7 @@ function ensureTickCaches() {
     _haulersBySource = {};
     _haulersScanned = false;
     _siegeDuoCache = {};
+    _roleDestCache = {};
 }
 
 function colonyRoadsBuilt(roomName) {
@@ -230,6 +232,15 @@ function countQueuedHaulersForSource(roomName, sourceId) {
     return n;
 }
 
+function creepBodyHas(c, part) {
+    const body = c && c.body;
+    if (!body) return false;
+    for (let i = 0; i < body.length; i++) {
+        if (body[i].type === part) return true;
+    }
+    return false;
+}
+
 function getSiegeDuoUnpaired(dest) {
     ensureTickCaches();
     if (_siegeDuoCache[dest]) return _siegeDuoCache[dest];
@@ -240,12 +251,30 @@ function getSiegeDuoUnpaired(dest) {
         const c = Game.creeps[name];
         if (!c.my || c.memory.role !== 'siegeDuo' || c.memory.destination !== dest) continue;
         if (c.memory.partner && Game.getObjectById(c.memory.partner)) continue;
-        if (c.hasActiveBodyparts(ATTACK)) unpairedAttackers++;
-        else if (c.hasActiveBodyparts(HEAL)) unpairedHealers++;
+        if (creepBodyHas(c, ATTACK)) unpairedAttackers++;
+        else if (creepBodyHas(c, HEAL)) unpairedHealers++;
     }
 
     _siegeDuoCache[dest] = {unpairedHealers, unpairedAttackers};
     return _siegeDuoCache[dest];
+}
+
+function countRoleForDestination(dest, role, operation) {
+    ensureTickCaches();
+    const key = `${role || ''}|${dest || ''}|${operation || ''}`;
+    if (_roleDestCache[key] !== undefined) return _roleDestCache[key];
+    let n = 0;
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my) continue;
+        const r = c.memory.oldRole || c.memory.role;
+        if (role && r !== role) continue;
+        if (dest && c.memory.destination !== dest) continue;
+        if (operation && c.memory.operation !== operation) continue;
+        n++;
+    }
+    _roleDestCache[key] = n;
+    return n;
 }
 
 module.exports = {
@@ -267,5 +296,7 @@ module.exports = {
     routeHasBuiltRoads,
     getHaulersBySource,
     countQueuedHaulersForSource,
+    creepBodyHas,
     getSiegeDuoUnpaired,
+    countRoleForDestination,
 };

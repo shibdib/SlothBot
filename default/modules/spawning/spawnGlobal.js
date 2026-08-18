@@ -178,7 +178,9 @@ function globalCreepQueue() {
                 if (rdTowers) {
                     operation.boosts = [TOUGH, HEAL];
                     const siegeDamage = getSiegeTowerDamage(rdIntel) || rdTowers * 600;
-                    const useSolo = MAX_LEVEL >= 7 && siegeDamage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
+                    // Melee siegeDuo is not used here: the healer is sized for two
+                    // stacked bodies and cannot be built at RCL 6 against even one tower.
+                    const useSolo = siegeDamage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
                     if (useSolo) {
                         queueCreepIfNeeded({
                             role: 'longbow',
@@ -190,27 +192,13 @@ function globalCreepQueue() {
                             misc: {boosts: [TOUGH, RANGED_ATTACK, HEAL]}
                         });
                     } else {
-                        // siegeDuo healer must cover two stacked bodies; multi-tower or high-DPS rooms need a squad.
-                        const useSquad = rdIntel.activeDefenders || rdTowers > 1 || siegeDamage > 660 || rdWaves >= 2;
-                        if (useSquad) {
-                            const waitFor = (rdWaves >= 2 || siegeDamage > 960) ? 4 : 2;
-                            queueCreepIfNeeded({
-                                role: 'longbowSquad', priority, numberNeeded: waitFor, destination: key,
-                                misc: {waitFor: waitFor, boosts: [TOUGH, RANGED_ATTACK, HEAL]},
-                                closestRoom: true,
-                                operation: 'roomDenial'
-                            });
-                        } else {
-                            queueCreepIfNeeded({
-                                role: 'siegeDuo',
-                                priority,
-                                numberNeeded: 2,
-                                destination: key,
-                                misc: {boosts: [TOUGH, HEAL, ATTACK]},
-                                closestRoom: true,
-                                operation: 'roomDenial'
-                            });
-                        }
+                        const waitFor = (rdWaves >= 2 || siegeDamage > 960) ? 4 : 2;
+                        queueCreepIfNeeded({
+                            role: 'longbowSquad', priority, numberNeeded: waitFor, destination: key,
+                            misc: {waitFor: waitFor, boosts: [TOUGH, RANGED_ATTACK, HEAL]},
+                            closestRoom: true,
+                            operation: 'roomDenial'
+                        });
                     }
                 } else {
                     operation.boosts = undefined;

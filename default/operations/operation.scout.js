@@ -146,18 +146,23 @@ function handleRemoteDenialOperation(room) {
 
 function handleCleanerAndClaimAttacker(room) {
     const targetRoom = Memory.targetRooms[room.name];
-    if (!room.hostileCreeps.length) {
-        // If no hostile creeps, request cleaner and claim attacker if possible
-        if (room.hostileStructures.length) targetRoom.cleaner = true;
-        if (room.controller && (!room.controller.upgradeBlocked || room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME) &&
-            room.controller.pos.countOpenTerrainAround()) {
-            targetRoom.claimAttacker = true;
-        } else {
-            targetRoom.claimAttacker = undefined;
-        }
-    } else {
+    if (!targetRoom) return;
+
+    // Towers are structures, not creeps. A dead garrison with live towers
+    // would otherwise spawn unboosted WORK cleaners into full tower range.
+    const hostileTowers = room.hostileStructures.some(s => s.structureType === STRUCTURE_TOWER);
+    if (room.hostileCreeps.length || hostileTowers) {
         targetRoom.claimAttacker = undefined;
         targetRoom.cleaner = undefined;
+        return;
+    }
+
+    targetRoom.cleaner = room.hostileStructures.length ? true : undefined;
+    if (room.controller && (!room.controller.upgradeBlocked || room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME) &&
+        room.controller.pos.countOpenTerrainAround()) {
+        targetRoom.claimAttacker = true;
+    } else {
+        targetRoom.claimAttacker = undefined;
     }
 }
 

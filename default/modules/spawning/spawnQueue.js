@@ -110,8 +110,11 @@ function adjustQueuePriority(queue, room) {
             : null;
 
         const generatedInfo = new generator(room.level, creep.role, room, creep).generateBody();
+        const liveForOp = (creep.destination && creep.role)
+            ? getCreepCount(undefined, creep.role, creep.destination, creep.operation)
+            : 0;
         if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
-            if (opMemory && opMemory.assignedRoom === room.name) {
+            if (opMemory && opMemory.assignedRoom === room.name && !liveForOp) {
                 unassignRoom(target, 'Unable to generate needed body.');
             }
             delete queue[key];
@@ -129,7 +132,7 @@ function adjustQueuePriority(queue, room) {
 
         if (opMemory && opMemory.boosts && opMemory.boosts.includes(HEAL) &&
             !room.boostCheck(body, undefined, opMemory.boostTier)) {
-            if (opMemory.assignedRoom === room.name) {
+            if (opMemory.assignedRoom === room.name && !liveForOp) {
                 unassignRoom(target, 'Missing required boosts.');
             }
             delete queue[key];

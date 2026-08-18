@@ -2,7 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const {getSiegeDuoUnpaired} = require('bodyHelpers');
+const {getSiegeDuoUnpaired, countRoleForDestination} = require('bodyHelpers');
 const {
     toughMulti,
     getMaxSiegeCombatBudget,
@@ -19,9 +19,12 @@ function buildLongbowFamily(gen) {
     if (gen.creepInfo && Memory.targetRooms[gen.creepInfo.destination] && Memory.targetRooms[gen.creepInfo.destination].boosts) {
         const defaultWaitFor = gen.role === 'longbow' ? 1 : 2;
         const waitFor = gen.creepInfo.misc && gen.creepInfo.misc.waitFor || defaultWaitFor;
+        const dest = gen.creepInfo.destination;
+        const live = dest ? countRoleForDestination(dest, gen.role, gen.creepInfo.operation) : 0;
+        const remaining = Math.max(1, waitFor - live);
         heal = false;
         if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
-            const desiredTough = checkForNeededTough(gen, waitFor, true);
+            const desiredTough = checkForNeededTough(gen, remaining, true);
             for (let t = desiredTough.count; t >= 0; t -= 2) {
                 toughData = t === desiredTough.count ? desiredTough : {boost: desiredTough.boost, count: t};
                 const toughModifier = toughData.boost ? toughMulti[toughData.boost] : 1;

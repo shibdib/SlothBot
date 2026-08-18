@@ -19,16 +19,9 @@
 
 const profiler = require("tools.profiler");
 // Pull the canonical formation offsets from the pathfinder so this role and the
-// squad cost-matrix builder can't drift out of sync. orientation 0 = leader at
-// the NW corner, followers SE; orientation 1 = mirror.
+// squad cost-matrix builder can't drift out of sync. 0 NW / 1 SE / 2 NE / 3 SW.
 const {QUAD_FOLLOWER_OFFSETS: QUAD_OFFSETS} = require("module.pathFinder");
-const stagingCache = {}; // roomName → {x, y, tick} — quad 2×2 staging only
-
-// All 8 surrounding tiles — used for duo positioning (no fixed orientation).
-const ALL_ADJACENT = [
-    {dx: 0, dy: 1}, {dx: 0, dy: -1}, {dx: 1, dy: 0}, {dx: -1, dy: 0},
-    {dx: 1, dy: 1}, {dx: 1, dy: -1}, {dx: -1, dy: 1}, {dx: -1, dy: -1}
-];
+const stagingCache = {}; // creepId → {x, y, tick, roomName}
 
 // Ticks of consistent disagreement before a threat-driven orientation flip
 // commits. Each flip invalidates the cached squad path in shibSquadMovement,
@@ -88,7 +81,8 @@ class RoleLongbowSquad {
     }
 
     housekeeping() {
-        if (this.creep.fightFromRampart()) return true;
+        const waitFor = this.creep.memory.misc && this.creep.memory.misc.waitFor;
+        if (!(waitFor > 1) && this.creep.fightFromRampart()) return true;
         this.creep.formSquad();
         if (this.creep.tryToBoost()) return true;
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
@@ -116,17 +110,23 @@ class RoleLongbowSquad {
         }
 
 
+        const squad = this.getSquad();
+        const fullSquad = squad.concat(creep);
+
+        if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
+            const hostile = creep.findClosestEnemy(false, false);
+            if (hostile) creep.memory.target = hostile.id;
+            else if (creep.memory.target) creep.memory.target = undefined;
+        }
+
         // Combat actions first — range-aware mass-vs-focused decision
         this.fireRangedAction(creep);
 
         this.updateOrientation(creep);
 
-        const squad = this.getSquad();
-        const fullSquad = squad.concat(creep);
-
         // Tactical retreat (continuous health + DPS forecast) takes priority over renewal
         if (this.shouldRetreat(creep, fullSquad)) {
-            creep.fleeHome(true);
+            this.retreatSquad(creep);
             return;
         }
 
@@ -145,25 +145,35 @@ class RoleLongbowSquad {
 
             if (isReady) {
                 if (!creep.memory.initialFormUp) creep.memory.initialFormUp = true;
-                if (creep.memory.operation) this.operationManagement();
-                else if (creep.memory.destination) this.destinationManagement();
-                else creep.handleMilitaryCreep();
+                if (creep.memory.operation === 'roomDenial' || creep.memory.operation === 'stronghold'
+                    || this.isQuad(creep)) {
+                    this.leadPackedQuad(creep);
+                } else if (creep.memory.operation) {
+                    this.operationManagement();
+                } else if (creep.memory.destination) {
+                    this.destinationManagement();
+                } else {
+                    creep.handleMilitaryCreep();
+                }
             } else {
                 creep.memory.waitingToAssemble = true;
-                if (!this.isCurrentPosViable(creep)) {
+                if (!this.holdAtExit(creep, squad) && !this.isCurrentPosViable(creep)) {
                     const stagingTarget = this.findStaging(creep);
                     if (stagingTarget) creep.shibMove(stagingTarget, {range: 0, forceSolo: true});
                 }
             }
         } else {
-            // Safe transit
+            // Safe transit — one move. denyRoom also paths, so skip it here
+            // or the two shibMoves fight (last write wins, two PathFinders).
             creep.memory.waitingToAssemble = false;
-            if (creep.memory.operation) this.operationManagement();
             if (creep.memory.destination) {
+                if (creep.ensureDenialStaging) creep.ensureDenialStaging();
                 const transitTarget = (creep.memory.misc?.stagingRoom && !creep.memory.misc.staged)
                     ? creep.memory.misc.stagingRoom
                     : creep.memory.destination;
                 this.leaderTransit(new RoomPosition(25, 25, transitTarget), {range: 22});
+            } else if (creep.memory.operation) {
+                this.operationManagement();
             } else {
                 creep.handleMilitaryCreep();
             }
@@ -240,6 +250,23 @@ class RoleLongbowSquad {
     }
 
     handleSolo() {
+        const waitFor = (this.creep.memory.misc && this.creep.memory.misc.waitFor) || 0;
+        if (waitFor > 1) {
+            // Incomplete waitFor squad — do not walk into dest alone.
+            if (this.creep.memory.destination && this.room.name === this.creep.memory.destination) {
+                const toward = (this.creep.memory.misc && this.creep.memory.misc.stagingRoom) || this.creep.memory.colony;
+                this.creep.moveToRoomExit(toward);
+                return;
+            }
+            if (this.creep.ensureDenialStaging) this.creep.ensureDenialStaging();
+            const staging = this.creep.memory.misc && this.creep.memory.misc.stagingRoom;
+            if (staging && this.room.name !== staging) {
+                this.creep.shibMove(new RoomPosition(25, 25, staging), {range: 22});
+                return;
+            }
+            if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
+            return;
+        }
         if (!this.creep.handleMilitaryCreep()) this.creep.fleeHome();
     }
 
@@ -272,7 +299,7 @@ class RoleLongbowSquad {
     getInPosition(creep, leader) {
         if (!leader || !creep) return false;
         if (leader.room.name !== creep.room.name) {
-            return creep.shibMove(new RoomPosition(25, 25, leader.room.name), {range: 22, forceSolo: true});
+            return creep.shibMove(leader, {range: 1, forceSolo: true});
         }
 
         // handleFollower routes duos through snake-tail movement; this is quad-only.
@@ -280,15 +307,17 @@ class RoleLongbowSquad {
         if (squadSize <= 2) return creep.pos.isNearTo(leader.pos);
 
         const lp = leader.pos;
-        const terrain = leader.room.getTerrain();
         const slotPositions = (offsets) => {
             const out = [];
             for (const {dx, dy} of offsets) {
                 const nx = lp.x + dx;
                 const ny = lp.y + dy;
                 if (nx < 1 || nx > 48 || ny < 1 || ny > 48) continue;
-                if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
-                out.push(new RoomPosition(nx, ny, lp.roomName));
+                const pos = new RoomPosition(nx, ny, lp.roomName);
+                // Same walkability as isCurrentPosViable — walls alone miss
+                // constructed obstacles and the follower paths onto a blocked tile.
+                if (pos.checkForImpassible(false, true)) continue;
+                out.push(pos);
             }
             return out;
         };
@@ -296,8 +325,14 @@ class RoleLongbowSquad {
         // Try the leader's current orientation; fall back to the opposite if
         // the first has no walkable slots (e.g., leader cornered against a wall).
         const orientation = leader.memory.squadOrientation || 0;
-        let slots = slotPositions(QUAD_OFFSETS[orientation]);
-        if (!slots.length) slots = slotPositions(QUAD_OFFSETS[orientation === 0 ? 1 : 0]);
+        let slots = slotPositions(QUAD_OFFSETS[orientation] || QUAD_OFFSETS[0]);
+        if (!slots.length) {
+            for (let o = 0; o < 4; o++) {
+                if (o === orientation || !QUAD_OFFSETS[o]) continue;
+                slots = slotPositions(QUAD_OFFSETS[o]);
+                if (slots.length) break;
+            }
+        }
         if (!slots.length) return false;
 
         // Already on a valid slot? Stay. This is the key fluidity win — no
@@ -376,14 +411,15 @@ class RoleLongbowSquad {
         // and flip if it fits, so the squad doesn't abandon a viable corner just
         // because updateOrientation picked the wrong side.
         const orientation = creep.memory.squadOrientation || 0;
-        const currentOk = QUAD_OFFSETS[orientation].every(({dx, dy}) => slotOpen(dx, dy));
-        if (currentOk) return true;
+        const offsets = QUAD_OFFSETS[orientation] || QUAD_OFFSETS[0];
+        if (offsets.every(({dx, dy}) => slotOpen(dx, dy))) return true;
 
-        const altOrientation = orientation === 0 ? 1 : 0;
-        const altOk = QUAD_OFFSETS[altOrientation].every(({dx, dy}) => slotOpen(dx, dy));
-        if (altOk) {
-            creep.memory.squadOrientation = altOrientation;
-            return true;
+        for (let o = 0; o < 4; o++) {
+            if (o === orientation || !QUAD_OFFSETS[o]) continue;
+            if (QUAD_OFFSETS[o].every(({dx, dy}) => slotOpen(dx, dy))) {
+                creep.memory.squadOrientation = o;
+                return true;
+            }
         }
         return false;
     }
@@ -402,61 +438,233 @@ class RoleLongbowSquad {
 
         const current = creep.memory.squadOrientation || 0;
         const {x, y} = creep.pos;
+        const crossedRoom = !!(creep.memory.lastPos && creep.memory.lastPos.roomName !== creep.pos.roomName);
+        const edge = this.edgeSafeOrientation(x, y);
+        const combat = this.combatOrientation(creep, x, y);
 
-        // Wall safety override — applies immediately. The 2×2 can't physically fit
-        // the other way at a room edge, so hysteresis would just delay the inevitable.
-        if (x >= 44 || y >= 44) {
-            if (current !== 1) creep.memory.squadOrientation = 1;
+        if (edge !== undefined) {
+            let next = current;
+            if (crossedRoom && combat !== undefined && this.orientationAllowed(edge, combat)
+                && this.orientationFits(creep, combat)) {
+                next = combat;
+            } else if (Array.isArray(edge)) {
+                if (!edge.includes(current)) {
+                    next = (combat !== undefined && edge.includes(combat)) ? combat : edge[0];
+                }
+            } else if (current !== edge) {
+                next = edge;
+            }
+            if (next !== current) creep.memory.squadOrientation = next;
             if (creep.memory.pendingOrientationFlip) creep.memory.pendingOrientationFlip = undefined;
             return;
         }
-        if (x <= 5 || y <= 5) {
-            if (current !== 0) creep.memory.squadOrientation = 0;
+
+        if (combat === undefined) {
             if (creep.memory.pendingOrientationFlip) creep.memory.pendingOrientationFlip = undefined;
             return;
         }
 
-        // Combat orientation — pick the dominant axis so followers extend toward the threat.
+        if (crossedRoom) {
+            creep.memory.squadOrientation = combat;
+            if (creep.memory.pendingOrientationFlip) creep.memory.pendingOrientationFlip = undefined;
+            return;
+        }
+
+        if (combat === current) {
+            if (creep.memory.pendingOrientationFlip) creep.memory.pendingOrientationFlip = undefined;
+            return;
+        }
+
+        const pending = creep.memory.pendingOrientationFlip;
+        if (pending && pending.to === combat) {
+            if (Game.time - pending.since >= ORIENTATION_HYSTERESIS_TICKS) {
+                creep.memory.squadOrientation = combat;
+                creep.memory.pendingOrientationFlip = undefined;
+            }
+        } else {
+            creep.memory.pendingOrientationFlip = {to: combat, since: Game.time};
+        }
+    }
+
+    // 0 NW / 1 SE / 2 NE / 3 SW. Corners are a single legal value; edges are a pair.
+    edgeSafeOrientation(x, y) {
+        const n = y <= 5, s = y >= 44, w = x <= 5, e = x >= 44;
+        if (n && w) return 0;
+        if (s && e) return 1;
+        if (n && e) return 2;
+        if (s && w) return 3;
+        if (n) return [0, 2];
+        if (s) return [1, 3];
+        if (w) return [0, 3];
+        if (e) return [1, 2];
+        return undefined;
+    }
+
+    orientationAllowed(edge, orient) {
+        return edge === orient || (Array.isArray(edge) && edge.includes(orient));
+    }
+
+    combatOrientation(creep, x, y) {
         const knownTarget = Game.getObjectById(creep.memory.target);
         let nearestThreat = knownTarget && knownTarget.pos ? knownTarget : null;
         if (!nearestThreat) {
             const candidates = this.room.hostileCreeps.concat(this.room.hostileStructures || []);
             if (candidates.length) nearestThreat = _.min(candidates, t => creep.pos.getRangeTo(t));
         }
-
-        if (!nearestThreat || !nearestThreat.pos) {
-            if (creep.memory.pendingOrientationFlip) creep.memory.pendingOrientationFlip = undefined;
-            return;
-        }
-
+        if (!nearestThreat || !nearestThreat.pos || nearestThreat.pos.roomName !== creep.pos.roomName) return undefined;
         const dx = nearestThreat.pos.x - x;
         const dy = nearestThreat.pos.y - y;
-        const proposed = Math.abs(dx) >= Math.abs(dy)
-            ? (dx >= 0 ? 0 : 1)
-            : (dy >= 0 ? 0 : 1);
+        if (dx >= 0 && dy >= 0) return 0;
+        if (dx < 0 && dy < 0) return 1;
+        if (dx < 0 && dy >= 0) return 2;
+        return 3;
+    }
 
-        if (proposed === current) {
-            if (creep.memory.pendingOrientationFlip) creep.memory.pendingOrientationFlip = undefined;
-            return;
+    orientationFits(creep, orient) {
+        const offsets = QUAD_OFFSETS[orient];
+        if (!offsets) return false;
+        const {x, y, roomName} = creep.pos;
+        const terrain = creep.room.getTerrain();
+        for (let i = 0; i < offsets.length; i++) {
+            const nx = x + offsets[i].dx;
+            const ny = y + offsets[i].dy;
+            if (nx < 1 || nx > 48 || ny < 1 || ny > 48) return false;
+            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) return false;
+            if (new RoomPosition(nx, ny, roomName).checkForImpassible(false, true)) return false;
         }
-
-        // Hysteresis: require ORIENTATION_HYSTERESIS_TICKS of consistent disagreement
-        // before flipping, so a threat that briefly crosses an axis doesn't churn the
-        // cached squad path.
-        const pending = creep.memory.pendingOrientationFlip;
-        if (pending && pending.to === proposed) {
-            if (Game.time - pending.since >= ORIENTATION_HYSTERESIS_TICKS) {
-                creep.memory.squadOrientation = proposed;
-                creep.memory.pendingOrientationFlip = undefined;
-            }
-        } else {
-            creep.memory.pendingOrientationFlip = {to: proposed, since: Game.time};
-        }
+        return true;
     }
 
     nearDestination(leader) {
         if (!leader.memory.destination) return false;
-        return Game.map.getRoomLinearDistance(leader.room.name, leader.memory.destination) <= 1;
+        // Quads pack two rooms out so the last hop is a 2×2. Duos snake in
+        // transit — treating them like quads here parks the leader mid-route
+        // (isCurrentPosViable is always true, so they never move to staging).
+        const limit = this.isQuad(leader) ? 2 : 1;
+        if (Game.map.getRoomLinearDistance(leader.room.name, leader.memory.destination) <= limit) return true;
+        const staging = leader.memory.misc && leader.memory.misc.stagingRoom;
+        return !!(staging && leader.room.name === staging);
+    }
+
+    isQuad(creep) {
+        return (creep.memory.squadMembers || []).length + 1 > 2;
+    }
+
+    // Unpacked in dest (or any threatened room): sit on the entry exit until
+    // the squad is together. 25,25 / local staging is the bunker.
+    holdAtExit(creep, squad) {
+        const inDest = !!(creep.memory.destination && creep.room.name === creep.memory.destination);
+        const threatened = !!(this.room.hostileCreeps.length || this.room.hostileStructures.length);
+        if (!inDest && !threatened) return false;
+        const partner = squad && squad[0];
+        const toward = partner && partner.pos.roomName !== creep.pos.roomName
+            ? partner.pos.roomName
+            : (creep.memory.misc && creep.memory.misc.stagingRoom !== creep.room.name
+                ? creep.memory.misc.stagingRoom
+                : undefined);
+        return creep.moveToRoomExit(toward);
+    }
+
+    // Packed 2×2: bookkeeping only from denyRoom, then step the formation as one.
+    leadPackedQuad(creep) {
+        if (creep.memory.operation === 'roomDenial' || creep.memory.operation === 'stronghold') {
+            creep.denyRoom({squadMove: true});
+            if (creep.memory.operation === 'borderPatrol') return;
+        }
+
+        if (creep.memory.destination && creep.room.name === creep.memory.destination) {
+            const hostile = Game.getObjectById(creep.memory.target) || creep.findClosestEnemy(false, false);
+            if (hostile) {
+                creep.memory.target = hostile.id;
+                return this.advancePackedQuad(creep, hostile);
+            }
+            if (creep.room.controller && creep.pos.getRangeTo(creep.room.controller) > 5) {
+                return this.leaderTransit(creep.room.controller, {range: 4});
+            }
+            return;
+        }
+
+        if (creep.memory.destination) {
+            if (creep.ensureDenialStaging) creep.ensureDenialStaging();
+            const transitTarget = (creep.memory.misc && creep.memory.misc.stagingRoom && !creep.memory.misc.staged)
+                ? creep.memory.misc.stagingRoom
+                : creep.memory.destination;
+            return this.leaderTransit(new RoomPosition(25, 25, transitTarget), {range: 22});
+        }
+
+        if (creep.memory.operation) return this.operationManagement();
+        return creep.handleMilitaryCreep();
+    }
+
+    liveHostileTowers() {
+        const towers = this.room.towers || [];
+        const out = [];
+        for (let i = 0; i < towers.length; i++) {
+            const t = towers[i];
+            const o = t.safeOwnerName ? t.safeOwnerName() : (t.owner && t.owner.username);
+            if (!o || FRIENDLIES.includes(o)) continue;
+            if (t.store && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST) out.push(t);
+        }
+        return out;
+    }
+
+    canTankLiveTowers(creep) {
+        const squad = this.getSquad().concat(creep);
+        let hps = 0;
+        for (let i = 0; i < squad.length; i++) {
+            hps += abilityPower(squad[i].body).effectiveHeal;
+        }
+        return hps > this.liveHostileTowers().length * 600;
+    }
+
+    // Range 3 on the target unless live towers would dump 600/tick into the 2×2.
+    // Empty towers do not count. Too close without the heal budget → walk back out.
+    advancePackedQuad(creep, hostile) {
+        const towers = this.liveHostileTowers();
+        if (towers.length && !this.canTankLiveTowers(creep)) {
+            let closest = towers[0];
+            let closestRange = creep.pos.getRangeTo(closest);
+            for (let i = 1; i < towers.length; i++) {
+                const r = creep.pos.getRangeTo(towers[i]);
+                if (r < closestRange) {
+                    closest = towers[i];
+                    closestRange = r;
+                }
+            }
+            if (closestRange < 6) {
+                if (creep.ensureDenialStaging) creep.ensureDenialStaging();
+                const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
+                if (staging && staging !== creep.room.name) {
+                    return this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
+                }
+                return creep.moveToRoomExit(staging || creep.memory.colony);
+            }
+            if (closestRange <= 8) return;
+            return this.leaderTransit(closest, {range: 7});
+        }
+        return this.leaderTransit(hostile, {range: 3});
+    }
+
+    // Back out the way we came (staging, then colony). fleeHome alone can
+    // path a duo through the bunker; the follower snakes on lastPos.
+    retreatSquad(creep) {
+        if (creep.ensureDenialStaging) creep.ensureDenialStaging();
+        const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
+        const dest = creep.memory.destination;
+        if (dest && creep.room.name === dest) {
+            if (staging && staging !== creep.room.name) {
+                return this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
+            }
+            return creep.moveToRoomExit(staging || creep.memory.colony);
+        }
+        if (staging && creep.room.name !== staging && this.nearDestination(creep)) {
+            return this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
+        }
+        const colony = creep.memory.colony;
+        if (colony && creep.room.name !== colony) {
+            return this.leaderTransit(new RoomPosition(25, 25, colony), {range: 22});
+        }
+        return creep.fleeHome(true);
     }
 
     squadRenewal(creep) {
@@ -496,9 +704,18 @@ class RoleLongbowSquad {
     isFormationPacked(creeps, leader) {
         const leaderRoomName = leader.pos.roomName;
 
-        // All squad members must be in the leader's room — otherwise we're fragmented, not packed
         for (let i = 0; i < creeps.length; i++) {
             if (!creeps[i] || creeps[i].pos.roomName !== leaderRoomName) return false;
+        }
+
+        // Full 2×2: every pair adjacent. A 3-creep remnant only needs to hug the
+        // leader — a line fails pairwise but is still a usable blob.
+        if (creeps.length <= 3) {
+            for (let i = 0; i < creeps.length; i++) {
+                if (creeps[i].id === leader.id) continue;
+                if (!creeps[i].pos.isNearTo(leader.pos)) return false;
+            }
+            return true;
         }
 
         for (let i = 0; i < creeps.length; i++) {
@@ -510,14 +727,15 @@ class RoleLongbowSquad {
     }
 
     findStaging(creep) {
-        // Quad-only: isCurrentPosViable always returns true for duos so the leader
-        // never asks for staging there. Defensive null return if invoked anyway.
+        // Quad-only. Never search inside the dest — a clear 2×2 there is the bunker.
         const squadSize = (creep.memory.squadMembers || []).length + 1;
         if (squadSize <= 2) return null;
+        if (creep.memory.destination && creep.room.name === creep.memory.destination) return null;
 
         const roomName = creep.room.name;
         const pos = creep.pos;
         const terrain = creep.room.getTerrain();
+        const selfId = creep.id;
 
         const tileClear = (cx, cy) => {
             if (cx < 1 || cx > 48 || cy < 1 || cy > 48) return false;
@@ -537,9 +755,29 @@ class RoleLongbowSquad {
             return true;
         };
         const footprintClear = (x, y) => quadClear(seQuad, x, y) || quadClear(nwQuad, x, y);
+        const claimedByOther = (x, y) => {
+            for (const id in stagingCache) {
+                if (id === selfId) continue;
+                const c = stagingCache[id];
+                if (!c || c.roomName !== roomName || c.tick + 20 <= Game.time) continue;
+                if (Math.abs(c.x - x) <= 1 && Math.abs(c.y - y) <= 1) return true;
+            }
+            return false;
+        };
 
-        const cached = stagingCache[roomName];
-        if (cached && cached.tick + 20 > Game.time && footprintClear(cached.x, cached.y)) {
+        const dest = creep.memory.destination;
+        if (dest && dest !== roomName && Game.map.getRoomLinearDistance(roomName, dest) <= 1) {
+            const exitSpot = this.findExitStaging(creep, dest, footprintClear, claimedByOther, tileClear);
+            if (exitSpot) {
+                stagingCache[selfId] = {x: exitSpot.x, y: exitSpot.y, tick: Game.time, roomName};
+                if (exitSpot.orientation !== undefined) creep.memory.squadOrientation = exitSpot.orientation;
+                return new RoomPosition(exitSpot.x, exitSpot.y, roomName);
+            }
+        }
+
+        const cached = stagingCache[selfId];
+        if (cached && cached.tick + 20 > Game.time && cached.roomName === roomName
+            && footprintClear(cached.x, cached.y) && !claimedByOther(cached.x, cached.y)) {
             return new RoomPosition(cached.x, cached.y, roomName);
         }
 
@@ -553,14 +791,51 @@ class RoleLongbowSquad {
                     const y = pos.y + dy;
                     if (x < 1 || x > 48 || y < 1 || y > 48) continue;
 
-                    if (footprintClear(x, y)) {
-                        stagingCache[roomName] = {x, y, tick: Game.time};
+                    if (footprintClear(x, y) && !claimedByOther(x, y)) {
+                        stagingCache[selfId] = {x, y, tick: Game.time, roomName};
                         return new RoomPosition(x, y, roomName);
                     }
                 }
             }
         }
         return null;
+    }
+
+    // 2×2 just inside the dest-facing exit so the last hop is a packed cross.
+    findExitStaging(creep, dest, footprintClear, claimedByOther, tileClear) {
+        const dir = creep.room.findExitTo(dest);
+        if (!(dir > 0)) return null;
+        const tiles = creep.room.find(dir);
+        if (!tiles.length) return null;
+        const spec = {
+            1: {ix: 0, iy: 1, orients: [0, 2]},
+            3: {ix: -1, iy: 0, orients: [1, 2]},
+            5: {ix: 0, iy: -1, orients: [1, 3]},
+            7: {ix: 1, iy: 0, orients: [0, 3]}
+        }[dir];
+        if (!spec) return null;
+
+        let best = null;
+        let bestDist = Infinity;
+        for (let i = 0; i < tiles.length; i++) {
+            const lx = tiles[i].x + spec.ix;
+            const ly = tiles[i].y + spec.iy;
+            if (lx < 1 || lx > 48 || ly < 1 || ly > 48) continue;
+            if (claimedByOther(lx, ly) || !footprintClear(lx, ly)) continue;
+            const d = creep.pos.getRangeTo(lx, ly);
+            if (d >= bestDist) continue;
+            bestDist = d;
+            let orientation = spec.orients[0];
+            for (let o = 0; o < spec.orients.length; o++) {
+                const offsets = QUAD_OFFSETS[spec.orients[o]];
+                if (offsets && offsets.every(({dx, dy}) => tileClear(lx + dx, ly + dy))) {
+                    orientation = spec.orients[o];
+                    break;
+                }
+            }
+            best = {x: lx, y: ly, orientation};
+        }
+        return best;
     }
 
     /* ====================== COMBAT HELPERS ====================== */
@@ -582,10 +857,22 @@ class RoleLongbowSquad {
         // conflict, so we only need to bail when healInRange queued rangedHeal.
         if (creep.hasActiveBodyparts(HEAL) && this.healInRangeWouldRangedHeal(creep)) return;
 
+        const focus = Game.getObjectById(creep.memory.target);
+        const focusHere = focus && focus.pos && focus.pos.roomName === creep.room.name
+            && creep.pos.getRangeTo(focus) <= 3;
+
         // Expected mass-attack damage per RANGED_ATTACK part vs focused (10 per part if target in range)
         let expectedMass = 0;
         for (const {h, r} of inRange) {
             expectedMass += r <= 1 ? 10 : r === 2 ? 4 : 1;
+        }
+
+        // Packed squads stay on the leader's pick. Mass only when that pick is
+        // in the blob and mass beats a focused 10-per-part hit.
+        if (focusHere) {
+            if (inRange.length >= 2 && expectedMass > 10) creep.rangedMassAttack();
+            else creep.rangedAttack(focus);
+            return;
         }
 
         if (inRange.length >= 2 && expectedMass > 10) {
@@ -683,7 +970,10 @@ class RoleLongbowSquad {
         // CPU saving is worth taking.
         if (creep.memory.groupLeader && !creep.memory.leader) {
             const leader = Game.getObjectById(creep.memory.groupLeader);
-            if (leader && leader.memory.squadKiteTick === Game.time) return true;
+            if (leader && (leader.memory.squadKiteTick === Game.time || leader.memory.squadMoveTick === Game.time)) return true;
+            // Duo followers snake onto lastPos. An independent kite vector tears
+            // the pair apart; the leader's solo step is the trail.
+            if (leader && (leader.memory.squadMembers || []).length + 1 <= 2) return false;
         }
 
         // Range 1: any ATTACK threat will land a melee swing next tick — kite even if
@@ -698,22 +988,39 @@ class RoleLongbowSquad {
         });
         if (!meleeThreats.length) return false;
 
-        // Squad kite: when a leader has live followers, use pathfinder's
-        // shibSquadKite so the whole formation steps as one. Each member otherwise
-        // computes its own kite vector from local threats and the squad tears apart
-        // for at least one tick. squadKiteTick flags the move for follower defer.
-        if (creep.memory.leader && (creep.memory.squadMembers || []).length) {
+        // Quad kite: step the 2×2 as one. Duos must not use shibSquadKite —
+        // squadMove returns false if the follower has fatigue, then each creep
+        // picks its own vector and the snake breaks.
+        if (creep.memory.leader && (creep.memory.squadMembers || []).length > 1) {
             if (creep.shibSquadKite(2)) {
                 creep.memory.squadKiteTick = Game.time;
                 creep.memory._shibSquadMove = undefined;
                 return true;
             }
-            // Fall through to the single-step heuristic when the pathfinder can't
-            // find a flee path (cornered, fully surrounded, etc.) — better to step
-            // any direction than freeze.
+            // Pathfinder failed. One shared step (or a hold) — never fall through
+            // to per-creep vectors or the 2×2 tears apart.
+            const dir = this.sharedKiteDirection(creep, meleeThreats);
+            if (dir && creep.move(dir) === OK) {
+                const members = (creep.memory.squadMembers || []).map(id => Game.getObjectById(id)).filter(Boolean);
+                for (const m of members) {
+                    if (m.pos.getRangeTo(creep) > 1) continue;
+                    const next = m.pos.positionAtDirection(dir);
+                    if (!next || !next.checkForImpassible(false, true)) m.move(dir);
+                }
+            }
+            creep.memory.squadKiteTick = Game.time;
+            creep.memory._shibSquadMove = undefined;
+            return true;
         }
 
-        // Aggregate threat direction; step away on the dominant axis(es)
+        const dir = this.sharedKiteDirection(creep, meleeThreats);
+        if (!dir) return false;
+        if (creep.move(dir) !== OK) return false;
+        creep.memory._shibSquadMove = undefined;
+        return true;
+    }
+
+    sharedKiteDirection(creep, meleeThreats) {
         let avgDx = 0, avgDy = 0;
         for (const t of meleeThreats) {
             avgDx += t.pos.x - creep.pos.x;
@@ -721,28 +1028,17 @@ class RoleLongbowSquad {
         }
         const stepX = avgDx > 0 ? -1 : avgDx < 0 ? 1 : 0;
         const stepY = avgDy > 0 ? -1 : avgDy < 0 ? 1 : 0;
-        if (stepX === 0 && stepY === 0) return false;
-
+        if (stepX === 0 && stepY === 0) return 0;
         const tx = creep.pos.x + stepX;
         const ty = creep.pos.y + stepY;
-        if (tx < 1 || tx > 48 || ty < 1 || ty > 48) return false;
-
-        const terrain = creep.room.getTerrain();
-        if (terrain.get(tx, ty) === TERRAIN_MASK_WALL) return false;
-        if (new RoomPosition(tx, ty, creep.room.name).checkForImpassible(false, true)) return false;
-
-        const dir = creep.pos.getDirectionTo(tx, ty);
-        if (!dir) return false;
-
-        if (creep.move(dir) !== OK) return false;
-        // Invalidate cached squad path so next tick re-pathfinds from the new position
-        creep.memory._shibSquadMove = undefined;
-        return true;
+        if (tx < 1 || tx > 48 || ty < 1 || ty > 48) return 0;
+        if (creep.room.getTerrain().get(tx, ty) === TERRAIN_MASK_WALL) return 0;
+        if (new RoomPosition(tx, ty, creep.room.name).checkForImpassible(false, true)) return 0;
+        return creep.pos.getDirectionTo(tx, ty) || 0;
     }
 
     handleRefillTrip(creep, squad) {
-        // Don't divert mid-combat
-        if (this.room.hostileCreeps.length || this.room.hostileStructures.length || this.creep.memory.hasBoosted) return false;
+        if (this.room.hostileCreeps.length) return false;
 
         const targetSize = creep.memory.misc?.waitFor || 1;
         const currentSize = squad.length + 1;
@@ -760,7 +1056,32 @@ class RoleLongbowSquad {
             return false;
         }
 
-        if (undermanned) creep.memory.needsMoreSquadMembers = true;
+        // Boosted + full: do not walk home just to die. Short squads still pull back.
+        if (!undermanned && creep.memory.hasBoosted) return false;
+
+        if (undermanned) {
+            creep.memory.needsMoreSquadMembers = true;
+            if (creep.ensureDenialStaging) creep.ensureDenialStaging();
+            const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
+            const dest = creep.memory.destination;
+            if (dest && creep.room.name === dest) {
+                if (staging && staging !== dest) {
+                    this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
+                    return true;
+                }
+                creep.moveToRoomExit(staging || creep.memory.colony);
+                return true;
+            }
+            if (staging && creep.room.name !== staging) {
+                this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
+                return true;
+            }
+            if (staging && creep.room.name === staging) {
+                if (lowTTL && creep.memory.initialFormUp) creep.memory.initialFormUp = undefined;
+                creep.idleFor(5);
+                return true;
+            }
+        }
 
         const colony = creep.memory.colony;
         if (!colony) return false;
@@ -770,11 +1091,6 @@ class RoleLongbowSquad {
             return true;
         }
 
-        // At colony. Clear initialFormUp on low TTL so hasFullSquad re-evaluates as
-        // new spawns join, and so squadRenewal's initialFormUp gate opens for any
-        // pre-boost creep that aged out before its lab was ready. squadRenewal is
-        // still gated on !hasBoosted internally, so post-boost leaders correctly
-        // fall through to idle-and-die-here while a replacement spawns.
         if (lowTTL && creep.memory.initialFormUp) creep.memory.initialFormUp = undefined;
         if (this.squadRenewal(creep)) return true;
         creep.idleFor(5);
@@ -849,6 +1165,7 @@ class RoleLongbowSquad {
     }
 
     destinationManagement() {
+        if (this.creep.ensureDenialStaging) this.creep.ensureDenialStaging();
         let destination = this.creep.memory.misc?.stagingRoom && !this.creep.memory.misc.staged
             ? this.creep.memory.misc.stagingRoom
             : this.creep.memory.destination;
@@ -867,8 +1184,11 @@ class RoleLongbowSquad {
         const isReady = this.hasFullSquad(this.creep) && this.isFormationPacked(squad.concat(this.creep), this.creep);
 
         if (isReady) {
+            if (this.isQuad(this.creep)) return this.leadPackedQuad(this.creep);
             if (this.creep.handleMilitaryCreep()) return;
             if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
+        } else if (this.holdAtExit(this.creep, squad)) {
+            return;
         } else if (!this.isCurrentPosViable(this.creep)) {
             const staging = this.findStaging(this.creep);
             if (staging) this.creep.shibMove(staging, {range: 0, forceSolo: true});

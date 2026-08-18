@@ -990,7 +990,6 @@ const BOOST_TTL_FLOOR = CREEP_LIFE_TIME * 0.6;
 const BOOST_RENEW_INITIAL = CREEP_LIFE_TIME * 0.85;
 const BOOST_RENEW_WAITING = CREEP_LIFE_TIME * 0.95;
 const BOOST_LAB_WAIT_TICKS = 5;
-const BOOST_SQUAD_WAIT_TICKS = 5;
 
 // Shared with module.creepSpawning.preReserveBoostLab.
 global.WORK_BOOST_BY_ROLE = {
@@ -1047,17 +1046,6 @@ function buildBoostPlan(creep, requestedBodyParts) {
         if (resource) plan[resource] = {boost: resource, amount, type: boostType};
     }
     return plan;
-}
-
-function waitingForSquad(creep) {
-    const misc = creep.memory.misc;
-    if (!misc || misc.waitFor <= 1) return false;
-    const leader = creep.memory.leader ? creep : Game.getObjectById(creep.memory.groupLeader);
-    const squadSize = leader && leader.memory.squadMembers ? leader.memory.squadMembers.length + 1 : 1;
-    if (!creep.memory.formUpTimer) {
-        creep.memory.formUpTimer = creep.memory.renewalLimit || (Game.time + misc.waitFor * 1000);
-    }
-    return squadSize < misc.waitFor && creep.memory.formUpTimer > Game.time;
 }
 
 // Excludes labs with itemNeeded — those belong to production reactions.
@@ -1293,8 +1281,6 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
         finishBoosting(this);
         return false;
     }
-
-    if (waitingForSquad(this)) return this.idleFor(BOOST_SQUAD_WAIT_TICKS);
 
     if (!this.memory.hasBoosted && this.hasActiveBodyparts(MOVE) &&
         this.handleRenewing(BOOST_RENEW_INITIAL)) return true;

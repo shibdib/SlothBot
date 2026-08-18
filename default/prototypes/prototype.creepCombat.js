@@ -782,6 +782,21 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     }
 };
 
+// Hold on the exit toward `towardRoom` (or the nearest exit). Used when a duo
+// leader is in a threatened dest without the partner — 25,25 is the bunker.
+Creep.prototype.moveToRoomExit = function (towardRoom) {
+    let tile;
+    if (towardRoom && towardRoom !== this.pos.roomName) {
+        const dir = this.room.findExitTo(towardRoom);
+        if (dir > 0) tile = this.pos.findClosestByRange(dir);
+    }
+    if (!tile) tile = this.pos.findClosestByRange(FIND_EXIT);
+    if (!tile) return false;
+    if (this.pos.getRangeTo(tile) <= 1) return true;
+    this.shibMove(tile, {range: 0, forceSolo: true});
+    return true;
+};
+
 Creep.prototype.findDefensivePosition = function (target) {
     if (target) return this.fightFromRampart(target);
 
@@ -801,8 +816,96 @@ Creep.prototype.findDefensivePosition = function (target) {
     else this.shibMove(fallback, {range: 12, avoidEnemies: true});
 };
 
+function absorbSquad(winner, loser, waitFor) {
+    if (!winner || !loser || winner.id === loser.id || !loser.memory.leader) return;
+    if (!winner.memory.squadMembers) winner.memory.squadMembers = [];
+
+    const attach = (creep) => {
+        if (!creep || creep.id === winner.id) return false;
+        if (winner.memory.squadMembers.length + 1 >= waitFor) return false;
+        if (winner.memory.squadMembers.includes(creep.id)) return false;
+        creep.memory.leader = undefined;
+        creep.memory.squadMembers = undefined;
+        creep.memory.grouped = true;
+        creep.memory.groupLeader = winner.id;
+        creep.memory.squadListed = undefined;
+        creep.memory.role = 'longbowSquad';
+        winner.memory.squadMembers.push(creep.id);
+        return true;
+    };
+
+    const memberIds = (loser.memory.squadMembers || []).slice();
+    for (let i = 0; i < memberIds.length; i++) {
+        if (!attach(Game.getObjectById(memberIds[i]))) break;
+    }
+    attach(loser);
+
+    if (!loser.memory.leader) return;
+    const remaining = (loser.memory.squadMembers || []).filter(id => {
+        const c = Game.getObjectById(id);
+        return c && c.memory.groupLeader === loser.id;
+    });
+    loser.memory.squadMembers = remaining;
+    if (!remaining.length) {
+        loser.memory.leader = undefined;
+        loser.memory.grouped = undefined;
+        loser.memory.squadMembers = undefined;
+        loser.memory.squadListed = undefined;
+    }
+}
+
+// Two incomplete waitFor-4 pairs never re-enter findGroup (already grouped),
+// so they camp the dest exit forever. Nearby partial leaders combine here;
+// both sides pick the same winner (size, then name) so they do not swap.
+function tryMergePartialSquads(leader) {
+    const waitFor = (leader.memory.misc && leader.memory.misc.waitFor) || 4;
+    if (waitFor <= 2) return;
+    if ((leader.memory.squadMembers || []).length + 1 >= waitFor) return;
+
+    const dest = leader.memory.destination;
+    const op = leader.memory.operation;
+    if (!dest && !op) return;
+
+    const isNearbyLeader = (c) => {
+        if (!c || c.id === leader.id || !c.my || !c.memory.leader) return false;
+        if (c.memory.destination !== dest || c.memory.operation !== op) return false;
+        const theirWait = (c.memory.misc && c.memory.misc.waitFor) || 4;
+        if (theirWait <= 2) return false;
+        return (c.memory.squadMembers || []).length + 1 < theirWait;
+    };
+
+    let others = leader.room.myCreeps.filter(isNearbyLeader);
+    if (!others.length) {
+        const pool = (global.world && global.world.militaryCreeps) || Game.creeps;
+        const list = Array.isArray(pool) ? pool : Object.values(pool);
+        others = list.filter(c =>
+            isNearbyLeader(c) &&
+            c.room.name !== leader.room.name &&
+            Game.map.getRoomLinearDistance(leader.room.name, c.room.name) <= 1
+        );
+    }
+    if (!others.length) return;
+
+    const winner = others.concat(leader).reduce((best, c) => {
+        const sb = (best.memory.squadMembers || []).length;
+        const sc = (c.memory.squadMembers || []).length;
+        if (sc !== sb) return sc > sb ? c : best;
+        return c.name < best.name ? c : best;
+    });
+
+    if (winner.id !== leader.id) {
+        absorbSquad(winner, leader, (winner.memory.misc && winner.memory.misc.waitFor) || waitFor);
+        return;
+    }
+    for (let i = 0; i < others.length; i++) {
+        absorbSquad(leader, others[i], waitFor);
+        if ((leader.memory.squadMembers || []).length + 1 >= waitFor) break;
+    }
+}
+
 Creep.prototype.formSquad = function () {
     if (!this.memory.grouped && !this.spawning) findGroup(this);
+    else if (this.memory.leader && !this.spawning) tryMergePartialSquads(this);
     else if (this.memory.grouped && !this.memory.leader) {
         const leader = Game.getObjectById(this.memory.groupLeader);
         if (!leader) {

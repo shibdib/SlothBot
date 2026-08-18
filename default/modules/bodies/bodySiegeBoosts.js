@@ -4,7 +4,18 @@
  * Siege boost sizing: TOUGH/HEAL parts vs tower damage and lab stock.
  */
 
+const {countRoleForDestination} = require('bodyHelpers');
+
 const toughMulti = {GO: 0.75, GHO2: 0.55, XGHO2: 0.35};
+
+function remainingSquadBodies(gen) {
+    const waitFor = Math.max(1, (gen.creepInfo && gen.creepInfo.misc && gen.creepInfo.misc.waitFor) || 1);
+    const dest = gen.creepInfo && gen.creepInfo.destination;
+    if (!dest) return waitFor;
+    const role = gen.role || (gen.creepInfo && gen.creepInfo.role);
+    const live = countRoleForDestination(dest, role, gen.creepInfo && gen.creepInfo.operation);
+    return Math.max(1, waitFor - live);
+}
 
 function getMaxSiegeCombatBudget() {
     return 25;
@@ -52,7 +63,7 @@ function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedPa
     }
 
     const tiers = determineNeededHeals(damageToTank);
-    const squadSize = Math.max(1, (gen.creepInfo.misc && gen.creepInfo.misc.waitFor) || 1);
+    const squadSize = remainingSquadBodies(gen);
     const MIN_RANGED_PARTS = rangedParts ? 5 : 0;
     const MAX_HEAL_PARTS = getMaxSiegeHealParts(toughCount, MIN_RANGED_PARTS);
     const reservedEnergy = MIN_RANGED_PARTS * (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE]);

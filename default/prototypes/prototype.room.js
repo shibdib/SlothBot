@@ -1018,7 +1018,7 @@ function determineBestAttackRoute(room) {
     const viableExits = roomExits.filter(exit => !INTEL[exit] || !INTEL[exit].owner || INTEL[exit].owner === MY_USERNAME);
     if (!viableExits.length) return undefined;
 
-    let bestExit = room.findExitTo(viableExits[0]);
+    let bestExitRoom = viableExits[0];
     let lowestBarrierCount = Infinity;
 
     for (const exit of viableExits) {
@@ -1039,10 +1039,10 @@ function determineBestAttackRoute(room) {
 
         if (barrierCount < lowestBarrierCount) {
             lowestBarrierCount = barrierCount;
-            bestExit = Game.map.describeExits(room.name)[exitDirection];
+            bestExitRoom = exit;
         }
     }
-    return bestExit;
+    return bestExitRoom;
 }
 
 let invaderAlert = {};

@@ -122,14 +122,23 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
 }
 
 
+// Leader at one corner, followers filling the 2×2 toward the opposite corner.
+// 0 NW leader / SE followers (legacy 0)
+// 1 SE leader / NW followers (legacy 1)
+// 2 NE leader / SW followers
+// 3 SW leader / NE followers
 const QUAD_FOLLOWER_OFFSETS = {
     0: [{dx: 0, dy: 1}, {dx: 1, dy: 0}, {dx: 1, dy: 1}],
-    1: [{dx: 0, dy: -1}, {dx: -1, dy: 0}, {dx: -1, dy: -1}]
+    1: [{dx: 0, dy: -1}, {dx: -1, dy: 0}, {dx: -1, dy: -1}],
+    2: [{dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: -1, dy: 1}],
+    3: [{dx: 0, dy: -1}, {dx: 1, dy: 0}, {dx: 1, dy: -1}]
 };
 
 const formationVectorsByOrientation = {
     0: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[0].map(v => ({x: -v.dx, y: -v.dy}))],
-    1: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[1].map(v => ({x: -v.dx, y: -v.dy}))]
+    1: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[1].map(v => ({x: -v.dx, y: -v.dy}))],
+    2: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[2].map(v => ({x: -v.dx, y: -v.dy}))],
+    3: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[3].map(v => ({x: -v.dx, y: -v.dy}))]
 };
 
 function getFormationVectors(orientation) {
