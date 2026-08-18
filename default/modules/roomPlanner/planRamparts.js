@@ -713,12 +713,13 @@ function freeSiteSlotsForPerimeter(room, want, options) {
             }
         }
     };
-    // Prefer idle low-priority sites. Never remove spawn/tower/terminal sites.
+    // Prefer idle roads. Never remove spawn/tower/terminal/container/link sites —
+    // economy immediately re-queues those on the same tile (visible flicker).
     // Extensions only when the room is already at full extension count (deficit 0).
-    // Roads always first — ensureOwnedRoadsProgress can fill the room cap and leave seals empty.
+    // Roads first: ensureOwnedRoadsProgress can fill the room cap and leave seals empty.
     const prefer = extDeficit > 0
-        ? [STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_LINK]
-        : [STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_EXTENSION, STRUCTURE_LINK];
+        ? [STRUCTURE_ROAD]
+        : [STRUCTURE_ROAD, STRUCTURE_EXTENSION];
     for (const type of prefer) {
         if (freed >= want) break;
         removeSites(room.constructionSites.filter(s => s.structureType === type && !s.progress));
@@ -1055,6 +1056,7 @@ function ensurePerimeterSites(room, options = {}) {
 
         // Non-barrier sites on the perimeter tile block forever unless we clear idle ones.
         // Never remove extension sites while the room still needs extensions.
+        // Never remove container/link sites — economy puts the same tile back next pass.
         const otherSite = pos.lookFor(LOOK_CONSTRUCTION_SITES).find(s =>
             s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL);
         if (otherSite) {
@@ -1064,10 +1066,9 @@ function ensurePerimeterSites(room, options = {}) {
             } catch (e) { /* ignore */
             }
             const canClearExt = otherSite.structureType !== STRUCTURE_EXTENSION || extDeficitHere <= 0;
-            if (!otherSite.progress && canClearExt &&
-                (otherSite.structureType === STRUCTURE_ROAD ||
-                    otherSite.structureType === STRUCTURE_CONTAINER ||
-                    otherSite.structureType === STRUCTURE_EXTENSION)) {
+            const canClearType = otherSite.structureType === STRUCTURE_ROAD
+                || otherSite.structureType === STRUCTURE_EXTENSION;
+            if (!otherSite.progress && canClearExt && canClearType) {
                 try {
                     otherSite.remove();
                     invalidateRoomConstructionSiteCache(room);

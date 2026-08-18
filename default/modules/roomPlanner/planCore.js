@@ -269,17 +269,11 @@ function placeCoreStamps(room, options) {
     const attackRecovery = room.controller.level >= 5 && isAttackRecoveryMode(room);
     const shadow = isPlannerShadow(room);
 
-    // Attack recovery: clear idle non-critical sites (critical stamps only).
+    // Attack recovery: only critical stamps are placed (see computeCoreStampPlan).
+    // Do not wipe idle roads/links/containers/extensions — later phases and the
+    // global road queue immediately put the same tiles back.
     // Shadow: skip all world mutates (site.remove / perimeter place).
     if (attackRecovery && !shadow) {
-        const keep = [STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_TERMINAL, STRUCTURE_RAMPART, STRUCTURE_WALL];
-        const idle = (room.constructionSites || []).filter(s => !keep.includes(s.structureType) && !s.progress);
-        for (let i = 0; i < idle.length; i++) {
-            try {
-                idle[i].remove();
-            } catch (e) { /* ignore */
-            }
-        }
         // V1 called rampartBuilder during recovery layout; recompute plan + place seal via V2.
         try {
             require('planRamparts').recalculateRampartsForRoom(room, undefined, {destroyOffPlan: false});

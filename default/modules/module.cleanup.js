@@ -49,18 +49,46 @@ function cleanDistanceCacheByUsage() {
     Memory._distanceCache = JSON.stringify(_.slice(sorted, overage));
 }
 
+function isOwnedSiteRoom(room, roomName) {
+    if (room && room.controller && room.controller.my) return true;
+    return typeof MY_ROOMS !== 'undefined' && MY_ROOMS && roomName && MY_ROOMS.includes(roomName);
+}
+
+function isActiveRemoteRoom(roomName) {
+    if (!roomName || typeof INTEL === 'undefined' || !INTEL[roomName]) return false;
+    const activeAt = INTEL[roomName].activeRemote;
+    if (!activeAt) return false;
+    const window = typeof CREEP_LIFE_TIME === 'number' ? CREEP_LIFE_TIME : 1500;
+    return activeAt + window > Game.time;
+}
+
+// Sites the planner (or remote builders) immediately re-queue on the same tile.
+// Randomly deleting these just flickers the same construction site forever.
+const STICKY_SITE_TYPES = {
+    [STRUCTURE_RAMPART]: true,
+    [STRUCTURE_WALL]: true,
+    [STRUCTURE_SPAWN]: true,
+    [STRUCTURE_TOWER]: true,
+    [STRUCTURE_EXTENSION]: true,
+    [STRUCTURE_CONTAINER]: true,
+    [STRUCTURE_LINK]: true,
+    [STRUCTURE_STORAGE]: true,
+    [STRUCTURE_TERMINAL]: true,
+    [STRUCTURE_EXTRACTOR]: true,
+    [STRUCTURE_LAB]: true,
+};
+
 function cleanConstructionSites() {
     for (let id in Game.constructionSites) {
         const site = Game.constructionSites[id];
         const room = site.room;
-        // Never purge barrier / spawn / tower sites — perimeter gaps and bootstrap must stick.
-        if (site.structureType === STRUCTURE_RAMPART ||
-            site.structureType === STRUCTURE_WALL ||
-            site.structureType === STRUCTURE_SPAWN ||
-            site.structureType === STRUCTURE_TOWER) {
-            continue;
-        }
-        if (room && room.controller && room.controller.my && site.progress > 0) continue;
+        const roomName = site.pos && site.pos.roomName;
+        if (STICKY_SITE_TYPES[site.structureType]) continue;
+        // Owned rooms: the planner owns this queue. Do not randomly evict idle roads.
+        if (isOwnedSiteRoom(room, roomName)) continue;
+        if (site.progress > 0) continue;
+        // Still-mined remotes: remoteBuilder / harvesters will put the same road back.
+        if (isActiveRemoteRoom(roomName)) continue;
         if (
             Math.random() > 0.5 &&
             (!room || !site.pos.findClosestByRange(FIND_MY_CREEPS))
