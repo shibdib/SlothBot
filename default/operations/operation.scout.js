@@ -1,6 +1,8 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
+const {siegeLevel} = require('hcUtils');
+
 Creep.prototype.scoutRoom = function () {
     if (this.room.name !== this.memory.destination) {
         return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {
@@ -121,11 +123,11 @@ function handleScoutOperation(room) {
     if (intel.sk && towers.length) {
         Memory.targetRooms[room.name].type = 'stronghold';
         Memory.targetRooms[room.name].boosts = [HEAL];
-    } else if (isHostile && (!intel.towers || towers.length <= 3)) {
+    } else if (isHostile && siegeLevel(towers.length || intel.towers || 0)) {
         Memory.targetRooms[room.name].type = 'roomDenial';
         if (towers.length) Memory.targetRooms[room.name].boosts = [HEAL];
         log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
-    } else if (isHostile && intel.towers > 3) {
+    } else if (isHostile && (towers.length || intel.towers)) {
         Memory.targetRooms[room.name].type = 'remoteDenial';
         log.a(`Room ${roomLink(room.name)} converted to remote denial operation.`, 'HIGH COMMAND: ');
     } else {
