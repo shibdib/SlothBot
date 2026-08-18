@@ -105,7 +105,6 @@ function getPriority(room) {
 
 
 function siegeLevel(towerCount) {
-    if (towerCount > 3) return false;
     if (towerCount >= 3) return MAX_LEVEL >= 8;
     if (towerCount >= 2) return MAX_LEVEL >= 7;
     return MAX_LEVEL >= 6;
