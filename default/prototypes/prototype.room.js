@@ -1205,8 +1205,8 @@ Room.prototype.boostCheck = function (body = undefined, parts = undefined, tier 
             const part = extraParts[i];
             if (part === HEAL || part === ATTACK) continue;
             if (!body.includes(part) || !BOOST_USE[part]) continue;
-            // TOUGH/RA may be a different mineral tier than HEAL. Any stocked
-            // tier passes the gate; neededBoosts.toughBoost pins the exact one.
+            // TOUGH/RA/MOVE may be a different mineral tier than HEAL. Any
+            // stocked tier passes the gate; neededBoosts pins the exact MOVE/TOUGH.
             if (!checkBoostType(this, part, undefined)) return false;
         }
     }

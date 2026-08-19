@@ -63,8 +63,9 @@ function stableCreepInfoKey(creepInfo) {
     ].join('|');
 }
 
-function maxBodyNonMoveParts(halfMove) {
-    return Math.floor(50 / (1 + (halfMove ? 0.5 : 1.0)));
+function maxBodyNonMoveParts(halfMove, moveFactor = 1) {
+    const factor = (moveFactor && moveFactor > 1) ? moveFactor : (halfMove ? 2 : 1);
+    return Math.floor(50 * factor / (factor + 1));
 }
 
 const CRITICAL_BUILD_STRUCTURE_TYPES = [

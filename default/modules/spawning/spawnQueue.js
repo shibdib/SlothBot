@@ -146,6 +146,10 @@ function adjustQueuePriority(queue, room) {
             const toughCount = body.filter(p => p === TOUGH).length;
             missingBoosts = room.store(nb.toughBoost) < 30 * toughCount;
         }
+        if (!missingBoosts && nb && nb.moveBoost && body.includes(MOVE)) {
+            const moveCount = body.filter(p => p === MOVE).length;
+            missingBoosts = room.store(nb.moveBoost) < 30 * moveCount;
+        }
         if (missingBoosts) {
             if (opMemory && opMemory.assignedRoom === room.name && !liveForOp) {
                 unassignRoom(target, 'Missing required boosts.');

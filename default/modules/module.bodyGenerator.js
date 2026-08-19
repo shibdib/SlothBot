@@ -90,8 +90,12 @@ class ModuleBodyGenerator {
 
         const cacheKey = this.getCacheKey();
         if (bodyCache[cacheKey]) {
-            if (this.creepInfo && (!this.creepInfo.destination || !Memory.targetRooms[this.creepInfo.destination]
-                || !Memory.targetRooms[this.creepInfo.destination].boosts)) {
+            const destBoosts = this.creepInfo && this.creepInfo.destination
+                && Memory.targetRooms[this.creepInfo.destination]
+                && Memory.targetRooms[this.creepInfo.destination].boosts;
+            const listedMove = this.creepInfo && this.creepInfo.misc && this.creepInfo.misc.boosts
+                && this.creepInfo.misc.boosts.includes(MOVE);
+            if (!destBoosts && !listedMove) {
                 return {body: bodyCache[cacheKey], info: this.creepInfo};
             }
         }
@@ -106,15 +110,22 @@ class ModuleBodyGenerator {
         if (built === false) return false;
 
         let {
-            work, claim, carry, move, tough, attack, rangedAttack, heal, halfMove,
+            work, claim, carry, move, tough, attack, rangedAttack, heal, halfMove, moveFactor,
         } = built;
+
+        // Longbows kite off-road (swamps, dest interiors). halfMove is a road
+        // assumption — MOVE boosts use moveFactor, never this flag.
+        if (['longbow', 'longbowSquad', 'testSquad'].includes(this.role)) {
+            halfMove = undefined;
+        }
+        const moveFatigue = (moveFactor && moveFactor > 1) ? moveFactor : 1;
 
         let bodyArray = [];
 
         const approxNonMove = (work || 0) + (carry || 0) + (claim || 0) + (attack || 0) + (rangedAttack || 0);
         const willHaveMoves = (typeof move === 'undefined' || move !== 0);
         if (willHaveMoves && approxNonMove > 0) {
-            const maxNonMove = maxBodyNonMoveParts(halfMove);
+            const maxNonMove = maxBodyNonMoveParts(halfMove, moveFatigue);
             if (approxNonMove > maxNonMove) {
                 const scale = maxNonMove / approxNonMove;
                 if (work) work = Math.max(1, Math.floor(work * scale));
@@ -150,7 +161,8 @@ class ModuleBodyGenerator {
             }
             if (!autoMove) return;
             const nonMove = bodyArray.length + healArray.length + toughArray.length;
-            const moveParts = halfMove ? Math.ceil(nonMove * 0.5) : nonMove;
+            const denom = moveFatigue > 1 ? moveFatigue : (halfMove ? 2 : 1);
+            const moveParts = Math.ceil(nonMove / denom);
             moveArray = moveParts > 0 ? Array(moveParts).fill(MOVE) : [];
         };
         if (move !== 0) {
@@ -207,8 +219,8 @@ class ModuleBodyGenerator {
         return body.reduce((cost, part) => cost + BODYPART_COST[part], 0);
     }
 
-    checkForNeededHeal(exposureBodies, toughModifier, rangedParts, toughCount) {
-        return siegeBoosts.checkForNeededHeal(this, exposureBodies, toughModifier, rangedParts, toughCount);
+    checkForNeededHeal(exposureBodies, toughModifier, rangedParts, toughCount, moveFactor) {
+        return siegeBoosts.checkForNeededHeal(this, exposureBodies, toughModifier, rangedParts, toughCount, moveFactor);
     }
 
     checkForNeededTough(squadSize, rangedCreep) {

@@ -8,6 +8,7 @@ const {
     getMaxSiegeCombatBudget,
     checkForNeededHeal,
     checkForNeededTough,
+    checkForNeededMove,
 } = require('bodySiegeBoosts');
 
 function buildLongbowFamily(gen) {
@@ -16,25 +17,34 @@ function buildLongbowFamily(gen) {
     if (gen.creepInfo && gen.creepInfo.operation === 'harass') {
         return {rangedAttack: 1};
     }
+
+    const defaultWaitFor = gen.role === 'longbow' ? 1 : 2;
+    const waitFor = (gen.creepInfo && gen.creepInfo.misc && gen.creepInfo.misc.waitFor) || defaultWaitFor;
+    const dest = gen.creepInfo && gen.creepInfo.destination;
+    const live = dest ? countRoleForDestination(dest, gen.role, gen.creepInfo && gen.creepInfo.operation) : 0;
+    const remaining = Math.max(1, waitFor - live);
+    const moveData = checkForNeededMove(gen, remaining);
+    const moveFactor = moveData.factor || 1;
+    // Listed MOVE but no mineral: keep 1:1 and do not reserve MOVE labs.
+    if (moveFactor <= 1 && gen.creepInfo && gen.creepInfo.misc && gen.creepInfo.misc.boosts
+        && gen.creepInfo.misc.boosts.includes(MOVE)) {
+        gen.creepInfo.misc.boosts = gen.creepInfo.misc.boosts.filter(b => b !== MOVE);
+    }
+
     if (gen.creepInfo && Memory.targetRooms[gen.creepInfo.destination] && Memory.targetRooms[gen.creepInfo.destination].boosts) {
-        const defaultWaitFor = gen.role === 'longbow' ? 1 : 2;
-        const waitFor = gen.creepInfo.misc && gen.creepInfo.misc.waitFor || defaultWaitFor;
-        const dest = gen.creepInfo.destination;
-        const live = dest ? countRoleForDestination(dest, gen.role, gen.creepInfo.operation) : 0;
-        const remaining = Math.max(1, waitFor - live);
         // Combat pools squad effectiveHeal against one tower volley. Size each
         // body as its share of waitFor, not as a solo tank of the full shot.
         const exposure = 1 / waitFor;
         heal = false;
         if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
-            const desiredTough = checkForNeededTough(gen, remaining, true);
+            const desiredTough = checkForNeededTough(gen, remaining, true, moveFactor);
             // Without the mineral the sizer assumed, combat's 1/toughMult
             // multiplier never happens — do not fall through to 0 TOUGH.
             if (!desiredTough.boost || !desiredTough.count) return false;
             for (let t = desiredTough.count; t >= 2; t -= 2) {
                 toughData = t === desiredTough.count ? desiredTough : {boost: desiredTough.boost, count: t};
                 const toughModifier = toughData.boost ? toughMulti[toughData.boost] : 1;
-                heal = checkForNeededHeal(gen, exposure, toughModifier, true, t);
+                heal = checkForNeededHeal(gen, exposure, toughModifier, true, t, moveFactor);
                 if (heal) {
                     tough = t;
                     if (gen.creepInfo.neededBoosts) {
@@ -45,18 +55,27 @@ function buildLongbowFamily(gen) {
                 }
             }
         } else {
-            heal = checkForNeededHeal(gen, exposure, 1, true, 0);
+            heal = checkForNeededHeal(gen, exposure, 1, true, 0, moveFactor);
         }
         if (!heal) return false;
     } else {
-        heal = Math.floor((gen.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
+        const moveShareUnboosted = BODYPART_COST[MOVE] / moveFactor;
+        heal = Math.floor((gen.energyAmount * 0.3) / (BODYPART_COST[HEAL] + moveShareUnboosted));
         heal = Math.min(heal, 6);
     }
+    if (moveData.boost && gen.creepInfo) {
+        if (!gen.creepInfo.neededBoosts) gen.creepInfo.neededBoosts = {};
+        gen.creepInfo.neededBoosts.moveBoost = moveData.boost;
+        gen.creepInfo.neededBoosts.moveFactor = moveFactor;
+    }
 
-    const toughEnergy = (tough || 0) * (BODYPART_COST[TOUGH] + BODYPART_COST[MOVE]);
-    const remainingEnergy = gen.energyAmount - ((heal * BODYPART_COST[HEAL]) + heal * BODYPART_COST[MOVE]) - toughEnergy;
-    rangedAttack = Math.floor(remainingEnergy / (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE])) || 1;
-    rangedAttack = Math.min(rangedAttack, getMaxSiegeCombatBudget() - heal - (tough || 0));
+    // Never halfMove: plains/swamp fatigue, not roads. MOVE boosts change
+    // autoMove via moveFactor — they do not set halfMove.
+    const moveShare = BODYPART_COST[MOVE] / moveFactor;
+    const toughEnergy = (tough || 0) * (BODYPART_COST[TOUGH] + moveShare);
+    const remainingEnergy = gen.energyAmount - (heal * (BODYPART_COST[HEAL] + moveShare)) - toughEnergy;
+    rangedAttack = Math.floor(remainingEnergy / (BODYPART_COST[RANGED_ATTACK] + moveShare)) || 1;
+    rangedAttack = Math.min(rangedAttack, getMaxSiegeCombatBudget(moveFactor) - heal - (tough || 0));
 
     if (gen.creepInfo && gen.creepInfo.other && gen.creepInfo.other.power) {
         let totalPower = (rangedAttack * RANGED_ATTACK_POWER) + (heal * HEAL_POWER);
@@ -67,7 +86,7 @@ function buildLongbowFamily(gen) {
         }
         gen.room.memory.additionalPowerNeeded = totalPower < gen.creepInfo.other.power ? true : undefined;
     }
-    return {tough, toughData, heal, rangedAttack};
+    return {tough, toughData, heal, rangedAttack, moveFactor};
 }
 
 function buildSiegeDuo(gen) {

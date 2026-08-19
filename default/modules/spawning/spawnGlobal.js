@@ -176,7 +176,7 @@ function globalCreepQueue() {
                 const rdTowers = rdIntel && rdIntel.towers || 0;
                 const rdWaves = operation.waves || 0;
                 if (rdTowers) {
-                    operation.boosts = [TOUGH, RANGED_ATTACK, HEAL];
+                    operation.boosts = [TOUGH, RANGED_ATTACK, HEAL, MOVE];
                     const siegeDamage = getSiegeTowerDamage(rdIntel) || rdTowers * 600;
                     // Melee siegeDuo is not used here: the healer is sized for two
                     // stacked bodies and cannot be built at RCL 6 against even one tower.
@@ -189,13 +189,13 @@ function globalCreepQueue() {
                             destination: key,
                             closestRoom: true,
                             operation: 'roomDenial',
-                            misc: {boosts: [TOUGH, RANGED_ATTACK, HEAL]}
+                            misc: {boosts: [TOUGH, RANGED_ATTACK, HEAL, MOVE]}
                         });
                     } else {
                         const waitFor = (rdWaves >= 2 || siegeDamage > 960) ? 4 : 2;
                         queueCreepIfNeeded({
                             role: 'longbowSquad', priority, numberNeeded: waitFor, destination: key,
-                            misc: {waitFor: waitFor, boosts: [TOUGH, RANGED_ATTACK, HEAL]},
+                            misc: {waitFor: waitFor, boosts: [TOUGH, RANGED_ATTACK, HEAL, MOVE]},
                             closestRoom: true,
                             operation: 'roomDenial'
                         });
@@ -255,7 +255,7 @@ function globalCreepQueue() {
                 } else if (opLevel > 1) {
                     queueCreepIfNeeded({
                         role: 'longbowSquad', priority, numberNeeded: 2, destination: key,
-                        misc: {waitFor: 2, boosts: [RANGED_ATTACK, HEAL]}, closestRoom: true, operation: 'guard'
+                        misc: {waitFor: 2, boosts: [RANGED_ATTACK, HEAL, MOVE]}, closestRoom: true, operation: 'guard'
                     });
                 }
                 break;

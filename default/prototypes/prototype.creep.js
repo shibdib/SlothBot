@@ -1035,6 +1035,13 @@ function buildBoostPlan(creep, requestedBodyParts) {
             preReservedParts.add(TOUGH);
         }
     }
+    if (nb && nb.moveBoost) {
+        const amount = creep.getActiveBodyparts(MOVE) * BOOST_AMOUNT_PER_PART;
+        if (amount && creep.room.store(nb.moveBoost) >= amount) {
+            plan[nb.moveBoost] = {boost: nb.moveBoost, amount, type: MOVE};
+            preReservedParts.add(MOVE);
+        }
+    }
 
     const bodyParts = (creep.memory.misc && creep.memory.misc.boosts)
         ? _.union(requestedBodyParts, creep.memory.misc.boosts)

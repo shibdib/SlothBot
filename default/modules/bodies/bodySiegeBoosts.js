@@ -17,12 +17,34 @@ function remainingSquadBodies(gen) {
     return Math.max(1, waitFor - live);
 }
 
-function getMaxSiegeCombatBudget() {
-    return 25;
+function moveFatigueFactor(boost) {
+    if (!boost || !BOOSTS[MOVE] || !BOOSTS[MOVE][boost]) return 1;
+    return BOOSTS[MOVE][boost].fatigue || 1;
 }
 
-function getMaxSiegeHealParts(toughCount = 0, rangedParts = 0) {
-    return Math.max(1, getMaxSiegeCombatBudget() - toughCount - rangedParts);
+function getMaxSiegeCombatBudget(moveFactor = 1) {
+    const factor = Math.max(1, moveFactor || 1);
+    return Math.floor(50 * factor / (factor + 1));
+}
+
+function getMaxSiegeHealParts(toughCount = 0, rangedParts = 0, moveFactor = 1) {
+    return Math.max(1, getMaxSiegeCombatBudget(moveFactor) - toughCount - rangedParts);
+}
+
+function checkForNeededMove(gen, squadSize = 1) {
+    const listed = gen.creepInfo && gen.creepInfo.misc && gen.creepInfo.misc.boosts;
+    if (!listed || !listed.includes(MOVE) || !BOOST_USE[MOVE]) {
+        return {boost: undefined, factor: 1};
+    }
+    for (const boost of BOOST_USE[MOVE]) {
+        const factor = moveFatigueFactor(boost);
+        if (factor < 2) continue;
+        const moveParts = Math.ceil(getMaxSiegeCombatBudget(factor) / factor);
+        if (gen.room.store(boost) >= 30 * moveParts * squadSize) {
+            return {boost, factor, moveParts};
+        }
+    }
+    return {boost: undefined, factor: 1};
 }
 
 function getSiegeTowerDamage(intel) {
@@ -56,7 +78,7 @@ function determineNeededHeals(damage) {
     return healTiers;
 }
 
-function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedParts = false, toughCount = 0) {
+function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedParts = false, toughCount = 0, moveFactor = 1) {
     const destination = gen.creepInfo.destination;
     const intel = INTEL[destination];
     const targetMemory = Memory.targetRooms[destination];
@@ -69,9 +91,10 @@ function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedPa
     const tiers = determineNeededHeals(damageToTank);
     const squadSize = remainingSquadBodies(gen);
     const MIN_RANGED_PARTS = rangedParts ? 5 : 0;
-    const MAX_HEAL_PARTS = getMaxSiegeHealParts(toughCount, MIN_RANGED_PARTS);
-    const reservedEnergy = MIN_RANGED_PARTS * (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE]);
-    const energyPerHealPair = BODYPART_COST[HEAL] + BODYPART_COST[MOVE];
+    const MAX_HEAL_PARTS = getMaxSiegeHealParts(toughCount, MIN_RANGED_PARTS, moveFactor);
+    const moveShare = BODYPART_COST[MOVE] / Math.max(1, moveFactor || 1);
+    const reservedEnergy = MIN_RANGED_PARTS * (BODYPART_COST[RANGED_ATTACK] + moveShare);
+    const energyPerHealPair = BODYPART_COST[HEAL] + moveShare;
     // Combat effectiveHeal = heal / toughMult. Flooring TOUGH at 0.85 made T3
     // XGHO2 (0.35) look like T1 and asked for ~2.4× the heal parts a boosted
     // squad actually needs.
@@ -121,7 +144,7 @@ function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedPa
     return chosenHeals;
 }
 
-function checkForNeededTough(gen, squadSize = 1, rangedCreep = false) {
+function checkForNeededTough(gen, squadSize = 1, rangedCreep = false, moveFactor = 1) {
     const destination = gen.creepInfo.destination;
     const siegeDamage = getSiegeTowerDamage(INTEL[destination]);
     if (!siegeDamage) return {boost: undefined, count: 0};
@@ -131,7 +154,7 @@ function checkForNeededTough(gen, squadSize = 1, rangedCreep = false) {
     if (rangedCreep) partCount = Math.min(partCount, 6);
     const healReserve = rangedCreep ? 10 : 12;
     const rangedReserve = rangedCreep ? 5 : 0;
-    partCount = Math.min(partCount, Math.max(0, getMaxSiegeCombatBudget() - healReserve - rangedReserve));
+    partCount = Math.min(partCount, Math.max(0, getMaxSiegeCombatBudget(moveFactor) - healReserve - rangedReserve));
 
     // Prefer more parts of the highest stocked tier; step down rather than
     // returning 0 when we could still field 4 T3 instead of 6.
@@ -147,10 +170,12 @@ function checkForNeededTough(gen, squadSize = 1, rangedCreep = false) {
 
 module.exports = {
     toughMulti,
+    moveFatigueFactor,
     getMaxSiegeCombatBudget,
     getMaxSiegeHealParts,
     getSiegeTowerDamage,
     determineNeededHeals,
     checkForNeededHeal,
     checkForNeededTough,
+    checkForNeededMove,
 };
