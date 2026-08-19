@@ -134,7 +134,7 @@ Object.assign(TerminalControl.prototype, {
                 const requests = ALLY_HELP_REQUESTS[MY_USERNAME].requests || {};
                 let resourceRequests = requests.resource ? requests.resource : [];
                 resourceRequests = resourceRequests.filter((r) =>
-                    (r.resourceType !== mineral && r.roomName === terminal.room.name) || r.roomName !== terminal.room.name
+                    r.roomName === terminal.room.name && r.resourceType !== mineral
                 );
                 if (shouldRequestAllyResource(mineral, candidate, allyUrgency)) {
                     const isAsapBoost = !BASE_MINERALS.includes(mineral);
@@ -142,7 +142,8 @@ Object.assign(TerminalControl.prototype, {
                         resourceType: mineral,
                         amount: buyAmount,
                         priority: isAsapBoost ? 0.9 : (isLabNeed ? 0.5 : 0.2),
-                        roomName: terminal.room.name
+                        roomName: terminal.room.name,
+                        terminal: true
                     });
                 }
                 ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;

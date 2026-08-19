@@ -245,7 +245,8 @@ class StateManager {
 
     funnelRequest(room) {
         const requests = ensureAllyRequests();
-        if (room.terminal && room.level < 8 && FUNNEL_REQUESTS) {
+        const isMarketHub = Memory._banker && Memory._banker.marketHub === room.name;
+        if (isMarketHub && room.terminal && room.level < 8 && FUNNEL_REQUESTS) {
             let funnelRequests = requests.funnel ? requests.funnel : [];
             funnelRequests = funnelRequests.filter((r) => r.roomName !== room.name);
             const goalType = room.level === 6 ? 1 : room.level === 7 ? 2 : 0;
@@ -253,7 +254,8 @@ class StateManager {
                 goalType: goalType,
                 maxAmount: Math.min((room.controller.progressTotal - room.controller.progress) - room.energy, 200000),
                 timeout: Game.time + CREEP_LIFE_TIME,
-                roomName: room.name
+                roomName: room.name,
+                terminal: true
             });
             requests.funnel = funnelRequests;
         } else {

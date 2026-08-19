@@ -13,8 +13,11 @@ const profiler = require('tools.profiler');
 const RESOURCE_SEND_MAX = 5000;
 const PRESSURE_SEND_MAX = 25000;
 const RESOURCE_SEND_MIN = 100;
+const BATTERY_SEND_MIN = 50;
 const ENERGY_SEND_MIN = 5000;
 const PRESSURE_DEST_FREE_MIN = 5000;
+// 0.25 only covers ~9 rooms; alliance dests are often 15–30 rooms (fee ~0.4–0.65).
+const ALLY_FEE_MAX = 0.75;
 
 // Pressure outranks hub/ally consolidation so overfull rooms evacuate first.
 const PRIORITY_RANK = {urgent: 0, pressure: 1, battery: 2, energy: 3, resource: 4, ally: 5, hub: 6};
@@ -93,9 +96,14 @@ function maxAffordableByEnergy(from, to, energy) {
     return Math.floor(energy / factor);
 }
 
+function minSendAmount(resource) {
+    return resource === RESOURCE_BATTERY ? BATTERY_SEND_MIN : RESOURCE_SEND_MIN;
+}
+
 function clampSendToEnergy(from, to, resource, amount, energy) {
-    if (amount < RESOURCE_SEND_MIN || energy <= 0) return 0;
-    while (amount >= RESOURCE_SEND_MIN) {
+    const minSend = minSendAmount(resource);
+    if (amount < minSend || energy <= 0) return 0;
+    while (amount >= minSend) {
         const fee = txCost(from, to, amount);
         const need = (resource === RESOURCE_ENERGY ? amount : 0) + fee;
         if (need <= energy) return amount;
@@ -109,7 +117,7 @@ function scoreTransfer(need, cost, bonus = 0) {
 }
 
 function addTransfer(transfers, transfer) {
-    if (transfer.amount < (transfer.resource === RESOURCE_BATTERY ? 50 : RESOURCE_SEND_MIN)) return;
+    if (transfer.amount < minSendAmount(transfer.resource)) return;
     transfers.push(transfer);
 }
 
@@ -321,14 +329,12 @@ function planEnergyTransfers(transfers, profiles) {
     }
 }
 
-function allyWantsResource(resource) {
-    if (!global.LOAN_CHECK || !ALLY_HELP_REQUESTS) return false;
-    for (const username in ALLY_HELP_REQUESTS) {
-        if (username === MY_USERNAME || !FRIENDLIES.includes(username)) continue;
-        const reqs = ALLY_HELP_REQUESTS[username]?.requests?.resource || [];
-        if (reqs.some(r => r.resourceType === resource)) return true;
+function plannedAllyResources(transfers) {
+    const set = new Set();
+    for (let i = 0; i < transfers.length; i++) {
+        if (transfers[i].kind === 'ally') set.add(transfers[i].resource);
     }
-    return false;
+    return set;
 }
 
 function collectAllyTransferRequests() {
@@ -387,7 +393,7 @@ function planAllyTransfers(transfers, ledger, profiles) {
                     Math.min(amount, RESOURCE_SEND_MAX * 2));
                 if (sendAmount < ENERGY_SEND_MIN) continue;
                 const cost = txCost(profile.name, roomName, sendAmount);
-                if (cost > sendAmount * 0.25) continue;
+                if (cost > sendAmount * ALLY_FEE_MAX) continue;
                 candidates.push({
                     from: profile.name,
                     to: roomName,
@@ -400,7 +406,25 @@ function planAllyTransfers(transfers, ledger, profiles) {
                 continue;
             }
 
-            if (resourceType === RESOURCE_BATTERY) continue;
+            if (resourceType === RESOURCE_BATTERY) {
+                if (room.energyState < 2) continue;
+                const available = getTerminalExportable(room, resourceType);
+                const sendAmount = Math.min(available, RESOURCE_SEND_MAX, amount);
+                if (sendAmount < BATTERY_SEND_MIN) continue;
+                const cost = txCost(profile.name, roomName, sendAmount);
+                if (cost > sendAmount * ALLY_FEE_MAX) continue;
+                candidates.push({
+                    from: profile.name,
+                    to: roomName,
+                    resource: RESOURCE_BATTERY,
+                    amount: sendAmount,
+                    kind: 'ally',
+                    ally: username,
+                    score: priority * sendAmount / (1 + cost),
+                });
+                continue;
+            }
+
             if (!canEmpireSell(resourceType, ledger)) continue;
 
             const available = getTerminalExportable(room, resourceType);
@@ -408,7 +432,7 @@ function planAllyTransfers(transfers, ledger, profiles) {
             if (sendAmount < RESOURCE_SEND_MIN) continue;
 
             const cost = txCost(profile.name, roomName, sendAmount);
-            if (cost > sendAmount * 0.25) continue;
+            if (cost > sendAmount * ALLY_FEE_MAX) continue;
             candidates.push({
                 from: profile.name,
                 to: roomName,
@@ -433,6 +457,7 @@ function planHubConsolidation(transfers, ledger, profiles) {
     if (!hubRoom?.terminal || !canUseTerminal(hub) || isRoomCapacityPressured(hubRoom)) return;
 
     const {canEmpireSell} = require('termNetwork');
+    const allyPlanned = plannedAllyResources(transfers);
 
     for (const profile of profiles) {
         if (profile.name === hub) continue;
@@ -443,7 +468,7 @@ function planHubConsolidation(transfers, ledger, profiles) {
         for (const resource of Object.keys(room.terminal.store)) {
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
             if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) continue;
-            if (allyWantsResource(resource)) continue;
+            if (allyPlanned.has(resource)) continue;
             // Pressured rooms may ship local surplus even when empire soft-keep blocks normal sells.
             if (!pressured && !canEmpireSell(resource, ledger)) continue;
 
@@ -702,7 +727,7 @@ function executeTransfer(terminal, transfer) {
     let amount = Math.min(transfer.amount, destFree, terminal.store[resource] || 0);
     const energy = terminal.store[RESOURCE_ENERGY] || 0;
     amount = clampSendToEnergy(terminal.room.name, to, resource, amount, energy);
-    if (amount < RESOURCE_SEND_MIN) return false;
+    if (amount < minSendAmount(resource)) return false;
 
     const fee = Game.market.calcTransactionCost(amount, terminal.room.name, to);
     const energyCost = (resource === RESOURCE_ENERGY ? amount : 0) + fee;

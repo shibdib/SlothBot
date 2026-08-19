@@ -249,18 +249,20 @@ Object.defineProperty(Room.prototype, 'energyState', {
         else if (energy > target * 0.5) this._energyState = 1;
         else this._energyState = 0;
 
-        // Ally energy requests — only mutate when the request set actually changes.
-        if (this.terminal && energy < target * 0.5 && ALLY_HELP_REQUESTS[MY_USERNAME]) {
+        // Allies deliver to the market hub; the internal network moves stock from there.
+        const isMarketHub = Memory._banker && Memory._banker.marketHub === this.name;
+        if (isMarketHub && this.terminal && energy < target * 0.5 && ALLY_HELP_REQUESTS[MY_USERNAME]) {
             const bucket = ALLY_HELP_REQUESTS[MY_USERNAME].requests || (ALLY_HELP_REQUESTS[MY_USERNAME].requests = {});
             const requests = bucket.resource || (bucket.resource = []);
             const amount = Math.round((target * 1.2) - energy);
             const priority = 1 - (energy / target);
             const existing = requests.find(r => r.resourceType === RESOURCE_ENERGY && r.roomName === this.name);
             if (!existing) {
-                requests.push({resourceType: RESOURCE_ENERGY, amount, priority, roomName: this.name});
-            } else if (existing.amount !== amount || existing.priority !== priority) {
+                requests.push({resourceType: RESOURCE_ENERGY, amount, priority, roomName: this.name, terminal: true});
+            } else if (existing.amount !== amount || existing.priority !== priority || existing.terminal !== true) {
                 existing.amount = amount;
                 existing.priority = priority;
+                existing.terminal = true;
             }
         } else if (ALLY_HELP_REQUESTS[MY_USERNAME] && ALLY_HELP_REQUESTS[MY_USERNAME].requests) {
             const requests = ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource;

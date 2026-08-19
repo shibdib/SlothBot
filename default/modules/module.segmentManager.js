@@ -50,6 +50,21 @@ function ensureMyAllyRequests() {
     if (!ALLY_HELP_REQUESTS[MY_USERNAME].requests) ALLY_HELP_REQUESTS[MY_USERNAME].requests = DEFAULT_ALLY_REQUESTS().requests;
 }
 
+function pruneOwnRequestsToHub() {
+    const mine = ALLY_HELP_REQUESTS[MY_USERNAME];
+    if (!mine || !mine.requests) return;
+    const hub = Memory._banker && Memory._banker.marketHub;
+    const keep = (r) => r && r.roomName && hub && r.roomName === hub;
+    if (Array.isArray(mine.requests.resource)) {
+        mine.requests.resource = mine.requests.resource.filter(keep);
+        for (const r of mine.requests.resource) if (r.terminal !== true) r.terminal = true;
+    }
+    if (Array.isArray(mine.requests.funnel)) {
+        mine.requests.funnel = mine.requests.funnel.filter(keep);
+        for (const r of mine.requests.funnel) if (r.terminal !== true) r.terminal = true;
+    }
+}
+
 function readForeignAllyRequests() {
     const foreign = RawMemory.foreignSegment;
     if (!foreign || !FRIENDLIES.includes(foreign.username) || foreign.id !== 90) return;
@@ -83,6 +98,7 @@ module.exports.init = function () {
 module.exports.storeAllyRequests = function () {
     if (!global.LOAN_CHECK) return;
     ensureMyAllyRequests();
+    pruneOwnRequestsToHub();
     try {
         RawMemory.segments[90] = JSON.stringify(ALLY_HELP_REQUESTS[MY_USERNAME]);
     } catch (e) {
