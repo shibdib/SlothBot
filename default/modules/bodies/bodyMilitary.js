@@ -22,20 +22,30 @@ function buildLongbowFamily(gen) {
         const dest = gen.creepInfo.destination;
         const live = dest ? countRoleForDestination(dest, gen.role, gen.creepInfo.operation) : 0;
         const remaining = Math.max(1, waitFor - live);
+        // Combat pools squad effectiveHeal against one tower volley. Size each
+        // body as its share of waitFor, not as a solo tank of the full shot.
+        const exposure = 1 / waitFor;
         heal = false;
         if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
             const desiredTough = checkForNeededTough(gen, remaining, true);
-            for (let t = desiredTough.count; t >= 0; t -= 2) {
+            // Without the mineral the sizer assumed, combat's 1/toughMult
+            // multiplier never happens — do not fall through to 0 TOUGH.
+            if (!desiredTough.boost || !desiredTough.count) return false;
+            for (let t = desiredTough.count; t >= 2; t -= 2) {
                 toughData = t === desiredTough.count ? desiredTough : {boost: desiredTough.boost, count: t};
                 const toughModifier = toughData.boost ? toughMulti[toughData.boost] : 1;
-                heal = checkForNeededHeal(gen, 1, toughModifier, true, t);
+                heal = checkForNeededHeal(gen, exposure, toughModifier, true, t);
                 if (heal) {
                     tough = t;
+                    if (gen.creepInfo.neededBoosts) {
+                        gen.creepInfo.neededBoosts.toughBoost = toughData.boost;
+                        gen.creepInfo.neededBoosts.toughCount = t;
+                    }
                     break;
                 }
             }
         } else {
-            heal = checkForNeededHeal(gen, 1, 1, true, 0);
+            heal = checkForNeededHeal(gen, exposure, 1, true, 0);
         }
         if (!heal) return false;
     } else {

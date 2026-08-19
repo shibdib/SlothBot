@@ -1195,9 +1195,19 @@ Room.prototype.towerData = function (towers) {
     }
 };
 
-Room.prototype.boostCheck = function (body = undefined, parts = undefined, tier = undefined, partCount = 1) {
+Room.prototype.boostCheck = function (body = undefined, parts = undefined, tier = undefined, partCount = 1, extraParts = undefined) {
     if (body && body.includes(ATTACK) && !checkBoostType(this, ATTACK, tier)) return false;
     if (body && body.includes(HEAL) && !checkBoostType(this, HEAL, tier)) return false;
+    if (extraParts && body) {
+        for (let i = 0; i < extraParts.length; i++) {
+            const part = extraParts[i];
+            if (part === HEAL || part === ATTACK) continue;
+            if (!body.includes(part) || !BOOST_USE[part]) continue;
+            // TOUGH/RA may be a different mineral tier than HEAL. Any stocked
+            // tier passes the gate; neededBoosts.toughBoost pins the exact one.
+            if (!checkBoostType(this, part, undefined)) return false;
+        }
+    }
     return !(parts && !checkBoostType(this, parts, tier));
 
     function checkBoostType(room, part, tier = undefined) {

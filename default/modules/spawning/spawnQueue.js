@@ -130,9 +130,24 @@ function adjustQueuePriority(queue, room) {
             creep.priority = PRIORITIES.hauler;
         }
 
-        if (opMemory && opMemory.boosts && opMemory.boosts.includes(HEAL) &&
-            !room.boostCheck(body, undefined, opMemory.boostTier)) {
-            if (opMemory.assignedRoom === room.name && !liveForOp) {
+        const requiredBoosts = [];
+        if (opMemory && opMemory.boosts) {
+            for (let i = 0; i < opMemory.boosts.length; i++) requiredBoosts.push(opMemory.boosts[i]);
+        }
+        if (creep.misc && creep.misc.boosts) {
+            for (let i = 0; i < creep.misc.boosts.length; i++) {
+                if (!requiredBoosts.includes(creep.misc.boosts[i])) requiredBoosts.push(creep.misc.boosts[i]);
+            }
+        }
+        const nb = generatedInfo.info && generatedInfo.info.neededBoosts;
+        let missingBoosts = requiredBoosts.length &&
+            !room.boostCheck(body, undefined, opMemory && opMemory.boostTier, 1, requiredBoosts);
+        if (!missingBoosts && nb && nb.toughBoost && body.includes(TOUGH)) {
+            const toughCount = body.filter(p => p === TOUGH).length;
+            missingBoosts = room.store(nb.toughBoost) < 30 * toughCount;
+        }
+        if (missingBoosts) {
+            if (opMemory && opMemory.assignedRoom === room.name && !liveForOp) {
                 unassignRoom(target, 'Missing required boosts.');
             }
             delete queue[key];

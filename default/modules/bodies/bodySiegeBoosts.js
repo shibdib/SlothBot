@@ -27,13 +27,17 @@ function getMaxSiegeHealParts(toughCount = 0, rangedParts = 0) {
 
 function getSiegeTowerDamage(intel) {
     if (!intel) return 0;
+    const n = intel.towers || 0;
     const td = intel.towerData;
-    let damage = 0;
-    if (td) {
-        damage = Math.max(td.maxDamage || 0, td.average || 0);
-        damage = Math.ceil(damage * (td.operated ? 1.1 : 1.05));
-    } else if (intel.towers) {
-        damage = intel.towers * TOWER_POWER_ATTACK;
+    // canTankLiveTowers compares squad effectiveHeal to n × 600 (full shot at
+    // range 3–5). The worst walkable tile is usually the tower cluster, which
+    // the squad never occupies — sizing against it asks for 60+ HEAL parts.
+    let damage = n * TOWER_POWER_ATTACK;
+    if (!damage && td) {
+        damage = td.average || td.maxDamage || 0;
+    }
+    if (td && td.operated) {
+        damage = Math.ceil(damage * 1.1);
     }
     return damage;
 }
@@ -68,34 +72,36 @@ function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedPa
     const MAX_HEAL_PARTS = getMaxSiegeHealParts(toughCount, MIN_RANGED_PARTS);
     const reservedEnergy = MIN_RANGED_PARTS * (BODYPART_COST[RANGED_ATTACK] + BODYPART_COST[MOVE]);
     const energyPerHealPair = BODYPART_COST[HEAL] + BODYPART_COST[MOVE];
-    const healToughFactor = Math.max(toughModifier, 0.85);
+    // Combat effectiveHeal = heal / toughMult. Flooring TOUGH at 0.85 made T3
+    // XGHO2 (0.35) look like T1 and asked for ~2.4× the heal parts a boosted
+    // squad actually needs.
+    const healToughFactor = toughModifier || 1;
+
+    function tryTier(tier) {
+        const rawHeals = Math.ceil(tier.amount * exposureBodies * healToughFactor);
+        if (rawHeals > MAX_HEAL_PARTS || rawHeals < 1) return 0;
+        if (rawHeals * energyPerHealPair + reservedEnergy > gen.energyAmount) return 0;
+        if (gen.room.store(tier.boost) < 30 * rawHeals * squadSize) return 0;
+        return rawHeals;
+    }
 
     const tierKeys = Object.keys(tiers);
     let chosen;
     let chosenHeals = 0;
     for (const key of tierKeys) {
-        const tier = tiers[key];
-        const rawHeals = Math.ceil(tier.amount * exposureBodies * healToughFactor);
-        if (rawHeals > MAX_HEAL_PARTS) continue;
-        const perCreepHeals = rawHeals;
-        if (perCreepHeals < 1) continue;
-        if (perCreepHeals * energyPerHealPair + reservedEnergy > gen.energyAmount) continue;
-        if (gen.room.store(tier.boost) < 30 * perCreepHeals * squadSize) continue;
-        chosen = tier;
-        chosenHeals = perCreepHeals;
+        const heals = tryTier(tiers[key]);
+        if (!heals) continue;
+        chosen = tiers[key];
+        chosenHeals = heals;
         break;
     }
 
     if (!chosen) {
         for (let i = tierKeys.length - 1; i >= 0; i--) {
-            const tier = tiers[tierKeys[i]];
-            const rawHeals = Math.ceil(tier.amount * exposureBodies * healToughFactor);
-            if (rawHeals > MAX_HEAL_PARTS) continue;
-            const perCreepHeals = rawHeals;
-            if (perCreepHeals * energyPerHealPair + reservedEnergy > gen.energyAmount) continue;
-            if (gen.room.store(tier.boost) < 30 * perCreepHeals * squadSize) continue;
-            chosen = tier;
-            chosenHeals = perCreepHeals;
+            const heals = tryTier(tiers[tierKeys[i]]);
+            if (!heals) continue;
+            chosen = tiers[tierKeys[i]];
+            chosenHeals = heals;
             break;
         }
     }
@@ -127,9 +133,13 @@ function checkForNeededTough(gen, squadSize = 1, rangedCreep = false) {
     const rangedReserve = rangedCreep ? 5 : 0;
     partCount = Math.min(partCount, Math.max(0, getMaxSiegeCombatBudget() - healReserve - rangedReserve));
 
-    for (const boost of BOOST_USE[TOUGH]) {
-        if (gen.room.store(boost) >= 30 * partCount * squadSize) {
-            return {boost: boost, count: partCount};
+    // Prefer more parts of the highest stocked tier; step down rather than
+    // returning 0 when we could still field 4 T3 instead of 6.
+    for (let t = partCount; t >= 2; t -= 2) {
+        for (const boost of BOOST_USE[TOUGH]) {
+            if (gen.room.store(boost) >= 30 * t * squadSize) {
+                return {boost: boost, count: t};
+            }
         }
     }
     return {boost: undefined, count: 0};

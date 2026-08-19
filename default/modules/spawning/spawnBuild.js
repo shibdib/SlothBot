@@ -104,6 +104,13 @@ function preReserveBoostLab(room, creepName, neededBoosts, body, role, misc) {
             reservedParts.add(neededBoosts.boostPart);
         }
     }
+    if (neededBoosts && neededBoosts.toughBoost) {
+        const partCount = body.filter(p => p === TOUGH).length;
+        if (partCount) {
+            reservations.push({boost: neededBoosts.toughBoost, amount: partCount * LAB_BOOST_MINERAL});
+            reservedParts.add(TOUGH);
+        }
+    }
 
     if (misc && misc.boosts) {
         const pendingByResource = {};

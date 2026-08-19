@@ -176,7 +176,7 @@ function globalCreepQueue() {
                 const rdTowers = rdIntel && rdIntel.towers || 0;
                 const rdWaves = operation.waves || 0;
                 if (rdTowers) {
-                    operation.boosts = [TOUGH, HEAL];
+                    operation.boosts = [TOUGH, RANGED_ATTACK, HEAL];
                     const siegeDamage = getSiegeTowerDamage(rdIntel) || rdTowers * 600;
                     // Melee siegeDuo is not used here: the healer is sized for two
                     // stacked bodies and cannot be built at RCL 6 against even one tower.

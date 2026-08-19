@@ -1018,14 +1018,21 @@ global.findAvailableBoostTier = function (room, boostType, amountNeeded) {
 
 function buildBoostPlan(creep, requestedBodyParts) {
     const plan = {};
-    let preReservedPart;
+    const preReservedParts = new Set();
+    const nb = creep.memory.neededBoosts;
 
-    if (creep.memory.neededBoosts && creep.memory.neededBoosts.boost) {
-        const {boost, boostPart} = creep.memory.neededBoosts;
-        const amount = creep.getActiveBodyparts(boostPart) * BOOST_AMOUNT_PER_PART;
-        if (amount && creep.room.store(boost) >= amount) {
-            plan[boost] = {boost, amount, type: boostPart};
-            preReservedPart = boostPart;
+    if (nb && nb.boost) {
+        const amount = creep.getActiveBodyparts(nb.boostPart) * BOOST_AMOUNT_PER_PART;
+        if (amount && creep.room.store(nb.boost) >= amount) {
+            plan[nb.boost] = {boost: nb.boost, amount, type: nb.boostPart};
+            preReservedParts.add(nb.boostPart);
+        }
+    }
+    if (nb && nb.toughBoost) {
+        const amount = creep.getActiveBodyparts(TOUGH) * BOOST_AMOUNT_PER_PART;
+        if (amount && creep.room.store(nb.toughBoost) >= amount) {
+            plan[nb.toughBoost] = {boost: nb.toughBoost, amount, type: TOUGH};
+            preReservedParts.add(TOUGH);
         }
     }
 
@@ -1034,7 +1041,7 @@ function buildBoostPlan(creep, requestedBodyParts) {
         : requestedBodyParts;
 
     for (const bodyPart of bodyParts) {
-        if (bodyPart === preReservedPart) continue;
+        if (preReservedParts.has(bodyPart)) continue;
         const unboosted = creep.body.filter(p => p.type === bodyPart && !p.boost);
         if (!unboosted.length) continue;
 
