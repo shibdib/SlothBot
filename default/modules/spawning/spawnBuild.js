@@ -4,10 +4,15 @@
  * Spawn execution: pull from queue, spawn creeps, renew, boost pre-reservation.
  */
 
-const generator = require('module.bodyGenerator');
 const spawnState = require('spawnState');
 const {spawnEnergyState} = require('spawnFlow');
-const {getQueue, generateCreepName, queueCacheKey} = require('spawnQueue');
+const {getCreepCount} = require('spawnCounts');
+const {ownedSpawnCount} = require('bodyHelpers');
+const {
+    getQueue, generateCreepName, queueCacheKey,
+    isWaitForLongbowWave, pickActiveWave, waveSpawnDemand, maxMilitaryReserve,
+    clearQueueEntry,
+} = require('spawnQueue');
 
 
 const RENEW_ROLES = new Set(['hauler', 'shuttle', 'stationaryHarvester', 'upgrader']);
@@ -168,143 +173,254 @@ function preReserveBoostLab(room, creepName, neededBoosts, body, role, misc) {
     }
 }
 
+function isMySpawn(s) {
+    if (!s || s.structureType !== STRUCTURE_SPAWN) return false;
+    if (s.safeIsMy) return s.safeIsMy();
+    try {
+        return !!s.my;
+    } catch (e) {
+        return false;
+    }
+}
+
+function isWaveCreepMemory(memory, wave) {
+    if (!memory || !wave) return false;
+    if (!isWaitForLongbowWave({role: memory.role, misc: memory.misc})) return false;
+    if (wave.destination && memory.destination !== wave.destination) return false;
+    if ((wave.operation || '') !== (memory.operation || '')) return false;
+    return true;
+}
+
+function reservationAllowed(room) {
+    if (!spawnEnergyState(room)) return false;
+    return getCreepCount(room, 'stationaryHarvester') > 0;
+}
+
+function idleReserveCount(room, availableCount, owned, demand, spawn0Excluded, busyWave) {
+    const cap = maxMilitaryReserve(owned);
+    let idleCap = Math.min(cap, demand) - busyWave;
+    if (idleCap < 0) idleCap = 0;
+    if (!spawn0Excluded && owned >= 2) {
+        idleCap = Math.min(idleCap, Math.max(0, availableCount - 1));
+    } else {
+        idleCap = Math.min(idleCap, availableCount);
+    }
+    return idleCap;
+}
+
+function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
+    const {only, excludeKey, spawned} = opts;
+    let waitingOnEnergy = false;
+    for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
+        if (!item || !item.role || !item.body || !item.body.length) continue;
+        if (only && item.cacheKey !== only.cacheKey) continue;
+        if (excludeKey && item.wave && item.cacheKey === excludeKey) continue;
+        const left = (item.remaining || 1) - (spawned[item.cacheKey] || 0);
+        if (left <= 0) continue;
+
+        const cost = global.UNIT_COST(item.body);
+        if (cost > energyCapacity) continue;
+        if (cost > energyLeft) {
+            if (only) {
+                waitingOnEnergy = true;
+                break;
+            }
+            continue;
+        }
+        return {item, cost, waitingOnEnergy: false};
+    }
+    return {item: null, cost: 0, waitingOnEnergy};
+}
+
+function displayWaveHud(room, text) {
+    if (!text) return;
+    room.visual.text(text, 35.2, 0.15, {
+        color: '#ffcc66',
+        align: 'left',
+        font: '0.45 Tahoma'
+    });
+}
+
+function spawnQueuedCreep(room, availableSpawn, queuedBuild, body) {
+    const {
+        role, operation, assignedSource, destination, other,
+        military, misc, neededBoosts, assignment
+    } = queuedBuild;
+
+    const name = generateCreepName(role, room.level, operation);
+
+    let energyStructures;
+    if (spawnState.energyOrder[availableSpawn.room.name]) {
+        try {
+            const parsed = JSON.parse(spawnState.energyOrder[availableSpawn.room.name]);
+            energyStructures = parsed.map(s => Game.getObjectById(s.id)).filter(s => s);
+            if (!energyStructures.length) energyStructures = undefined;
+        } catch (e) {
+            energyStructures = undefined;
+        }
+    }
+
+    const moveParts = _.filter(body, b => b === MOVE).length;
+    const attackParts = _.filter(body, b => b === ATTACK || b === RANGED_ATTACK).length;
+    const healParts = _.filter(body, b => b === HEAL).length;
+    const claimParts = _.filter(body, b => b === CLAIM).length;
+
+    let miscMem = misc;
+    if (misc && misc.waitFor > 1) {
+        miscMem = Object.assign({}, misc, {formColony: availableSpawn.room.name});
+    }
+
+    const spawnOpts = {
+        memory: {
+            role,
+            colony: availableSpawn.room.name,
+            assignedSource,
+            destination,
+            other,
+            military,
+            operation,
+            misc: miscMem,
+            neededBoosts,
+            canTow: moveParts >= 2 && !attackParts && !healParts && !claimParts,
+            assignment
+        }
+    };
+    if (energyStructures) spawnOpts.energyStructures = energyStructures;
+
+    let spawnResult = availableSpawn.spawnCreep(body, name, spawnOpts);
+
+    if (spawnResult === ERR_NOT_ENOUGH_ENERGY && energyStructures) {
+        spawnState.energyOrder[availableSpawn.room.name] = undefined;
+        delete spawnOpts.energyStructures;
+        spawnResult = availableSpawn.spawnCreep(body, name, spawnOpts);
+    }
+
+    if (spawnResult === OK) {
+        if (!(misc && misc.waitFor > 1) && (neededBoosts || (misc && misc.boosts))) {
+            preReserveBoostLab(availableSpawn.room, name, neededBoosts, body, role, misc);
+        }
+        spawnState.lastBuilt[availableSpawn.room.name] = Game.time;
+        if (!queuedBuild.operation) log.d(`${availableSpawn.room.name} Spawning a ${role}`);
+        return OK;
+    }
+    if (spawnResult === ERR_NOT_ENOUGH_ENERGY) {
+        spawnState.energyOrder[availableSpawn.room.name] = undefined;
+    } else {
+        log.d(`Spawn error in ${availableSpawn.room.name} code ${spawnResult}. Name - ${name}`);
+    }
+    return spawnResult;
+}
+
 function processBuildQueue(room) {
     const queue = getQueue(room);
-    if (!room.level || !_.size(queue)) return;
+    if (!room.level) return;
+
+    const wave = pickActiveWave(queue);
+    const formingWave = !!(wave && wave.remaining > 0);
+    if (!formingWave && !_.size(queue)) return;
 
     const currentTick = Game.time;
-    if (!spawnState.throttleReady(spawnState.buildTick, room.name, 5)) return;
+    if (!formingWave && !spawnState.throttleReady(spawnState.buildTick, room.name, 5)) return;
+    spawnState.buildTick[room.name] = currentTick;
 
     const lastSpawn = spawnState.lastBuilt[room.name];
     if (lastSpawn && lastSpawn + 500 < currentTick && room.energyAvailable >= 300) {
-        CREEP_QUEUES[room.name] = {};
-        spawnState.lastBuilt[room.name] = currentTick;
-        return;
+        if (!wave || wave.global) {
+            CREEP_QUEUES[room.name] = {};
+            spawnState.lastBuilt[room.name] = currentTick;
+            if (!wave) return;
+        }
     }
 
-    const totalSpawns = room.spawns;
+    const totalSpawns = room.spawns || [];
+    const owned = ownedSpawnCount(room);
     const renewalCreep = room.myCreeps.find(c => c.memory.needsRenewal);
-    let availableSpawns = totalSpawns.filter(s => (s.safeIsMy ? s.safeIsMy() : (function () {
-        try {
-            return s.my;
-        } catch (e) {
+    const spawn0Excluded = !!(renewalCreep && totalSpawns.length > 1);
+
+    let availableSpawns = totalSpawns.filter(s => isMySpawn(s) && !s.spawning);
+    if (spawn0Excluded) {
+        const firstId = totalSpawns[0] && totalSpawns[0].id;
+        availableSpawns = availableSpawns.filter(s => s.id !== firstId);
+    }
+
+    const canReserve = formingWave && reservationAllowed(room);
+    const demand = canReserve ? waveSpawnDemand(wave.misc.waitFor) : 0;
+    let busyWave = 0;
+    if (wave) {
+        for (let i = 0; i < totalSpawns.length; i++) {
+            const spawning = totalSpawns[i].spawning;
+            if (!spawning) continue;
+            const creep = Game.creeps[spawning.name];
+            if (creep && isWaveCreepMemory(creep.memory, wave)) busyWave++;
+        }
+    }
+    const reserveCount = canReserve
+        ? idleReserveCount(room, availableSpawns.length, owned, demand, spawn0Excluded, busyWave)
+        : 0;
+
+    const reservedSpawns = availableSpawns.slice(0, reserveCount);
+    const freeSpawns = availableSpawns.slice(reserveCount);
+
+    let energyLeft = room.energyAvailable;
+    const energyCapacity = room.energyCapacityAvailable;
+    const spawned = {};
+    let waveEnergyWait = false;
+
+    const consume = (spawn, item, cost) => {
+        determineEnergyOrder(room);
+        const result = spawnQueuedCreep(room, spawn, item, item.body);
+        if (result !== OK) {
+            if (result === ERR_NOT_ENOUGH_ENERGY) energyLeft = Math.min(energyLeft, room.energyAvailable);
             return false;
         }
-    })()) && s.structureType === STRUCTURE_SPAWN && !s.spawning);
+        energyLeft = Math.max(0, energyLeft - cost);
+        spawned[item.cacheKey] = (spawned[item.cacheKey] || 0) + 1;
+        const left = (item.remaining || 1) - spawned[item.cacheKey];
+        if (left <= 0) {
+            if (item.cacheKey) clearQueueEntry(item.cacheKey);
+            else updateRoomAndGlobalQueue(room, item);
+        }
+        return true;
+    };
 
-    if (renewalCreep && totalSpawns.length > 1) {
-        availableSpawns = totalSpawns.filter(s => s.id !== totalSpawns[0].id && (s.safeIsMy ? s.safeIsMy() : (function () {
-            try {
-                return s.my;
-            } catch (e) {
-                return false;
-            }
-        })()) && s.structureType === STRUCTURE_SPAWN && !s.spawning);
-    }
-
-    for (let availableSpawn of availableSpawns) {
-        let queuedBuild;
-        let body = [];
-
-        for (let topPriority of queue) {
-            const {role, other} = topPriority;
-            if (!role) continue;
-
-            const generatedInfo = new generator(room.level, role, room, topPriority).generateBody();
-            if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) continue;
-            body = generatedInfo.body;
-            topPriority = generatedInfo.info;
-
-            const cost = global.UNIT_COST(body);
-            if (cost > room.energyCapacityAvailable) continue;
-            if (cost > room.energyAvailable && cost <= room.energyCapacityAvailable) {
-                // Wait only for spawn auto-regen (300). Anything that needs
-                // extension fill is skipped so an affordable creep can spawn.
-                const waitCap = Math.max(room.energyAvailable, SPAWN_ENERGY_CAPACITY);
-                if (cost > waitCap) continue;
-                return;
-            }
-
-            queuedBuild = topPriority;
+    for (let i = 0; i < reservedSpawns.length; i++) {
+        const pick = pickQueueItem(queue, energyLeft, energyCapacity, {only: wave, spawned});
+        if (pick.waitingOnEnergy) {
+            waveEnergyWait = true;
             break;
         }
-
-        if (queuedBuild) {
-            if (!determineEnergyOrder(room)) return;
-
-            const {
-                role, operation, assignedSource, destination, other,
-                military, misc, neededBoosts, assignment
-            } = queuedBuild;
-
-            const name = generateCreepName(role, room.level, operation);
-
-            let energyStructures;
-            if (spawnState.energyOrder[availableSpawn.room.name]) {
-                try {
-                    const parsed = JSON.parse(spawnState.energyOrder[availableSpawn.room.name]);
-                    energyStructures = parsed.map(s => Game.getObjectById(s.id)).filter(s => s);
-                    if (!energyStructures.length) energyStructures = undefined;
-                } catch (e) {
-                    energyStructures = undefined;
-                }
-            }
-
-            const moveParts = _.filter(body, b => b === MOVE).length;
-            const attackParts = _.filter(body, b => b === ATTACK || b === RANGED_ATTACK).length;
-            const healParts = _.filter(body, b => b === HEAL).length;
-            const claimParts = _.filter(body, b => b === CLAIM).length;
-
-            let miscMem = misc;
-            if (misc && misc.waitFor > 1) {
-                miscMem = Object.assign({}, misc, {formColony: availableSpawn.room.name});
-            }
-
-            const spawnOpts = {
-                memory: {
-                    role,
-                    colony: availableSpawn.room.name,
-                    assignedSource,
-                    destination,
-                    other,
-                    military,
-                    operation,
-                    misc: miscMem,
-                    neededBoosts,
-                    canTow: moveParts >= 2 && !attackParts && !healParts && !claimParts,
-                    assignment
-                }
-            };
-            if (energyStructures) spawnOpts.energyStructures = energyStructures;
-
-            let spawnResult = availableSpawn.spawnCreep(body, name, spawnOpts);
-
-            if (spawnResult === ERR_NOT_ENOUGH_ENERGY && energyStructures) {
-                spawnState.energyOrder[availableSpawn.room.name] = undefined;
-                delete spawnOpts.energyStructures;
-                spawnResult = availableSpawn.spawnCreep(body, name, spawnOpts);
-            }
-
-            if (spawnResult === OK) {
-                // waitFor waves boost only after the full group is spawned;
-                // pre-reserving labs here would time out during that wait.
-                if (!(misc && misc.waitFor > 1) && (neededBoosts || (misc && misc.boosts))) {
-                    preReserveBoostLab(availableSpawn.room, name, neededBoosts, body, role, misc);
-                }
-                spawnState.lastBuilt[availableSpawn.room.name] = Game.time;
-                if (!queuedBuild.operation) log.d(`${availableSpawn.room.name} Spawning a ${role}`);
-                updateRoomAndGlobalQueue(room, queuedBuild);
-                return;
-            } else if (spawnResult === ERR_NOT_ENOUGH_ENERGY) {
-                spawnState.energyOrder[availableSpawn.room.name] = undefined;
-                return;
-            } else {
-                log.d(`Spawn error in ${availableSpawn.room.name} code ${spawnResult}. Name - ${name}`);
-                return;
-            }
-        } else {
-            renewNearbyCreepIfNeeded(room, availableSpawn);
+        if (!pick.item) break;
+        if (!consume(reservedSpawns[i], pick.item, pick.cost)) {
+            waveEnergyWait = true;
+            break;
         }
+    }
+
+    for (let i = 0; i < freeSpawns.length; i++) {
+        const excludeKey = reserveCount > 0 && wave ? wave.cacheKey : undefined;
+        const pick = pickQueueItem(queue, energyLeft, energyCapacity, {excludeKey, spawned});
+        if (!pick.item) {
+            renewNearbyCreepIfNeeded(room, freeSpawns[i]);
+            continue;
+        }
+        if (!consume(freeSpawns[i], pick.item, pick.cost)) {
+            renewNearbyCreepIfNeeded(room, freeSpawns[i]);
+        }
+    }
+
+    if (formingWave) {
+        const left = Math.max(0, (wave.remaining || 0) - (spawned[wave.cacheKey] || 0));
+        const lock = reserveCount + busyWave;
+        const bits = [`Wave ${wave.role} ${left}/${wave.numberNeeded || wave.misc.waitFor}`];
+        bits.push(`lock ${lock}/${maxMilitaryReserve(owned)}`);
+        if (waveEnergyWait) bits.push('⚡wait');
+        if (!canReserve) bits.push('no-lock');
+        const hud = bits.join('  |  ');
+        spawnState.waveHud[room.name] = hud;
+        displayWaveHud(room, hud);
+    } else if (spawnState.waveHud[room.name]) {
+        spawnState.waveHud[room.name] = undefined;
     }
 }
 

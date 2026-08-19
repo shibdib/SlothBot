@@ -302,4 +302,5 @@ module.exports = {
     creepBodyHas,
     getSiegeDuoUnpaired,
     countRoleForDestination,
+    ownedSpawnCount,
 };

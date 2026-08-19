@@ -22,6 +22,7 @@ module.exports = {
     contestedRemotes: {},
     blockedRemotes: {},
     lastGlobalOpSignature: '',
+    waveHud: {},
     throttleReady(tickMap, roomName, interval) {
         const last = tickMap[roomName];
         if (last !== undefined && last + interval > Game.time) return false;

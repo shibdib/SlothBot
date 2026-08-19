@@ -50,7 +50,8 @@ function queueCreepIfNeeded(spawnInfo) {
             misc: spawnInfo.misc,
             operation: spawnInfo.operation,
             military: !!spawnInfo.operation,
-            assignment: spawnInfo.assignment
+            assignment: spawnInfo.assignment,
+            numberNeeded: spawnInfo.numberNeeded
         }, global, spawnInfo.closestRoom);
     }
 }
@@ -64,7 +65,10 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
 
     const cacheKey = queueCacheKey(options.role, options.destination, options.other, options.misc, options.operation, options.assignment);
 
-    if (cache[cacheKey] && cache[cacheKey].priority <= priority) return;
+    if (cache[cacheKey] && cache[cacheKey].priority <= priority) {
+        if (options.numberNeeded) cache[cacheKey].numberNeeded = options.numberNeeded;
+        return;
+    }
     if (cache[cacheKey]) delete cache[cacheKey];
 
     if (!global) options.room = room ? room.name : undefined;
@@ -82,7 +86,9 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
         misc: options.misc,
         global,
         closestRoom,
-        assignment: options.assignment
+        assignment: options.assignment,
+        numberNeeded: options.numberNeeded || 1,
+        cacheKey
     };
 
     if (global) CREEP_QUEUES['global'] = cache;
@@ -97,11 +103,67 @@ function generateCreepName(role, level, operation) {
     return name;
 }
 
-function adjustQueuePriority(queue, room) {
-    for (const key in queue) {
-        const creep = queue[key];
-        creep.body = undefined;
+function isWaitForLongbowWave(item) {
+    if (!item || !item.misc || !(item.misc.waitFor > 1)) return false;
+    const role = item.role || '';
+    return role === 'longbowSquad' || role === 'longbow';
+}
 
+function waveSpawnDemand(waitFor) {
+    if (waitFor >= 4) return 2;
+    if (waitFor >= 2) return 1;
+    return 0;
+}
+
+function maxMilitaryReserve(spawnCount) {
+    if (spawnCount <= 1) return 0;
+    if (spawnCount === 2) return 1;
+    return 2;
+}
+
+function copyQueueEntry(entry, cacheKey) {
+    const copy = Object.assign({}, entry);
+    copy.other = Object.assign({}, entry.other || {});
+    copy.misc = Object.assign({}, entry.misc || {});
+    if (copy.misc.boosts) copy.misc.boosts = copy.misc.boosts.slice();
+    copy.body = undefined;
+    copy.cacheKey = entry.cacheKey || cacheKey;
+    return copy;
+}
+
+function clearQueueEntry(cacheKey) {
+    if (!cacheKey) return;
+    if (CREEP_QUEUES.global) delete CREEP_QUEUES.global[cacheKey];
+    for (const roomName in CREEP_QUEUES) {
+        if (roomName === 'global' || !CREEP_QUEUES[roomName]) continue;
+        delete CREEP_QUEUES[roomName][cacheKey];
+    }
+}
+
+function computeSortPriority(item, room) {
+    let sortPriority = item.priority;
+    if (roomInSpawnRecovery(room) && !item.operation && item.role === 'shuttle'
+        && sortPriority < PRIORITIES.hauler) {
+        sortPriority = PRIORITIES.hauler;
+    }
+    if (item.destination && (Memory.targetRooms[item.destination] || Memory.auxiliaryTargets[item.destination])) {
+        const milInfo = room.memory.energyInfo;
+        const milTrend = (milInfo && milInfo.trend) || 0;
+        const milSpare = (milInfo && milInfo.spareIncome) || 0;
+        const flowReady = spawnEnergyState(room) >= 2 && milTrend >= 0 && milSpare >= 8;
+        if (flowReady && room.storage) sortPriority *= 0.5;
+        else if (item.military) sortPriority *= 6;
+    }
+    if (isWaitForLongbowWave(item)) {
+        sortPriority = Math.min(sortPriority, PRIORITIES.hauler + 0.5);
+    }
+    return Math.max(1, Math.round(sortPriority * 10) / 10);
+}
+
+function prepareQueueItems(merged, room) {
+    const items = [];
+    for (const key in merged) {
+        const creep = merged[key];
         const target = creep.destination && (creep.other && creep.other.assignment
             ? creep.other.assignment
             : creep.destination);
@@ -117,18 +179,11 @@ function adjustQueuePriority(queue, room) {
             if (opMemory && opMemory.assignedRoom === room.name && !liveForOp) {
                 unassignRoom(target, 'Unable to generate needed body.');
             }
-            delete queue[key];
             continue;
         }
 
         const body = generatedInfo.body;
-        creep.body = body;
         if (!body.length) continue;
-
-        if (roomInSpawnRecovery(room) && !creep.operation && creep.role === 'shuttle'
-            && creep.priority < PRIORITIES.hauler) {
-            creep.priority = PRIORITIES.hauler;
-        }
 
         const requiredBoosts = [];
         if (opMemory && opMemory.boosts) {
@@ -154,21 +209,57 @@ function adjustQueuePriority(queue, room) {
             if (opMemory && opMemory.assignedRoom === room.name && !liveForOp) {
                 unassignRoom(target, 'Missing required boosts.');
             }
-            delete queue[key];
             continue;
         }
 
-        if (creep.destination && ((Memory.targetRooms && Memory.targetRooms[creep.destination]) || (Memory.auxiliaryTargets && Memory.auxiliaryTargets[creep.destination]))) {
-            const milInfo = room.memory.energyInfo;
-            const milTrend = (milInfo && milInfo.trend) || 0;
-            const milSpare = (milInfo && milInfo.spareIncome) || 0;
-            const flowReady = spawnEnergyState(room) >= 2 && milTrend >= 0 && milSpare >= 8;
-            if (flowReady && room.storage) creep.priority *= 0.5;
-            else if (creep.military) creep.priority *= 6;
+        creep.body = body;
+        if (generatedInfo.info && generatedInfo.info.neededBoosts) {
+            creep.neededBoosts = generatedInfo.info.neededBoosts;
         }
-        creep.priority = Math.max(1, Math.round(creep.priority));
+        creep.sortPriority = computeSortPriority(creep, room);
+
+        if (isWaitForLongbowWave(creep)) {
+            const waitFor = creep.misc.waitFor;
+            const needed = creep.numberNeeded || waitFor;
+            const live = getCreepCount(undefined, creep.role, creep.destination, creep.operation);
+            creep.remaining = Math.max(0, needed - live);
+            creep.wave = true;
+            if (creep.remaining <= 0) {
+                clearQueueEntry(creep.cacheKey || key);
+                continue;
+            }
+        } else {
+            creep.remaining = 1;
+            creep.wave = false;
+        }
+
+        items.push(creep);
     }
-    return queue;
+    items.sort((a, b) => a.sortPriority - b.sortPriority);
+    return items;
+}
+
+function pickActiveWave(items) {
+    if (!items || !items.length) return null;
+    const waves = [];
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].wave && items[i].remaining > 0) waves.push(items[i]);
+    }
+    if (!waves.length) return null;
+    let forming = null;
+    for (let i = 0; i < waves.length; i++) {
+        const w = waves[i];
+        const needed = w.numberNeeded || (w.misc && w.misc.waitFor) || 0;
+        if (needed && w.remaining < needed) {
+            if (!forming || w.sortPriority < forming.sortPriority) forming = w;
+        }
+    }
+    if (forming) return forming;
+    let best = waves[0];
+    for (let i = 1; i < waves.length; i++) {
+        if (waves[i].sortPriority < best.sortPriority) best = waves[i];
+    }
+    return best;
 }
 
 function displayQueue(room, queue) {
@@ -224,14 +315,16 @@ function displayQueue(room, queue) {
         if (!cost) continue;
 
         const show = item.operation || item.role;
+        const countTag = item.remaining > 1 ? ` x${item.remaining}` : '';
         const color = room.energyAvailable >= cost ? '#00B7EB' : '#FF4500';
 
-        room.visual.text(`${i + 1}. ${_.capitalize(show)}`, x + 0.2, yOffset, {
+        room.visual.text(`${i + 1}. ${_.capitalize(show)}${countTag}`, x + 0.2, yOffset, {
             color: color,
             align: 'left',
             font: '0.5 Tahoma'
         });
-        room.visual.text(`${cost}⚡ P:${item.priority}`, x + width - 0.2, yOffset, {
+        const p = item.sortPriority != null ? item.sortPriority : item.priority;
+        room.visual.text(`${cost}⚡ P:${p}`, x + width - 0.2, yOffset, {
             color: '#dddddd',
             align: 'right',
             font: '0.5 Tahoma'
@@ -246,8 +339,10 @@ function getQueue(room) {
 
     const operationQueue = collectGlobalOperations(room);
     const roomQueue = CREEP_QUEUES[room.name] || {};
-    const merged = Object.assign({}, operationQueue, roomQueue);
-    const sorted = _.sortBy(adjustQueuePriority(merged, room), 'priority');
+    const merged = {};
+    for (const key in operationQueue) merged[key] = copyQueueEntry(operationQueue[key], key);
+    for (const key in roomQueue) merged[key] = copyQueueEntry(roomQueue[key], key);
+    const sorted = prepareQueueItems(merged, room);
 
     queueCache[room.name] = {queue: sorted, tick: Game.time};
     displayQueue(room, sorted);
@@ -269,4 +364,9 @@ module.exports = {
     getQueue,
     generateCreepName,
     pruneQueueCache,
+    isWaitForLongbowWave,
+    pickActiveWave,
+    waveSpawnDemand,
+    maxMilitaryReserve,
+    clearQueueEntry,
 };
