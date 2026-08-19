@@ -35,6 +35,9 @@ function getRemoteHarvesterForSource(sourceId) {
 }
 
 function processCreepForCache(counts, creep) {
+    // Sealed remnants (bled-down quads fighting as a duo) must not fill the
+    // waitFor-4 spawn cap — a new quad should spawn beside them.
+    if (creep.memory.misc && creep.memory.misc.sealed) return;
     const role = creep.memory.oldRole || creep.memory.role || '';
     const destination = creep.memory.destination || creep.room.name;
     const room = creep.room.name || creep.memory.colony;

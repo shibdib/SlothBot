@@ -112,11 +112,24 @@ class RoleLongbowSquad {
 
         const squad = this.getSquad();
         const fullSquad = squad.concat(creep);
+        this.adoptDuoIfQuadRemnant(creep);
 
         if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
             const hostile = creep.findClosestEnemy(false, false);
             if (hostile) creep.memory.target = hostile.id;
             else if (creep.memory.target) creep.memory.target = undefined;
+        }
+
+        // Breach a border wall (exit, 1 tile, barriers) or widen a 1-tile hole
+        // before firing, or mass-attack punches a gap the 2×2 still cannot fit.
+        if (creep.memory.destination === creep.room.name) {
+            if (this.entryInward(creep.pos)) {
+                this.applyBreachTarget(creep, this.pickBorderBreachTarget(creep, this.isQuad(creep) ? 2 : 1));
+            } else if (this.isQuad(creep) && this.isFormationPacked(fullSquad, creep)) {
+                if (!this.pickQuadWidenTarget(creep, true) && creep.memory.quadPathBlocked) {
+                    this.pickQuadWidenTarget(creep, false);
+                }
+            }
         }
 
         // Combat actions first — range-aware mass-vs-focused decision
@@ -141,7 +154,7 @@ class RoleLongbowSquad {
         const needsFormation = !!(this.room.hostileCreeps.find((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) || this.room.hostileStructures.length || this.nearDestination(creep));
 
         if (needsFormation) {
-            const isReady = this.hasFullSquad(creep) && this.isFormationPacked(squad.concat(creep), creep);
+            const isReady = this.squadReadyToFight(creep, squad);
 
             if (isReady) {
                 if (!creep.memory.initialFormUp) creep.memory.initialFormUp = true;
@@ -157,6 +170,7 @@ class RoleLongbowSquad {
                 }
             } else {
                 creep.memory.waitingToAssemble = true;
+                if (creep.memory.quadWiden) return;
                 if (!this.holdAtExit(creep, squad) && !this.isCurrentPosViable(creep)) {
                     const stagingTarget = this.findStaging(creep);
                     if (stagingTarget) creep.shibMove(stagingTarget, {range: 0, forceSolo: true});
@@ -211,6 +225,7 @@ class RoleLongbowSquad {
 
         // Squad-wide focus fire: adopt the leader's primary target
         if (leader.memory.target) this.creep.memory.target = leader.memory.target;
+        this.creep.memory.quadWiden = leader.memory.quadWiden || undefined;
 
         // Combat fires first so it isn't lost when kite/move return early
         if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
@@ -250,24 +265,47 @@ class RoleLongbowSquad {
     }
 
     handleSolo() {
-        const waitFor = (this.creep.memory.misc && this.creep.memory.misc.waitFor) || 0;
+        const creep = this.creep;
+        const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
+
+        // Waiting for a squad is not idle: chip a border wall in range, or any
+        // hostile in RA range. idleFor skips the whole role (including this).
+        if (waitFor > 1 && creep.memory.destination === creep.room.name && this.entryInward(creep.pos)) {
+            this.applyBreachTarget(creep, this.pickBorderBreachTarget(creep, 1));
+        }
+        // Walls used as breach targets are not always in hostileStructures
+        // (unowned / not in that filter). Fire off memory.target anyway.
+        this.fireRangedAction(creep);
+
         if (waitFor > 1) {
             // Incomplete waitFor squad — do not walk into dest alone.
-            if (this.creep.memory.destination && this.room.name === this.creep.memory.destination) {
-                const toward = (this.creep.memory.misc && this.creep.memory.misc.stagingRoom) || this.creep.memory.colony;
-                this.creep.moveToRoomExit(toward);
+            if (creep.memory.destination && this.room.name === creep.memory.destination) {
+                if (this.destHasLongbowPartner(creep)) {
+                    if (!creep.handleMilitaryCreep()) creep.fleeHome();
+                    return;
+                }
+                // Sit on the strip and shoot the wall rather than bouncing on
+                // the exit (borderCheck vs moveToRoomExit).
+                if (creep.memory.quadWiden) {
+                    const t = Game.getObjectById(creep.memory.target);
+                    if (t && t.pos && t.pos.roomName === creep.room.name && creep.pos.getRangeTo(t) > 3) {
+                        creep.shibMove(t, {range: 3, forceSolo: true});
+                    }
+                    return;
+                }
+                const toward = (creep.memory.misc && creep.memory.misc.stagingRoom) || creep.memory.colony;
+                creep.moveToRoomExit(toward);
                 return;
             }
-            if (this.creep.ensureDenialStaging) this.creep.ensureDenialStaging();
-            const staging = this.creep.memory.misc && this.creep.memory.misc.stagingRoom;
+            if (creep.ensureDenialStaging) creep.ensureDenialStaging();
+            const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
             if (staging && this.room.name !== staging) {
-                this.creep.shibMove(new RoomPosition(25, 25, staging), {range: 22});
+                creep.shibMove(new RoomPosition(25, 25, staging), {range: 22});
                 return;
             }
-            if (this.creep.findDefensivePosition()) this.creep.idleFor(5);
             return;
         }
-        if (!this.creep.handleMilitaryCreep()) this.creep.fleeHome();
+        if (!creep.handleMilitaryCreep()) creep.fleeHome();
     }
 
     // Move the leader toward a transit target. Quads use the squad cost matrix
@@ -550,6 +588,73 @@ class RoleLongbowSquad {
         return (creep.memory.squadMembers || []).length + 1 > 2;
     }
 
+    // Pair already in the fight (or a formed quad that bled to two). WaitFor 4
+    // would park them for a 3rd/4th; they snake and shoot as a duo instead.
+    canFightAsDuo(creep) {
+        const live = (creep.memory.squadMembers || []).length + 1;
+        if (live !== 2) return false;
+        if (creep.memory.initialFormUp) return true;
+        return !!(creep.memory.destination && creep.memory.destination === creep.room.name);
+    }
+
+    destHasLongbowPartner(creep) {
+        const dest = creep.memory.destination;
+        if (!dest || creep.room.name !== dest) return false;
+        const sealed = !!(creep.memory.misc && creep.memory.misc.sealed);
+        return this.room.myCreeps.some(c => {
+            if (c.id === creep.id || c.spawning) return false;
+            if (c.memory.destination !== dest) return false;
+            if (!!(c.memory.misc && c.memory.misc.sealed) !== sealed) return false;
+            const role = c.memory.role || '';
+            const old = c.memory.oldRole || '';
+            return role === 'longbowSquad' || role === 'longbow'
+                || old === 'longbowSquad' || old === 'longbow';
+        });
+    }
+
+    // Duos snake; they do not need a packed 2×2 before the leader will move.
+    squadReadyToFight(creep, squad) {
+        const inDest = !!(creep.memory.destination && creep.memory.destination === creep.room.name);
+        if (inDest && !this.isQuad(creep)) {
+            if ((squad && squad.length >= 1) || this.destHasLongbowPartner(creep)) return true;
+            return false;
+        }
+        // Exit, 1 walkable, then walls: a 2×2 cannot pack on that strip, so
+        // "wait for formation" never ends. Breach first, pack after the gap.
+        if (inDest && this.entryInward(creep.pos)) {
+            if ((squad && squad.length >= 1) || this.destHasLongbowPartner(creep)) return true;
+        }
+        if (!this.hasFullSquad(creep)) return false;
+        if (!this.isQuad(creep)) return true;
+        return this.isFormationPacked((squad || this.getSquad()).concat(creep), creep);
+    }
+
+    // A formed quad that bled to a pair still has waitFor 4, so refill/assemble
+    // treat it as incomplete and park or walk home. Drop to duo, then seal so
+    // replacements spawn and form a new quad instead of joining this pair
+    // (the remnant usually times out before that quad arrives).
+    adoptDuoIfQuadRemnant(creep) {
+        const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
+        if (waitFor <= 2) return false;
+        if (!this.canFightAsDuo(creep)) return false;
+
+        if (!creep.memory.misc) creep.memory.misc = {};
+        creep.memory.misc.waitFor = 2;
+        creep.memory.misc.sealed = true;
+        creep.memory.quadWiden = undefined;
+        creep.memory.quadPathBlocked = undefined;
+        creep.memory._shibSquadMove = undefined;
+        const follower = Game.getObjectById(creep.memory.squadMembers[0]);
+        if (follower) {
+            if (!follower.memory.misc) follower.memory.misc = {};
+            follower.memory.misc.waitFor = 2;
+            follower.memory.misc.sealed = true;
+            follower.memory.quadWiden = undefined;
+            follower.memory._shibSquadMove = undefined;
+        }
+        return true;
+    }
+
     // Unpacked in dest (or any threatened room): sit on the entry exit until
     // the squad is together. 25,25 / local staging is the bunker.
     holdAtExit(creep, squad) {
@@ -573,13 +678,36 @@ class RoleLongbowSquad {
         }
 
         if (creep.memory.destination && creep.room.name === creep.memory.destination) {
+            if (this.holdForQuadWiden(creep)) return;
+            if (this.entryInward(creep.pos)) {
+                const barrier = this.pickBorderBreachTarget(creep, this.isQuad(creep) ? 2 : 1);
+                if (this.applyBreachTarget(creep, barrier)) {
+                    if (creep.pos.getRangeTo(barrier) > 3) this.leaderTransit(barrier, {range: 3});
+                    return;
+                }
+            }
+
             const hostile = Game.getObjectById(creep.memory.target) || creep.findClosestEnemy(false, false);
             if (hostile) {
                 creep.memory.target = hostile.id;
-                return this.advancePackedQuad(creep, hostile);
+                const moved = this.advancePackedQuad(creep, hostile);
+                if (moved === false) {
+                    creep.memory.quadPathBlocked = true;
+                    this.applyPathBlockedBreach(creep);
+                } else if (moved) {
+                    creep.memory.quadPathBlocked = undefined;
+                }
+                return;
             }
             if (creep.room.controller && creep.pos.getRangeTo(creep.room.controller) > 5) {
-                return this.leaderTransit(creep.room.controller, {range: 4});
+                const moved = this.leaderTransit(creep.room.controller, {range: 4});
+                if (moved === false) {
+                    creep.memory.quadPathBlocked = true;
+                    this.applyPathBlockedBreach(creep);
+                } else if (moved) {
+                    creep.memory.quadPathBlocked = undefined;
+                }
+                return;
             }
             return;
         }
@@ -645,6 +773,259 @@ class RoleLongbowSquad {
         return this.leaderTransit(hostile, {range: 3});
     }
 
+    // Hostile wall/rampart on a tile, or null. Lower-hits structure first when
+    // both sit on the same tile — that one dies sooner and we retarget the rest.
+    hostileBarrierAt(pos) {
+        const structs = pos.lookFor(LOOK_STRUCTURES);
+        let best = null;
+        for (let i = 0; i < structs.length; i++) {
+            const s = structs[i];
+            if (s.structureType === STRUCTURE_WALL) {
+                if (s.my) continue;
+            } else if (s.structureType === STRUCTURE_RAMPART) {
+                if (s.my || s.isPublic) continue;
+                try {
+                    if (s.owner && FRIENDLIES.includes(s.owner.username)) continue;
+                } catch (e) {
+                }
+            } else continue;
+            if (!best || s.hits < best.hits) best = s;
+        }
+        return best;
+    }
+
+    // Just inside a dest exit: [exit][one walkable][barrier line].
+    entryInward(pos) {
+        if (pos.x <= 2) return {dx: 1, dy: 0};
+        if (pos.x >= 47) return {dx: -1, dy: 0};
+        if (pos.y <= 2) return {dx: 0, dy: 1};
+        if (pos.y >= 47) return {dx: 0, dy: -1};
+        return null;
+    }
+
+    applyBreachTarget(creep, barrier) {
+        if (!barrier) return false;
+        creep.memory.target = barrier.id;
+        creep.memory.quadWiden = true;
+        return true;
+    }
+
+    // Open a gap in a border wall. Duos need 1 tile; quads need 2 adjacent
+    // tiles so the 2×2 can step off the strip into the room.
+    pickBorderBreachTarget(creep, width) {
+        const inward = this.entryInward(creep.pos);
+        if (!inward) return null;
+        const room = creep.room;
+        const along = inward.dx !== 0 ? {dx: 0, dy: 1} : {dx: 1, dy: 0};
+        const cx = creep.pos.x;
+        const cy = creep.pos.y;
+        let best = null;
+        let bestScore = Infinity;
+
+        for (let step = 1; step <= 2; step++) {
+            const wx = cx + inward.dx * step;
+            const wy = cy + inward.dy * step;
+            let foundOnThisLine = false;
+            for (let k = -4; k <= 4; k++) {
+                const x = wx + along.dx * k;
+                const y = wy + along.dy * k;
+                if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+                const barrier = this.hostileBarrierAt(new RoomPosition(x, y, room.name));
+                if (!barrier) continue;
+                if (creep.pos.getRangeTo(barrier) > 3) continue;
+                foundOnThisLine = true;
+                let score = barrier.hits + Math.abs(k) * 1e5;
+                if (width >= 2) {
+                    const nx = x + along.dx;
+                    const ny = y + along.dy;
+                    let pairOpen = 0;
+                    let pairHits = barrier.hits;
+                    if (nx >= 1 && nx <= 48 && ny >= 1 && ny <= 48) {
+                        const npos = new RoomPosition(nx, ny, room.name);
+                        const nb = this.hostileBarrierAt(npos);
+                        if (nb) pairHits += nb.hits;
+                        else if (room.getTerrain().get(nx, ny) !== TERRAIN_MASK_WALL
+                            && !npos.checkForImpassible(false, true)) {
+                            pairOpen = 1;
+                        }
+                    }
+                    score = (1 - pairOpen) * 1e12 + pairHits + Math.abs(k) * 1e5;
+                }
+                if (score < bestScore) {
+                    bestScore = score;
+                    best = barrier;
+                }
+            }
+            if (foundOnThisLine) break;
+        }
+        return best;
+    }
+
+    applyPathBlockedBreach(creep) {
+        if (this.isQuad(creep)) {
+            this.pickQuadWidenTarget(creep, false);
+            return;
+        }
+        const barrier = this.pickBorderBreachTarget(creep, 1) || this.closestBarrierInRange(creep, 3);
+        this.applyBreachTarget(creep, barrier);
+    }
+
+    closestBarrierInRange(creep, range) {
+        let best = null;
+        let bestScore = Infinity;
+        const room = creep.room;
+        const {x, y} = creep.pos;
+        for (let dx = -range; dx <= range; dx++) {
+            for (let dy = -range; dy <= range; dy++) {
+                const tx = x + dx;
+                const ty = y + dy;
+                if (tx < 1 || tx > 48 || ty < 1 || ty > 48) continue;
+                const barrier = this.hostileBarrierAt(new RoomPosition(tx, ty, room.name));
+                if (!barrier) continue;
+                const cheb = Math.max(Math.abs(dx), Math.abs(dy));
+                const score = cheb * 1e12 + barrier.hits;
+                if (score < bestScore) {
+                    bestScore = score;
+                    best = barrier;
+                }
+            }
+        }
+        return best;
+    }
+
+    // Walkable tile in a 1-wide wall gap: both east-west or both north-south
+    // neighbors are barriers/terrain. A 2-wide opening fails this, which is
+    // when a packed 2×2 can step through.
+    isWallPuncture(x, y, room, terrain) {
+        const blocked = (tx, ty) => {
+            if (tx < 0 || tx > 49 || ty < 0 || ty > 49) return true;
+            if (terrain.get(tx, ty) === TERRAIN_MASK_WALL) return true;
+            return !!this.hostileBarrierAt(new RoomPosition(tx, ty, room.name));
+        };
+        return (blocked(x, y - 1) && blocked(x, y + 1)) || (blocked(x - 1, y) && blocked(x + 1, y));
+    }
+
+    // Sit at range 3 of the barrier we're opening. Do not chase through the
+    // 1-tile hole — the 2×2 still cannot follow.
+    holdForQuadWiden(creep) {
+        if (!creep.memory.quadWiden) return false;
+        const gap = Game.getObjectById(creep.memory.target);
+        if (!gap || !gap.hits) {
+            creep.memory.quadWiden = undefined;
+            return false;
+        }
+        if (creep.pos.getRangeTo(gap) > 3) this.leaderTransit(gap, {range: 3});
+        return true;
+    }
+
+    // Open a 2×2 in a punched outer wall. `partialOnly` keeps us on an existing
+    // 1-tile hole (the stuck case). When transit fails with no hole, also start
+    // a 2-wide breach instead of chipping a single tile.
+    pickQuadWidenTarget(creep, partialOnly) {
+        if (!this.isQuad(creep)) return false;
+        const armedClose = this.room.hostileCreeps.some(c =>
+            (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK))
+            && creep.pos.getRangeTo(c) <= 3
+            && !c.pos.checkForRampart());
+        if (armedClose) {
+            creep.memory.quadWiden = undefined;
+            return false;
+        }
+
+        const room = creep.room;
+        const terrain = room.getTerrain();
+        const lx = creep.pos.x;
+        const ly = creep.pos.y;
+        const goal = Game.getObjectById(creep.memory.target) || room.controller;
+        const minX = Math.max(1, lx - 4);
+        const maxX = Math.min(47, lx + 4);
+        const minY = Math.max(1, ly - 4);
+        const maxY = Math.min(47, ly + 4);
+        const squadTiles = new Set();
+        squadTiles.add(lx + ',' + ly);
+        for (const id of creep.memory.squadMembers || []) {
+            const m = Game.getObjectById(id);
+            if (m && m.pos.roomName === room.name) squadTiles.add(m.pos.x + ',' + m.pos.y);
+        }
+
+        let bestBarrier = null;
+        let bestScore = Infinity;
+
+        for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                const tiles = [
+                    {x: x, y: y},
+                    {x: x + 1, y: y},
+                    {x: x, y: y + 1},
+                    {x: x + 1, y: y + 1}
+                ];
+                let walkable = 0;
+                let holeAwayFromUs = false;
+                let blocked = false;
+                const barriers = [];
+                for (let i = 0; i < 4; i++) {
+                    const t = tiles[i];
+                    if (t.x > 48 || t.y > 48) {
+                        blocked = true;
+                        break;
+                    }
+                    if (terrain.get(t.x, t.y) === TERRAIN_MASK_WALL) {
+                        blocked = true;
+                        break;
+                    }
+                    const pos = new RoomPosition(t.x, t.y, room.name);
+                    const barrier = this.hostileBarrierAt(pos);
+                    if (barrier) barriers.push(barrier);
+                    else if (!pos.checkForImpassible(false, true)) {
+                        walkable++;
+                        // A 1-wide punch has barriers on both opposite sides.
+                        // Standing against a wall is not a puncture, and a
+                        // 2-wide opening no longer is either — so we stop
+                        // once the 2×2 can actually fit.
+                        if (!squadTiles.has(t.x + ',' + t.y)
+                            && this.isWallPuncture(t.x, t.y, room, terrain)) {
+                            holeAwayFromUs = true;
+                        }
+                    } else {
+                        blocked = true;
+                        break;
+                    }
+                }
+                if (blocked || !barriers.length) continue;
+                if (partialOnly && (walkable < 1 || !holeAwayFromUs)) continue;
+
+                let inShot = false;
+                let weakest = barriers[0];
+                let hits = 0;
+                for (let i = 0; i < barriers.length; i++) {
+                    hits += barriers[i].hits;
+                    if (barriers[i].hits < weakest.hits) weakest = barriers[i];
+                    if (creep.pos.getRangeTo(barriers[i]) <= 3) inShot = true;
+                }
+                if (!inShot && creep.pos.getRangeTo(new RoomPosition(x, y, room.name)) > 5) continue;
+
+                let goalDist = 0;
+                if (goal && goal.pos && goal.pos.roomName === room.name) {
+                    goalDist = Math.abs(x + 0.5 - goal.pos.x) + Math.abs(y + 0.5 - goal.pos.y);
+                }
+                // Almost-open gaps first, then toward the goal, then cheaper walls.
+                const score = (3 - walkable) * 1e12 + goalDist * 1e6 + hits;
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestBarrier = weakest;
+                }
+            }
+        }
+
+        if (!bestBarrier) {
+            creep.memory.quadWiden = undefined;
+            return false;
+        }
+        creep.memory.target = bestBarrier.id;
+        creep.memory.quadWiden = true;
+        return true;
+    }
+
     // Back out the way we came (staging, then colony). fleeHome alone can
     // path a duo through the bunker; the follower snakes on lastPos.
     retreatSquad(creep) {
@@ -693,6 +1074,10 @@ class RoleLongbowSquad {
             if (!creep.memory.misc) creep.memory.misc = {};
             creep.memory.misc.waitFor = 0;
         }
+
+        // Two in dest: attack. Waiting for waitFor 4 (or a missing boostAttempt
+        // flag) is what parks a tanking pair on the exit for a 3rd.
+        if (this.canFightAsDuo(creep)) return true;
 
         const squad = this.getSquad();
         if (squad.some(c => !c.memory.boostAttempt)) return false;
@@ -843,6 +1228,10 @@ class RoleLongbowSquad {
     fireRangedAction(creep) {
         if (!creep.hasActiveBodyparts(RANGED_ATTACK)) return;
 
+        const focus = Game.getObjectById(creep.memory.target);
+        const focusHere = focus && focus.pos && focus.pos.roomName === creep.room.name
+            && creep.pos.getRangeTo(focus) <= 3;
+
         const hostiles = this.room.hostileCreeps.concat(this.room.hostileStructures || []);
         const inRange = [];
         for (const h of hostiles) {
@@ -850,16 +1239,14 @@ class RoleLongbowSquad {
             const r = creep.pos.getRangeTo(h);
             if (r <= 3) inRange.push({h, r});
         }
-        if (!inRange.length) return;
+        // Breach walls are chosen via look, not hostileStructures. Still shoot.
+        if (!inRange.length && !focusHere) return;
 
         // rangedHeal and rangedAttack share the ranged-action intent slot — firing
         // both overwrites the heal. Close heal() is a separate slot and doesn't
         // conflict, so we only need to bail when healInRange queued rangedHeal.
-        if (creep.hasActiveBodyparts(HEAL) && this.healInRangeWouldRangedHeal(creep)) return;
-
-        const focus = Game.getObjectById(creep.memory.target);
-        const focusHere = focus && focus.pos && focus.pos.roomName === creep.room.name
-            && creep.pos.getRangeTo(focus) <= 3;
+        // A picked breach target still gets the shot — that's why we're parked.
+        if (creep.hasActiveBodyparts(HEAL) && !creep.memory.quadWiden && this.healInRangeWouldRangedHeal(creep)) return;
 
         // Expected mass-attack damage per RANGED_ATTACK part vs focused (10 per part if target in range)
         let expectedMass = 0;
@@ -868,9 +1255,12 @@ class RoleLongbowSquad {
         }
 
         // Packed squads stay on the leader's pick. Mass only when that pick is
-        // in the blob and mass beats a focused 10-per-part hit.
+        // in the blob and mass beats a focused 10-per-part hit. Widening a wall
+        // gap must be focused — mass finishes the closest tile and leaves a
+        // 1-wide hole the 2×2 cannot step through.
         if (focusHere) {
-            if (inRange.length >= 2 && expectedMass > 10) creep.rangedMassAttack();
+            if (creep.memory.quadWiden) creep.rangedAttack(focus);
+            else if (inRange.length >= 2 && expectedMass > 10) creep.rangedMassAttack();
             else creep.rangedAttack(focus);
             return;
         }
@@ -1042,7 +1432,14 @@ class RoleLongbowSquad {
 
         const targetSize = creep.memory.misc?.waitFor || 1;
         const currentSize = squad.length + 1;
-        const undermanned = currentSize < targetSize;
+        // Formed quad remnant of two keeps fighting as a duo. Hostile creeps
+        // already skip this trip; walls/towers do not, so a 2-of-4 pair would
+        // otherwise walk out of dest the moment the last defender died.
+        let undermanned = currentSize < targetSize;
+        if (undermanned && currentSize >= 2 && (creep.memory.initialFormUp
+            || (creep.memory.destination && creep.room.name === creep.memory.destination))) {
+            undermanned = false;
+        }
 
         let minTTL = creep.ticksToLive || Infinity;
         for (const c of squad) {
@@ -1181,7 +1578,7 @@ class RoleLongbowSquad {
         }
 
         const squad = this.getSquad();
-        const isReady = this.hasFullSquad(this.creep) && this.isFormationPacked(squad.concat(this.creep), this.creep);
+        const isReady = this.squadReadyToFight(this.creep, squad);
 
         if (isReady) {
             if (this.isQuad(this.creep)) return this.leadPackedQuad(this.creep);

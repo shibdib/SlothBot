@@ -36,6 +36,9 @@ function getCachedMatrix(roomName, type, tickTTL, computeFn) {
 
 function buildSquadMatrix(roomName, orientation, squadSize = 4) {
     const PLAIN = 1, SWAMP = 35, EDGE = 10, HOSTILE = 20, SOFT = 200, INFLATE = 250, IMPASSIBLE = 256;
+    // PathFinder treats >= 255 as unwalkable. Inflating obstacles to 250 let a
+    // quad path through a 1-tile wall hole; squadMove then rejected the step.
+    const FOOTPRINT_BLOCK = 255;
     const matrix = new PathFinder.CostMatrix();
     const terrain = Game.map.getRoomTerrain(roomName);
     const vectors = squadSize >= 3 ? getFormationVectors(orientation) : [{x: 0, y: 0}];
@@ -58,7 +61,7 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
             const tile = terrain.get(x, y);
-            if (tile === TERRAIN_MASK_WALL) inflate(x, y, INFLATE);
+            if (tile === TERRAIN_MASK_WALL) inflate(x, y, FOOTPRINT_BLOCK);
             else if (tile === TERRAIN_MASK_SWAMP) inflate(x, y, SWAMP);
         }
     }
@@ -68,19 +71,24 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
         for (const structure of room.structures) {
             if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
                 matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);
-                inflate(structure.pos.x, structure.pos.y, INFLATE);
-            } else if (structure instanceof StructureRampart && (() => {
+                inflate(structure.pos.x, structure.pos.y, FOOTPRINT_BLOCK);
+            } else if (structure instanceof StructureRampart) {
+                let friendlyRampart = false;
                 try {
-                    return structure.owner && FRIENDLIES.includes(structure.owner.username);
+                    friendlyRampart = structure.owner && FRIENDLIES.includes(structure.owner.username);
                 } catch (e) {
-                    return false;
+                    friendlyRampart = false;
                 }
-            })()) {
-                raise(structure.pos.x, structure.pos.y, SOFT);
-                inflate(structure.pos.x, structure.pos.y, INFLATE);
+                if (friendlyRampart) {
+                    raise(structure.pos.x, structure.pos.y, SOFT);
+                    inflate(structure.pos.x, structure.pos.y, INFLATE);
+                } else if (!structure.isPublic) {
+                    matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);
+                    inflate(structure.pos.x, structure.pos.y, FOOTPRINT_BLOCK);
+                }
             } else if (structure instanceof StructurePortal) {
                 matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);
-                inflate(structure.pos.x, structure.pos.y, INFLATE);
+                inflate(structure.pos.x, structure.pos.y, FOOTPRINT_BLOCK);
             }
         }
         for (const c of room.creeps) {
@@ -107,7 +115,7 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
         applyLookObstaclesToMatrix(matrix, room, IMPASSIBLE);
         for (let y = 0; y < 50; y++) {
             for (let x = 0; x < 50; x++) {
-                if (matrix.get(x, y) === IMPASSIBLE) inflate(x, y, INFLATE);
+                if (matrix.get(x, y) === IMPASSIBLE) inflate(x, y, FOOTPRINT_BLOCK);
             }
         }
     }

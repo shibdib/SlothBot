@@ -641,13 +641,14 @@ Creep.prototype.scorchedEarth = function () {
 };
 
 Creep.prototype.attackInRange = function () {
-    if (!this.hasActiveBodyparts(RANGED_ATTACK) || (!this.room.hostileCreeps.length && !this.room.hostileStructures.length)) return false;
+    if (!this.hasActiveBodyparts(RANGED_ATTACK)) return false;
 
     const target = Game.getObjectById(this.memory.target);
-    if (target && isValidHostileTarget(target) && this.pos.inRangeTo(target, 3)) {
+    if (target && target.pos && target.pos.roomName === this.pos.roomName && this.pos.inRangeTo(target, 3)) {
         this.rangedAttack(target);
         return true;
     }
+    if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) return false;
 
     let hostile = Game.getObjectById(this.memory.opportunityAttack);
     if (!hostile || !isValidHostileTarget(hostile) || !hostile.pos.inRangeTo(this, 3) || hostile.pos.roomName !== this.room.name) {
@@ -816,6 +817,37 @@ Creep.prototype.findDefensivePosition = function (target) {
     else this.shibMove(fallback, {range: 12, avoidEnemies: true});
 };
 
+// A sealed remnant (bled-down quad now fighting as a duo) must not recruit
+// or merge — replacements form their own waitFor-4 squad. 600 TTL is about
+// spawn + boost + walk; anyone shorter dies before that quad arrives.
+const SQUAD_RECRUIT_TTL = 600;
+
+function isSealedSquad(creep) {
+    return !!(creep && creep.memory && creep.memory.misc && creep.memory.misc.sealed);
+}
+
+function squadMinTTL(leader) {
+    if (!leader) return 0;
+    let min = leader.spawning ? Infinity : (leader.ticksToLive || Infinity);
+    for (const id of leader.memory.squadMembers || []) {
+        const m = Game.getObjectById(id);
+        if (!m) continue;
+        const t = m.spawning ? Infinity : (m.ticksToLive || Infinity);
+        if (t < min) min = t;
+    }
+    return min;
+}
+
+function leaderHasOpenSlot(leader, joinerWaitFor) {
+    if (!leader || !leader.memory.leader || isSealedSquad(leader)) return false;
+    const theirWait = (leader.memory.misc && leader.memory.misc.waitFor) || 4;
+    const live = (leader.memory.squadMembers || []).length + 1;
+    if (live >= theirWait) return false;
+    if (live >= (joinerWaitFor || theirWait)) return false;
+    if (squadMinTTL(leader) < SQUAD_RECRUIT_TTL) return false;
+    return true;
+}
+
 function absorbSquad(winner, loser, waitFor) {
     if (!winner || !loser || winner.id === loser.id || !loser.memory.leader) return;
     if (!winner.memory.squadMembers) winner.memory.squadMembers = [];
@@ -869,8 +901,10 @@ function tryMergePartialSquads(leader) {
     const isNearbyLeader = (c) => {
         if (!c || c.id === leader.id || !c.my || !c.memory.leader) return false;
         if (c.memory.destination !== dest || c.memory.operation !== op) return false;
+        if (isSealedSquad(c) || isSealedSquad(leader)) return false;
         const theirWait = (c.memory.misc && c.memory.misc.waitFor) || 4;
         if (theirWait <= 2) return false;
+        if (squadMinTTL(c) < SQUAD_RECRUIT_TTL || squadMinTTL(leader) < SQUAD_RECRUIT_TTL) return false;
         return (c.memory.squadMembers || []).length + 1 < theirWait;
     };
 
@@ -955,7 +989,7 @@ Creep.prototype.formSquad = function () {
             c.memory.destination === destination &&
             c.memory.operation === operation &&
             rolesCompatible(c) &&
-            ((c.memory.leader && (c.memory.squadMembers || []).length < maxMembers)
+            ((c.memory.leader && leaderHasOpenSlot(c, maxMembers + 1))
                 || !c.memory.grouped);
 
         // Same-room is the common case and cheap. Expand to nearby rooms when
@@ -983,7 +1017,17 @@ Creep.prototype.formSquad = function () {
         const existingLeaders = candidates.filter(c => c.memory.leader);
         let leader;
         if (existingLeaders.length) {
-            leader = _.max(existingLeaders, c => (c.memory.squadMembers || []).length);
+            // Prefer a long-lived, already-filling quad over a dying remnant
+            // that happens to have more bodies this tick.
+            leader = existingLeaders.reduce((best, c) => {
+                const tc = squadMinTTL(c);
+                const tb = squadMinTTL(best);
+                if (tc !== tb) return tc > tb ? c : best;
+                const sc = (c.memory.squadMembers || []).length;
+                const sb = (best.memory.squadMembers || []).length;
+                if (sc !== sb) return sc > sb ? c : best;
+                return c.name < best.name ? c : best;
+            });
         } else {
             // No existing leader nearby — promote the closest ungrouped peer.
             // Same-room peers always beat cross-room ones via the 50 sentinel.
