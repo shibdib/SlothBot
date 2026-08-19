@@ -13,6 +13,7 @@ const profiler = require('tools.profiler');
 const {MATRIX_CACHE, ROOM_BASE_MATRIX_CACHE} = require('pathState');
 
 const {hashStructures, applyLookObstaclesToMatrix, lookObstacleHash} = require('pathUtils');
+const {isHomeRoomYieldingSquad} = require('pathTraffic');
 
 function getBaseMatrix(roomName, creep, options) {
     const type = options.offRoad || options.tunnel ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
@@ -152,7 +153,8 @@ function getBaseMatrix(roomName, creep, options) {
         if (room.mineral) matrix.set(room.mineral.pos.x, room.mineral.pos.y, 256);
 
         for (const sCreep of room.myCreeps) {
-            const immobile = sCreep.memory?.other?.stationary || sCreep.memory?.grouped
+            const immobile = sCreep.memory?.other?.stationary
+                || (sCreep.memory?.grouped && !isHomeRoomYieldingSquad(sCreep))
                 || (typeof sCreep.hasActiveBodyparts === 'function' ? !sCreep.hasActiveBodyparts(MOVE) : false);
             if (immobile) {
                 matrix.set(sCreep.pos.x, sCreep.pos.y, 200);

@@ -9,6 +9,23 @@ function creepTrafficPriority(creep) {
     return PRIORITIES[creep.memory?.role] || 10;
 }
 
+// WaitFor longbows parked in their spawn colony should step aside for
+// economy traffic. Do not yield while renewing or standing at a boost lab.
+function isHomeRoomYieldingSquad(creep) {
+    if (!creep || !creep.my || !creep.memory) return false;
+    const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
+    if (!(waitFor > 1)) return false;
+    const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+    if (!home || creep.room.name !== home) return false;
+    if (creep.memory.needsRenewal) return false;
+    if (creep.memory.boosts && !creep.memory.boostAttempt) return false;
+    const role = creep.memory.role || '';
+    const old = creep.memory.oldRole || '';
+    if (role !== 'longbowSquad' && role !== 'longbow'
+        && old !== 'longbowSquad' && old !== 'longbow') return false;
+    return !!(creep.memory.grouped || creep.memory.leader);
+}
+
 function creepWinsTraffic(creep, other) {
     const myPriority = creepTrafficPriority(creep);
     const theirPriority = creepTrafficPriority(other);
@@ -40,7 +57,7 @@ function isBumperCandidate(creep) {
         creep.my &&
         (creep.className || !creep.fatigue) &&
         !creep.memory?.other?.stationary &&
-        !creep.memory?.grouped &&
+        (!creep.memory?.grouped || isHomeRoomYieldingSquad(creep)) &&
         (creep.className || creep.hasActiveBodyparts(MOVE)));
 }
 
@@ -73,10 +90,13 @@ function isTileWalkable(pos, ignoreCreepId) {
     return true;
 }
 
-function scoreYieldTile(pos, contestedPos) {
+function scoreYieldTile(pos, contestedPos, yielder) {
     let score = 0;
-    // Prefer staying on the road network when stepping aside.
-    if (pos.checkForRoad()) score += 5;
+    if (yielder && isHomeRoomYieldingSquad(yielder)) {
+        if (pos.checkForRoad()) score -= 8;
+    } else if (pos.checkForRoad()) {
+        score += 5;
+    }
     // Prefer leaving the contested corridor rather than sliding along it.
     if (contestedPos) score += pos.getRangeTo(contestedPos);
     return score;
@@ -97,7 +117,7 @@ function findYieldDirection(creep, contestedPos) {
         if (dir === blockedDir) continue;
         const pos = creep.pos.getAdjacentPosition(dir);
         if (!pos || !isTileWalkable(pos, creep.id)) continue;
-        const score = scoreYieldTile(pos, contestedPos);
+        const score = scoreYieldTile(pos, contestedPos, creep);
         if (score > bestScore) {
             bestScore = score;
             bestDir = dir;
@@ -118,6 +138,7 @@ module.exports = {
     findOccupyingCreep,
     findYieldDirection,
     isBumperCandidate,
+    isHomeRoomYieldingSquad,
     isTileWalkable,
     markMoveBlocked,
 };

@@ -1027,7 +1027,8 @@ Creep.prototype.formSquad = function () {
         }
 
         if (!candidates.length) {
-            creep.memory.squadCooldown = Game.time + 50;
+            const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
+            creep.memory.squadCooldown = Game.time + ((waitFor > 1) ? 1 : 50);
             return;
         }
 

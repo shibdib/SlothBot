@@ -22,6 +22,7 @@ const profiler = require("tools.profiler");
 // squad cost-matrix builder can't drift out of sync. 0 NW / 1 SE / 2 NE / 3 SW.
 const {QUAD_FOLLOWER_OFFSETS: QUAD_OFFSETS} = require("module.pathFinder");
 const stagingCache = {}; // creepId → {x, y, tick, roomName}
+const musterCache = {}; // creepId → {x, y, tick, roomName}
 
 // Ticks of consistent disagreement before a threat-driven orientation flip
 // commits. Each flip invalidates the cached squad path in shibSquadMovement,
@@ -96,7 +97,8 @@ class RoleLongbowSquad {
         if (!(waitFor > 1)) return true;
         if (creep.memory.boostAttempt || creep.memory.hasBoosted) return true;
         if (this.isSquadCommitted(creep)) return true;
-        return this.waveAssembled(creep);
+        if (this.waveAssembled(creep)) return true;
+        return this.waveBodiesInRoom(creep) >= waitFor;
     }
 
     handleLeader() {
@@ -151,14 +153,19 @@ class RoleLongbowSquad {
 
         this.updateOrientation(creep);
 
-        // Tactical retreat (continuous health + DPS forecast) takes priority over renewal
-        if (this.shouldRetreat(creep, fullSquad)) {
+        const formingAtHome = !this.isSquadCommitted(creep)
+            && (creep.memory.misc && creep.memory.misc.waitFor > 1)
+            && this.inHomeColony(creep);
+
+        // Tactical retreat (continuous health + DPS forecast) takes priority over renewal.
+        // Do not yank an uncommitted waitFor wave off the spawn/pad for local hostiles.
+        if (!formingAtHome && this.shouldRetreat(creep, fullSquad)) {
             this.retreatSquad(creep);
             return;
         }
 
         // Reactive melee kite — 1-tile backstep before formation pathing runs
-        if (this.kiteFromMelee(creep)) return;
+        if (!formingAtHome && this.kiteFromMelee(creep)) return;
 
         // New waitFor waves stay in the colony until full, renewed, and boosted.
         if (this.holdForWave(creep, squad)) return;
@@ -321,8 +328,9 @@ class RoleLongbowSquad {
                 return;
             }
             if (!creep.memory.hasBoosted && !creep.memory.boostAttempt) {
-                creep.handleRenewing(CREEP_LIFE_TIME * 0.8);
+                if (creep.handleRenewing(CREEP_LIFE_TIME * 0.8)) return;
             }
+            this.goToMusterPad(creep);
             return;
         }
         if (!creep.handleMilitaryCreep()) creep.fleeHome();
@@ -593,8 +601,16 @@ class RoleLongbowSquad {
         return true;
     }
 
+    inHomeColony(creep) {
+        const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+        return !!(home && creep.room.name === home);
+    }
+
     nearDestination(leader) {
         if (!leader.memory.destination) return false;
+        // Do not pack a 2×2 in the spawn room — dest one or two rooms out
+        // used to flip needsFormation here and findStaging on the bunker.
+        if (this.inHomeColony(leader)) return false;
         // Quads pack two rooms out so the last hop is a 2×2. Duos snake in
         // transit — treating them like quads here parks the leader mid-route
         // (isCurrentPosViable is always true, so they never move to staging).
@@ -622,6 +638,28 @@ class RoleLongbowSquad {
             if (m) wave.push(m);
         }
         return wave;
+    }
+
+    waveBodiesInRoom(creep) {
+        const dest = creep.memory.destination;
+        const op = creep.memory.operation;
+        const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+        const creeps = this.room.myCreeps || [];
+        let n = 0;
+        for (let i = 0; i < creeps.length; i++) {
+            const c = creeps[i];
+            if (!c || c.spawning || !c.memory) continue;
+            if (c.memory.destination !== dest || c.memory.operation !== op) continue;
+            if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
+            const theirHome = (c.memory.misc && c.memory.misc.formColony) || c.memory.colony;
+            if (home && theirHome && home !== theirHome) continue;
+            const role = c.memory.role || '';
+            const old = c.memory.oldRole || '';
+            if (role !== 'longbowSquad' && role !== 'longbow'
+                && old !== 'longbowSquad' && old !== 'longbow') continue;
+            n++;
+        }
+        return n;
     }
 
     waveAssembled(creep, squad) {
@@ -676,6 +714,120 @@ class RoleLongbowSquad {
         return pos.x <= 2 || pos.x >= 47 || pos.y <= 2 || pos.y >= 47;
     }
 
+    musterHubRange(room, x, y) {
+        let min = 99;
+        const add = (pos) => {
+            if (!pos) return;
+            const d = Math.max(Math.abs(pos.x - x), Math.abs(pos.y - y));
+            if (d < min) min = d;
+        };
+        const spawns = room.spawns || [];
+        for (let i = 0; i < spawns.length; i++) add(spawns[i].pos);
+        if (room.storage) add(room.storage.pos);
+        if (room.terminal) add(room.terminal.pos);
+        const labs = room.labs || [];
+        for (let i = 0; i < labs.length; i++) add(labs[i].pos);
+        return min;
+    }
+
+    musterCacheKey(creep) {
+        return `${creep.room.name}:${creep.memory.destination || ''}`;
+    }
+
+    // Dest-facing tile inside the colony, off spawn/lab/storage spine.
+    findMusterPad(creep) {
+        const room = creep.room;
+        const key = this.musterCacheKey(creep);
+        const cached = musterCache[key];
+        if (cached && cached.tick + 30 > Game.time && cached.roomName === room.name) {
+            const pos = new RoomPosition(cached.x, cached.y, cached.roomName);
+            if (!pos.checkForImpassible(false, true)) return pos;
+        }
+
+        const dest = creep.memory.destination;
+        const next = dest && dest !== room.name ? this.nextRoomToward(room.name, dest) : null;
+        const dir = next ? room.findExitTo(next) : 0;
+        const exits = (dir > 0) ? room.find(dir) : room.find(FIND_EXIT);
+        if (!exits || !exits.length) return null;
+
+        const inward = {1: {dx: 0, dy: 1}, 3: {dx: -1, dy: 0}, 5: {dx: 0, dy: -1}, 7: {dx: 1, dy: 0}}[dir]
+            || {dx: 0, dy: 0};
+        const terrain = room.getTerrain();
+
+        const scoreTile = (x, y, dist, allowCloseHub, allowRoad) => {
+            if (x < 2 || x > 47 || y < 2 || y > 47) return Infinity;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) return Infinity;
+            const pos = new RoomPosition(x, y, room.name);
+            if (pos.checkForImpassible(false, true)) return Infinity;
+            const hr = this.musterHubRange(room, x, y);
+            if (!allowCloseHub && hr < 3) return Infinity;
+            const onRoad = pos.checkForRoad();
+            if (onRoad && !allowRoad) return Infinity;
+            let score = dist * 2 + (40 - Math.min(hr, 20));
+            if (onRoad) score += 25;
+            if (terrain.get(x, y) === TERRAIN_MASK_SWAMP) score += 6;
+            return score;
+        };
+
+        let best = null;
+        let bestScore = Infinity;
+        for (let pass = 0; pass < 3; pass++) {
+            const allowCloseHub = pass >= 2;
+            const allowRoad = pass >= 1;
+            for (let i = 0; i < exits.length; i++) {
+                for (let dist = 2; dist <= 8; dist++) {
+                    for (let side = -2; side <= 2; side++) {
+                        const x = exits[i].x + inward.dx * dist + inward.dy * side;
+                        const y = exits[i].y + inward.dy * dist - inward.dx * side;
+                        const score = scoreTile(x, y, dist, allowCloseHub, allowRoad);
+                        if (score < bestScore) {
+                            bestScore = score;
+                            best = new RoomPosition(x, y, room.name);
+                        }
+                    }
+                }
+            }
+            if (best) break;
+        }
+        if (best) musterCache[key] = {x: best.x, y: best.y, tick: Game.time, roomName: room.name};
+        return best;
+    }
+
+    atMusterPad(creep) {
+        const pad = this.findMusterPad(creep);
+        if (!pad) return this.atExitStrip(creep.pos);
+        return creep.pos.getRangeTo(pad) <= 2;
+    }
+
+    squadAtMusterPad(creep, squad) {
+        const members = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
+        if (!members.length) return false;
+        const pad = this.findMusterPad(creep);
+        for (let i = 0; i < members.length; i++) {
+            const c = members[i];
+            if (!c || c.spawning) return false;
+            if (c.room.name !== creep.room.name) return false;
+            if (pad) {
+                if (c.pos.getRangeTo(pad) > 2) return false;
+            } else if (!this.atExitStrip(c.pos)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    goToMusterPad(creep) {
+        const pad = this.findMusterPad(creep);
+        if (!pad) return false;
+        const range = creep.pos.getRangeTo(pad);
+        if (range <= 1) return true;
+        // Stay on an off-road tile in the pad pocket instead of walking back
+        // onto a road the hauler just bumped us off of.
+        if (range <= 2 && !creep.pos.checkForRoad()) return true;
+        creep.shibMove(pad, {range: 1, forceSolo: true});
+        return true;
+    }
+
     commitSquad(creep, squad) {
         const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || ((squad && squad.length) + 1) || 1;
         const members = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
@@ -690,8 +842,8 @@ class RoleLongbowSquad {
     }
 
     // Stay in the spawn colony until waitFor bodies are live, renewed, and
-    // boosted. Then walk to the dest-facing exit and commit — a 2×2 on the
-    // spawn/labs fights the economy. Quad packing happens near dest.
+    // boosted. Park on a dest-facing pad off the bunker spine, then commit.
+    // Quad packing happens after leaving the home room.
     holdForWave(creep, squad) {
         const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
         if (!(waitFor > 1) || this.isSquadCommitted(creep)) return false;
@@ -703,15 +855,23 @@ class RoleLongbowSquad {
         }
 
         if (!this.waveAssembled(creep, squad)) {
-            this.renewWave(creep, squad);
+            if (this.renewWave(creep, squad)) return true;
+            this.goToMusterPad(creep);
             return true;
         }
 
-        if (!this.waveBoosted(creep, squad)) return true;
+        if (!this.waveBoosted(creep, squad)) {
+            this.goToMusterPad(creep);
+            return true;
+        }
 
-        const dest = creep.memory.destination;
-        if (dest && dest !== creep.room.name && !this.atExitStrip(creep.pos)) {
-            creep.moveToRoomExit(this.nextRoomToward(creep.room.name, dest));
+        if (!this.squadAtMusterPad(creep, squad)) {
+            if (this.goToMusterPad(creep)) return true;
+            const dest = creep.memory.destination;
+            if (dest && dest !== creep.room.name && !this.atExitStrip(creep.pos)) {
+                creep.moveToRoomExit(this.nextRoomToward(creep.room.name, dest));
+                return true;
+            }
             return true;
         }
 
@@ -1253,9 +1413,11 @@ class RoleLongbowSquad {
 
     findStaging(creep) {
         // Quad-only. Never search inside the dest — a clear 2×2 there is the bunker.
+        // Home colony packing fights the economy; leave and pack in the next room.
         const squadSize = (creep.memory.squadMembers || []).length + 1;
         if (squadSize <= 2) return null;
         if (creep.memory.destination && creep.room.name === creep.memory.destination) return null;
+        if (this.inHomeColony(creep) && !this.room.hostileCreeps.length) return null;
 
         const roomName = creep.room.name;
         const pos = creep.pos;

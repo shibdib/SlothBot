@@ -147,6 +147,7 @@ const {
     findOccupyingCreep,
     findYieldDirection,
     isBumperCandidate,
+    isHomeRoomYieldingSquad,
     markMoveBlocked,
 } = require('pathTraffic');
 
@@ -603,7 +604,7 @@ function creepBumping(creep, pathInfo, options) {
 
     // 2) Cannot clear: stationary work, squad, immobile, or tow-waiting (pull-swap failed).
     if (bumpCreep.memory?.other?.stationary ||
-        bumpCreep.memory?.grouped ||
+        (bumpCreep.memory?.grouped && !isHomeRoomYieldingSquad(bumpCreep)) ||
         isImmobileBlocker(bumpCreep) ||
         isPullSwapBlocker(bumpCreep) ||
         !isBumperCandidate(bumpCreep)) {
