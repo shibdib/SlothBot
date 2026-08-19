@@ -255,6 +255,11 @@ function processBuildQueue(room) {
             const healParts = _.filter(body, b => b === HEAL).length;
             const claimParts = _.filter(body, b => b === CLAIM).length;
 
+            let miscMem = misc;
+            if (misc && misc.waitFor > 1) {
+                miscMem = Object.assign({}, misc, {formColony: availableSpawn.room.name});
+            }
+
             const spawnOpts = {
                 memory: {
                     role,
@@ -264,7 +269,7 @@ function processBuildQueue(room) {
                     other,
                     military,
                     operation,
-                    misc,
+                    misc: miscMem,
                     neededBoosts,
                     canTow: moveParts >= 2 && !attackParts && !healParts && !claimParts,
                     assignment
@@ -281,7 +286,9 @@ function processBuildQueue(room) {
             }
 
             if (spawnResult === OK) {
-                if (neededBoosts || (misc && misc.boosts)) {
+                // waitFor waves boost only after the full group is spawned;
+                // pre-reserving labs here would time out during that wait.
+                if (!(misc && misc.waitFor > 1) && (neededBoosts || (misc && misc.boosts))) {
                     preReserveBoostLab(availableSpawn.room, name, neededBoosts, body, role, misc);
                 }
                 spawnState.lastBuilt[availableSpawn.room.name] = Game.time;

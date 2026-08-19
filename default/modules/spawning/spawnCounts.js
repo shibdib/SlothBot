@@ -5,6 +5,54 @@
 const generator = require('module.bodyGenerator');
 
 const CREEP_COUNT_CACHE = {counts: {}, tick: 0, harvesterBySource: {}};
+const SQUAD_STAT_CACHE = {tick: 0, stats: {}};
+
+function getWaitForSquadStats(creep) {
+    if (SQUAD_STAT_CACHE.tick !== Game.time) {
+        SQUAD_STAT_CACHE.tick = Game.time;
+        SQUAD_STAT_CACHE.stats = {};
+    }
+    const leader = creep.memory.leader ? creep : (Game.getObjectById(creep.memory.groupLeader) || creep);
+    const key = leader.id;
+    if (SQUAD_STAT_CACHE.stats[key]) return SQUAD_STAT_CACHE.stats[key];
+
+    let live = 1;
+    let minTTL = leader.spawning ? Infinity : (leader.ticksToLive || Infinity);
+    for (const id of leader.memory.squadMembers || []) {
+        const m = Game.getObjectById(id);
+        if (!m) continue;
+        live++;
+        const t = m.spawning ? Infinity : (m.ticksToLive || Infinity);
+        if (t < minTTL) minTTL = t;
+    }
+    const stats = {live, minTTL};
+    SQUAD_STAT_CACHE.stats[key] = stats;
+    return stats;
+}
+
+function waitForReplacementLeadTime(creep, waitFor) {
+    const dest = creep.memory.destination;
+    const origin = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+    const distance = (dest && origin) ? Game.map.getRoomLinearDistance(origin, dest) * 50 : 0;
+    const bodyLen = (creep.body && creep.body.length) || 50;
+    const spawnWaves = Math.max(1, Math.ceil(waitFor / 2));
+    return 3 * bodyLen * spawnWaves + distance + 80;
+}
+
+// Forming waitFor bodies always count. A committed squad fills the cap only
+// while it is still at committedSize and not inside replacement lead time;
+// remnants and dying waves drop out so a new group can form at home.
+function waitForSquadCountsTowardCap(creep) {
+    const misc = creep.memory.misc || {};
+    const committed = !!(misc.sealed || creep.memory.initialFormUp);
+    if (!committed) return true;
+    const fullSize = misc.committedSize;
+    if (!fullSize) return false;
+    const stats = getWaitForSquadStats(creep);
+    if (stats.live < fullSize) return false;
+    if (stats.minTTL <= waitForReplacementLeadTime(creep, fullSize)) return false;
+    return true;
+}
 
 function updateCreepCountCache() {
     const currentTick = Game.time;
@@ -35,9 +83,11 @@ function getRemoteHarvesterForSource(sourceId) {
 }
 
 function processCreepForCache(counts, creep) {
-    // Sealed remnants (bled-down quads fighting as a duo) must not fill the
-    // waitFor-4 spawn cap — a new quad should spawn beside them.
-    if (creep.memory.misc && creep.memory.misc.sealed) return;
+    const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
+    if ((waitFor > 1 || (creep.memory.misc && creep.memory.misc.sealed) || creep.memory.initialFormUp)
+        && !waitForSquadCountsTowardCap(creep)) {
+        return;
+    }
     const role = creep.memory.oldRole || creep.memory.role || '';
     const destination = creep.memory.destination || creep.room.name;
     const room = creep.room.name || creep.memory.colony;

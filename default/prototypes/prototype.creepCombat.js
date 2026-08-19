@@ -817,13 +817,28 @@ Creep.prototype.findDefensivePosition = function (target) {
     else this.shibMove(fallback, {range: 12, avoidEnemies: true});
 };
 
-// A sealed remnant (bled-down quad now fighting as a duo) must not recruit
-// or merge — replacements form their own waitFor-4 squad. 600 TTL is about
-// spawn + boost + walk; anyone shorter dies before that quad arrives.
+// Forming waitFor squads still merge in the colony. Once a wave commits
+// (boosted and left home) it never takes joiners — replacements are a new group.
 const SQUAD_RECRUIT_TTL = 600;
 
-function isSealedSquad(creep) {
-    return !!(creep && creep.memory && creep.memory.misc && creep.memory.misc.sealed);
+function isCommittedSquad(creep) {
+    if (!creep || !creep.memory) return false;
+    if (creep.memory.initialFormUp) return true;
+    return !!(creep.memory.misc && creep.memory.misc.sealed);
+}
+
+function formColonyOf(creep) {
+    if (!creep || !creep.memory) return undefined;
+    return (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+}
+
+function sameFormColony(a, b) {
+    const wait = (a.memory.misc && a.memory.misc.waitFor) || 0;
+    if (!(wait > 1)) return true;
+    const ca = formColonyOf(a);
+    const cb = formColonyOf(b);
+    if (!ca || !cb) return true;
+    return ca === cb;
 }
 
 function squadMinTTL(leader) {
@@ -839,7 +854,7 @@ function squadMinTTL(leader) {
 }
 
 function leaderHasOpenSlot(leader, joinerWaitFor) {
-    if (!leader || !leader.memory.leader || isSealedSquad(leader)) return false;
+    if (!leader || !leader.memory.leader || isCommittedSquad(leader)) return false;
     const theirWait = (leader.memory.misc && leader.memory.misc.waitFor) || 4;
     const live = (leader.memory.squadMembers || []).length + 1;
     if (live >= theirWait) return false;
@@ -901,7 +916,8 @@ function tryMergePartialSquads(leader) {
     const isNearbyLeader = (c) => {
         if (!c || c.id === leader.id || !c.my || !c.memory.leader) return false;
         if (c.memory.destination !== dest || c.memory.operation !== op) return false;
-        if (isSealedSquad(c) || isSealedSquad(leader)) return false;
+        if (isCommittedSquad(c) || isCommittedSquad(leader)) return false;
+        if (!sameFormColony(leader, c)) return false;
         const theirWait = (c.memory.misc && c.memory.misc.waitFor) || 4;
         if (theirWait <= 2) return false;
         if (squadMinTTL(c) < SQUAD_RECRUIT_TTL || squadMinTTL(leader) < SQUAD_RECRUIT_TTL) return false;
@@ -954,6 +970,8 @@ Creep.prototype.formSquad = function () {
 
     function findGroup(creep) {
         if (creep.memory.squadCooldown && Game.time < creep.memory.squadCooldown) return;
+        // Committed remnants never re-pair with a fresh wave.
+        if (isCommittedSquad(creep)) return;
 
         const operation = creep.memory.operation;
         const destination = creep.memory.destination;
@@ -986,6 +1004,8 @@ Creep.prototype.formSquad = function () {
         const candidate = c =>
             c.id !== creep.id &&
             !c.spawning &&
+            !isCommittedSquad(c) &&
+            sameFormColony(creep, c) &&
             c.memory.destination === destination &&
             c.memory.operation === operation &&
             rolesCompatible(c) &&

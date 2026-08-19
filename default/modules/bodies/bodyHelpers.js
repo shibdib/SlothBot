@@ -273,6 +273,7 @@ function countRoleForDestination(dest, role, operation) {
         if (dest && c.memory.destination !== dest) continue;
         if (operation && c.memory.operation !== operation) continue;
         if (c.memory.misc && c.memory.misc.sealed) continue;
+        if (c.memory.initialFormUp) continue;
         n++;
     }
     _roleDestCache[key] = n;

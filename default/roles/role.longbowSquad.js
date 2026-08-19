@@ -84,9 +84,18 @@ class RoleLongbowSquad {
         const waitFor = this.creep.memory.misc && this.creep.memory.misc.waitFor;
         if (!(waitFor > 1) && this.creep.fightFromRampart()) return true;
         this.creep.formSquad();
-        if (this.creep.tryToBoost()) return true;
+        if (this.shouldAttemptBoost() && this.creep.tryToBoost()) return true;
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
         return false;
+    }
+
+    shouldAttemptBoost() {
+        const creep = this.creep;
+        const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
+        if (!(waitFor > 1)) return true;
+        if (creep.memory.boostAttempt || creep.memory.hasBoosted) return true;
+        if (this.isSquadCommitted(creep)) return true;
+        return this.waveAssembled(creep);
     }
 
     handleLeader() {
@@ -145,6 +154,9 @@ class RoleLongbowSquad {
 
         // Reactive melee kite — 1-tile backstep before formation pathing runs
         if (this.kiteFromMelee(creep)) return;
+
+        // New waitFor waves stay in the colony until full, renewed, and boosted.
+        if (this.holdForWave(creep, squad)) return;
 
         // Refill trip: head home when undermanned or running low on TTL (safe rooms only)
         if (this.handleRefillTrip(creep, squad)) return;
@@ -267,6 +279,7 @@ class RoleLongbowSquad {
     handleSolo() {
         const creep = this.creep;
         const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
+        const committed = this.isSquadCommitted(creep);
 
         // Waiting for a squad is not idle: chip a border wall in range, or any
         // hostile in RA range. idleFor skips the whole role (including this).
@@ -277,7 +290,7 @@ class RoleLongbowSquad {
         // (unowned / not in that filter). Fire off memory.target anyway.
         this.fireRangedAction(creep);
 
-        if (waitFor > 1) {
+        if (waitFor > 1 && !committed) {
             // Incomplete waitFor squad — do not walk into dest alone.
             if (creep.memory.destination && this.room.name === creep.memory.destination) {
                 if (this.destHasLongbowPartner(creep)) {
@@ -293,15 +306,17 @@ class RoleLongbowSquad {
                     }
                     return;
                 }
-                const toward = (creep.memory.misc && creep.memory.misc.stagingRoom) || creep.memory.colony;
+                const toward = creep.memory.colony;
                 creep.moveToRoomExit(toward);
                 return;
             }
-            if (creep.ensureDenialStaging) creep.ensureDenialStaging();
-            const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
-            if (staging && this.room.name !== staging) {
-                creep.shibMove(new RoomPosition(25, 25, staging), {range: 22});
+            const colony = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+            if (colony && this.room.name !== colony) {
+                creep.shibMove(new RoomPosition(25, 25, colony), {range: 22});
                 return;
+            }
+            if (!creep.memory.hasBoosted && !creep.memory.boostAttempt) {
+                creep.handleRenewing(CREEP_LIFE_TIME * 0.8);
             }
             return;
         }
@@ -586,6 +601,117 @@ class RoleLongbowSquad {
 
     isQuad(creep) {
         return (creep.memory.squadMembers || []).length + 1 > 2;
+    }
+
+    isSquadCommitted(creep) {
+        return !!(creep.memory.initialFormUp || (creep.memory.misc && creep.memory.misc.sealed));
+    }
+
+    squadForWave(creep) {
+        if (creep.memory.leader) return this.getSquad().concat(creep);
+        const leader = Game.getObjectById(creep.memory.groupLeader);
+        if (!leader) return [creep];
+        const wave = [leader];
+        for (const id of leader.memory.squadMembers || []) {
+            const m = Game.getObjectById(id);
+            if (m) wave.push(m);
+        }
+        return wave;
+    }
+
+    waveAssembled(creep, squad) {
+        const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
+        if (!(waitFor > 1)) return true;
+        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
+        if (wave.length < waitFor) return false;
+        for (let i = 0; i < wave.length; i++) {
+            const c = wave[i];
+            if (!c || c.spawning) return false;
+            if (c.room.name !== creep.room.name) return false;
+        }
+        return true;
+    }
+
+    waveBoosted(creep, squad) {
+        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
+        if (!wave.length) return false;
+        for (let i = 0; i < wave.length; i++) {
+            if (!wave[i] || !wave[i].memory.boostAttempt) return false;
+        }
+        return true;
+    }
+
+    renewWave(creep, squad) {
+        if (creep.memory.hasBoosted || creep.memory.boostAttempt) return false;
+        if (creep.handleRenewing(CREEP_LIFE_TIME * 0.8)) return true;
+        const members = squad || this.getSquad();
+        for (let i = 0; i < members.length; i++) {
+            const c = members[i];
+            if (c && !c.memory.hasBoosted && !c.memory.boostAttempt && c.handleRenewing(CREEP_LIFE_TIME * 0.8)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    nextRoomToward(fromRoom, dest) {
+        if (!dest || fromRoom === dest) return dest;
+        const exits = Game.map.describeExits(fromRoom);
+        if (exits) {
+            for (const dir in exits) {
+                if (exits[dir] === dest) return dest;
+            }
+        }
+        const route = Game.map.findRoute(fromRoom, dest);
+        if (route && route !== ERR_NO_PATH && route.length) return route[0].room;
+        return dest;
+    }
+
+    atExitStrip(pos) {
+        return pos.x <= 2 || pos.x >= 47 || pos.y <= 2 || pos.y >= 47;
+    }
+
+    commitSquad(creep, squad) {
+        const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || ((squad && squad.length) + 1) || 1;
+        const members = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
+        for (let i = 0; i < members.length; i++) {
+            const c = members[i];
+            if (!c) continue;
+            if (!c.memory.misc) c.memory.misc = {};
+            c.memory.misc.sealed = true;
+            c.memory.misc.committedSize = waitFor;
+            c.memory.initialFormUp = true;
+        }
+    }
+
+    // Stay in the spawn colony until waitFor bodies are live, renewed, and
+    // boosted. Then walk to the dest-facing exit and commit — a 2×2 on the
+    // spawn/labs fights the economy. Quad packing happens near dest.
+    holdForWave(creep, squad) {
+        const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
+        if (!(waitFor > 1) || this.isSquadCommitted(creep)) return false;
+
+        const colony = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+        if (colony && creep.room.name !== colony) {
+            this.leaderTransit(new RoomPosition(25, 25, colony), {range: 22});
+            return true;
+        }
+
+        if (!this.waveAssembled(creep, squad)) {
+            this.renewWave(creep, squad);
+            return true;
+        }
+
+        if (!this.waveBoosted(creep, squad)) return true;
+
+        const dest = creep.memory.destination;
+        if (dest && dest !== creep.room.name && !this.atExitStrip(creep.pos)) {
+            creep.moveToRoomExit(this.nextRoomToward(creep.room.name, dest));
+            return true;
+        }
+
+        this.commitSquad(creep, squad);
+        return false;
     }
 
     // Pair already in the fight (or a formed quad that bled to two). WaitFor 4
@@ -1428,6 +1554,9 @@ class RoleLongbowSquad {
     }
 
     handleRefillTrip(creep, squad) {
+        // Committed waves never walk home for top-ups; a replacement group
+        // forms in the colony instead.
+        if (this.isSquadCommitted(creep)) return false;
         if (this.room.hostileCreeps.length) return false;
 
         const targetSize = creep.memory.misc?.waitFor || 1;
