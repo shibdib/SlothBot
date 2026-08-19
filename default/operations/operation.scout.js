@@ -2,6 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 const {siegeLevel} = require('hcUtils');
+const {notifySiegeLaunch, notifySiegeEnd} = require('module.notifications');
 
 Creep.prototype.scoutRoom = function () {
     if (this.room.name !== this.memory.destination) {
@@ -77,6 +78,7 @@ function forwardObserver(room) {
 function updateRoomSafemode(room) {
     const tick = Game.time;
     let targetRoom = Memory.targetRooms[room.name] || {};
+    const wasSiege = targetRoom.type === 'roomDenial';
     targetRoom = {
         ...targetRoom,
         tick,
@@ -84,6 +86,7 @@ function updateRoomSafemode(room) {
         dDay: tick + room.controller.safeMode
     };
     Memory.targetRooms[room.name] = targetRoom;
+    if (wasSiege) notifySiegeEnd(room.name, 'SAFEMODE', targetRoom);
 }
 
 function updateHostileUsers(room) {
@@ -100,6 +103,7 @@ function updateHostileUsers(room) {
 function handleRoomDenialOperation(room) {
     if (!room.controller || !room.controller.owner || FRIENDLIES.includes(room.controller.owner.username)) {
         log.a(`Canceling room denial operation in ${roomLink(room.name)} as it is no longer owned.`, 'HIGH COMMAND: ');
+        notifySiegeEnd(room.name, 'SUCCESS', Memory.targetRooms[room.name]);
         delete Memory.targetRooms[room.name];
         return;
     }
@@ -127,6 +131,7 @@ function handleScoutOperation(room) {
         Memory.targetRooms[room.name].type = 'roomDenial';
         if (towers.length) Memory.targetRooms[room.name].boosts = [HEAL];
         log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
+        notifySiegeLaunch(room.name);
     } else if (isHostile && (towers.length || intel.towers)) {
         Memory.targetRooms[room.name].type = 'remoteDenial';
         log.a(`Room ${roomLink(room.name)} converted to remote denial operation.`, 'HIGH COMMAND: ');

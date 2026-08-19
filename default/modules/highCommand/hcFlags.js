@@ -10,6 +10,7 @@
 
 
 const {getLoadedNukers, pickLauncher, executeNukeLaunch} = require('hcNukes');
+const {notifySiegeLaunch, notifySiegeEnd} = require('module.notifications');
 
 
 function manualAttacks() {
@@ -48,6 +49,8 @@ function manualAttacks() {
         }
 
         if (operation.includes('cancel')) {
+            const target = Memory.targetRooms[roomName];
+            if (target && target.type === 'roomDenial') notifySiegeEnd(roomName, 'ENDED', target);
             delete Memory.targetRooms[roomName];
             delete Memory.auxiliaryTargets[roomName];
             removeFlagAndLog('Canceling operation in ' + roomLink(roomName) + ' at your request.');
@@ -119,6 +122,7 @@ function manualAttacks() {
             removeFlagAndLog('Manual ' + operation + ' task in ' + roomLink(roomName) + ' has been initiated.');
         } else {
             Memory.targetRooms[roomName] = {tick, type: operation, level: 1, manual: true};
+            if (operation === 'roomDenial') notifySiegeLaunch(roomName);
             removeFlagAndLog('Manual ' + operation + ' task in ' + roomLink(roomName) + ' has been initiated.');
         }
 

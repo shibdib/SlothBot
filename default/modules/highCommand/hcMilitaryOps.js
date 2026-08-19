@@ -13,6 +13,7 @@
 const state = require('hcState');
 const {siegeLevel, siegeFeasibility, scoreTarget, checkForNap} = require('hcUtils');
 const {setTarget} = require('hcTargets');
+const {notifySiegeLaunch} = require('module.notifications');
 const {getOpsPauseReason} = require('hcReadiness');
 
 const SKIP_LOG_INTERVAL = 500;
@@ -134,6 +135,7 @@ function militaryOperations() {
                     waveLimit: MAX_LEVEL,
                     manual: true
                 };
+                if ((op.type || 'guard') === 'roomDenial') notifySiegeLaunch(op.room);
             }
         }
         for (const key in Memory.targetRooms) {

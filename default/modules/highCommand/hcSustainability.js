@@ -11,6 +11,7 @@
 
 const {recordSiegeCancellation} = require('hcReadiness');
 const {stampOperationCooldown} = require('hcTargets');
+const {notifySiegeEnd} = require('module.notifications');
 
 function operationSustainability(room, operationRoom = room.name) {
     let operation = Memory.targetRooms[operationRoom] || Memory.auxiliaryTargets[operationRoom]
@@ -65,6 +66,7 @@ function operationSustainability(room, operationRoom = room.name) {
         log.a(`Canceling operation in ${roomLink(operationRoom)} — unsustainable casualties (${ratio.toFixed(2)}).`, 'HIGH COMMAND: ');
         if (opType === 'roomDenial' || opType === 'stronghold') recordSiegeCancellation();
         stampOperationCooldown(operationRoom, Memory.targetRooms[operationRoom], true);
+        if (opType === 'roomDenial') notifySiegeEnd(operationRoom, 'UNSUSTAINABLE', Memory.targetRooms[operationRoom]);
         delete Memory.targetRooms[operationRoom];
         return true;
     }
@@ -77,6 +79,8 @@ function operationSustainability(room, operationRoom = room.name) {
 }
 
 function markAsPending(operationRoom, room) {
+    const previous = Memory.targetRooms[operationRoom];
+    const wasSiege = previous && previous.type === 'roomDenial';
     Memory.targetRooms[operationRoom] = {
         tick: Game.time,
         type: 'remoteDenial',
@@ -84,6 +88,7 @@ function markAsPending(operationRoom, room) {
         dDay: Game.time + room.controller.safeMode
     };
     log.a(`${room.name} marked as Remote Denial due to safemode.`, 'OPERATION PLANNER: ');
+    if (wasSiege) notifySiegeEnd(operationRoom, 'SAFEMODE', Memory.targetRooms[operationRoom]);
 }
 
 function processTombstones(tombstones, friendlyList, deadCount, trackedList) {

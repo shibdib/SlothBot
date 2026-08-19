@@ -5,13 +5,12 @@ const profiler = require("tools.profiler");
 const towers = require('module.towerController');
 const {addToMad} = require('hcNukes');
 const {getFlowContext} = require('spawnFlow');
+const {notify, formatElapsed} = require('module.notifications');
 const ROOM_STATE_CACHE = {};
 const PLAYER_HOSTILE_PARTS = [ATTACK, RANGED_ATTACK, WORK, CLAIM];
 
 // Re-send an "ongoing attack" reminder at most this often (~3 hours real time)
 const ALERT_REMINDER_TICKS = CREEP_LIFE_TIME * 2;
-// Email grouping window passed to Game.notify (minutes)
-const ALERT_GROUP_MINUTES = 30;
 // Only email once a situation is actually dangerous (matches all-clear threshold)
 const NOTIFY_MIN_THREAT = 3;
 const NOTIFY_CRITICAL_RANGE = 10;
@@ -659,9 +658,11 @@ function sendHostileNotification(room, hostileOwners, threatening) {
     const historyLink = roomHistoryLink(room.name);
     const summary = buildHostileNotificationMessage(room, reason, assessment, ownersKey);
 
-    Game.notify(summary, ALERT_GROUP_MINUTES);
-
-    log.a(`${historyLink} ${summary}`, 'DEFENSE');
+    notify(summary, {
+        channel: 'defense',
+        logTag: 'DEFENSE',
+        logPrefix: historyLink,
+    });
 }
 
 function clearHostileAlert(room) {
@@ -671,9 +672,12 @@ function clearHostileAlert(room) {
 
     if (!state.notified || (state.peakThreat || 0) < NOTIFY_MIN_THREAT) return;
     const duration = Game.time - (state.firstAlert || Game.time);
-    const summary = `${room.name} [ALL CLEAR] attack ended after ${duration} ticks (~${Math.round(duration / 60)} min). Peak: ${state.peakHostiles} hostiles, threat ${state.peakThreat}/5, owners ${state.ownersKey}`;
-    Game.notify(summary, ALERT_GROUP_MINUTES);
-    log.a(`${roomLink(room.name)} all clear after ${duration} ticks. Peak: ${state.peakHostiles} hostiles, threat ${state.peakThreat}, owners ${state.ownersKey}`, 'DEFENSE');
+    const summary = `${room.name} [ALL CLEAR] attack ended after ${formatElapsed(duration)}. Peak: ${state.peakHostiles} hostiles, threat ${state.peakThreat}/5, owners ${state.ownersKey}`;
+    notify(summary, {
+        channel: 'defense',
+        logTag: 'DEFENSE',
+        logPrefix: roomLink(room.name),
+    });
 }
 
 function activateSafeMode(room, crisis = {}) {
@@ -694,8 +698,10 @@ function activateSafeMode(room, crisis = {}) {
         `attackers=${ownerArray.join(',') || 'none'}`,
     ].join('. ');
 
-    log.a(summary, 'DEFENSE COMMAND');
-    Game.notify(summary, ALERT_GROUP_MINUTES);
+    notify(summary, {
+        channel: 'defense',
+        logTag: 'DEFENSE COMMAND',
+    });
     return result;
 }
 

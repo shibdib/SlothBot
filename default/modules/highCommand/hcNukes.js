@@ -14,6 +14,7 @@ const state = require('hcState');
 const {checkForNap, scoreTarget} = require('hcUtils');
 
 const {getEmpireReadiness} = require('hcReadiness');
+const {notify, notifySiegeEvent} = require('module.notifications');
 
 function empireReadiness() {
     return state.EMPIRE_READINESS || getEmpireReadiness();
@@ -183,6 +184,9 @@ function executeNukeLaunch(launcher, intel, options = {}) {
 
     const label = options.logLabel || 'Nuke';
     log.a(`${label} launched at ${roomLink(roomName)} ${target.x},${target.y} by ${roomLink(launcher.room.name)}`, 'HIGH COMMAND: ');
+    if ((Memory.targetRooms[roomName] || {}).type === 'roomDenial') {
+        notifySiegeEvent(roomName, 'NUKE');
+    }
     return true;
 }
 
@@ -216,8 +220,12 @@ function autoNuke() {
     const launcher = pickLauncher(availableLaunchers, MADTarget.name);
     if (!launcher) return false;
 
-    log.a('MAD Target Acquired — ' + roomLink(MADTarget.name) + ' — LAUNCHING NUKES', 'HIGH COMMAND: ');
-    Game.notify('MAD Target Acquired — ' + MADTarget.name + ' — LAUNCHING NUKES');
+    notify('MAD Target Acquired — ' + MADTarget.name + ' — LAUNCHING NUKES', {
+        channel: 'nuke',
+        immediate: true,
+        logTag: 'HIGH COMMAND: ',
+        logPrefix: roomLink(MADTarget.name),
+    });
 
     if (!executeNukeLaunch(launcher, MADTarget, {
         followUpType: 'remoteDenial',
@@ -273,7 +281,6 @@ function offensiveNuke() {
     if (!launcher) return false;
 
     log.a('Siege escalation — nuke requested for ' + roomLink(bestIntel.name), 'HIGH COMMAND: ');
-    Game.notify('Offensive nuke escalation — ' + bestIntel.name);
 
     if (!executeNukeLaunch(launcher, bestIntel, {
         followUpType: 'roomDenial',

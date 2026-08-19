@@ -5,6 +5,7 @@
  */
 
 const {getPriority} = require('hcUtils');
+const {notifySiegeLaunch} = require('module.notifications');
 
 function setTarget(room, operation, level = 1, military = true) {
     let cache = Memory.targetRooms || {};
@@ -23,6 +24,7 @@ function setTarget(room, operation, level = 1, military = true) {
         INTEL[room] = {name: room};
         if (global.updateIntelIndex) global.updateIntelIndex(room, null, INTEL[room]);
     }
+    if (operation === 'roomDenial') notifySiegeLaunch(room);
     return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Nearest Friendly Room - ${findClosestOwnedRoom(room, true)} rooms away)`, 'HIGH COMMAND: ');
 }
 

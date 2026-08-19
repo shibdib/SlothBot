@@ -26,6 +26,7 @@ const {manualAttacks} = require('hcFlags');
 const {autoNuke, offensiveNuke} = require('hcNukes');
 
 const {applyOperationLimits} = require('hcReadiness');
+const {reviewSieges} = require('module.notifications');
 
 
 function getCooldown(task) {
@@ -104,6 +105,7 @@ function highCommand() {
             case 'military':
                 militaryOperations();
                 manageMilitary();
+                reviewSieges();
                 break;
 
             case 'auxiliary':
