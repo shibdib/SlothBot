@@ -99,7 +99,11 @@ function manageMilitary() {
                 if (!INTEL[key] || !INTEL[key].invaderCore || INTEL[key].invaderCore < Game.time) {
                     log.a(`Canceling stronghold in ${roomLink(key)} — core gone.`, 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
-                    activeNonSiege--;
+                    continue;
+                }
+                if (INTEL[key].invaderCoreInvuln && INTEL[key].invaderCoreInvuln > Game.time) {
+                    log.a(`Canceling stronghold in ${roomLink(key)} — core invulnerable.`, 'HIGH COMMAND: ');
+                    delete Memory.targetRooms[key];
                     continue;
                 }
                 break;

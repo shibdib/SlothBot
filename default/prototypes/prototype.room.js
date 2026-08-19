@@ -595,15 +595,26 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             : this.find(FIND_STRUCTURES);
         const deposits = this.find(FIND_DEPOSITS);
 
-        // Invader Core
+        // Invader Core — collapse tick is attackable life; invuln is stored separately
+        // so planners can refuse to launch while the core takes no damage.
         const invaderCore = structures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
         if (invaderCore) {
-            const effect = invaderCore.effects?.find(e => e.effect === EFFECT_COLLAPSE_TIMER || e.effect === EFFECT_INVULNERABILITY);
-            roomIntel.invaderCore = effect
-                ? Game.time + (effect.effect === EFFECT_COLLAPSE_TIMER ? effect.ticksRemaining : 50000 + effect.ticksRemaining)
-                : Game.time + CREEP_LIFE_TIME;
+            const effects = invaderCore.effects || [];
+            const collapse = effects.find(e => e.effect === EFFECT_COLLAPSE_TIMER);
+            const invuln = effects.find(e => e.effect === EFFECT_INVULNERABILITY);
+            if (collapse) {
+                roomIntel.invaderCore = Game.time + collapse.ticksRemaining;
+                roomIntel.invaderCoreInvuln = undefined;
+            } else if (invuln) {
+                roomIntel.invaderCore = Game.time + 50000 + invuln.ticksRemaining;
+                roomIntel.invaderCoreInvuln = Game.time + invuln.ticksRemaining;
+            } else {
+                roomIntel.invaderCore = Game.time + CREEP_LIFE_TIME;
+                roomIntel.invaderCoreInvuln = undefined;
+            }
         } else {
             roomIntel.invaderCore = undefined;
+            roomIntel.invaderCoreInvuln = undefined;
         }
 
         // User / Controller

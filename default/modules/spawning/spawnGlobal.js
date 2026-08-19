@@ -259,15 +259,19 @@ function globalCreepQueue() {
                     });
                 }
                 break;
-            case 'stronghold':
-                operation.boosts = [HEAL];
+            case 'stronghold': {
+                const shBoosts = [TOUGH, RANGED_ATTACK, HEAL, MOVE];
+                operation.boosts = shBoosts;
+                const shTowers = (intel && intel.towers) || 0;
+                const shWaitFor = shTowers >= 2 ? 4 : 2;
                 queueCreepIfNeeded({
-                    role: 'siegeDuo',
+                    role: 'longbowSquad',
                     priority,
-                    numberNeeded: opLevel * 2,
+                    numberNeeded: shWaitFor,
                     destination: key,
                     closestRoom: true,
-                    operation: 'stronghold'
+                    operation: 'stronghold',
+                    misc: {waitFor: shWaitFor, boosts: shBoosts}
                 });
                 if (operation.loot) queueCreepIfNeeded({
                     role: 'remoteHauler',
@@ -278,6 +282,7 @@ function globalCreepQueue() {
                     operation: 'roomDenial'
                 });
                 break;
+            }
         }
     }
 }

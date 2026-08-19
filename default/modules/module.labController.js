@@ -391,6 +391,11 @@ class LabManager {
             if (!mem || !mem.neededBoost) return;
             const hasLiveRequestor = mem.requestors && mem.requestors.some(id => Game.getObjectById(id));
             if (hasLiveRequestor) return;
+            const hasPreReserve = mem.preReservedFor && mem.preReservedFor.some(n => Game.creeps[n]);
+            if (hasPreReserve) {
+                mem.requested = Game.time;
+                return;
+            }
             if (!mem.requested || mem.requested + 150 < Game.time) {
                 lab.memory = undefined;
             }

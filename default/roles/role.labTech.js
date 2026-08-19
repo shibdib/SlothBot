@@ -34,7 +34,7 @@ class RoleLabTech {
         if (!this.creep.memory.tasks) {
             const initial = this.findTask();
             if (!initial) {
-                this.creep.idleFor(5);
+                if (!this.boostWorkPending()) this.creep.idleFor(5);
                 return;
             }
             this.creep.memory.tasks = this.batchTasks(initial);
@@ -70,8 +70,20 @@ class RoleLabTech {
             return this.fallbackDelivery();
         }
 
-        // 6. Batch complete.
+        // 6. Batch complete. Boost work does not take the 5-tick nap — the
+        // next fill/empty is usually already queued on another lab.
         this.creep.memory.tasks = undefined;
+        if (this.boostWorkPending()) {
+            const next = this.findTask();
+            if (next) {
+                this.creep.memory.tasks = this.batchTasks(next);
+                const pendingPickup = this.creep.memory.tasks.find(t => !t.pickedUp);
+                if (pendingPickup && this.creep.store.getFreeCapacity() > 0) {
+                    return this.executePickup(pendingPickup);
+                }
+            }
+            return;
+        }
         this.creep.idleFor(5);
     }
 
@@ -148,7 +160,16 @@ class RoleLabTech {
             }
         }
 
-        // 5. Active lab production — hub inputs, output energy, product clog
+        // 5. Combat boost labs with live requestors beat reaction production.
+        // Empty the wrong mineral first so fill can land this trip.
+        if (this.hasLiveBoostRequestors(labs, labStructMem)) {
+            const emptyBoost = this.findBoostLabEmptyTask(labs, labStructMem, storeTarget);
+            if (emptyBoost) return emptyBoost;
+            const fillBoost = this.findBoostLabFillTask(labs, labStructMem, storage, terminal);
+            if (fillBoost) return fillBoost;
+        }
+
+        // 6. Active lab production — hub inputs, output energy, product clog
         if (this.room.memory.producingBoost) {
             const productionTask = this.findLabProductionTask(labs, labStructMem, storage, terminal);
             if (productionTask) return productionTask;
@@ -158,7 +179,7 @@ class RoleLabTech {
             }
         }
 
-        // 6. Lab empties — wrong mineral / output product that should not sit
+        // 7. Lab empties — wrong mineral / output product that should not sit
         // `amount` is included so batchTasks can size the rest of an empty
         // batch against remaining carry. Runtime executePickup re-clamps to
         // the lab's actual store, so a stale amount degrades to a partial
@@ -187,7 +208,7 @@ class RoleLabTech {
             }
         }
 
-        // 7. Factory empties — residue not needed for current recipe
+        // 8. Factory empties — residue not needed for current recipe
         if (factory && factory.store.getUsedCapacity() > 0) {
             for (const res in factory.store) {
                 if (res === RESOURCE_BATTERY && FactoryControl.shouldContinueBatteryUnpack(this.room)) continue;
@@ -199,32 +220,11 @@ class RoleLabTech {
             }
         }
 
-        // 8. Lab boost fill (lab must be empty or already hold the boost mineral)
-        const boostNeededLab = labs.find(s => {
-            const mem = labStructMem && labStructMem[s.id];
-            if (!mem || !mem.neededBoost) return false;
-            if (!this.labCanAcceptResource(s, mem.neededBoost)) return false;
-            return s.store.getFreeCapacity(mem.neededBoost) > 0 && s.store[mem.neededBoost] < mem.amount;
-        });
-        if (boostNeededLab) {
-            const boostMem = labStructMem[boostNeededLab.id];
-            const boostNeeded = boostMem.neededBoost;
-            // Skip labs that are themselves collecting this boost — otherwise we'd churn between them.
-            const labSources = labs.filter(s => {
-                if (s.id === boostNeededLab.id) return false;
-                const mem = labStructMem && labStructMem[s.id];
-                return !mem || (mem.neededBoost !== boostNeeded && mem.itemNeeded !== boostNeeded);
-            });
-            const supplier = [storage, terminal, ...labSources, ...this.room.containers].find(s => s && s.store && s.store.getUsedCapacity(boostNeeded) > 0);
-            if (supplier) return {
-                withdrawTarget: supplier.id,
-                deliveryTarget: boostNeededLab.id,
-                resource: boostNeeded,
-                amount: boostMem.amount - boostNeededLab.store.getUsedCapacity(boostNeeded)
-            };
-        }
+        // 9. Lab boost fill with no live requestors (pre-reserve / leftover amount)
+        const leftoverBoost = this.findBoostLabFillTask(labs, labStructMem, storage, terminal);
+        if (leftoverBoost) return leftoverBoost;
 
-        // 9. Lab reaction input fill (itemNeeded; wrong mineral must be emptied first)
+        // 10. Lab reaction input fill (itemNeeded; wrong mineral must be emptied first)
         const resourceNeededLabs = labs.filter(s => {
             const mem = labStructMem && labStructMem[s.id];
             return mem && mem.itemNeeded
@@ -249,17 +249,17 @@ class RoleLabTech {
             };
         }
 
-        // 10. Urgent storage/terminal balance (tight free space)
+        // 11. Urgent storage/terminal balance (tight free space)
         let balancingTask = this.findBalancingTask(storage, terminal, 1000);
         if (balancingTask) return balancingTask;
 
-        // 11. Factory battery feed (unpack)
+        // 12. Factory battery feed (unpack)
         if (factory && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
             const batteryTask = this.findFactoryBatterySupply(factory, storage, terminal);
             if (batteryTask) return batteryTask;
         }
 
-        // 12. Factory supply — recipe inputs
+        // 13. Factory supply — recipe inputs
         if (factory && factory.memory.producing) {
             const commodity = COMMODITIES[factory.memory.producing];
             if (commodity) {
@@ -285,7 +285,7 @@ class RoleLabTech {
             }
         }
 
-        // 13. Mineral container cleanup (has minerals, not necessarily full)
+        // 14. Mineral container cleanup (has minerals, not necessarily full)
         if (storeTarget) {
             const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY));
             if (resourceContainer) {
@@ -294,7 +294,7 @@ class RoleLabTech {
             }
         }
 
-        // 14. Power spawn energy / power
+        // 15. Power spawn energy / power
         if (powerSpawn && this.room.energyState) {
             if (powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000 && storage && storage.store[RESOURCE_ENERGY] > 10000) {
                 return {
@@ -314,11 +314,11 @@ class RoleLabTech {
             }
         }
 
-        // 15. Routine storage/terminal balance
+        // 16. Routine storage/terminal balance
         balancingTask = this.findBalancingTask(storage, terminal);
         if (balancingTask) return balancingTask;
 
-        // 16. Lab energy refill (non-hub; only when nearly empty)
+        // 17. Lab energy refill (non-hub; only when nearly empty)
         // Labs hold 2000 energy (5 per reaction = 400 reactions of headroom).
         for (const lab of labs) {
             const mem = labStructMem && labStructMem[lab.id];
@@ -337,6 +337,68 @@ class RoleLabTech {
         if (!lab || !resource) return false;
         if (resource === RESOURCE_ENERGY) return true;
         return !lab.mineralType || lab.mineralType === resource;
+    }
+
+    boostWorkPending() {
+        const labs = this.room.labs;
+        const mems = this.room.memory._structureMemory;
+        if (!this.hasLiveBoostRequestors(labs, mems)) return false;
+        if (this.findBoostLabEmptyTask(labs, mems, this.room.storage || this.room.terminal)) return true;
+        return !!this.findBoostLabFillTask(labs, mems, this.room.storage, this.room.terminal);
+    }
+
+    hasLiveBoostRequestors(labs, labStructMem) {
+        for (let i = 0; i < labs.length; i++) {
+            const mem = labStructMem && labStructMem[labs[i].id];
+            if (!mem || !mem.neededBoost) continue;
+            if (mem.requestors && mem.requestors.some(id => Game.getObjectById(id))) return true;
+            if (mem.preReservedFor && mem.preReservedFor.length) return true;
+        }
+        return false;
+    }
+
+    findBoostLabEmptyTask(labs, labStructMem, storeTarget) {
+        if (!storeTarget) return null;
+        for (let i = 0; i < labs.length; i++) {
+            const lab = labs[i];
+            if (!lab.mineralType) continue;
+            const mem = labStructMem && labStructMem[lab.id];
+            if (!mem || !mem.neededBoost) continue;
+            if (lab.mineralType === mem.neededBoost) continue;
+            return {
+                withdrawTarget: lab.id,
+                deliveryTarget: storeTarget.id,
+                resource: lab.mineralType,
+                amount: lab.store[lab.mineralType]
+            };
+        }
+        return null;
+    }
+
+    findBoostLabFillTask(labs, labStructMem, storage, terminal) {
+        const boostNeededLab = labs.find(s => {
+            const mem = labStructMem && labStructMem[s.id];
+            if (!mem || !mem.neededBoost) return false;
+            if (!this.labCanAcceptResource(s, mem.neededBoost)) return false;
+            return s.store.getFreeCapacity(mem.neededBoost) > 0 && s.store[mem.neededBoost] < mem.amount;
+        });
+        if (!boostNeededLab) return null;
+        const boostMem = labStructMem[boostNeededLab.id];
+        const boostNeeded = boostMem.neededBoost;
+        const labSources = labs.filter(s => {
+            if (s.id === boostNeededLab.id) return false;
+            const mem = labStructMem && labStructMem[s.id];
+            return !mem || (mem.neededBoost !== boostNeeded && mem.itemNeeded !== boostNeeded);
+        });
+        const supplier = [storage, terminal, ...labSources, ...this.room.containers]
+            .find(s => s && s.store && s.store.getUsedCapacity(boostNeeded) > 0);
+        if (!supplier) return null;
+        return {
+            withdrawTarget: supplier.id,
+            deliveryTarget: boostNeededLab.id,
+            resource: boostNeeded,
+            amount: boostMem.amount - boostNeededLab.store.getUsedCapacity(boostNeeded)
+        };
     }
 
     hubNeedsLabFeed(resource) {

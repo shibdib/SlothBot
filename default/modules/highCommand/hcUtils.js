@@ -110,6 +110,15 @@ function siegeLevel(towerCount) {
     return MAX_LEVEL >= 6;
 }
 
+// Strongholds: 1-tower at RCL 6+, 2–3 towers only at RCL 8. Four-plus is a
+// different fight and is not opened automatically.
+function strongholdSiegeLevel(towerCount) {
+    const n = towerCount || 0;
+    if (n < 1 || n > 3) return false;
+    if (n >= 2) return MAX_LEVEL >= 8;
+    return MAX_LEVEL >= 6;
+}
+
 /** World already grouped these this tick. Fallback walks Game.creeps only if World is missing. */
 function getMilitaryCreeps() {
     const world = typeof global !== 'undefined' ? global.world : null;
@@ -139,5 +148,7 @@ module.exports = {
     getPriority,
 
     siegeLevel,
+
+    strongholdSiegeLevel,
 
 };

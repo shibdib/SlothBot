@@ -122,6 +122,10 @@ function computeOpLevelTarget(target, opMemory, intel) {
         }
         case 'guard':
             return 5;
+        case 'stronghold': {
+            const towers = (intel && intel.towers) || 0;
+            return towers >= 2 ? 8 : 7;
+        }
     }
     if (Memory.auxiliaryTargets[target]) return MAX_LEVEL - 1;
     if (intel && intel.user) return Math.max(1, (intel.level || 4) - 1);

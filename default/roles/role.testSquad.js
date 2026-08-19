@@ -132,6 +132,8 @@ class RoleTestSquad {
                 this.creep.guardRoom();
                 break;
             case 'stronghold':
+                this.creep.strongholdAttack();
+                break;
             case 'roomDenial':
                 this.creep.denyRoom();
                 break;

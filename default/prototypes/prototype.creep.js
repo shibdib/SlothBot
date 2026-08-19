@@ -989,7 +989,6 @@ const BOOST_AMOUNT_PER_PART = LAB_BOOST_MINERAL;
 const BOOST_TTL_FLOOR = CREEP_LIFE_TIME * 0.6;
 const BOOST_RENEW_INITIAL = CREEP_LIFE_TIME * 0.85;
 const BOOST_RENEW_WAITING = CREEP_LIFE_TIME * 0.95;
-const BOOST_LAB_WAIT_TICKS = 5;
 
 // Shared with module.creepSpawning.preReserveBoostLab.
 global.WORK_BOOST_BY_ROLE = {
@@ -1078,11 +1077,13 @@ function claimBoostLab(creep, boostNeeded, amountNeeded, excludeIds) {
     const mem = lab.memory;
     const preIdx = mem.preReservedFor ? mem.preReservedFor.indexOf(creep.name) : -1;
     if (preIdx >= 0) {
-        // Pre-spawn reservation by creepSpawning.preReserveBoostLab already
-        // accounted for our amount — just consume the slot.
+        // Wave / spawn reservation already counted this creep's share.
         mem.preReservedFor.splice(preIdx, 1);
         if (!mem.preReservedFor.length) mem.preReservedFor = undefined;
         mem.neededBoost = boostNeeded;
+        mem.paused = true;
+    } else if (mem.neededBoost === boostNeeded && mem.preReservedFor && mem.preReservedFor.length) {
+        // Joining a wave-prefilled lab; amount is already the pooled total.
         mem.paused = true;
     } else {
         mem.paused = true;
@@ -1145,12 +1146,21 @@ function getEntryLab(creep, entryKey, boostNeeded) {
 // Returns the entry key the creep should act on this tick. Preference:
 //   1. an entry whose boost is already in hasBoosted — release ASAP so
 //      labtech stops refilling the now-empty reservation,
-//   2. an entry whose lab is fully filled (ready to boost),
-//   3. an entry that already has a claimed lab (waiting on labtech),
-//   4. an entry with no lab yet (so we try to claim one).
+//   2. a ready lab no squadmate picked this tick (avoid 4-on-1),
+//   3. a claimed but not-ready lab (wait in place for labtech),
+//   4. a ready lab another creep already took (last resort),
+//   5. an unclaimed entry.
 // Without this, a non-ready first entry would block ready later ones —
 // killing the whole point of parallel claims.
+let boostLabTick = -1;
+let boostLabsTaken = new Set();
+
 function pickActiveEntry(creep) {
+    if (boostLabTick !== Game.time) {
+        boostLabTick = Game.time;
+        boostLabsTaken = new Set();
+    }
+
     const requested = creep.memory.boosts.requestedBoosts;
     const boosted = creep.memory.hasBoosted;
     if (boosted && boosted.length) {
@@ -1158,18 +1168,26 @@ function pickActiveEntry(creep) {
             if (boosted.includes(requested[key].boost)) return key;
         }
     }
+    const readyFree = [];
+    const readyTaken = [];
     let firstClaimed = null;
     let firstUnclaimed = null;
     for (const key of Object.keys(requested)) {
         const {boost, amount} = requested[key];
         const lab = getEntryLab(creep, key, boost);
         if (lab && lab.mineralType === boost && lab.store[RESOURCE_ENERGY] && lab.mineralAmount >= amount) {
-            return key;
+            if (boostLabsTaken.has(lab.id)) readyTaken.push(key);
+            else readyFree.push(key);
+            continue;
         }
         if (lab && !firstClaimed) firstClaimed = key;
         if (!lab && !firstUnclaimed) firstUnclaimed = key;
     }
-    return firstClaimed || firstUnclaimed || Object.keys(requested)[0];
+    const pick = readyFree[0] || firstClaimed || readyTaken[0] || firstUnclaimed || Object.keys(requested)[0];
+    const labs = creep.memory.boosts && creep.memory.boosts.labs;
+    const pickedLab = pick && labs && Game.getObjectById(labs[pick]);
+    if (pickedLab) boostLabsTaken.add(pickedLab.id);
+    return pick;
 }
 
 function applyBoost(creep, entryKey) {
@@ -1216,9 +1234,14 @@ function applyBoost(creep, entryKey) {
         lab.mineralAmount >= amountNeeded;
 
     if (!labReady) {
-        if (!creep.memory.hasBoosted && creep.hasActiveBodyparts(MOVE) &&
+        const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
+        if (!(waitFor > 1) && !creep.memory.hasBoosted && creep.hasActiveBodyparts(MOVE) &&
             creep.handleRenewing(BOOST_RENEW_WAITING)) return true;
-        return creep.idleFor(BOOST_LAB_WAIT_TICKS);
+        if (!creep.pos.isNearTo(lab)) {
+            creep.say(ICONS.boost);
+            return creep.shibMove(lab, {forceSolo: true});
+        }
+        return true;
     }
 
     switch (lab.boostCreep(creep)) {
@@ -1256,6 +1279,80 @@ function finishBoosting(creep) {
     }
     creep.memory.boostAttempt = true;
 }
+
+function waveBoostMates(creep) {
+    const dest = creep.memory.destination;
+    const op = creep.memory.operation;
+    const formColony = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+    const names = [];
+    let boosted = 0;
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory) continue;
+        if (c.memory.destination !== dest || c.memory.operation !== op) continue;
+        const theirColony = (c.memory.misc && c.memory.misc.formColony) || c.memory.colony;
+        if (formColony && theirColony && formColony !== theirColony) continue;
+        const role = c.memory.role || '';
+        const old = c.memory.oldRole || '';
+        if (role !== 'longbowSquad' && role !== 'longbow'
+            && old !== 'longbowSquad' && old !== 'longbow') continue;
+        if (c.memory.misc && c.memory.misc.sealed) continue;
+        if (c.memory.boostAttempt) boosted++;
+        else names.push(c.name);
+    }
+    return {names, boosted};
+}
+
+function ensureWaveBoostLab(creep, boostNeeded, amountNeeded, names, excludeIds) {
+    const structMem = creep.room.memory._structureMemory;
+    const labs = creep.room.labs;
+    let lab = _.find(labs, s => {
+        if (!s.isActive() || (excludeIds && excludeIds.has(s.id))) return false;
+        const mem = structMem && structMem[s.id];
+        if (mem && mem.itemNeeded) return false;
+        return mem && mem.neededBoost === boostNeeded;
+    });
+    if (!lab) {
+        lab = _.find(labs, s => {
+            if (!s.isActive() || (excludeIds && excludeIds.has(s.id))) return false;
+            const mem = structMem && structMem[s.id];
+            if (mem && mem.itemNeeded) return false;
+            return !mem || !mem.neededBoost;
+        });
+    }
+    if (!lab) return null;
+    const mem = lab.memory;
+    mem.paused = true;
+    mem.neededBoost = boostNeeded;
+    mem.amount = Math.max(mem.amount || 0, amountNeeded);
+    mem.requested = Game.time;
+    const merged = (mem.preReservedFor || []).slice();
+    for (let i = 0; i < names.length; i++) {
+        if (!merged.includes(names[i])) merged.push(names[i]);
+    }
+    mem.preReservedFor = merged;
+    return lab;
+}
+
+// Claim labs for the full waitFor wave as soon as the first body is alive so
+// labTech can haul during the remaining spawn/renew, not after the last pop.
+Creep.prototype.reserveWaveBoosts = function () {
+    const waitFor = this.memory.misc && this.memory.misc.waitFor;
+    if (!(waitFor > 1) || this.memory.boostAttempt || this.memory.hasBoosted) return;
+    if (!this.room.labs || !this.room.labs.length) return;
+
+    const plan = buildBoostPlan(this, []);
+    if (!_.size(plan)) return;
+
+    const {names, boosted} = waveBoostMates(this);
+    const remaining = Math.max(1, waitFor - boosted);
+    const exclude = new Set();
+    for (const resource of Object.keys(plan)) {
+        const total = plan[resource].amount * remaining;
+        const lab = ensureWaveBoostLab(this, resource, total, names, exclude);
+        if (lab) exclude.add(lab.id);
+    }
+};
 
 Creep.prototype.tryToBoost = function (bodyPart = []) {
     if (this.memory.boostAttempt) return false;
@@ -1296,7 +1393,8 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
         return false;
     }
 
-    if (!this.memory.hasBoosted && this.hasActiveBodyparts(MOVE) &&
+    const waitFor = this.memory.misc && this.memory.misc.waitFor;
+    if (!(waitFor > 1) && !this.memory.hasBoosted && this.hasActiveBodyparts(MOVE) &&
         this.handleRenewing(BOOST_RENEW_INITIAL)) return true;
 
     return applyBoost(this, pickActiveEntry(this));

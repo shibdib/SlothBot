@@ -16,7 +16,7 @@ function setTarget(room, operation, level = 1, military = true) {
         level: level,
         priority: getPriority(room),
         // Sieges need more waves to break fortified rooms; harassment ops can cancel sooner
-        waveLimit: operation === 'roomDenial' ? 8 : 4
+        waveLimit: (operation === 'roomDenial' || operation === 'stronghold') ? 8 : 4
     };
     if (military) Memory.targetRooms = cache; else Memory.auxiliaryTargets = cache;
     // Guard remotes may have no intel (unscanned neighbors are valid targets)

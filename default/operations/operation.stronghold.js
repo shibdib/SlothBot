@@ -1,4 +1,62 @@
-Creep.prototype.strongholdAttack = function () {
+const highCommand = require('module.highCommand');
+
+function rampartOr(structure) {
+    if (!structure || !structure.pos) return structure;
+    const rampart = structure.pos.checkForRampart && structure.pos.checkForRampart();
+    return rampart || structure;
+}
+
+/**
+ * Core/tower bunker first. Armed defenders only if they sit on the path
+ * (closer than the bunker, or adjacent to it) and are already in range 3.
+ */
+function pickStrongholdTarget(room, fromPos) {
+    if (!room) return undefined;
+    const core = room.invaderCore || room.structures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
+    let bunker;
+    if (core) bunker = rampartOr(core);
+    if (!bunker) {
+        const towers = room.towers || [];
+        let tower;
+        for (let i = 0; i < towers.length; i++) {
+            const t = towers[i];
+            if (!t.store || t.store[RESOURCE_ENERGY] < TOWER_ENERGY_COST) continue;
+            tower = t;
+            break;
+        }
+        if (tower) bunker = rampartOr(tower);
+    }
+    if (!bunker) return undefined;
+
+    if (fromPos) {
+        const bunkerRange = fromPos.getRangeTo(bunker);
+        const hostiles = room.hostileCreeps || [];
+        for (let i = 0; i < hostiles.length; i++) {
+            const c = hostiles[i];
+            if (!c.hasActiveBodyparts(ATTACK) && !c.hasActiveBodyparts(RANGED_ATTACK)) continue;
+            const range = fromPos.getRangeTo(c);
+            if (range > 3) continue;
+            if (range < bunkerRange || c.pos.getRangeTo(bunker) <= 1) return c;
+        }
+    }
+    return bunker;
+}
+
+function trackStrongholdWave(creep) {
+    if (creep.memory.waveTracked) return;
+    const op = Memory.targetRooms[creep.room.name];
+    if (op && (!op.lastWave || op.lastWave + 20 < Game.time)) {
+        op.lastWave = Game.time;
+        op.waves = (op.waves || 0) + 1;
+    }
+    creep.memory.waveTracked = true;
+}
+
+Creep.prototype.pickStrongholdTarget = function () {
+    return pickStrongholdTarget(this.room, this.pos);
+};
+
+Creep.prototype.strongholdAttack = function (options = {}) {
     let destination = this.memory.destination;
 
     // Destination can be cleared by path failures or reassignment races.
@@ -16,35 +74,47 @@ Creep.prototype.strongholdAttack = function () {
         this.memory.destination = destination;
     }
 
-    // Make sure to display status to inform the user what's happening
     const sentence = ['Gimme', 'The', 'Loot', destination];
     this.say(sentence[Game.time % sentence.length], true);
 
-    // Combat handling
-    if (this.handleMilitaryCreep()) return;
+    if (this.room.name === destination) {
+        trackStrongholdWave(this);
+        if (highCommand.operationSustainability(this.room)) {
+            this.memory.operation = 'borderPatrol';
+            return;
+        }
 
-    // If not in the destination room, move there
-    if (this.room.name !== destination) {
-        return this.shibMove(new RoomPosition(25, 25, destination), {range: 23});
-    } else {
-        const core = this.room.structures.find((s) => s.structureType === STRUCTURE_INVADER_CORE);
-        if (core && this.attackHostile(core.pos.checkForRampart() || core)) return;
+        const core = this.room.invaderCore || this.room.structures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
+        const target = pickStrongholdTarget(this.room, this.pos);
+        if (target) this.memory.target = target.id;
 
-        const tower = this.room.towers[0];
-        if (!tower) {
-            const container = this.room.containers.find((s) => _.sum(s.store) > s.store[RESOURCE_ENERGY]);
+        if (!core) {
+            const container = this.room.containers.find((s) => _.sum(s.store) > (s.store[RESOURCE_ENERGY] || 0));
             if (container) {
                 if (container.pos.checkForRampart()) this.memory.target = container.pos.checkForRampart().id;
                 else {
                     const op = Memory.targetRooms[this.room.name] || Memory.auxiliaryTargets[this.room.name];
-                    if (op) {
-                        op.loot = true;
-                        op.level = 0;
-                    }
+                    if (op) op.loot = true;
                 }
             }
         }
+
+        if (options.squadMove) return;
+
+        if (target) {
+            if (this.hasActiveBodyparts(RANGED_ATTACK) && this.fightRanged(target)) return;
+            if (this.hasActiveBodyparts(ATTACK) && this.attackHostile(target)) return;
+        }
+        return;
     }
+
+    if (options.squadMove) return;
+
+    if (this.ensureDenialStaging) this.ensureDenialStaging();
+    const dest = this.memory.misc && this.memory.misc.stagingRoom && !this.memory.misc.staged
+        ? this.memory.misc.stagingRoom
+        : destination;
+    return this.shibMove(new RoomPosition(25, 25, dest), {range: 23});
 };
 
 /**

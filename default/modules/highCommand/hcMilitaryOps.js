@@ -7,11 +7,11 @@
  *   1. Siegeable towered room → roomDenial
  *   2. Naked owned room → occupy (guard)
  *   3. Else raid remotes → remoteDenial (skipped when harassment already covers remotes)
- * Strongholds stay on their own track.
+ * Strongholds stay on their own track (one at a time, never while invulnerable).
  */
 
 const state = require('hcState');
-const {siegeLevel, siegeFeasibility, scoreTarget, checkForNap} = require('hcUtils');
+const {siegeLevel, strongholdSiegeLevel, siegeFeasibility, scoreTarget, checkForNap} = require('hcUtils');
 const {setTarget} = require('hcTargets');
 const {notifySiegeLaunch} = require('module.notifications');
 const {getOpsPauseReason} = require('hcReadiness');
@@ -178,14 +178,15 @@ function militaryOperations() {
     }
     if (!state.OFFENSIVE_ALLOWED && state.OPERATION_LIMIT <= 0) return;
 
-    if (state.OPERATION_LIMIT > 0 && activeStrongholds < state.OPERATION_LIMIT) {
+    if (state.OPERATION_LIMIT > 0 && activeStrongholds < 1) {
         let best = null;
         let bestScore = Infinity;
         for (const rName of (idx.strongholdActive || [])) {
             const r = INTEL[rName];
             if (!r || !r.name || Memory.targetRooms[r.name]) continue;
             if (!r.invaderCore || r.invaderCore <= Game.time) continue;
-            if (!siegeLevel(r.towers) || !myRoomInSectorCheck(r.name)) continue;
+            if (r.invaderCoreInvuln && r.invaderCoreInvuln > Game.time) continue;
+            if (!strongholdSiegeLevel(r.towers) || !myRoomInSectorCheck(r.name)) continue;
             if ((r.lastOperation || 0) + ATTACK_COOLDOWN >= Game.time) continue;
 
             const score = scoreTarget(r.name, 'stronghold', warPriorityByUser);

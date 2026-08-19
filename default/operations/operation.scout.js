@@ -194,7 +194,8 @@ function updateRoomLevel(room) {
         if (targetRoom.type === 'guard') {
             targetRoom.builders = room.controller && room.controller.owner && FRIENDLIES.includes(room.controller.owner.username);
         }
-        targetRoom.level = 0;
+        const coreAlive = targetRoom.type === 'stronghold' && room.structures.some(s => s.structureType === STRUCTURE_INVADER_CORE);
+        targetRoom.level = coreAlive ? 1 : 0;
     }
     if (!towers.length && targetRoom.type !== 'stronghold') targetRoom.boosts = undefined;
 }

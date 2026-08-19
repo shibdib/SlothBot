@@ -84,6 +84,7 @@ class RoleLongbowSquad {
         const waitFor = this.creep.memory.misc && this.creep.memory.misc.waitFor;
         if (!(waitFor > 1) && this.creep.fightFromRampart()) return true;
         this.creep.formSquad();
+        if (this.creep.reserveWaveBoosts) this.creep.reserveWaveBoosts();
         if (this.shouldAttemptBoost() && this.creep.tryToBoost()) return true;
         this.creep.healInRange(this.room.hostileCreeps.length || this.room.hostileStructures.length);
         return false;
@@ -123,7 +124,11 @@ class RoleLongbowSquad {
         const fullSquad = squad.concat(creep);
         this.adoptDuoIfQuadRemnant(creep);
 
-        if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
+        if (creep.memory.operation === 'stronghold' && creep.pickStrongholdTarget) {
+            const bunker = creep.pickStrongholdTarget();
+            if (bunker) creep.memory.target = bunker.id;
+            else if (creep.memory.target) creep.memory.target = undefined;
+        } else if (this.room.hostileCreeps.length || this.room.hostileStructures.length) {
             const hostile = creep.findClosestEnemy(false, false);
             if (hostile) creep.memory.target = hostile.id;
             else if (creep.memory.target) creep.memory.target = undefined;
@@ -796,9 +801,12 @@ class RoleLongbowSquad {
         return creep.moveToRoomExit(toward);
     }
 
-    // Packed 2×2: bookkeeping only from denyRoom, then step the formation as one.
+    // Packed 2×2: op bookkeeping only, then step the formation as one.
     leadPackedQuad(creep) {
-        if (creep.memory.operation === 'roomDenial' || creep.memory.operation === 'stronghold') {
+        if (creep.memory.operation === 'stronghold') {
+            creep.strongholdAttack({squadMove: true});
+            if (creep.memory.operation === 'borderPatrol') return;
+        } else if (creep.memory.operation === 'roomDenial') {
             creep.denyRoom({squadMove: true});
             if (creep.memory.operation === 'borderPatrol') return;
         }
@@ -813,7 +821,12 @@ class RoleLongbowSquad {
                 }
             }
 
-            const hostile = Game.getObjectById(creep.memory.target) || creep.findClosestEnemy(false, false);
+            let hostile;
+            if (creep.memory.operation === 'stronghold' && creep.pickStrongholdTarget) {
+                hostile = creep.pickStrongholdTarget();
+            } else {
+                hostile = Game.getObjectById(creep.memory.target) || creep.findClosestEnemy(false, false);
+            }
             if (hostile) {
                 creep.memory.target = hostile.id;
                 const moved = this.advancePackedQuad(creep, hostile);
@@ -825,6 +838,7 @@ class RoleLongbowSquad {
                 }
                 return;
             }
+            if (creep.memory.operation === 'stronghold') return;
             if (creep.room.controller && creep.pos.getRangeTo(creep.room.controller) > 5) {
                 const moved = this.leaderTransit(creep.room.controller, {range: 4});
                 if (moved === false) {
@@ -1678,6 +1692,8 @@ class RoleLongbowSquad {
                 this.creep.guardRoom();
                 break;
             case 'stronghold':
+                this.creep.strongholdAttack();
+                break;
             case 'roomDenial':
                 this.creep.denyRoom();
                 break;
