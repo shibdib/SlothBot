@@ -49,7 +49,7 @@ let helpers = function () {
         function resetRoomIntel(room) {
             const roomName = room.name;
             if (!INTEL[roomName]) INTEL[roomName] = {};
-            INTEL[roomName].noClaim = Game.time + 10000;
+            INTEL[roomName].noClaim = Game.time + 50000;
             INTEL[roomName].failedClaim = (INTEL[roomName].failedClaim || 0) + 1;
             room.cacheRoomIntel(true);  // Only cache intel if necessary
         }
