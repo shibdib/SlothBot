@@ -2,7 +2,7 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-const {getSiegeDuoUnpaired, countRoleForDestination} = require('bodyHelpers');
+const {getSiegeDuoUnpaired} = require('bodyHelpers');
 const {
     toughMulti,
     getMaxSiegeCombatBudget,
@@ -20,10 +20,9 @@ function buildLongbowFamily(gen) {
 
     const defaultWaitFor = gen.role === 'longbow' ? 1 : 2;
     const waitFor = (gen.creepInfo && gen.creepInfo.misc && gen.creepInfo.misc.waitFor) || defaultWaitFor;
-    const dest = gen.creepInfo && gen.creepInfo.destination;
-    const live = dest ? countRoleForDestination(dest, gen.role, gen.creepInfo && gen.creepInfo.operation) : 0;
-    const remaining = Math.max(1, waitFor - live);
-    const moveData = checkForNeededMove(gen, remaining);
+    // Mineral gate is per body. Requiring waitFor-live on the first spawn
+    // blocked quads in rooms that could still field one boosted longbow.
+    const moveData = checkForNeededMove(gen, 1);
     const moveFactor = moveData.factor || 1;
     // Listed MOVE but no mineral: keep 1:1 and do not reserve MOVE labs.
     if (moveFactor <= 1 && gen.creepInfo && gen.creepInfo.misc && gen.creepInfo.misc.boosts
@@ -37,7 +36,7 @@ function buildLongbowFamily(gen) {
         const exposure = 1 / waitFor;
         heal = false;
         if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
-            const desiredTough = checkForNeededTough(gen, remaining, true, moveFactor);
+            const desiredTough = checkForNeededTough(gen, 1, true, moveFactor);
             // Without the mineral the sizer assumed, combat's 1/toughMult
             // multiplier never happens — do not fall through to 0 TOUGH.
             if (!desiredTough.boost || !desiredTough.count) return false;

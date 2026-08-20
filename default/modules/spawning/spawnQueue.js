@@ -5,7 +5,7 @@
  */
 
 const generator = require('module.bodyGenerator');
-const {getCreepCount, creepExpiringSoon} = require('spawnCounts');
+const {getCreepCount, creepExpiringSoon, invalidateCreepCountCache} = require('spawnCounts');
 const {collectGlobalOperations, unassignRoom} = require('spawnOperations');
 const {spawnEnergyState} = require('spawnFlow');
 const {roomInSpawnRecovery} = require('bodyHelpers');
@@ -26,6 +26,47 @@ function queueCacheKey(role, destination, other, misc, operation, assignment) {
     return `c_${role}_${destination || ''}_${source}_${reboot}_${miscCacheSegment(misc)}_${operation || ''}`;
 }
 
+function bumpFormingWaitFor(role, destination, operation, waitFor) {
+    if (!(waitFor > 1)) return false;
+    let bumped = false;
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory) continue;
+        if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
+        const r = c.memory.oldRole || c.memory.role || '';
+        if (r !== role) continue;
+        if ((destination || '') !== (c.memory.destination || '')) continue;
+        if ((operation || '') !== (c.memory.operation || '')) continue;
+        const cur = c.memory.misc && c.memory.misc.waitFor;
+        if (!(cur > 1) || cur >= waitFor) continue;
+        if (!c.memory.misc) c.memory.misc = {};
+        c.memory.misc.waitFor = waitFor;
+        bumped = true;
+    }
+    if (bumped) invalidateCreepCountCache();
+    return bumped;
+}
+
+function clearSmallerWaitForWaves(role, destination, operation, waitFor) {
+    if (!(waitFor > 1)) return;
+    const drop = (cache) => {
+        if (!cache) return;
+        for (const key in cache) {
+            const e = cache[key];
+            if (!e || e.role !== role) continue;
+            if ((e.destination || '') !== (destination || '')) continue;
+            if ((e.operation || '') !== (operation || '')) continue;
+            const w = e.misc && e.misc.waitFor;
+            if (w && w < waitFor) delete cache[key];
+        }
+    };
+    drop(CREEP_QUEUES.global);
+    for (const roomName in CREEP_QUEUES) {
+        if (roomName === 'global') continue;
+        drop(CREEP_QUEUES[roomName]);
+    }
+}
+
 function queueCreepIfNeeded(spawnInfo) {
     _.defaults(spawnInfo, {
         priority: PRIORITIES.secondary,
@@ -38,10 +79,15 @@ function queueCreepIfNeeded(spawnInfo) {
     if (spawnInfo.other.target) spawnInfo.destination = spawnInfo.other.target;
 
     const assignment = spawnInfo.assignment || spawnInfo.other.assignment;
-    const count = getCreepCount(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment);
+    const waveWait = spawnInfo.misc && spawnInfo.misc.waitFor > 1 ? spawnInfo.misc.waitFor : undefined;
+    if (waveWait) {
+        bumpFormingWaitFor(spawnInfo.role, spawnInfo.destination, spawnInfo.operation, waveWait);
+        clearSmallerWaitForWaves(spawnInfo.role, spawnInfo.destination, spawnInfo.operation, waveWait);
+    }
+    const count = getCreepCount(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment, waveWait);
     const global = (!spawnInfo.room && spawnInfo.destination) || spawnInfo.global;
 
-    if (count < spawnInfo.numberNeeded || (count <= spawnInfo.numberNeeded && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment))) {
+    if (count < spawnInfo.numberNeeded || (count <= spawnInfo.numberNeeded && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment, waveWait))) {
         spawnInfo.other.reboot = spawnInfo.rebootCondition;
         return queueCreep(spawnInfo.room || spawnInfo.colony, spawnInfo.priority + count, {
             role: spawnInfo.role,
@@ -176,7 +222,8 @@ function prepareQueueItems(merged, room) {
             ? getCreepCount(undefined, creep.role, creep.destination, creep.operation)
             : 0;
         if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
-            if (opMemory && opMemory.assignedRoom === room.name && !liveForOp) {
+            if (opMemory && opMemory.assignedRoom === room.name
+                && (!liveForOp || isWaitForLongbowWave(creep))) {
                 unassignRoom(target, 'Unable to generate needed body.');
             }
             continue;
@@ -206,7 +253,8 @@ function prepareQueueItems(merged, room) {
             missingBoosts = room.store(nb.moveBoost) < 30 * moveCount;
         }
         if (missingBoosts) {
-            if (opMemory && opMemory.assignedRoom === room.name && !liveForOp) {
+            if (opMemory && opMemory.assignedRoom === room.name
+                && (!liveForOp || isWaitForLongbowWave(creep))) {
                 unassignRoom(target, 'Missing required boosts.');
             }
             continue;
@@ -221,7 +269,7 @@ function prepareQueueItems(merged, room) {
         if (isWaitForLongbowWave(creep)) {
             const waitFor = creep.misc.waitFor;
             const needed = creep.numberNeeded || waitFor;
-            const live = getCreepCount(undefined, creep.role, creep.destination, creep.operation);
+            const live = getCreepCount(undefined, creep.role, creep.destination, creep.operation, undefined, undefined, waitFor);
             creep.remaining = Math.max(0, needed - live);
             creep.wave = true;
             if (creep.remaining <= 0) {

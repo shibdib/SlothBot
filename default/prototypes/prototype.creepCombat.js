@@ -832,6 +832,37 @@ function formColonyOf(creep) {
     return (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
 }
 
+function defaultWaitFor(creep) {
+    const w = creep && creep.memory && creep.memory.misc && creep.memory.misc.waitFor;
+    if (w > 0) return w;
+    const role = (creep && creep.memory && (creep.memory.oldRole || creep.memory.role)) || '';
+    return role === 'longbowSquad' ? 2 : 1;
+}
+
+function ungroupCreep(creep) {
+    if (!creep || !creep.memory) return;
+    creep.memory.leader = undefined;
+    creep.memory.grouped = undefined;
+    creep.memory.groupLeader = undefined;
+    creep.memory.squadMembers = undefined;
+    creep.memory.squadListed = undefined;
+    if (creep.memory.oldRole) {
+        creep.memory.role = creep.memory.oldRole;
+        creep.memory.oldRole = undefined;
+    }
+}
+
+Creep.prototype.ungroupFromSquad = function () {
+    ungroupCreep(this);
+    if (this.releaseBoostLabs) this.releaseBoostLabs();
+};
+
+function formingAtHome(creep) {
+    if (!creep || isCommittedSquad(creep)) return false;
+    const home = formColonyOf(creep);
+    return !!(home && creep.room.name === home);
+}
+
 function sameFormColony(a, b) {
     const wait = (a.memory.misc && a.memory.misc.waitFor) || 0;
     if (!(wait > 1)) return true;
@@ -855,11 +886,12 @@ function squadMinTTL(leader) {
 
 function leaderHasOpenSlot(leader, joinerWaitFor) {
     if (!leader || !leader.memory.leader || isCommittedSquad(leader)) return false;
-    const theirWait = (leader.memory.misc && leader.memory.misc.waitFor) || 4;
+    const theirWait = defaultWaitFor(leader);
     const live = (leader.memory.squadMembers || []).length + 1;
     if (live >= theirWait) return false;
     if (live >= (joinerWaitFor || theirWait)) return false;
-    if (squadMinTTL(leader) < SQUAD_RECRUIT_TTL) return false;
+    // Forming at home must still take joiners; TTL only blocks remnants in the field.
+    if (!formingAtHome(leader) && squadMinTTL(leader) < SQUAD_RECRUIT_TTL) return false;
     return true;
 }
 
@@ -892,20 +924,33 @@ function absorbSquad(winner, loser, waitFor) {
         const c = Game.getObjectById(id);
         return c && c.memory.groupLeader === loser.id;
     });
-    loser.memory.squadMembers = remaining;
-    if (!remaining.length) {
-        loser.memory.leader = undefined;
-        loser.memory.grouped = undefined;
-        loser.memory.squadMembers = undefined;
-        loser.memory.squadListed = undefined;
+    for (let i = 0; i < remaining.length; i++) {
+        ungroupCreep(Game.getObjectById(remaining[i]));
     }
+    ungroupCreep(loser);
+}
+
+function disbandEmptyLeader(leader) {
+    if (!leader || !leader.memory.leader || isCommittedSquad(leader)) return false;
+    const live = [];
+    for (const id of leader.memory.squadMembers || []) {
+        if (Game.getObjectById(id)) live.push(id);
+    }
+    if (live.length) {
+        if (live.length !== (leader.memory.squadMembers || []).length) {
+            leader.memory.squadMembers = live;
+        }
+        return false;
+    }
+    ungroupCreep(leader);
+    return true;
 }
 
 // Two incomplete waitFor-4 pairs never re-enter findGroup (already grouped),
 // so they camp the dest exit forever. Nearby partial leaders combine here;
 // both sides pick the same winner (size, then name) so they do not swap.
 function tryMergePartialSquads(leader) {
-    const waitFor = (leader.memory.misc && leader.memory.misc.waitFor) || 4;
+    const waitFor = defaultWaitFor(leader);
     if (waitFor <= 2) return;
     if ((leader.memory.squadMembers || []).length + 1 >= waitFor) return;
 
@@ -918,9 +963,11 @@ function tryMergePartialSquads(leader) {
         if (c.memory.destination !== dest || c.memory.operation !== op) return false;
         if (isCommittedSquad(c) || isCommittedSquad(leader)) return false;
         if (!sameFormColony(leader, c)) return false;
-        const theirWait = (c.memory.misc && c.memory.misc.waitFor) || 4;
+        const theirWait = defaultWaitFor(c);
         if (theirWait <= 2) return false;
-        if (squadMinTTL(c) < SQUAD_RECRUIT_TTL || squadMinTTL(leader) < SQUAD_RECRUIT_TTL) return false;
+        // Uncommitted same-wave pairs merge even below SQUAD_RECRUIT_TTL.
+        if (!formingAtHome(c) && squadMinTTL(c) < SQUAD_RECRUIT_TTL) return false;
+        if (!formingAtHome(leader) && squadMinTTL(leader) < SQUAD_RECRUIT_TTL) return false;
         return (c.memory.squadMembers || []).length + 1 < theirWait;
     };
 
@@ -944,7 +991,7 @@ function tryMergePartialSquads(leader) {
     });
 
     if (winner.id !== leader.id) {
-        absorbSquad(winner, leader, (winner.memory.misc && winner.memory.misc.waitFor) || waitFor);
+        absorbSquad(winner, leader, defaultWaitFor(winner) || waitFor);
         return;
     }
     for (let i = 0; i < others.length; i++) {
@@ -954,18 +1001,13 @@ function tryMergePartialSquads(leader) {
 }
 
 Creep.prototype.formSquad = function () {
-    if (!this.memory.grouped && !this.spawning) findGroup(this);
-    else if (this.memory.leader && !this.spawning) tryMergePartialSquads(this);
+    if (this.spawning) return;
+    if (this.memory.leader) disbandEmptyLeader(this);
+    if (!this.memory.grouped) findGroup(this);
+    else if (this.memory.leader) tryMergePartialSquads(this);
     else if (this.memory.grouped && !this.memory.leader) {
         const leader = Game.getObjectById(this.memory.groupLeader);
-        if (!leader) {
-            this.memory.grouped = undefined;
-            this.memory.leader = undefined;
-            this.memory.groupLeader = undefined;
-            this.memory.squadMembers = undefined;
-            this.memory.role = this.memory.oldRole;
-            this.memory.oldRole = undefined;
-        }
+        if (!leader) this.ungroupFromSquad();
     }
 
     function findGroup(creep) {
@@ -984,16 +1026,15 @@ Creep.prototype.formSquad = function () {
         }
 
         const myRole = creep.memory.role || '';
-        const maxMembers = (creep.memory.misc?.waitFor || 4) - 1;
+        const maxMembers = Math.max(0, defaultWaitFor(creep) - 1);
 
-        // Bidirectional role match — a fresh 'longbow' needs to find an existing
-        // 'longbowSquad' leader, AND a freshly-promoted 'longbowSquad' leader
-        // needs to find new 'longbow's spawning later. Old code only matched one
-        // direction, so once a leader was promoted, follower spawns rolled in by
-        // luck of string-prefix order rather than design.
+        const isLongbowFamily = (role) => role === 'longbow' || role === 'longbowSquad';
         const rolesCompatible = c => {
             const r = c.memory.role || '';
-            return !!r && !!myRole && (r === myRole || r.includes(myRole) || myRole.includes(r));
+            const old = c.memory.oldRole || '';
+            const myOld = creep.memory.oldRole || '';
+            return (isLongbowFamily(r) || isLongbowFamily(old))
+                && (isLongbowFamily(myRole) || isLongbowFamily(myOld));
         };
 
         // Candidate: same op + dest, role-compatible, and either an existing
@@ -1041,19 +1082,38 @@ Creep.prototype.formSquad = function () {
             // Prefer a long-lived, already-filling quad over a dying remnant
             // that happens to have more bodies this tick.
             leader = existingLeaders.reduce((best, c) => {
-                const tc = squadMinTTL(c);
-                const tb = squadMinTTL(best);
-                if (tc !== tb) return tc > tb ? c : best;
+                // At home, match tryMerge (size then name) so joiners and
+                // partial leaders pick the same winner. In the field, prefer TTL.
+                if (!(formingAtHome(c) && formingAtHome(best))) {
+                    const tc = squadMinTTL(c);
+                    const tb = squadMinTTL(best);
+                    if (tc !== tb) return tc > tb ? c : best;
+                }
                 const sc = (c.memory.squadMembers || []).length;
                 const sb = (best.memory.squadMembers || []).length;
                 if (sc !== sb) return sc > sb ? c : best;
                 return c.name < best.name ? c : best;
             });
         } else {
-            // No existing leader nearby — promote the closest ungrouped peer.
+            // No existing leader nearby — pair with the closest ungrouped peer.
             // Same-room peers always beat cross-room ones via the 50 sentinel.
-            leader = _.min(candidates, c =>
+            const peer = _.min(candidates, c =>
                 c.room.name === creep.room.name ? creep.pos.getRangeTo(c) : 50);
+            if (!peer || !peer.id) {
+                creep.memory.squadCooldown = Game.time + 50;
+                return;
+            }
+            // Lower name is always leader so both creeps agree regardless of
+            // who runs findGroup first this tick.
+            if (creep.name < peer.name) {
+                if (!creep.memory.oldRole) creep.memory.oldRole = creep.memory.role;
+                creep.memory.role = 'longbowSquad';
+                creep.memory.leader = true;
+                creep.memory.grouped = true;
+                creep.memory.squadMembers = creep.memory.squadMembers || [];
+                return;
+            }
+            leader = peer;
         }
 
         if (!leader || !leader.id) {

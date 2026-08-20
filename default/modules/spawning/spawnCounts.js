@@ -6,6 +6,7 @@ const generator = require('module.bodyGenerator');
 
 const CREEP_COUNT_CACHE = {counts: {}, tick: 0, harvesterBySource: {}};
 const SQUAD_STAT_CACHE = {tick: 0, stats: {}};
+const FORMING_CAP_IDS = {tick: 0, ids: null};
 
 function getWaitForSquadStats(creep) {
     if (SQUAD_STAT_CACHE.tick !== Game.time) {
@@ -39,13 +40,113 @@ function waitForReplacementLeadTime(creep, waitFor) {
     return 3 * bodyLen * spawnWaves + distance + 80;
 }
 
-// Forming waitFor bodies always count. A committed squad fills the cap only
-// while it is still at committedSize and not inside replacement lead time;
-// remnants and dying waves drop out so a new group can form at home.
+function formingWaveGroupKey(creep) {
+    const role = creep.memory.oldRole || creep.memory.role || '';
+    const dest = creep.memory.destination || '';
+    const op = creep.memory.operation || '';
+    const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
+    return `${role}|${dest}|${op}|${waitFor}`;
+}
+
+function formingSquadId(creep) {
+    if (creep.memory.leader) return creep.id;
+    if (creep.memory.groupLeader) return creep.memory.groupLeader;
+    return '';
+}
+
+function pickLargestFormingSquad(squads) {
+    let bestId = '';
+    let bestSize = 0;
+    let bestName = '';
+    for (const sid in squads) {
+        const members = squads[sid];
+        const size = members.length;
+        const leader = Game.getObjectById(sid);
+        const name = (leader && leader.name) || (members[0] && members[0].name) || sid;
+        if (size > bestSize || (size === bestSize && name < bestName)) {
+            bestSize = size;
+            bestId = sid;
+            bestName = name;
+        }
+    }
+    return {bestId, bestSize};
+}
+
+// Uncommitted waitFor waves contribute the largest incomplete squad plus
+// ungrouped joiners, not every split pair. Two pairs of 2 for waitFor 4
+// used to fill the cap and freeze both on the pad. Extra pairs count only
+// after one fill attempt (total live >= waitFor + missing slots).
+function buildFormingCapIds(allCreeps) {
+    const groups = {};
+    for (let i = 0; i < allCreeps.length; i++) {
+        const creep = allCreeps[i];
+        if (!creep.my || !creep.memory) continue;
+        const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
+        if (!(waitFor > 1)) continue;
+        if (creep.memory.initialFormUp || (creep.memory.misc && creep.memory.misc.sealed)) continue;
+
+        const key = formingWaveGroupKey(creep);
+        let g = groups[key];
+        if (!g) {
+            g = {waitFor, squads: {}, ungrouped: []};
+            groups[key] = g;
+        }
+        const sid = formingSquadId(creep);
+        if (!sid) g.ungrouped.push(creep);
+        else {
+            if (!g.squads[sid]) g.squads[sid] = [];
+            g.squads[sid].push(creep);
+        }
+    }
+
+    const ids = new Set();
+    for (const key in groups) {
+        const g = groups[key];
+        const {bestId, bestSize} = pickLargestFormingSquad(g.squads);
+        let counted = 0;
+        const largest = bestId && g.squads[bestId];
+        if (largest) {
+            for (let i = 0; i < largest.length; i++) {
+                ids.add(largest[i].id);
+                counted++;
+            }
+        }
+        for (let i = 0; i < g.ungrouped.length; i++) {
+            if (counted >= g.waitFor) break;
+            ids.add(g.ungrouped[i].id);
+            counted++;
+        }
+
+        let totalLive = g.ungrouped.length;
+        for (const sid in g.squads) totalLive += g.squads[sid].length;
+        const fillAttempted = totalLive >= g.waitFor + Math.max(0, g.waitFor - bestSize);
+        if (fillAttempted && counted < g.waitFor) {
+            for (const sid in g.squads) {
+                if (sid === bestId) continue;
+                const members = g.squads[sid];
+                for (let i = 0; i < members.length; i++) {
+                    if (counted >= g.waitFor) break;
+                    ids.add(members[i].id);
+                    counted++;
+                }
+                if (counted >= g.waitFor) break;
+            }
+        }
+    }
+    return ids;
+}
+
+// Forming waitFor: largest incomplete squad (+ joiners), not every body.
+// Committed: fill the cap only while at committedSize and outside replacement
+// lead time; remnants and dying waves drop out so a new group can form at home.
 function waitForSquadCountsTowardCap(creep) {
     const misc = creep.memory.misc || {};
     const committed = !!(misc.sealed || creep.memory.initialFormUp);
-    if (!committed) return true;
+    if (!committed) {
+        if (!(misc.waitFor > 1)) return true;
+        if (FORMING_CAP_IDS.tick !== Game.time || !FORMING_CAP_IDS.ids) return true;
+        return FORMING_CAP_IDS.ids.has(creep.id);
+    }
     const fullSize = misc.committedSize;
     if (!fullSize) return false;
     const stats = getWaitForSquadStats(creep);
@@ -61,6 +162,8 @@ function updateCreepCountCache() {
     const counts = {};
     const harvesterBySource = {};
     const allCreeps = Object.values(Game.creeps);
+    FORMING_CAP_IDS.tick = currentTick;
+    FORMING_CAP_IDS.ids = buildFormingCapIds(allCreeps);
 
     for (const creep of allCreeps) {
         if (!creep.my) continue;
@@ -103,6 +206,13 @@ function processCreepForCache(counts, creep) {
     if (destination && operation) incrementCreepCount(counts, `${role}_${destination}_${operation}`, creep);
     if (colony) incrementCreepCount(counts, `${role}_noDest_noOp_${colony}`, creep);
     incrementCreepCount(counts, `${role}_noDest_noOp_noColony`, creep);
+
+    const waveSize = creepWaveSize(creep);
+    if (waveSize > 1) {
+        if (destination) incrementCreepCount(counts, `${role}_${destination}_noOp_w:${waveSize}`, creep);
+        if (operation) incrementCreepCount(counts, `${role}_noDest_${operation}_w:${waveSize}`, creep);
+        if (destination && operation) incrementCreepCount(counts, `${role}_${destination}_${operation}_w:${waveSize}`, creep);
+    }
 }
 
 function incrementCreepCount(counts, key, creep) {
@@ -115,30 +225,14 @@ function incrementCreepCount(counts, key, creep) {
     }
 }
 
-function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined, assignment = undefined) {
-    updateCreepCountCache();
-    const counts = CREEP_COUNT_CACHE.counts;
-    const colonyKey = colony && (typeof colony === 'string' ? colony : colony.name);
-
-    let key;
-    if (assignment) key = `${role}_${assignment}`;
-    else if (!destination && !operation && !assignment && colonyKey) key = `${role}_noDest_noOp_${colonyKey}`;
-    else if (!destination && !operation && !assignment && room) key = `${role}_${room.name}_noDest_noOp`;
-    else if (room && operation && !destination && !assignment) key = `${role}_${room.name}_noDest_${operation}`;
-    else if (destination && !operation) key = `${role}_${destination}_noOp`;
-    else if (!destination && operation) key = `${role}_noDest_${operation}`;
-    else if (destination && operation) key = `${role}_${destination}_${operation}`;
-    else if (!destination && !operation && !room) key = `${role}_noDest_noOp_noColony`;
-    else return 0;
-
-    return counts[key] ? counts[key].count : 0;
+function creepWaveSize(creep) {
+    const misc = creep.memory.misc || {};
+    if (misc.committedSize) return misc.committedSize;
+    return misc.waitFor || 0;
 }
 
-function creepExpiringSoon(room = undefined, role, destination = undefined, operation = undefined, colony = undefined, assignment = undefined) {
-    updateCreepCountCache();
-    const counts = CREEP_COUNT_CACHE.counts;
+function countLookupKey(role, room, destination, operation, colony, assignment, waitFor) {
     const colonyKey = colony && (typeof colony === 'string' ? colony : colony.name);
-
     let key;
     if (assignment) key = `${role}_${assignment}`;
     else if (!destination && !operation && !assignment && colonyKey) key = `${role}_noDest_noOp_${colonyKey}`;
@@ -148,9 +242,25 @@ function creepExpiringSoon(room = undefined, role, destination = undefined, oper
     else if (!destination && operation) key = `${role}_noDest_${operation}`;
     else if (destination && operation) key = `${role}_${destination}_${operation}`;
     else if (!destination && !operation && !room) key = `${role}_noDest_noOp_noColony`;
-    else return false;
+    else return '';
+    if (waitFor > 1 && !assignment && (destination || operation)) key += `_w:${waitFor}`;
+    return key;
+}
 
-    const data = counts[key];
+function getCreepCount(room = undefined, role, destination = undefined, operation = undefined, colony = undefined, assignment = undefined, waitFor = undefined) {
+    updateCreepCountCache();
+    const key = countLookupKey(role, room, destination, operation, colony, assignment, waitFor);
+    if (!key) return 0;
+    const data = CREEP_COUNT_CACHE.counts[key];
+    return data ? data.count : 0;
+}
+
+function creepExpiringSoon(room = undefined, role, destination = undefined, operation = undefined, colony = undefined, assignment = undefined, waitFor = undefined) {
+    updateCreepCountCache();
+    const key = countLookupKey(role, room, destination, operation, colony, assignment, waitFor);
+    if (!key) return false;
+
+    const data = CREEP_COUNT_CACHE.counts[key];
     if (!data || data.count <= 0 || data.minTTL === Infinity) return false;
 
     let distance = 0;
@@ -179,10 +289,17 @@ function haulerCarryCapacity(creep) {
     return creep.getActiveBodyparts(CARRY) * CARRY_CAPACITY;
 }
 
+function invalidateCreepCountCache() {
+    CREEP_COUNT_CACHE.tick = 0;
+    FORMING_CAP_IDS.tick = 0;
+    SQUAD_STAT_CACHE.tick = 0;
+}
+
 module.exports = {
     getCreepCount,
     getRemoteHarvesterForSource,
     creepExpiringSoon,
     getBodyAbilityPower,
     haulerCarryCapacity,
+    invalidateCreepCountCache,
 };

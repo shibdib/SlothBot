@@ -4,18 +4,7 @@
  * Siege boost sizing: TOUGH/HEAL parts vs tower damage and lab stock.
  */
 
-const {countRoleForDestination} = require('bodyHelpers');
-
 const toughMulti = {GO: 0.75, GHO2: 0.55, XGHO2: 0.35};
-
-function remainingSquadBodies(gen) {
-    const waitFor = Math.max(1, (gen.creepInfo && gen.creepInfo.misc && gen.creepInfo.misc.waitFor) || 1);
-    const dest = gen.creepInfo && gen.creepInfo.destination;
-    if (!dest) return waitFor;
-    const role = gen.role || (gen.creepInfo && gen.creepInfo.role);
-    const live = countRoleForDestination(dest, role, gen.creepInfo && gen.creepInfo.operation);
-    return Math.max(1, waitFor - live);
-}
 
 function moveFatigueFactor(boost) {
     if (!boost || !BOOSTS[MOVE] || !BOOSTS[MOVE][boost]) return 1;
@@ -89,7 +78,6 @@ function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedPa
     }
 
     const tiers = determineNeededHeals(damageToTank);
-    const squadSize = remainingSquadBodies(gen);
     const MIN_RANGED_PARTS = rangedParts ? 5 : 0;
     const MAX_HEAL_PARTS = getMaxSiegeHealParts(toughCount, MIN_RANGED_PARTS, moveFactor);
     const moveShare = BODYPART_COST[MOVE] / Math.max(1, moveFactor || 1);
@@ -104,7 +92,7 @@ function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedPa
         const rawHeals = Math.ceil(tier.amount * exposureBodies * healToughFactor);
         if (rawHeals > MAX_HEAL_PARTS || rawHeals < 1) return 0;
         if (rawHeals * energyPerHealPair + reservedEnergy > gen.energyAmount) return 0;
-        if (gen.room.store(tier.boost) < 30 * rawHeals * squadSize) return 0;
+        if (gen.room.store(tier.boost) < 30 * rawHeals) return 0;
         return rawHeals;
     }
 

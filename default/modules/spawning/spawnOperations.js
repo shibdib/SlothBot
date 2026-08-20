@@ -199,7 +199,13 @@ function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
     const now = Game.time;
     if (opMemory.assignedRoom) {
         const assigned = Game.rooms[opMemory.assignedRoom];
-        if (!assigned) {
+        // Intel can raise levelTarget (1 tower → 2) while a low-RCL room is
+        // sticky. considerGlobalEntry then rejects that room AND every other
+        // room (not assigned) — nothing spawns. Inflight creeps do not keep
+        // an under-level assignee; retargetFormingWaitForColony sends remnants.
+        if (assigned && assigned.level < levelTarget) {
+            unassignRoom(target, 'Assigned room is below operation level.');
+        } else if (!assigned) {
             if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
             if (handleInvisibleAssignmentWait(target, opMemory)) return opMemory.assignedRoom;
         } else {
@@ -231,8 +237,26 @@ function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
     opMemory.assignedRoom = resolved;
     opMemory.assignedAt = now;
     clearAssignmentWaitState(opMemory);
+    retargetFormingWaitForColony(target, entry && entry.operation, resolved);
     log.a(`Assigning the operation in ${roomLink(target)} to ${roomLink(resolved)}`, 'OPERATIONS:');
     return resolved;
+}
+
+function retargetFormingWaitForColony(target, operation, newColony) {
+    if (!target || !newColony) return;
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory) continue;
+        if (c.memory.destination !== target) continue;
+        if (operation && c.memory.operation && c.memory.operation !== operation) continue;
+        if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
+        const waitFor = c.memory.misc && c.memory.misc.waitFor;
+        if (!(waitFor > 1)) continue;
+        const home = (c.memory.misc && c.memory.misc.formColony) || c.memory.colony;
+        if (home === newColony) continue;
+        if (!c.memory.misc) c.memory.misc = {};
+        c.memory.misc.formColony = newColony;
+    }
 }
 
 function roleAssignWeight(role) {

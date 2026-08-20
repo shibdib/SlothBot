@@ -154,11 +154,12 @@ function preReserveBoostLab(room, creepName, neededBoosts, body, role, misc) {
 
     if (!reservations.length) return;
 
+    const wave = (misc && misc.waitFor > 1) ? misc.waitFor : 1;
     const usedLabs = new Set();
     for (const reservation of reservations) {
         const lab = _.find(room.labs, s =>
             !usedLabs.has(s.id) &&
-            s.isActive() && s.store[RESOURCE_ENERGY] > 0 &&
+            s.isActive() &&
             !s.memory.itemNeeded &&
             (!s.memory.neededBoost || s.memory.neededBoost === reservation.boost)
         );
@@ -167,8 +168,14 @@ function preReserveBoostLab(room, creepName, neededBoosts, body, role, misc) {
 
         lab.memory.paused = true;
         lab.memory.neededBoost = reservation.boost;
-        lab.memory.amount = (lab.memory.amount || 0) + reservation.amount;
-        (lab.memory.preReservedFor = lab.memory.preReservedFor || []).push(creepName);
+        if (wave > 1) {
+            lab.memory.amount = Math.max(lab.memory.amount || 0, reservation.amount * wave);
+        } else {
+            lab.memory.amount = (lab.memory.amount || 0) + reservation.amount;
+        }
+        const names = lab.memory.preReservedFor || [];
+        if (!names.includes(creepName)) names.push(creepName);
+        lab.memory.preReservedFor = names;
         lab.memory.requested = Game.time;
     }
 }
@@ -297,7 +304,7 @@ function spawnQueuedCreep(room, availableSpawn, queuedBuild, body) {
     }
 
     if (spawnResult === OK) {
-        if (!(misc && misc.waitFor > 1) && (neededBoosts || (misc && misc.boosts))) {
+        if (neededBoosts || (misc && misc.boosts)) {
             preReserveBoostLab(availableSpawn.room, name, neededBoosts, body, role, misc);
         }
         spawnState.lastBuilt[availableSpawn.room.name] = Game.time;
