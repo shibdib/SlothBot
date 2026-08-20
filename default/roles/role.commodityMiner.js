@@ -44,8 +44,22 @@ class RoleCommodityMiner {
             return true;
         }
 
-        // Make sure the operation is active and valid destination exists
-        if (!this.creep.memory.destination || !Memory.auxiliaryTargets[this.creep.memory.destination]) {
+        // Colony-local SK / sector-center mining does not use auxiliaryTargets.
+        const localMineral = this.creep.memory.other && this.creep.memory.other.localMineral;
+        if (!this.creep.memory.destination) {
+            this.creep.recycleCreep();
+            return true;
+        }
+        if (localMineral) {
+            const colony = this.creep.memory.colony;
+            const skRoom = this.creep.memory.other.skRoom || this.creep.memory.destination;
+            const targets = colony && ROOM_REMOTE_TARGETS[colony];
+            // Empty targets after a global reset are a cache miss, not a drop.
+            if (targets && targets.length && !targets.some(s => s.room === skRoom)) {
+                this.creep.recycleCreep();
+                return true;
+            }
+        } else if (!Memory.auxiliaryTargets[this.creep.memory.destination]) {
             this.creep.recycleCreep();
             return true;
         }
@@ -64,6 +78,7 @@ class RoleCommodityMiner {
         if (Memory.auxiliaryTargets[this.creep.memory.destination]) Memory.auxiliaryTargets[this.creep.memory.destination].tick = Game.time;
         switch (this.creep.harvest(deposit)) {
             case OK:
+                if (!this.creep.memory.other) this.creep.memory.other = {};
                 this.creep.memory.other.stationary = true;
                 break;
             case ERR_NOT_IN_RANGE:
@@ -72,13 +87,21 @@ class RoleCommodityMiner {
             case ERR_NOT_ENOUGH_RESOURCES:
                 this.creep.memory.deposit = undefined;
                 break;
+            case ERR_NOT_FOUND:
+                if (deposit.mineralType) {
+                    const {tryCreateConstructionSite} = require('planUtils');
+                    tryCreateConstructionSite(deposit.pos, STRUCTURE_EXTRACTOR);
+                } else {
+                    this.creep.memory.deposit = undefined;
+                }
+                break;
             case ERR_TIRED:
                 if (this.creep.pos.isNearTo(deposit)) this.creep.idleFor(deposit.cooldown);
         }
     }
 
     returnResource() {
-        this.creep.memory.other.stationary = undefined;
+        if (this.creep.memory.other) this.creep.memory.other.stationary = undefined;
         this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4) || this.creep.memory.colony;
         if (this.room.name !== this.creep.memory.closestRoom) {
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.closestRoom), {range: 23});
@@ -102,15 +125,18 @@ class RoleCommodityMiner {
     findDeposit() {
         //Find Deposit
         let deposit = _.find(this.room.deposits, (d) => (d.depositType || d.mineralAmount));
-        // If no deposits check for a mineral
-        if (!deposit && this.room.mineral && !this.room.controller) {
+        // If no deposits check for a mineral in rooms without a controller (SK / sector center).
+        if (!deposit && this.room.mineral && this.room.mineral.mineralAmount && !this.room.controller) {
             deposit = this.room.mineral;
             if (deposit) {
                 return this.creep.memory.deposit = deposit.id;
             }
         } else if (!deposit) {
-            INTEL[this.creep.memory.destination].commodity = undefined;
-            Memory.auxiliaryTargets[this.creep.memory.destination] = undefined;
+            const localMineral = this.creep.memory.other && this.creep.memory.other.localMineral;
+            if (!localMineral) {
+                if (INTEL[this.creep.memory.destination]) INTEL[this.creep.memory.destination].commodity = undefined;
+                Memory.auxiliaryTargets[this.creep.memory.destination] = undefined;
+            }
             this.creep.recycleCreep();
             return this.creep.memory.deposit = undefined;
         } else {

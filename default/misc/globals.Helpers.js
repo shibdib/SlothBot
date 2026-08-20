@@ -151,12 +151,29 @@ let helpers = function () {
      */
     global.isSourceKeeperRoomName = function (roomName) {
         if (!roomName || roomName.length < 4) return false;
+        const parsed = parseRoomXY(roomName);
+        return parsed && parsed.x % 10 === 4 && parsed.y % 10 === 4;
+    };
+
+    /**
+     * Sector-center rooms (x%10===5 && y%10===5): no controller, no keepers, mineral only.
+     * @param {string} roomName
+     * @returns {boolean}
+     */
+    global.isSectorCenterRoomName = function (roomName) {
+        if (!roomName || roomName.length < 4) return false;
+        const parsed = parseRoomXY(roomName);
+        return parsed && parsed.x % 10 === 5 && parsed.y % 10 === 5;
+    };
+
+    function parseRoomXY(roomName) {
         const nsIndex = roomName.indexOf('N') !== -1 ? roomName.indexOf('N') : roomName.indexOf('S');
-        if (nsIndex < 2) return false;
+        if (nsIndex < 2) return null;
         const x = parseInt(roomName.slice(1, nsIndex), 10);
         const y = parseInt(roomName.slice(nsIndex + 1), 10);
-        return !isNaN(x) && !isNaN(y) && x % 10 === 4 && y % 10 === 4;
-    };
+        if (isNaN(x) || isNaN(y)) return null;
+        return {x, y};
+    }
 
     /**
      * Get the total amount of a resource you have

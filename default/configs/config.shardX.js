@@ -45,6 +45,7 @@ global.REMOTE_REFRESH_STAGGER = 150; // Spread refreshRemoteRoomTargets across t
 global.REMOTE_MINING_ROUTE_TTL = 1500; // miningRoutes cache TTL (ticks)
 global.SK_MINING = true; // Do we SK mine
 global.SK_MINING_LEVEL = 7; // What level do we do this (won't work before 7 atm)
+global.SK_MINING_MAX_ROOMS = 1; // Max source-keeper rooms a colony will mine
 
 // Combat Settings
 global.OFFENSIVE_OPERATIONS = true; // Room attacks (occupy / remote denial / siege). Harassment is independent.

@@ -23,7 +23,7 @@ const {
     isRemoteRoadRoomEligible,
     roomConstructionSiteBudget,
 } = require('planUtils');
-const {getMiningRouteRooms, isSkRoomName, hasLiveSkAttacker} = require('remoteMining');
+const {getMiningRouteRooms, hasLiveSkAttacker, skGuardRoom} = require('remoteMining');
 
 const COSTS = {
     owned: {wall: 255, swamp: 75, plain: 45, road: 1, container: 50},
@@ -746,11 +746,22 @@ const COLONY_WORK_ROOMS_CACHE = Object.create(null);
 function remoteTargetsStamp(colony) {
     const targets = (typeof ROOM_REMOTE_TARGETS !== 'undefined' && ROOM_REMOTE_TARGETS[colony]) || [];
     if (!targets.length) return '0';
-    let stamp = String(targets.length);
+    const rooms = [];
+    const seen = new Set();
+    const add = (r) => {
+        if (!r || seen.has(r)) return;
+        seen.add(r);
+        rooms.push(r);
+    };
     for (let i = 0; i < targets.length; i++) {
-        if (targets[i] && targets[i].room) stamp += '|' + targets[i].room;
+        const remote = targets[i] && targets[i].room;
+        if (!remote) continue;
+        add(remote);
+        const route = getMiningRouteRooms(colony, remote);
+        for (let j = 0; j < route.length; j++) add(route[j]);
     }
-    return stamp;
+    rooms.sort();
+    return String(rooms.length) + '|' + rooms.join('|');
 }
 
 function clearColonyRoadWorkCache(colony) {
@@ -872,7 +883,8 @@ function getRemoteRoadTargets(room, colony, context = {}) {
     }
 
     const intel = INTEL[room.name];
-    if (intel && intel.sk) {
+    const centerRoom = global.isSectorCenterRoomName && global.isSectorCenterRoomName(room.name);
+    if ((intel && intel.sk) || centerRoom) {
         const mineral = room.mineral || room.find(FIND_MINERALS)[0];
         if (mineral) add(mineral.pos);
     }
@@ -1027,12 +1039,14 @@ function getRemoteRoadPlan(room, colony, context = {}) {
     const {needed: desired, pathsAttempted, pathFailures} = buildRemoteRoadTiles(room, colony, context);
     const missing = [];
 
-    // Targets alone are not enough — pathfinding must succeed. Empty desired with
-    // pathFailures used to mark rooms complete with no roads (false roadsBuilt).
-    let planValid = targets.length > 0 && pathFailures === 0;
+    // At least one successful path is enough. A single walled-off source used to
+    // freeze the whole room (pathFailures === 0) so builders never marked complete.
+    let planValid = false;
     if (context.type === 'transit') {
         const remotes = getTransitRemotesThroughRoom(room.name, colony);
-        planValid = remotes.length > 0 && pathFailures === 0 && pathsAttempted > 0;
+        planValid = remotes.length > 0 && pathsAttempted > 0 && pathFailures < pathsAttempted;
+    } else {
+        planValid = targets.length > 0 && (pathsAttempted === 0 || pathFailures < pathsAttempted);
     }
 
     let complete = planValid;
@@ -1103,17 +1117,17 @@ function getColonyRoadRooms(colony) {
         rooms.push({room: roomName, priority: priority || 50});
     };
 
-    for (const s of targets) add(s.room, s.score);
-
+    // Transit first (hop index), then remotes (100 + haul score so closer = lower).
     const remotes = _.uniq(targets.map(s => s.room));
     for (const remote of remotes) {
         const route = getMiningRouteRooms(colony, remote);
         for (let i = 0; i < route.length; i++) {
             const r = route[i];
             if (r === colony || r === remote) continue;
-            add(r, 20 + i);
+            add(r, i);
         }
     }
+    for (const s of targets) add(s.room, 100 + (s.score || 0));
     return _.sortBy(rooms, 'priority');
 }
 
@@ -1121,7 +1135,8 @@ function roomNeedsRoadWorkByName(roomName, colony) {
     if (!isRemoteRoadRoomEligible(roomName)) return false;
     const intel = INTEL[roomName];
     if (!intel) return false;
-    if (isSkRoomName(roomName) && !hasLiveSkAttacker(roomName)) return false;
+    const guard = skGuardRoom(colony, roomName);
+    if (guard && !hasLiveSkAttacker(guard)) return false;
     const context = isColonyRoadRoom(roomName, colony);
     if (!context) return false;
     const room = Game.rooms[roomName];
@@ -1164,30 +1179,46 @@ function countRemoteBuilderClaims(colony, excludeCreepName) {
     return claims;
 }
 
+function roomNeedsBuildWorkByName(roomName, colony) {
+    if (!roomNeedsRoadWorkByName(roomName, colony)) return false;
+    const room = Game.rooms[roomName];
+    if (!room) {
+        const intel = INTEL[roomName];
+        return !!(intel && !intel.roadsBuilt);
+    }
+    const context = isColonyRoadRoom(roomName, colony);
+    if (!context) return false;
+    if (countRoadConstructionSites(room) > 0) return true;
+    const plan = getRemoteRoadPlan(room, colony, context);
+    return !plan.complete || plan.missing.length > 0;
+}
+
 /**
  * Pick an unfinished remote/transit room. Prefer least-claimed rooms so multiple
  * remoteBuilders spread out instead of stacking on one hash bucket.
+ * Missing tiles / sites beat repair-only so a swamp corridor does not hold the crew.
  */
 function pickRoadWorkRoom(colony, creepName) {
     const work = getColonyRoadWorkRooms(colony);
     if (!work.length) return null;
 
-    // Sticky: keep current destination if it still needs work.
+    const buildRooms = work.filter(e => roomNeedsBuildWorkByName(e.room, colony));
+    const pickList = buildRooms.length ? buildRooms : work;
+
     if (creepName) {
         const creep = Game.creeps[creepName];
         const current = creep && creep.memory.destination;
-        if (current && work.some(e => e.room === current)) return current;
+        if (current && pickList.some(e => e.room === current)) return current;
     }
 
     const claims = countRemoteBuilderClaims(colony, creepName);
-    work.sort((a, b) => {
+    pickList.sort((a, b) => {
         const ca = claims[a.room] || 0;
         const cb = claims[b.room] || 0;
         if (ca !== cb) return ca - cb;
-        // Higher remote score / closer transit first (priority field from getColonyRoadRooms).
-        return (b.priority || 0) - (a.priority || 0);
+        return (a.priority || 0) - (b.priority || 0);
     });
-    return work[0].room;
+    return pickList[0].room;
 }
 
 function remoteBuildersNeeded(colony) {

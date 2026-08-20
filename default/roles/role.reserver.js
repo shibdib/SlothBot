@@ -4,7 +4,7 @@
 
 const profiler = require("tools.profiler");
 const {getMiningRouteRooms} = require('remoteMining');
-const {exitHopTarget} = require('pathRoute');
+const {travelRouteHops} = require('pathRoute');
 
 class RoleReserver {
     constructor(creep) {
@@ -25,6 +25,15 @@ class RoleReserver {
         const dest = this.creep.memory.destination;
         if (!dest) return this.creep.recycleCreep();
 
+        if (Game.time % 50 === 0 && this.creep.memory.colony) {
+            const targets = ROOM_REMOTE_TARGETS[this.creep.memory.colony];
+            if (targets && targets.length && !targets.some(s => s.room === dest)) {
+                return this.creep.recycleCreep();
+            }
+            const intel = INTEL[dest];
+            if (intel && (intel.level || intel.owner)) return this.creep.recycleCreep();
+        }
+
         if (this.room.name !== dest) {
             this.travel(dest);
             return;
@@ -41,6 +50,7 @@ class RoleReserver {
             this.getToController();
             return;
         }
+        if (controller.owner) return this.creep.recycleCreep();
 
         // Already adjacent and reserving — no pathing.
         if (!controller.reservation || controller.reservation.username === MY_USERNAME) {
@@ -89,8 +99,6 @@ class RoleReserver {
     }
 
     travel(dest) {
-        if (this.creep.fatigue > 0) return;
-
         // Sticky claim-TTL abort — recycle from the role, never from inside shibMove.
         if (this.creep.memory._claimAbort === dest) {
             this.creep.memory.destination = undefined;
@@ -98,72 +106,13 @@ class RoleReserver {
         }
 
         const colony = this.creep.memory.colony;
-        let route;
-        if (colony) {
-            route = getMiningRouteRooms(colony, dest);
-            if (route && route.length && !route.includes(this.creep.room.name)) {
-                route = [this.creep.room.name].concat(route);
-            }
-        }
-
-        // Hop along the mining route: path only into the next room.
-        // Full multi-room PathFinder for fat CLAIM bodies was ~3+ CPU per travel call.
-        if (route && route.length) {
-            const idx = route.indexOf(this.creep.room.name);
-            if (idx >= 0 && idx < route.length - 1) {
-                const nextRoom = route[idx + 1];
-                // Last hop: aim at cached controller if known, else room center.
-                let hopTarget;
-                let range;
-                if (nextRoom === dest) {
-                    const ctrl = this.getCachedControllerPos(dest);
-                    hopTarget = ctrl || new RoomPosition(25, 25, dest);
-                    range = ctrl ? 1 : 23;
-                    return this.creep.shibMove(hopTarget, {
-                        range,
-                        route: route.slice(idx, idx + 2),
-                        claimRoute: route.slice(idx),
-                        maxRooms: 2,
-                        maxOps: 2500,
-                    });
-                }
-                const lookAhead = idx + 2 < route.length ? route[idx + 2] : dest;
-                const hop = exitHopTarget(this.creep.room.name, nextRoom, this.creep.pos, lookAhead);
-                if (hop) {
-                    return this.creep.shibMove(hop.pos, {
-                        range: 0,
-                        hopGoals: hop.goals,
-                        hopExitDir: hop.exitDir,
-                        fullRoute: route,
-                        claimRoute: route.slice(idx),
-                        maxRooms: 1,
-                        maxOps: 2000,
-                    });
-                }
-                hopTarget = new RoomPosition(25, 25, nextRoom);
-                range = 23;
-                return this.creep.shibMove(hopTarget, {
-                    range,
-                    route: route.slice(idx, idx + 2),
-                    claimRoute: route.slice(idx),
-                    maxRooms: 2,
-                    maxOps: 2500,
-                });
-            }
-        }
-
-        // Fallback: not on a known route — head for dest center/controller.
-        let destination = this.getCachedControllerPos(dest);
-        const options = {};
-        if (destination) {
-            options.range = 1;
-        } else {
-            destination = new RoomPosition(25, 25, dest);
-            options.range = 23;
-        }
-        if (route && route.length) options.route = route;
-
-        this.creep.shibMove(destination, options);
+        const route = colony ? getMiningRouteRooms(colony, dest) : [];
+        const ctrl = this.getCachedControllerPos(dest);
+        travelRouteHops(this.creep, dest, route, {
+            target: ctrl || new RoomPosition(25, 25, dest),
+            range: ctrl ? 1 : 23,
+            claimRoute: true,
+        });
     }
 
     getToController() {
@@ -202,6 +151,8 @@ class RoleReserver {
                 this.creep.memory.inPlace = undefined;
                 if (this.creep.fatigue <= 0) this.creep.shibMove(controller, {range: 1});
                 break;
+            case ERR_INVALID_TARGET:
+                return this.creep.recycleCreep();
         }
     }
 

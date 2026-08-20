@@ -155,6 +155,75 @@ function exitHopTarget(fromRoom, nextRoom, fromPos, lookAheadRoom) {
     };
 }
 
+/**
+ * Hop one room at a time along a known multi-room route instead of a full
+ * PathFinder to the destination. Returns true if a move was issued.
+ * @param {Creep} creep
+ * @param {string} dest
+ * @param {string[]} [route]
+ * @param {{target?: RoomPosition, range?: number, maxOps?: number, hopOps?: number, claimRoute?: boolean, moveOptions?: object}} [options]
+ */
+function travelRouteHops(creep, dest, route, options = {}) {
+    if (!creep || creep.fatigue > 0) return true;
+    if (!dest || creep.room.name === dest) return false;
+
+    const range = options.range != null ? options.range : 23;
+    const destPos = options.target || new RoomPosition(25, 25, dest);
+    const maxOps = options.maxOps || 2500;
+    const hopOps = options.hopOps || 2000;
+    const extra = options.moveOptions || {};
+
+    let rooms = route && route.length ? route.slice() : [];
+    // Mining routes are stored colony→remote. Reverse when going home.
+    if (rooms.length && rooms[rooms.length - 1] !== dest) rooms.reverse();
+    if (rooms.length && rooms.indexOf(creep.room.name) === -1) {
+        rooms = [creep.room.name].concat(rooms);
+    }
+    if (rooms.length && rooms[rooms.length - 1] !== dest) rooms = rooms.concat([dest]);
+
+    if (rooms && rooms.length) {
+        const idx = rooms.indexOf(creep.room.name);
+        if (idx >= 0 && idx < rooms.length - 1) {
+            const nextRoom = rooms[idx + 1];
+            const claimExtra = options.claimRoute ? {claimRoute: rooms.slice(idx)} : {};
+            if (nextRoom === dest) {
+                creep.shibMove(destPos, Object.assign({
+                    range,
+                    route: rooms.slice(idx, idx + 2),
+                    maxRooms: 2,
+                    maxOps,
+                }, extra, claimExtra));
+                return true;
+            }
+            const lookAhead = idx + 2 < rooms.length ? rooms[idx + 2] : dest;
+            const hop = exitHopTarget(creep.room.name, nextRoom, creep.pos, lookAhead);
+            if (hop) {
+                creep.shibMove(hop.pos, Object.assign({
+                    range: 0,
+                    hopGoals: hop.goals,
+                    hopExitDir: hop.exitDir,
+                    fullRoute: rooms,
+                    maxRooms: 1,
+                    maxOps: hopOps,
+                }, extra, claimExtra));
+                return true;
+            }
+            creep.shibMove(new RoomPosition(25, 25, nextRoom), Object.assign({
+                range: 23,
+                route: rooms.slice(idx, idx + 2),
+                maxRooms: 2,
+                maxOps,
+            }, extra, claimExtra));
+            return true;
+        }
+    }
+
+    const fallback = Object.assign({range}, extra);
+    if (rooms && rooms.length) fallback.route = rooms;
+    creep.shibMove(destPos, fallback);
+    return true;
+}
+
 function estimateClaimRouteTicks(roomCount) {
     return roomCount * CLAIM_TICKS_PER_ROOM + CLAIM_ACTION_RESERVE;
 }
@@ -282,6 +351,8 @@ module.exports = {
     routeWithinClaimTTL,
 
     exitHopTarget,
+
+    travelRouteHops,
 
     onExitToward,
 

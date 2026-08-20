@@ -101,6 +101,11 @@ function maxRemoteRoomsForColony(colonyRoom) {
     return cfg('REMOTE_MAX_ROOMS_LOW', 1);
 }
 
+function maxSkRoomsPerColony() {
+    const v = cfg('SK_MINING_MAX_ROOMS', 1);
+    return v > 0 ? v : 1;
+}
+
 // Per-tick index: one full creep/queue/targets pass instead of O(creeps) per lookup.
 // Built lazily on first hasLiveRemoteWork / isRemoteClaimedByOther call each tick.
 let claimIndexTick = -1;
@@ -285,7 +290,8 @@ function pruneRemoteRoomCount(colonyName, colonyRoom) {
         byRoom[s.room].push(s);
     }
 
-    const rooms = Object.keys(byRoom);
+    // Sector-center rooms ride along with an adjacent SK remote and do not consume a slot.
+    const rooms = Object.keys(byRoom).filter(r => !isSectorCenterRoomName(r));
     const maxRooms = maxRemoteRoomsForColony(colonyRoom);
     if (rooms.length <= maxRooms) return;
 
@@ -301,11 +307,158 @@ function pruneRemoteRoomCount(colonyName, colonyRoom) {
     });
 
     const keep = new Set(rooms.slice(0, maxRooms));
+    for (const remoteName in byRoom) {
+        if (isSectorCenterRoomName(remoteName)) keep.add(remoteName);
+    }
     const next = [];
     const removedByRoom = {};
     for (let i = 0; i < targets.length; i++) {
         const s = targets[i];
         if (keep.has(s.room)) {
+            next.push(s);
+        } else {
+            if (!removedByRoom[s.room]) removedByRoom[s.room] = [];
+            if (s.source) removedByRoom[s.room].push(s.source);
+        }
+    }
+    ROOM_REMOTE_TARGETS[colonyName] = next;
+    for (const remoteName in removedByRoom) {
+        unindexColonyRemote(colonyName, remoteName, removedByRoom[remoteName]);
+    }
+}
+
+function getColonySkRooms(colonyName) {
+    const rooms = [];
+    const seen = new Set();
+    const targets = ROOM_REMOTE_TARGETS[colonyName] || [];
+    for (let i = 0; i < targets.length; i++) {
+        const remoteName = targets[i] && targets[i].room;
+        if (!remoteName || seen.has(remoteName) || !isSkRoomName(remoteName)) continue;
+        seen.add(remoteName);
+        rooms.push(remoteName);
+    }
+    return rooms;
+}
+
+/**
+ * Source-keeper remotes are allowed when none are assigned yet, or this room is
+ * one of the colony's assigned SK rooms (capped at SK_MINING_MAX_ROOMS).
+ */
+function isAllowedSkRoom(colonyName, remoteName) {
+    if (!remoteName || !isSkRoomName(remoteName)) return true;
+    const assigned = getColonySkRooms(colonyName);
+    if (!assigned.length) return true;
+    return assigned.indexOf(remoteName) !== -1;
+}
+
+function isSectorCenterRoomName(roomName) {
+    return !!(global.isSectorCenterRoomName && global.isSectorCenterRoomName(roomName));
+}
+
+/** Sector-center neighbor of an SK room, if the two share an exit. */
+function getAdjacentSectorCenter(roomName) {
+    if (!roomName || !isSkRoomName(roomName)) return null;
+    const exits = Game.map.describeExits(roomName);
+    if (!exits) return null;
+    for (const neighbor of Object.values(exits)) {
+        if (isSectorCenterRoomName(neighbor)) return neighbor;
+    }
+    return null;
+}
+
+function getSectorCenterSkParent(colonyName, centerName) {
+    if (!colonyName || !isSectorCenterRoomName(centerName)) return null;
+    const assigned = getColonySkRooms(colonyName);
+    for (let i = 0; i < assigned.length; i++) {
+        if (getAdjacentSectorCenter(assigned[i]) === centerName) return assigned[i];
+    }
+    return null;
+}
+
+function isSectorCenterAddOn(colonyName, remoteName) {
+    return !!getSectorCenterSkParent(colonyName, remoteName);
+}
+
+/** SK room whose attacker covers this remote (the room itself, or the parent SK of a center). */
+function skGuardRoom(colonyName, remoteName) {
+    if (!remoteName) return null;
+    if (isSkRoomName(remoteName)) return remoteName;
+    if (isSectorCenterRoomName(remoteName)) return getSectorCenterSkParent(colonyName, remoteName);
+    return null;
+}
+
+function isKeeperYieldRoom(roomName) {
+    return isSkRoomName(roomName) || isSectorCenterRoomName(roomName);
+}
+
+function pruneOrphanSectorCenters(colonyName) {
+    const targets = ROOM_REMOTE_TARGETS[colonyName];
+    if (!targets || !targets.length) return;
+
+    const allowedCenters = new Set();
+    const assignedSk = getColonySkRooms(colonyName);
+    for (let i = 0; i < assignedSk.length; i++) {
+        const center = getAdjacentSectorCenter(assignedSk[i]);
+        if (center) allowedCenters.add(center);
+    }
+
+    const next = [];
+    const removedByRoom = {};
+    for (let i = 0; i < targets.length; i++) {
+        const s = targets[i];
+        if (!isSectorCenterRoomName(s.room) || allowedCenters.has(s.room)) {
+            next.push(s);
+        } else if (s.source) {
+            if (!removedByRoom[s.room]) removedByRoom[s.room] = [];
+            removedByRoom[s.room].push(s.source);
+        }
+    }
+    if (next.length === targets.length) return;
+    ROOM_REMOTE_TARGETS[colonyName] = next;
+    for (const remoteName in removedByRoom) {
+        unindexColonyRemote(colonyName, remoteName, removedByRoom[remoteName]);
+    }
+}
+
+function pruneExcessSkRooms(colonyName) {
+    const targets = ROOM_REMOTE_TARGETS[colonyName];
+    if (!targets || !targets.length) return;
+
+    const byRoom = {};
+    for (let i = 0; i < targets.length; i++) {
+        const s = targets[i];
+        if (!s || !s.room) continue;
+        if (!byRoom[s.room]) byRoom[s.room] = [];
+        byRoom[s.room].push(s);
+    }
+
+    const skRooms = Object.keys(byRoom).filter(isSkRoomName);
+    const maxSk = maxSkRoomsPerColony();
+    if (skRooms.length <= maxSk) return;
+
+    ensureClaimIndex();
+    skRooms.sort((a, b) => {
+        const liveAtkA = hasLiveSkAttacker(a) ? 0 : 1;
+        const liveAtkB = hasLiveSkAttacker(b) ? 0 : 1;
+        if (liveAtkA !== liveAtkB) return liveAtkA - liveAtkB;
+        const liveA = !!(liveWorkIndex[colonyName] && liveWorkIndex[colonyName][a]) ? 0 : 1;
+        const liveB = !!(liveWorkIndex[colonyName] && liveWorkIndex[colonyName][b]) ? 0 : 1;
+        if (liveA !== liveB) return liveA - liveB;
+        const bestA = Math.min(...byRoom[a].map(s => s.score));
+        const bestB = Math.min(...byRoom[b].map(s => s.score));
+        if (bestA !== bestB) return bestA - bestB;
+        const centerA = getAdjacentSectorCenter(a) ? 0 : 1;
+        const centerB = getAdjacentSectorCenter(b) ? 0 : 1;
+        if (centerA !== centerB) return centerA - centerB;
+        return a < b ? -1 : a > b ? 1 : 0;
+    });
+
+    const keep = new Set(skRooms.slice(0, maxSk));
+    const next = [];
+    const removedByRoom = {};
+    for (let i = 0; i < targets.length; i++) {
+        const s = targets[i];
+        if (!isSkRoomName(s.room) || keep.has(s.room)) {
             next.push(s);
         } else {
             if (!removedByRoom[s.room]) removedByRoom[s.room] = [];
@@ -443,11 +596,14 @@ function remoteIntelEligible(colonyRoom, remoteName) {
     const colony = colonyRoom.name;
     if (remoteName === colony) return false;
     if (roomStatus(remoteName) !== roomStatus(colony)) return false;
+    // Sector-center energy is an add-on to an adjacent SK room, not a discovered remote.
+    if (isSectorCenterRoomName(remoteName)) return false;
     const intel = INTEL[remoteName];
     if (!intel || !intel.sources || intel.owner || intel.obstacles) return false;
     if (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader') return false;
     const isSk = !!(intel.sk || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(remoteName)));
     if (isSk && !(SK_MINING && colonyRoom.level >= SK_MINING_LEVEL)) return false;
+    if (isSk && !isAllowedSkRoom(colony, remoteName)) return false;
     return true;
 }
 
@@ -475,15 +631,22 @@ function refreshStaggerDue(roomName, force) {
 function sourcePickScore(sourceEntry) {
     const intel = INTEL[sourceEntry.room];
     const sources = (intel && intel.sources) || 1;
-    let pick = sourceEntry.score - Math.min(6, (sources - 1) * 2);
-    if (intel && intel.reservation !== MY_USERNAME) pick += 8;
-    return pick;
+    // Assigned remotes only: do not penalize unreserved rooms. A +8 here plus
+    // "reserver requires a harvester" meant new remotes never got a bootstrap
+    // once reserved sources filled the cap.
+    return sourceEntry.score - Math.min(6, (sources - 1) * 2);
 }
 
 function shouldSkipRemotePrune(colonyRoom, remoteName) {
     if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) return true;
     if (!INTEL[remoteName]) return true;
     if (INTEL[remoteName].threatLevel > 1) return true;
+    if (isSectorCenterRoomName(remoteName)) {
+        if (!isSectorCenterAddOn(colonyRoom.name, remoteName)) return true;
+        if (INTEL[remoteName].owner || INTEL[remoteName].obstacles) return true;
+        if (INTEL[remoteName].roomHeat > 250) return true;
+        return false;
+    }
     const isSk = !!(INTEL[remoteName].sk || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(remoteName)));
     if (isSk && !(SK_MINING && colonyRoom.level >= SK_MINING_LEVEL)) return true;
     if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
@@ -518,6 +681,8 @@ function pruneRoomRemoteTargets(colonyName, colonyRoom) {
     for (const remoteName in removedByRoom) {
         unindexColonyRemote(colonyName, remoteName, removedByRoom[remoteName]);
     }
+    pruneExcessSkRooms(colonyName);
+    pruneOrphanSectorCenters(colonyName);
     pruneRemoteRoomCount(colonyName, colonyRoom);
 }
 
@@ -530,6 +695,13 @@ function getCandidateRemotesForProbe(colonyRoom) {
 
     const add = (rName, priority) => {
         if (seen.has(rName) || !remoteIntelEligible(colonyRoom, rName)) return false;
+        // Discovery only: never pick up a second SK room. Assigned SK rooms (priority 0)
+        // still come through so pruneExcessSkRooms can rank and drop extras.
+        if (priority > 0 && isSkRoomName(rName)) {
+            for (let i = 0; i < ordered.length; i++) {
+                if (isSkRoomName(ordered[i].room)) return false;
+            }
+        }
         seen.add(rName);
         ordered.push({room: rName, priority});
         return true;
@@ -614,6 +786,15 @@ function bootstrapRemoteRoomOnVision(room) {
     if (!roomIntel || roomIntel.owner) return;
 
     pruneRemoteRoomParents(room.name);
+
+    if (isSectorCenterRoomName(room.name)) {
+        if (typeof MY_ROOMS === 'undefined' || !MY_ROOMS) return;
+        for (let i = 0; i < MY_ROOMS.length; i++) {
+            const colony = MY_ROOMS[i];
+            if (getSectorCenterSkParent(colony, room.name)) trackRemoteRoom(room.name, colony);
+        }
+        return;
+    }
 
     const colony = findClosestOwnedRoom(room.name, false, 4);
     if (!colony || colony === room.name) return;
@@ -840,15 +1021,40 @@ function hasLiveSkAttacker(remoteName) {
 function skAssignmentRoom(creep) {
     const memory = creep && creep.memory;
     if (!memory) return undefined;
+    if (memory.other && memory.other.skRoom) return memory.other.skRoom;
     if (memory.role === 'remoteHauler') return memory.other && memory.other.remoteRoom;
     return memory.destination;
+}
+
+function shouldRecycleExcessSkCreep(creep) {
+    if (!creep || !creep.memory) return false;
+    const role = creep.memory.role;
+    if (role !== 'SKAttacker' && !SK_GUARD_DEPENDENT_ROLES.has(role)) return false;
+    const remote = skAssignmentRoom(creep);
+    if (!remote || !isSkRoomName(remote)) return false;
+    const colony = creep.memory.colony;
+    if (!colony) return false;
+    const assigned = getColonySkRooms(colony);
+    if (!assigned.length) return false;
+    return assigned.indexOf(remote) === -1;
 }
 
 function shouldRecycleUnguardedSkCreep(creep) {
     if (!creep || !creep.memory) return false;
     if (creep.memory.skUnguardedSince) delete creep.memory.skUnguardedSince;
     const name = creep.name;
-    if (!SK_GUARD_DEPENDENT_ROLES.has(creep.memory.role)) {
+    const role = creep.memory.role;
+    const isGuardDependent = SK_GUARD_DEPENDENT_ROLES.has(role);
+    const isSkAttacker = role === 'SKAttacker';
+    if (!isGuardDependent && !isSkAttacker) {
+        delete skUnguardedSince[name];
+        return false;
+    }
+    if (shouldRecycleExcessSkCreep(creep)) {
+        delete skUnguardedSince[name];
+        return true;
+    }
+    if (isSkAttacker) {
         delete skUnguardedSince[name];
         return false;
     }
@@ -899,6 +1105,16 @@ module.exports = {
     isContestedRemoteCandidate,
     isBlockedRemoteCandidate,
     isSkRoomName,
+    isAllowedSkRoom,
+    getColonySkRooms,
+    pruneExcessSkRooms,
+    pruneOrphanSectorCenters,
+    getAdjacentSectorCenter,
+    getSectorCenterSkParent,
+    isSectorCenterRoomName,
+    isSectorCenterAddOn,
+    skGuardRoom,
+    isKeeperYieldRoom,
     hasLiveSkAttacker,
     shouldRecycleUnguardedSkCreep,
     SK_GUARD_DEPENDENT_ROLES,

@@ -6,7 +6,7 @@
 
 const spawnState = require('spawnState');
 const {getFlowContext, spawnEnergyState} = require('spawnFlow');
-const {getCreepCount, haulerCarryCapacity} = require('spawnCounts');
+const {getCreepCount, creepExpiringSoon, haulerCarryCapacity} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
 const {routeHasBuiltRoads, countQueuedHaulersForSource} = require('bodyHelpers');
 const {remoteBuildersNeeded, colonyNeedsRoadWork} = require('planGeomRoads');
@@ -27,8 +27,12 @@ function maxRemoteHarvesters(room) {
     const {spareIncome} = getFlowContext(room);
     const assigned = (ROOM_REMOTE_TARGETS[room.name] || []).length;
     const fromSpare = Math.floor(spareIncome / 15);
+    const hasCenter = (ROOM_REMOTE_TARGETS[room.name] || []).some(s => remoteMining.isSectorCenterRoomName(s.room));
     // Cover assigned sources up to 4 before spare income alone would allow it.
-    return Math.max(1, Math.min(5, Math.max(fromSpare, Math.min(assigned, 4))));
+    // SK + sector-center is 6 keeper-yield sources; raise the floor/cap so they get staffed.
+    const assignedFloor = hasCenter ? Math.min(assigned, 7) : Math.min(assigned, 4);
+    const cap = hasCenter ? 8 : 5;
+    return Math.max(1, Math.min(cap, Math.max(fromSpare, assignedFloor)));
 }
 
 function shouldDeprioritizeRemotes(room) {
@@ -65,25 +69,81 @@ function countQueuedRole(colonyName, role, destination) {
     return n;
 }
 
+function countQueuedHarvesters(colonyName) {
+    const queue = CREEP_QUEUES[colonyName];
+    if (!queue) return 0;
+    let n = 0;
+    for (const key in queue) {
+        if (queue[key] && queue[key].role === 'remoteHarvester') n++;
+    }
+    return n;
+}
+
+function queuedHarvesterForSource(colonyName, sourceId) {
+    if (!sourceId) return false;
+    const queue = CREEP_QUEUES[colonyName];
+    if (!queue) return false;
+    for (const key in queue) {
+        const entry = queue[key];
+        if (!entry || entry.role !== 'remoteHarvester') continue;
+        if (entry.assignment === sourceId) return true;
+        if (entry.other && entry.other.source === sourceId) return true;
+    }
+    return false;
+}
+
+function sourceNeedsHarvester(colonyName, sourceId, destRoom) {
+    if (queuedHarvesterForSource(colonyName, sourceId)) return false;
+    const live = getCreepCount(undefined, 'remoteHarvester', destRoom, undefined, undefined, sourceId);
+    if (live > 1) return false;
+    if (live === 1) return creepExpiringSoon(undefined, 'remoteHarvester', destRoom, undefined, colonyName, sourceId);
+    return true;
+}
+
+function haulerExpiringSoon(creep, remoteRoom) {
+    if (!creep || creep.spawning) return false;
+    const ttl = creep.ticksToLive;
+    if (!ttl || ttl === Infinity) return false;
+    const origin = creep.memory.colony;
+    const distance = (origin && remoteRoom) ? Game.map.getRoomLinearDistance(origin, remoteRoom) * 50 : 0;
+    const spawnTime = 3 * ((creep.body && creep.body.length) || 0);
+    return ttl <= spawnTime + distance;
+}
+
 function hasSkAttackerCoverage(remoteName) {
     return remoteMining.hasLiveSkAttacker(remoteName);
+}
+
+function queuedSkRoom(entry) {
+    if (!entry) return undefined;
+    if (entry.other && entry.other.skRoom) return entry.other.skRoom;
+    if (entry.other && entry.other.remoteRoom) return entry.other.remoteRoom;
+    return entry.destination;
 }
 
 function purgeUnguardedSkQueue(room) {
     const queue = CREEP_QUEUES[room.name];
     if (!queue) return;
+    const assignedSk = remoteMining.getColonySkRooms(room.name);
     for (const key in queue) {
         const entry = queue[key];
-        if (!entry || entry.role === 'SKAttacker') continue;
+        if (!entry) continue;
+        const dest = queuedSkRoom(entry);
+        if (!dest || !isSkRoom(dest)) continue;
+        if (assignedSk.length && assignedSk.indexOf(dest) === -1) {
+            delete queue[key];
+            continue;
+        }
+        if (entry.role === 'SKAttacker') continue;
         if (!remoteMining.SK_GUARD_DEPENDENT_ROLES.has(entry.role)) continue;
-        const dest = (entry.other && entry.other.remoteRoom) || entry.destination;
-        if (!dest || !isSkRoom(dest) || hasSkAttackerCoverage(dest)) continue;
+        if (hasSkAttackerCoverage(dest)) continue;
         delete queue[key];
     }
 }
 
 function ingestColonyRemoteSources(colonyRoom, rName) {
     ensureSkIntel(rName);
+    if (isSkRoom(rName) && !remoteMining.isAllowedSkRoom(colonyRoom.name, rName)) return false;
     const remoteIntel = INTEL[rName];
     if (!remoteIntel || !remoteIntel.remoteSourceData) return false;
 
@@ -139,6 +199,10 @@ function passesNoRoadSpawnGate(colonyRoom, sourceEntry) {
     if (colonyRoom.level < 7) return true;
     if (routeHasBuiltRoads(colonyRoom.name, sourceEntry.room)) return true;
     if (colonyRoom.links && colonyRoom.links.length >= 2) return true;
+    // Replacement of the existing bootstrap harvester must still pass.
+    if (getCreepCount(undefined, 'remoteHarvester', sourceEntry.room, undefined, undefined, sourceEntry.source) === 1) {
+        return true;
+    }
     const liveOrQueued = getCreepCount(undefined, 'remoteHarvester', sourceEntry.room)
         || countQueuedRole(colonyRoom.name, 'remoteHarvester', sourceEntry.room);
     return !liveOrQueued;
@@ -178,6 +242,7 @@ function refreshRemoteRoomTargets(room) {
     for (let i = 0; i < candidates.length; i++) {
         const rName = candidates[i];
         ensureSkIntel(rName);
+        if (isSkRoom(rName) && !remoteMining.isAllowedSkRoom(room.name, rName)) continue;
         if (!remoteMining.remoteIntelEligible(room, rName)) continue;
         if (remoteMining.isRemoteClaimedByOther(room.name, rName)) continue;
 
@@ -207,6 +272,9 @@ function refreshRemoteRoomTargets(room) {
         remoteMining.maybeRefreshRemoteIntel(rName);
         ingestColonyRemoteSources(room, rName);
     }
+
+    const skRooms = remoteMining.getColonySkRooms(room.name);
+    for (let i = 0; i < skRooms.length; i++) attachSectorCenter(room, skRooms[i]);
 
     remoteMining.pruneRoomRemoteTargets(room.name, room);
     spawnState.remoteRoomTargets[room.name] = [...activeRemotes];
@@ -301,18 +369,14 @@ function handleThreatLevel(room, remoteName) {
 }
 
 function handleReservation(room, remoteName) {
-    if (room.level < 4 || isSkRoom(remoteName)) return;
+    if (room.level < 4 || isSkRoom(remoteName) || remoteMining.isSectorCenterRoomName(remoteName)) return;
     // Need an active harvester pipeline before spending CLAIM bodies.
     if (!getCreepCount(undefined, 'remoteHarvester', remoteName)
         && !countQueuedRole(room.name, 'remoteHarvester', remoteName)) return;
 
-    const intel = INTEL[remoteName];
-    // Only spawn when reservation is missing or will expire within one creep lifetime.
-    // (Avoid early double-up while a healthy reservation still has thousands of ticks.)
-    if (intel && intel.reservationExpires && intel.reservationExpires - CREEP_LIFE_TIME >= Game.time) return;
-
-    // Hard cap: one reserver per remote. Multi-reserver stacks were a major CPU sink
-    // (dozens of CLAIM pathfinders mid-travel).
+    // One reserver per remote. queueCreepIfNeeded replaces when the incumbent is
+    // within claim-lifetime lead time. Do not wait for reservation to decay —
+    // CLAIM creeps live CREEP_CLAIM_LIFE_TIME (600), not CREEP_LIFE_TIME (1500).
     const reserverPriority = spawnEnergyState(room) < 2 || room.level < 7
         ? PRIORITIES.reserver + 3
         : PRIORITIES.reserver;
@@ -371,50 +435,106 @@ function handleSkCreeps(room, remoteName) {
     if (!hasSkAttackerCoverage(remoteName)) return;
     queueCreepIfNeeded({
         room, role: 'commodityMiner', priority: PRIORITIES.roadBuilder,
-        numberNeeded: 1, destination: remoteName
+        numberNeeded: 1, destination: remoteName,
+        other: {localMineral: true, skRoom: remoteName}
+    });
+    handleSectorCenterMineral(room, remoteName);
+    attachSectorCenter(room, remoteName);
+}
+
+function attachSectorCenter(room, skRoomName) {
+    const center = remoteMining.getAdjacentSectorCenter(skRoomName);
+    if (!center) return;
+    if (remoteMining.isRemoteClaimedByOther(room.name, center)) return;
+    const intel = INTEL[center];
+    if (intel) {
+        if (intel.owner || intel.obstacles) return;
+        if (intel.threatLevel > 1 || intel.roomHeat > 250) return;
+    }
+    remoteMining.trackRemoteRoom(center, room);
+    const rec = remoteMining.probeMiningRoute(room.name, center, {allowLive: true});
+    if (!hasSkAttackerCoverage(skRoomName)) return;
+    remoteMining.maybeRefreshRemoteIntel(center);
+    if (!Game.rooms[center] && (!intel || !intel.remoteSourceData || !intel.remoteSourceData.length)) {
+        maybeScoutRemoteCandidate(room, center);
+    }
+    if (rec && rec.safe) ingestColonyRemoteSources(room, center);
+}
+
+function handleSectorCenterMineral(room, skRoomName) {
+    const center = remoteMining.getAdjacentSectorCenter(skRoomName);
+    if (!center) return;
+    const intel = INTEL[center];
+    if (intel) {
+        if (intel.owner) return;
+        if (intel.threatLevel > 1) return;
+        if (intel.cached && !intel.mineral) return;
+        if (intel.mineralAmount === 0) {
+            const regen = typeof MINERAL_REGEN_TIME !== 'undefined' ? MINERAL_REGEN_TIME : 50000;
+            if (intel.cached && intel.cached + regen > Game.time) return;
+        }
+    }
+    queueCreepIfNeeded({
+        room,
+        role: 'commodityMiner',
+        priority: PRIORITIES.roadBuilder,
+        numberNeeded: 1,
+        destination: center,
+        other: {localMineral: true, skRoom: skRoomName}
     });
 }
 
 function handleRemoteHarvesters(room) {
     scanColonyRemoteCreeps();
-    const scan = colonyRemoteCreepScan[room.name] || {occupiedSources: new Set()};
+    const remoteSource = ROOM_REMOTE_TARGETS[room.name];
+    if (!remoteSource || !remoteSource.length) return;
 
-    let totalHarvesters = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-    if (ROOM_REMOTE_TARGETS[room.name] && totalHarvesters < maxRemoteHarvesters(room)) {
-        const remoteSource = ROOM_REMOTE_TARGETS[room.name];
+    const maxH = maxRemoteHarvesters(room);
+    const live = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
+    const queued = countQueuedHarvesters(room.name);
+    const atCap = live + queued >= maxH;
 
-        const eligible = _.filter(remoteSource, (s) => {
-            if (shouldSkipRemote(room, s.room)) return false;
-            if (remoteMining.isRemoteClaimedByOther(room.name, s.room, s.source)) return false;
-            if (!remoteMining.isRemoteSourceScoreAcceptable(room.name, s.room, s.score, {allowMissingEstimate: true})) {
-                return false;
-            }
-            if (isSkRoom(s.room) && !hasSkAttackerCoverage(s.room)) return false;
-            if (!passesNoRoadSpawnGate(room, s)) return false;
-            return !scan.occupiedSources.has(s.source);
+    const eligible = [];
+    const replacements = [];
+    for (let i = 0; i < remoteSource.length; i++) {
+        const s = remoteSource[i];
+        if (shouldSkipRemote(room, s.room)) continue;
+        if (remoteMining.isRemoteClaimedByOther(room.name, s.room, s.source)) continue;
+        if (!remoteMining.isRemoteSourceScoreAcceptable(room.name, s.room, s.score, {allowMissingEstimate: true})) {
+            continue;
+        }
+        const guard = remoteMining.skGuardRoom(room.name, s.room);
+        if (guard && !hasSkAttackerCoverage(guard)) continue;
+        if (!passesNoRoadSpawnGate(room, s)) continue;
+        if (!sourceNeedsHarvester(room.name, s.source, s.room)) continue;
+        eligible.push(s);
+        if (getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source) === 1) {
+            replacements.push(s);
+        }
+    }
+
+    const pool = replacements.length ? replacements : (atCap ? [] : eligible);
+    let pick = null;
+    let bestPickScore = Infinity;
+    for (let i = 0; i < pool.length; i++) {
+        const ps = remoteMining.sourcePickScore(pool[i]);
+        if (ps < bestPickScore) {
+            bestPickScore = ps;
+            pick = pool[i];
+        }
+    }
+
+    if (pick && pick.room) {
+        const priority = shouldDeprioritizeRemotes(room)
+            ? PRIORITIES.remoteHarvester * 2
+            : PRIORITIES.remoteHarvester;
+        const skRoom = remoteMining.skGuardRoom(room.name, pick.room);
+        queueCreepIfNeeded({
+            room, role: 'remoteHarvester', priority,
+            numberNeeded: 1, destination: pick.room,
+            assignment: pick.source,
+            other: {source: pick.source, score: pick.score, skRoom: skRoom || undefined}
         });
-
-        let pick = null;
-        let bestPickScore = Infinity;
-        for (let i = 0; i < eligible.length; i++) {
-            const ps = remoteMining.sourcePickScore(eligible[i]);
-            if (ps < bestPickScore) {
-                bestPickScore = ps;
-                pick = eligible[i];
-            }
-        }
-
-        if (pick && pick.room) {
-            const priority = shouldDeprioritizeRemotes(room)
-                ? PRIORITIES.remoteHarvester * 2
-                : PRIORITIES.remoteHarvester;
-            queueCreepIfNeeded({
-                room, role: 'remoteHarvester', priority,
-                numberNeeded: 1, destination: pick.room,
-                assignment: pick.source,
-                other: {source: pick.source, score: pick.score}
-            });
-        }
     }
 }
 
@@ -482,18 +602,23 @@ function handleRemoteHaulers(room) {
 
     for (const harvester of scan.harvesters) {
         if (shouldSkipRemote(room, harvester.memory.destination)) continue;
-        if (isSkRoom(harvester.memory.destination) && !hasSkAttackerCoverage(harvester.memory.destination)) continue;
+        const dest = harvester.memory.destination;
+        const guard = remoteMining.skGuardRoom(room.name, dest)
+            || (harvester.memory.other && harvester.memory.other.skRoom);
+        if (guard && !hasSkAttackerCoverage(guard)) continue;
         const sourceId = harvester.memory.other.source;
-        const assignedHaulers = scan.haulersBySource[sourceId] || [];
+        const assignedHaulers = (scan.haulersBySource[sourceId] || [])
+            .filter(c => !haulerExpiringSoon(c, dest));
         const targetCapacity = harvester.memory.other.haulingRequired;
-        const onRoads = routeHasBuiltRoads(room.name, harvester.memory.destination);
+        const onRoads = routeHasBuiltRoads(room.name, dest);
         const maxCarryPerHauler = room.level < 7
             ? room.level * 2
             : maxRemoteHaulerCarryParts(room.level, onRoads);
-        const destIntel = INTEL[harvester.memory.destination];
+        const destIntel = INTEL[dest];
+        const keeperYield = remoteMining.isKeeperYieldRoom(dest) || !!(destIntel && destIntel.sk);
         let maxHaulers = room.memory.remotePenalty ? 1
-            : destIntel && destIntel.sk ? 3 : 2;
-        if (room.level >= 7 && !(destIntel && destIntel.sk)) maxHaulers = 1;
+            : keeperYield ? 3 : 2;
+        if (room.level >= 7 && !keeperYield) maxHaulers = 1;
         if (shouldDeprioritizeRemotes(room)) maxHaulers = Math.min(maxHaulers, 2);
         const minCarryPerHauler = room.level >= 7 ? (onRoads ? 12 : 8) : Math.max(2, room.level * 2);
         const count = Math.min(maxHaulers, Math.max(1,
@@ -511,9 +636,10 @@ function handleRemoteHaulers(room) {
             destination: room.name,
             other: {
                 source: sourceId,
-                remoteRoom: harvester.memory.destination,
+                remoteRoom: dest,
                 harvestAmount: targetCapacity,
-                harvestRate: harvester.memory.other.harvestRate
+                harvestRate: harvester.memory.other.harvestRate,
+                skRoom: guard || undefined
             }
         });
     }
@@ -539,6 +665,14 @@ function shouldSkipRemote(room, remoteName) {
     if (!INTEL[remoteName]) return true;
     if (INTEL[remoteName].threatLevel > 1) return true;
     if (isSkRoom(remoteName) && !skMiningAllowed(room)) return true;
+    if (isSkRoom(remoteName) && !remoteMining.isAllowedSkRoom(room.name, remoteName)) return true;
+    if (remoteMining.isSectorCenterRoomName(remoteName)) {
+        if (!skMiningAllowed(room) || !remoteMining.isSectorCenterAddOn(room.name, remoteName)) return true;
+        if (INTEL[remoteName].owner || INTEL[remoteName].obstacles) return true;
+        if (INTEL[remoteName].roomHeat > 250) return true;
+        if (!INTEL[remoteName].sources) return true;
+        return false;
+    }
     if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
     if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
     if (INTEL[remoteName].roomHeat > 250) return true;
@@ -575,6 +709,9 @@ function remoteCreepQueue(room) {
         refreshRemoteRoomTargets(room);
         if (homeIntel) homeIntel.refreshRemotes = undefined;
     }
+
+    remoteMining.pruneExcessSkRooms(room.name);
+    remoteMining.pruneOrphanSectorCenters(room.name);
 
     scanColonyRemoteCreeps();
     const scan = colonyRemoteCreepScan[room.name];

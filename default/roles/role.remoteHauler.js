@@ -5,6 +5,8 @@
 const profiler = require("tools.profiler");
 const {empireOpsPaused} = require('hcReadiness');
 const {getRemoteHarvesterForSource} = require('spawnCounts');
+const {getMiningRouteRooms} = require('remoteMining');
+const {travelRouteHops} = require('pathRoute');
 
 class RoleRemoteHauler {
     constructor(creep) {
@@ -38,6 +40,13 @@ class RoleRemoteHauler {
             const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(remoteRoom);
             if (hostile || blocked || dropped || !intel.sources) return this.creep.recycleCreep();
         }
+        if (Game.time % 50 === 0 && this.memory.colony && this.memory.other && this.memory.other.source) {
+            const targets = ROOM_REMOTE_TARGETS[this.memory.colony];
+            const stillAssigned = targets && targets.some(s => s.source === this.memory.other.source);
+            if (targets && targets.length && !stillAssigned && !this.store.getUsedCapacity()) {
+                return this.creep.recycleCreep();
+            }
+        }
         if (!this.memory.exitLinkCheck && this.store.getUsedCapacity() > 0 && this.room.name === this.memory.colony) this.exitLinkCheck();
         this.creep.say(ICONS.haul2, true);
         return false;
@@ -48,6 +57,13 @@ class RoleRemoteHauler {
         if (!storeSum) {
             this.memory.storageDestination = undefined;
             return;
+        }
+
+        const colony = this.memory.colony;
+        if (colony && this.room.name !== colony) {
+            const remoteRoom = (this.memory.other && this.memory.other.remoteRoom) || this.room.name;
+            const route = getMiningRouteRooms(colony, remoteRoom);
+            return travelRouteHops(this.creep, colony, route, {range: 23});
         }
 
         // Early check for non-energy resources in container
@@ -81,11 +97,18 @@ class RoleRemoteHauler {
     }
 
     findResource() {
+        const other = this.memory.other || (this.memory.other = {});
+        const remoteRoom = other.remoteRoom;
+        if (remoteRoom && this.room.name !== remoteRoom) {
+            const colony = this.memory.colony;
+            const route = colony ? getMiningRouteRooms(colony, remoteRoom) : [];
+            return travelRouteHops(this.creep, remoteRoom, route, {range: 20});
+        }
+
         if (this.memory.energyDestination && this.creep.withdrawResource()) {
             return true;
         }
 
-        const other = this.memory.other || (this.memory.other = {});
         let harvester = Game.getObjectById(other.harvester);
         if (!harvester || (harvester.memory.other && harvester.memory.other.source !== other.source)) {
             harvester = getRemoteHarvesterForSource(other.source);
@@ -106,11 +129,6 @@ class RoleRemoteHauler {
                 return this.creep.idleFor(5);
             }
             return this.creep.shibMove(container, {range: 3});
-        }
-
-        const remoteRoom = other.remoteRoom;
-        if (remoteRoom && this.room.name !== remoteRoom) {
-            return this.creep.shibMove(new RoomPosition(25, 25, remoteRoom), {range: 20});
         }
 
         if (harvester) {
@@ -136,7 +154,10 @@ class RoleRemoteHauler {
     }
     specialDuty() {
         if (this.memory.destination !== this.room.name) {
-            return this.creep.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
+            const dest = this.memory.destination;
+            const colony = this.memory.colony;
+            const route = colony ? getMiningRouteRooms(colony, dest) : [];
+            return travelRouteHops(this.creep, dest, route, {range: 23});
         }
         this.findResource();
         return this.memory.energyDestination && this.creep.withdrawResource();

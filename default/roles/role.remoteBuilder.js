@@ -8,6 +8,8 @@
 const profiler = require("tools.profiler");
 const {setRoadsBuiltFlag} = require('planUtils');
 const {getCreepCount} = require('spawnCounts');
+const {skGuardRoom, getMiningRouteRooms} = require('remoteMining');
+const {travelRouteHops} = require('pathRoute');
 
 const SCAN_INTERVAL = 5;
 const REMOTE_BUILDER_ROLES = ['remoteBuilder', 'roadBuilder'];
@@ -60,15 +62,18 @@ class RoleRemoteBuilder {
         this.creep.memory.constructionSite = undefined;
         this.creep.memory.task = undefined;
 
-        // Prefer storage/drops when available; otherwise harvest in remotes.
+        // Prefer storage / containers / drops. Do not compete with remote harvesters.
         if (!this.creep.memory.harvest && (this.creep.memory.energyDestination || this.creep.locateEnergy())) {
             this.creep.say('Energy!', true);
             this.creep.withdrawResource();
             return;
         }
 
-        // Owned rooms with RCL>=3 should not strip sources — wait for logistics.
-        if (this.creep.room.controller && this.creep.room.controller.my && this.creep.room.level >= 3) {
+        const colonyRoom = Game.rooms[this.creep.memory.colony];
+        const colonyLevel = (colonyRoom && colonyRoom.level) || 0;
+        // RCL7+: never strip sources. Owned RCL>=3: wait for logistics.
+        if (colonyLevel >= 7
+            || (this.creep.room.controller && this.creep.room.controller.my && this.creep.room.level >= 3)) {
             this.creep.memory.harvest = undefined;
             this.creep.idleFor(5);
             return;
@@ -157,11 +162,14 @@ class RoleRemoteBuilder {
             this.handleNoWork();
             return;
         }
+        if (!this.creep.memory.other) this.creep.memory.other = {};
+        this.creep.memory.other.skRoom = skGuardRoom(colony, destination) || undefined;
+        this.creep.memory.other.roadRoom = destination;
 
         if (this.creep.pos.roomName !== destination) {
             this.creep.memory.constructionSite = undefined;
             this.creep.say('Roads', true);
-            this.creep.shibMove(new RoomPosition(25, 25, destination), {range: 20});
+            this.travelTo(destination);
             return;
         }
 
@@ -191,12 +199,14 @@ class RoleRemoteBuilder {
         }
 
         syncRemoteRoadBuiltFlag(room, colony, context);
-        if (isRemoteRoadPlanComplete(room, colony, context) && !remoteRoomNeedsRoadWork(room, colony, context)) {
+        // Plan complete (no missing tiles / sites) — leave even if some roads need repair
+        // so other remotes can get paved. Repair-only rooms are picked only when nothing
+        // is missing empire-wide for this colony.
+        if (isRemoteRoadPlanComplete(room, colony, context)) {
             this.markRoadsComplete(room);
             return;
         }
 
-        // Stay while sites, incomplete plan, or repairs remain.
         if (countRoadConstructionSites(room) > 0 || remoteRoomNeedsRoadWork(room, colony, context)) {
             this.creep.idleFor(2);
             return;
@@ -205,9 +215,24 @@ class RoleRemoteBuilder {
         this.releaseRoom(room);
     }
 
+    travelTo(dest) {
+        const colony = this.creep.memory.colony;
+        const remote = dest === colony
+            ? ((this.creep.memory.other && this.creep.memory.other.roadRoom) || this.creep.room.name)
+            : dest;
+        const route = colony ? getMiningRouteRooms(colony, remote) : [];
+        travelRouteHops(this.creep, dest, route, {range: 20});
+    }
+
     pickDestination() {
-        const destination = pickRoadWorkRoom(this.creep.memory.colony, this.creep.name);
-        if (destination) this.creep.memory.destination = destination;
+        const colony = this.creep.memory.colony;
+        const destination = pickRoadWorkRoom(colony, this.creep.name);
+        if (destination) {
+            this.creep.memory.destination = destination;
+            if (!this.creep.memory.other) this.creep.memory.other = {};
+            this.creep.memory.other.skRoom = skGuardRoom(colony, destination) || undefined;
+            this.creep.memory.other.roadRoom = destination;
+        }
         return destination;
     }
 
@@ -223,7 +248,7 @@ class RoleRemoteBuilder {
 
         if (this.creep.pos.roomName !== colony) {
             this.creep.say('Home', true);
-            this.creep.shibMove(new RoomPosition(25, 25, colony), {range: 20});
+            this.travelTo(colony);
             return;
         }
 

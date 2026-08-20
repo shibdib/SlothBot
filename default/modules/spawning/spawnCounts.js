@@ -265,7 +265,10 @@ function creepExpiringSoon(room = undefined, role, destination = undefined, oper
 
     let distance = 0;
     if (destination) {
-        const originRoom = findClosestOwnedRoom(destination, false, MAX_LEVEL);
+        const colonyKey = colony && (typeof colony === 'string' ? colony : colony.name);
+        const originRoom = colonyKey
+            || (room && (typeof room === 'string' ? room : room.name))
+            || findClosestOwnedRoom(destination, false, MAX_LEVEL);
         distance = originRoom ? Game.map.getRoomLinearDistance(originRoom, destination) * 50 : 0;
     }
     const spawnTime = 3 * data.bodyLen;
