@@ -22,6 +22,11 @@ const profiler = require("tools.profiler");
 // squad cost-matrix builder can't drift out of sync. 0 NW / 1 SE / 2 NE / 3 SW.
 const {QUAD_FOLLOWER_OFFSETS: QUAD_OFFSETS} = require("module.pathFinder");
 const stagingCache = {}; // creepId → {x, y, tick, roomName}
+const musterCache = {}; // roomName → {x, y, tick}
+
+// Forming waves idle at least this far from every spawn so they do not occupy
+// the spawn apron (creeps pop onto range-1 tiles).
+const MUSTER_MIN_SPAWN_RANGE = 3;
 
 // Ticks of consistent disagreement before a threat-driven orientation flip
 // commits. Each flip invalidates the cached squad path in shibSquadMovement,
@@ -257,6 +262,20 @@ class RoleLongbowSquad {
         // Reactive melee kite — keep distance from melee threats inside range 2
         if (this.kiteFromMelee(this.creep)) return;
 
+        // Uncommitted waitFor waves huddle on the spawn/lab pad. Follow the
+        // leader unless they are topping up at a spawn — then sit on the pad
+        // so the rest of the quad does not camp the apron.
+        const waitFor = this.creep.memory.misc && this.creep.memory.misc.waitFor;
+        if (waitFor > 1 && !this.isSquadCommitted(this.creep) && this.inHomeColony(this.creep)) {
+            if (this.tryHomeRenew(this.creep)) return;
+            if (leader.memory.needsRenewal) {
+                this.goToMusterPad(this.creep);
+                return;
+            }
+            this.creep.shibMove(leader, {range: 1, forceSolo: true});
+            return;
+        }
+
         // Duo movement: pure snake. Target the leader's previous tile (the one they
         // are vacating this tick) so we trail through 1-tile corridors, exit lines,
         // and tight terrain without any formation math. Falls back to a range-1
@@ -329,9 +348,7 @@ class RoleLongbowSquad {
                 creep.shibMove(new RoomPosition(25, 25, colony), {range: 22});
                 return;
             }
-            if (!creep.memory.hasBoosted && !creep.memory.boostAttempt) {
-                if (creep.handleRenewing(CREEP_LIFE_TIME * 0.8)) return;
-            }
+            if (this.tryHomeRenew(creep)) return;
             if ((creep.ticksToLive || Infinity) < FORMING_ABANDON_TTL) {
                 creep.recycleCreep();
                 return;
@@ -679,36 +696,161 @@ class RoleLongbowSquad {
         return true;
     }
 
-    renewWave(creep, squad) {
-        if (creep.memory.hasBoosted || creep.memory.boostAttempt) return false;
-        if (creep.handleRenewing(CREEP_LIFE_TIME * 0.8)) return true;
-        const members = squad || this.getSquad();
-        for (let i = 0; i < members.length; i++) {
-            const c = members[i];
-            if (c && !c.memory.hasBoosted && !c.memory.boostAttempt && c.handleRenewing(CREEP_LIFE_TIME * 0.8)) {
-                return true;
-            }
+    waveMemberRenewing(creep) {
+        const wave = this.squadForWave(creep);
+        for (let i = 0; i < wave.length; i++) {
+            const c = wave[i];
+            if (!c || c.id === creep.id || c.spawning) continue;
+            if (c.memory.needsRenewal && this.onSpawnApron(c)) return true;
         }
         return false;
     }
 
-    // Wait next to labs so boosting starts the tick the squad is full.
+    tryHomeRenew(creep) {
+        if (creep.memory.hasBoosted || creep.memory.boostAttempt) return false;
+        // One member on the apron at a time so the rest can sit on the pad.
+        if (this.waveMemberRenewing(creep) && !this.onSpawnApron(creep)) return false;
+        return !!(creep.handleRenewing(CREEP_LIFE_TIME * 0.8));
+    }
+
+    renewWave(creep) {
+        return this.tryHomeRenew(creep);
+    }
+
+    // Park between the spawn cluster and labs so the wave can renew or boost
+    // in a few steps without camping the spawn apron.
     findBoostWaitPos(creep) {
         const room = creep.room;
-        const labs = room.labs || [];
-        if (labs.length) {
-            return creep.pos.findClosestByRange(labs) || labs[0];
+        const cached = musterCache[room.name];
+        if (cached && cached.tick + 50 > Game.time) {
+            const pos = new RoomPosition(cached.x, cached.y, room.name);
+            if (!pos.checkForImpassible(false, true)) return pos;
         }
-        if (room.storage) return room.storage;
-        const spawns = room.spawns || [];
-        return spawns[0] || null;
+
+        const spawns = [];
+        const roomSpawns = room.spawns || [];
+        for (let i = 0; i < roomSpawns.length; i++) {
+            try {
+                if (roomSpawns[i].my) spawns.push(roomSpawns[i]);
+            } catch (e) { /* ignore */ }
+        }
+        const labs = room.labs || [];
+
+        const avg = (list) => {
+            let x = 0;
+            let y = 0;
+            for (let i = 0; i < list.length; i++) {
+                x += list[i].pos.x;
+                y += list[i].pos.y;
+            }
+            return {x: x / list.length, y: y / list.length};
+        };
+
+        let spawnC;
+        if (spawns.length) spawnC = avg(spawns);
+        else if (room.storage) spawnC = {x: room.storage.pos.x, y: room.storage.pos.y};
+        else spawnC = {x: 25, y: 25};
+
+        let labC;
+        if (labs.length) labC = avg(labs);
+        else if (room.memory.labHub && room.memory.labHub.x !== undefined) {
+            labC = {x: room.memory.labHub.x, y: room.memory.labHub.y};
+        } else if (room.controller) {
+            labC = {x: room.controller.pos.x, y: room.controller.pos.y};
+        } else {
+            labC = {x: 25, y: 25};
+        }
+        if (labC.x === spawnC.x && labC.y === spawnC.y) {
+            labC = {x: spawnC.x, y: spawnC.y + 4};
+        }
+
+        // Slightly lab-biased midpoint so the search starts off the apron.
+        const tx = spawnC.x + (labC.x - spawnC.x) * 0.55;
+        const ty = spawnC.y + (labC.y - spawnC.y) * 0.55;
+        const ix = Math.round(tx);
+        const iy = Math.round(ty);
+
+        const terrain = room.getTerrain();
+        const cheby = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+        const spawnRange = (x, y) => {
+            let min = Infinity;
+            for (let i = 0; i < spawns.length; i++) {
+                const d = cheby(x, y, spawns[i].pos.x, spawns[i].pos.y);
+                if (d < min) min = d;
+            }
+            return min;
+        };
+        const labRange = (x, y) => {
+            if (!labs.length) return cheby(x, y, labC.x, labC.y);
+            let min = Infinity;
+            for (let i = 0; i < labs.length; i++) {
+                const d = cheby(x, y, labs[i].pos.x, labs[i].pos.y);
+                if (d < min) min = d;
+            }
+            return min;
+        };
+        const walkable = (x, y) => {
+            if (x < 2 || x > 47 || y < 2 || y > 47) return false;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) return false;
+            return !new RoomPosition(x, y, room.name).checkForImpassible(false, true);
+        };
+
+        let best = null;
+        let bestScore = Infinity;
+        for (let r = 0; r <= 10; r++) {
+            for (let dx = -r; dx <= r; dx++) {
+                for (let dy = -r; dy <= r; dy++) {
+                    if (r && Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+                    const x = ix + dx;
+                    const y = iy + dy;
+                    if (!walkable(x, y)) continue;
+                    const sr = spawns.length ? spawnRange(x, y) : 99;
+                    if (sr < MUSTER_MIN_SPAWN_RANGE) continue;
+                    const lr = labRange(x, y);
+                    let score = cheby(x, y, tx, ty);
+                    if (lr > 5) score += (lr - 5) * 3;
+                    if (score < bestScore) {
+                        bestScore = score;
+                        best = new RoomPosition(x, y, room.name);
+                    }
+                }
+            }
+            if (best && bestScore < 8) break;
+        }
+
+        if (!best) {
+            const dx = Math.sign(Math.round(labC.x - spawnC.x)) || 0;
+            const dy = Math.sign(Math.round(labC.y - spawnC.y)) || 1;
+            for (let dist = MUSTER_MIN_SPAWN_RANGE; dist <= 6 && !best; dist++) {
+                const x = Math.round(spawnC.x + dx * dist);
+                const y = Math.round(spawnC.y + dy * dist);
+                if (walkable(x, y) && (!spawns.length || spawnRange(x, y) >= 2)) {
+                    best = new RoomPosition(x, y, room.name);
+                }
+            }
+        }
+
+        if (best) musterCache[room.name] = {x: best.x, y: best.y, tick: Game.time};
+        return best;
+    }
+
+    onSpawnApron(creep) {
+        const spawns = creep.room.spawns || [];
+        for (let i = 0; i < spawns.length; i++) {
+            try {
+                if (spawns[i].my && creep.pos.getRangeTo(spawns[i]) <= 1) return true;
+            } catch (e) { /* ignore */ }
+        }
+        return false;
     }
 
     goToMusterPad(creep) {
         const pad = this.findBoostWaitPos(creep);
         if (!pad) return false;
-        if (creep.pos.getRangeTo(pad) <= 3) return true;
-        creep.shibMove(pad, {range: 3, forceSolo: true});
+        // Range 1 of the pad is tight enough for the wave; never idle on a
+        // spawn-adjacent tile even if that tile happens to be in range.
+        if (!this.onSpawnApron(creep) && creep.pos.getRangeTo(pad) <= 1) return true;
+        creep.shibMove(pad, {range: 1, forceSolo: true});
         return true;
     }
 
@@ -796,8 +938,8 @@ class RoleLongbowSquad {
     }
 
     // Stay in the spawn colony until waitFor bodies are live, renewed, and
-    // boosted. Incomplete waves wait at the labs. Once assembled and boosted,
-    // commit and move — packing is after leaving home.
+    // boosted. Incomplete waves wait between spawns and labs. Once assembled
+    // and boosted, commit and move — packing is after leaving home.
     holdForWave(creep, squad) {
         if (this.cancelledDestAtHome(creep)) {
             this.recycleWave(creep, squad);
