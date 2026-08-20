@@ -56,7 +56,6 @@ function notify(message, options = {}) {
 
 // --- roomDenial siege status ------------------------------------------------
 
-const PROGRESS_REMINDER_TICKS = CREEP_LIFE_TIME;
 const SIEGE_TERMINAL_REASONS = {
     LAUNCH: true,
     SUCCESS: true,
@@ -74,6 +73,10 @@ const SIEGE_END_REASONS = {
     UNSUSTAINABLE: true,
     'MAX WAVES': true,
     'NUKE HOLD': true,
+};
+const SIEGE_QUIET_END = {
+    ENDED: true,
+    'MAX WAVES': true,
 };
 
 function isRoomDenial(op) {
@@ -95,6 +98,12 @@ function countSiegeCreeps(roomName) {
     return {onSite, inbound};
 }
 
+function visibleTowerCount(roomName, intel) {
+    const room = typeof Game !== 'undefined' && Game.rooms[roomName];
+    if (room && room.towers) return room.towers.length;
+    return intel.towers || 0;
+}
+
 function snapshotSiege(roomName, op) {
     const intel = (typeof INTEL !== 'undefined' && INTEL[roomName]) || {};
     const creeps = countSiegeCreeps(roomName);
@@ -105,7 +114,7 @@ function snapshotSiege(roomName, op) {
     }
     return {
         owner: intel.owner || 'unknown',
-        towers: intel.towers || 0,
+        towers: visibleTowerCount(roomName, intel),
         level: intel.level || 0,
         ramparts: intel.rampartMedHP || 0,
         waves: (op && op.waves) || 0,
@@ -130,7 +139,7 @@ function snapshotSiege(roomName, op) {
 
 function makeSiegeAlert(snap, reason) {
     return {
-        firstTick: Game.time,
+        firstTick: snap.tick || Game.time,
         lastNotify: Game.time,
         lastReason: reason || 'LAUNCH',
         owner: snap.owner,
@@ -173,14 +182,17 @@ function applySiegeSnapshot(alert, snap, notified, reason) {
 function pickSiegeProgressReason(prev, snap) {
     if (snap.nukeLaunched && !prev.nukeLaunched) return 'NUKE';
     if (snap.camping && !prev.camping) return 'CAMPING';
-    if (snap.towers < (prev.towers || 0)) return 'TOWERS DOWN';
+    if ((prev.towers || 0) > 0 && snap.towers === 0) return 'TOWERS DOWN';
     if (snap.level && prev.level && snap.level < prev.level) return 'RCL DROP';
-    if (!snap.activeDefenders && prev.activeDefenders && !snap.camping) return 'DEFENDERS DOWN';
-    if (snap.claimAttacker && !prev.claimAttacker) return 'CLAIM ATTACK';
-    if (snap.cleaner && !prev.cleaner) return 'CLEANUP';
-    if ((snap.waves || 0) > (prev.waves || 0)) return 'WAVE';
-    if (Game.time - (prev.lastNotify || 0) >= PROGRESS_REMINDER_TICKS) return 'ONGOING';
     return null;
+}
+
+function siegeMadeContact(op, prev) {
+    if (((op && op.waves) || 0) > 0 || ((prev && prev.waves) || 0) > 0) return true;
+    if (((op && op.friendlyDead) || 0) > 0 || ((prev && prev.friendlyDead) || 0) > 0) return true;
+    if (((op && op.enemyDead) || 0) > 0 || ((prev && prev.enemyDead) || 0) > 0) return true;
+    if ((op && op.nukeLaunched) || (prev && prev.nukeLaunched)) return true;
+    return false;
 }
 
 function inferSiegeEndReason(roomName, leftoverOp, prev) {
@@ -200,8 +212,7 @@ function inferSiegeEndReason(roomName, leftoverOp, prev) {
 
 function buildSiegeMessage(roomName, reason, snap, prev) {
     const waveLabel = `${snap.waves || 0}/${snap.waveLimit || 8}`;
-    const reasonText = reason === 'WAVE' ? `WAVE ${waveLabel}` : reason;
-    const lines = [`${roomName} [${reasonText}] roomDenial vs ${snap.owner}`];
+    const lines = [`${roomName} [${reason}] roomDenial vs ${snap.owner}`];
 
     const started = (prev && prev.firstTick) || snap.tick || Game.time;
     lines.push(`elapsed ${formatElapsed(Game.time - started)}`);
@@ -220,7 +231,7 @@ function buildSiegeMessage(roomName, reason, snap, prev) {
 
     if (snap.onSite || snap.inbound) {
         lines.push(`forces ${snap.onSite} on site, ${snap.inbound} inbound`);
-    } else if (!SIEGE_END_REASONS[reason]) {
+    } else if (!SIEGE_END_REASONS[reason] && reason !== 'LAUNCH') {
         lines.push('no siege creeps assigned');
     }
 
@@ -268,8 +279,9 @@ function notifySiegeLaunch(roomName) {
     const alerts = siegeAlertStore();
     if (alerts[roomName]) return;
     const snap = snapshotSiege(roomName, op);
-    alerts[roomName] = makeSiegeAlert(snap, 'LAUNCH');
-    sendSiege(roomName, 'LAUNCH', snap, alerts[roomName]);
+    const alert = makeSiegeAlert(snap, 'LAUNCH');
+    alert.pendingLaunch = true;
+    alerts[roomName] = alert;
 }
 
 function notifySiegeEvent(roomName, reason) {
@@ -281,8 +293,8 @@ function notifySiegeEvent(roomName, reason) {
     if (!prev) {
         prev = makeSiegeAlert(snap, reason);
         alerts[roomName] = prev;
-        if (reason !== 'LAUNCH') sendSiege(roomName, 'LAUNCH', snap, prev);
     }
+    prev.pendingLaunch = undefined;
     sendSiege(roomName, reason, snap, prev);
     applySiegeSnapshot(prev, snap, true, reason);
 }
@@ -291,6 +303,12 @@ function notifySiegeEnd(roomName, reason, op) {
     const alerts = Memory._siegeAlerts || {};
     const prev = alerts[roomName];
     const operation = op || (Memory.targetRooms && Memory.targetRooms[roomName]);
+    const resolved = reason || inferSiegeEndReason(roomName, operation, prev);
+    if (SIEGE_QUIET_END[resolved] && !siegeMadeContact(operation, prev)) {
+        if (alerts[roomName]) delete Memory._siegeAlerts[roomName];
+        return;
+    }
+    if (!prev && !SIEGE_END_REASONS[resolved]) return;
     const snap = snapshotSiege(roomName, operation);
     if (prev) {
         snap.tick = prev.tick || snap.tick;
@@ -298,7 +316,7 @@ function notifySiegeEnd(roomName, reason, op) {
         snap.friendlyDead = Math.max(snap.friendlyDead || 0, prev.friendlyDead || 0);
         snap.enemyDead = Math.max(snap.enemyDead || 0, prev.enemyDead || 0);
     }
-    sendSiege(roomName, reason || inferSiegeEndReason(roomName, operation, prev), snap, prev);
+    sendSiege(roomName, resolved, snap, prev);
     if (alerts[roomName]) delete Memory._siegeAlerts[roomName];
 }
 
@@ -307,8 +325,13 @@ function reviewActiveSiege(roomName, op) {
     const snap = snapshotSiege(roomName, op);
     let prev = alerts[roomName];
     if (!prev) {
-        alerts[roomName] = makeSiegeAlert(snap, 'LAUNCH');
-        sendSiege(roomName, 'LAUNCH', snap, alerts[roomName]);
+        alerts[roomName] = makeSiegeAlert(snap, 'TRACK');
+        return;
+    }
+    if (prev.pendingLaunch) {
+        sendSiege(roomName, 'LAUNCH', snap, prev);
+        prev.pendingLaunch = undefined;
+        applySiegeSnapshot(prev, snap, true, 'LAUNCH');
         return;
     }
     const reason = pickSiegeProgressReason(prev, snap);
