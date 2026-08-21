@@ -50,6 +50,11 @@ const RETREAT_TREND_WINDOW = 3;
 // live >= 2 leaves as that size; a leftover solo recycles.
 const FORMING_ABANDON_TTL = 600;
 
+// No new body, and nothing queued/spawning, for this long: seal or recycle
+// even if renew is still topping TTL. ~one 50-part spawn cycle plus slack;
+// room queues wipe after 500 ticks without a spawn.
+const FORMING_STALL_TICKS = 500;
+
 class RoleLongbowSquad {
     constructor(creep) {
         this.creep = creep;
@@ -259,20 +264,16 @@ class RoleLongbowSquad {
             this.fireRangedAction(this.creep);
         }
 
-        // Reactive melee kite — keep distance from melee threats inside range 2
-        if (this.kiteFromMelee(this.creep)) return;
-
-        // Uncommitted waitFor waves huddle on the spawn/lab pad. Follow the
-        // leader unless they are topping up at a spawn — then sit on the pad
-        // so the rest of the quad does not camp the apron.
         const waitFor = this.creep.memory.misc && this.creep.memory.misc.waitFor;
-        if (waitFor > 1 && !this.isSquadCommitted(this.creep) && this.inHomeColony(this.creep)) {
+        const formingAtHome = waitFor > 1 && !this.isSquadCommitted(this.creep) && this.inHomeColony(this.creep);
+
+        // Leader already skips kite while forming at home; a quad follower
+        // that kites here leaves the pad on the first invader.
+        if (!formingAtHome && this.kiteFromMelee(this.creep)) return;
+
+        if (formingAtHome) {
             if (this.tryHomeRenew(this.creep)) return;
-            if (leader.memory.needsRenewal) {
-                this.goToMusterPad(this.creep);
-                return;
-            }
-            this.creep.shibMove(leader, {range: 1, forceSolo: true});
+            this.goToMusterPad(this.creep);
             return;
         }
 
@@ -348,11 +349,11 @@ class RoleLongbowSquad {
                 creep.shibMove(new RoomPosition(25, 25, colony), {range: 22});
                 return;
             }
-            if (this.tryHomeRenew(creep)) return;
-            if ((creep.ticksToLive || Infinity) < FORMING_ABANDON_TTL) {
+            if (this.formingWaveStalled(creep) || (creep.ticksToLive || Infinity) < FORMING_ABANDON_TTL) {
                 creep.recycleCreep();
                 return;
             }
+            if (this.tryHomeRenew(creep)) return;
             this.goToMusterPad(creep);
             return;
         }
@@ -696,20 +697,30 @@ class RoleLongbowSquad {
         return true;
     }
 
-    waveMemberRenewing(creep) {
+    waveRenewer(creep) {
+        const target = CREEP_LIFE_TIME * 0.8;
         const wave = this.squadForWave(creep);
+        let claimed = null;
+        let lowest = null;
         for (let i = 0; i < wave.length; i++) {
             const c = wave[i];
-            if (!c || c.id === creep.id || c.spawning) continue;
-            if (c.memory.needsRenewal && this.onSpawnApron(c)) return true;
+            if (!c || c.spawning) continue;
+            if (c.memory.hasBoosted || c.memory.boostAttempt) continue;
+            const ttl = c.ticksToLive || Infinity;
+            if (ttl > target && !c.memory.needsRenewal) continue;
+            if (c.memory.needsRenewal && (!claimed || c.name < claimed.name)) claimed = c;
+            if (ttl <= target && (!lowest || c.name < lowest.name)) lowest = c;
         }
-        return false;
+        return claimed || lowest;
     }
 
     tryHomeRenew(creep) {
         if (creep.memory.hasBoosted || creep.memory.boostAttempt) return false;
-        // One member on the apron at a time so the rest can sit on the pad.
-        if (this.waveMemberRenewing(creep) && !this.onSpawnApron(creep)) return false;
+        const renewer = this.waveRenewer(creep);
+        if (!renewer || renewer.id !== creep.id) {
+            if (creep.memory.needsRenewal) creep.memory.needsRenewal = undefined;
+            return false;
+        }
         return !!(creep.handleRenewing(CREEP_LIFE_TIME * 0.8));
     }
 
@@ -824,7 +835,7 @@ class RoleLongbowSquad {
             for (let dist = MUSTER_MIN_SPAWN_RANGE; dist <= 6 && !best; dist++) {
                 const x = Math.round(spawnC.x + dx * dist);
                 const y = Math.round(spawnC.y + dy * dist);
-                if (walkable(x, y) && (!spawns.length || spawnRange(x, y) >= 2)) {
+                if (walkable(x, y) && (!spawns.length || spawnRange(x, y) >= MUSTER_MIN_SPAWN_RANGE)) {
                     best = new RoomPosition(x, y, room.name);
                 }
             }
@@ -847,10 +858,11 @@ class RoleLongbowSquad {
     goToMusterPad(creep) {
         const pad = this.findBoostWaitPos(creep);
         if (!pad) return false;
-        // Range 1 of the pad is tight enough for the wave; never idle on a
-        // spawn-adjacent tile even if that tile happens to be in range.
-        if (!this.onSpawnApron(creep) && creep.pos.getRangeTo(pad) <= 1) return true;
-        creep.shibMove(pad, {range: 1, forceSolo: true});
+        // Leader sits on the pad; everyone else fills the ring. Range 1 of a
+        // range-3 pad can still be range 2 of a spawn, which is off the apron.
+        const range = creep.memory.leader ? 0 : 1;
+        if (!this.onSpawnApron(creep) && creep.pos.getRangeTo(pad) <= range) return true;
+        creep.shibMove(pad, {range, forceSolo: true});
         return true;
     }
 
@@ -879,6 +891,32 @@ class RoleLongbowSquad {
         return min;
     }
 
+    markFormingLive(creep, live) {
+        if (!creep.memory.misc) creep.memory.misc = {};
+        const misc = creep.memory.misc;
+        if (misc.formLive !== live) {
+            misc.formLive = live;
+            misc.formLiveTick = Game.time;
+        } else if (!misc.formLiveTick) {
+            misc.formLiveTick = Game.time;
+        }
+    }
+
+    formingWaveStalled(creep, squad) {
+        const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
+        if (!(waitFor > 1) || this.isSquadCommitted(creep)) return false;
+        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
+        let live = 0;
+        for (let i = 0; i < wave.length; i++) {
+            if (wave[i] && !wave[i].spawning) live++;
+        }
+        if (live >= waitFor) return false;
+        this.markFormingLive(creep, live);
+        if (creep.waveStillIncoming && creep.waveStillIncoming()) return false;
+        const since = creep.memory.misc.formLiveTick || Game.time;
+        return Game.time - since >= FORMING_STALL_TICKS;
+    }
+
     // Seal without committedSize so a replacement waitFor wave can still spawn
     // (same cap drop as adoptDuoIfQuadRemnant).
     sealWaveAtSize(creep, wave, size) {
@@ -896,12 +934,14 @@ class RoleLongbowSquad {
         }
     }
 
-    // TTL below FORMING_ABANDON_TTL and renew already failed: leave as the
-    // current pair/triple, or recycle a leftover solo so it does not fill the cap.
+    // TTL below FORMING_ABANDON_TTL after renew fails, or no new body and
+    // nothing incoming for FORMING_STALL_TICKS: leave as the current pair/triple,
+    // or recycle a leftover solo so it does not fill the cap.
     abandonIncompleteWave(creep, squad) {
         const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
         if (!(waitFor > 1) || this.isSquadCommitted(creep)) return false;
-        if (this.formingWaveMinTTL(creep, squad) >= FORMING_ABANDON_TTL) return false;
+        const ttlFailed = this.formingWaveMinTTL(creep, squad) < FORMING_ABANDON_TTL;
+        if (!ttlFailed && !this.formingWaveStalled(creep, squad)) return false;
 
         const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
         let live = 0;
@@ -955,10 +995,10 @@ class RoleLongbowSquad {
         }
 
         if (!this.waveAssembled(creep, squad)) {
-            if (this.renewWave(creep, squad)) return true;
             const abandoned = this.abandonIncompleteWave(creep, squad);
             if (abandoned === 'recycle') return true;
             if (abandoned === 'sealed') return false;
+            if (this.renewWave(creep, squad)) return true;
             this.goToMusterPad(creep);
             return true;
         }

@@ -839,6 +839,18 @@ function defaultWaitFor(creep) {
     return role === 'longbowSquad' ? 2 : 1;
 }
 
+// WaitFor-less / waitFor-1 are one bucket. Waves (2/4) only group with equal size,
+// so a leftover solo or duo cannot lead a waitFor-4 and skip holdForWave.
+function waitForCompatible(a, b) {
+    const wa = defaultWaitFor(a);
+    const wb = defaultWaitFor(b);
+    const aWave = wa > 1;
+    const bWave = wb > 1;
+    if (aWave !== bWave) return false;
+    if (!aWave) return true;
+    return wa === wb;
+}
+
 function ungroupCreep(creep) {
     if (!creep || !creep.memory) return;
     creep.memory.leader = undefined;
@@ -887,6 +899,7 @@ function squadMinTTL(leader) {
 function leaderHasOpenSlot(leader, joinerWaitFor) {
     if (!leader || !leader.memory.leader || isCommittedSquad(leader)) return false;
     const theirWait = defaultWaitFor(leader);
+    if (joinerWaitFor && joinerWaitFor !== theirWait) return false;
     const live = (leader.memory.squadMembers || []).length + 1;
     if (live >= theirWait) return false;
     if (live >= (joinerWaitFor || theirWait)) return false;
@@ -964,6 +977,7 @@ function tryMergePartialSquads(leader) {
         if (isCommittedSquad(c) || isCommittedSquad(leader)) return false;
         if (!sameFormColony(leader, c)) return false;
         const theirWait = defaultWaitFor(c);
+        if (theirWait !== waitFor) return false;
         if (theirWait <= 2) return false;
         // Uncommitted same-wave pairs merge even below SQUAD_RECRUIT_TTL.
         if (!formingAtHome(c) && squadMinTTL(c) < SQUAD_RECRUIT_TTL) return false;
@@ -1046,6 +1060,7 @@ Creep.prototype.formSquad = function () {
             c.id !== creep.id &&
             !c.spawning &&
             !isCommittedSquad(c) &&
+            waitForCompatible(creep, c) &&
             sameFormColony(creep, c) &&
             c.memory.destination === destination &&
             c.memory.operation === operation &&

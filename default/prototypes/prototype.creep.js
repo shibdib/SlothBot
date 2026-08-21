@@ -1421,6 +1421,43 @@ function ensureWaveBoostLab(creep, boostNeeded, amountNeeded, names, excludeIds)
     return lab;
 }
 
+// True when another same-wave body is spawning or still queued, so we should
+// keep waiting / pre-reserving for the full waitFor rather than sealing.
+Creep.prototype.waveStillIncoming = function () {
+    const waitFor = this.memory.misc && this.memory.misc.waitFor;
+    if (!(waitFor > 1)) return false;
+    const dest = this.memory.destination || '';
+    const op = this.memory.operation || '';
+
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory || c.id === this.id) continue;
+        if (!c.spawning) continue;
+        if ((c.memory.destination || '') !== dest) continue;
+        if ((c.memory.operation || '') !== op) continue;
+        if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
+        if (((c.memory.misc && c.memory.misc.waitFor) || 0) !== waitFor) continue;
+        return true;
+    }
+
+    if (typeof CREEP_QUEUES === 'undefined' || !CREEP_QUEUES) return false;
+    for (const roomKey in CREEP_QUEUES) {
+        const cache = CREEP_QUEUES[roomKey];
+        if (!cache) continue;
+        for (const k in cache) {
+            const e = cache[k];
+            if (!e) continue;
+            if ((e.destination || '') !== dest) continue;
+            if ((e.operation || '') !== op) continue;
+            if (!e.misc || e.misc.waitFor !== waitFor) continue;
+            const r = e.role || '';
+            if (r !== 'longbowSquad' && r !== 'longbow') continue;
+            return true;
+        }
+    }
+    return false;
+};
+
 // Claim labs for the full waitFor wave as soon as the first body is alive so
 // labTech can haul during the remaining spawn/renew, not after the last pop.
 Creep.prototype.reserveWaveBoosts = function () {
@@ -1434,7 +1471,8 @@ Creep.prototype.reserveWaveBoosts = function () {
     if (!_.size(plan)) return;
 
     const {names, boosted} = waveBoostMates(this);
-    const remaining = Math.max(1, waitFor - boosted);
+    let remaining = Math.max(1, waitFor - boosted);
+    if (!this.waveStillIncoming()) remaining = Math.max(1, names.length);
     const exclude = new Set();
     for (const resource of Object.keys(plan)) {
         const total = plan[resource].amount * remaining;
