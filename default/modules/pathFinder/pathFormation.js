@@ -18,8 +18,9 @@ function getSquadMatrix(roomName, orientation = 0, squadSize = 4) {
     const impassibleHash = room ? hashStructures(room.impassibleStructures || []) : '';
     const lookHash = room ? lookObstacleHash(room) : '';
     const structuresHash = room ? (lookHash ? `${impassibleHash}|L:${lookHash}` : impassibleHash) || 'static' : 'static';
-    // Duos (size ≤ 2) get a slimmer footprint than quads — see buildSquadMatrix.
-    const footprint = squadSize >= 3 ? `q${orientation}` : 'd';
+    // Duos path solo. A 3-creep remnant uses the L (two cardinals), not the
+    // full 2×2, so a missing corner does not block the step.
+    const footprint = squadSize >= 4 ? `q${orientation}` : squadSize === 3 ? `l${orientation}` : 'd';
     const cacheType = `squad_${footprint}_${structuresHash}`;
     return getCachedMatrix(roomName, cacheType, 200, () => buildSquadMatrix(roomName, orientation, squadSize));
 }
@@ -41,7 +42,7 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
     const FOOTPRINT_BLOCK = 255;
     const matrix = new PathFinder.CostMatrix();
     const terrain = Game.map.getRoomTerrain(roomName);
-    const vectors = squadSize >= 3 ? getFormationVectors(orientation) : [{x: 0, y: 0}];
+    const vectors = getFormationVectors(orientation, squadSize);
 
     const raise = (x, y, cost) => {
         if (x < 0 || x > 49 || y < 0 || y > 49) return;
@@ -142,15 +143,25 @@ const QUAD_FOLLOWER_OFFSETS = {
     3: [{dx: 0, dy: -1}, {dx: 1, dy: 0}, {dx: 1, dy: -1}]
 };
 
-const formationVectorsByOrientation = {
-    0: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[0].map(v => ({x: -v.dx, y: -v.dy}))],
-    1: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[1].map(v => ({x: -v.dx, y: -v.dy}))],
-    2: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[2].map(v => ({x: -v.dx, y: -v.dy}))],
-    3: [{x: 0, y: 0}, ...QUAD_FOLLOWER_OFFSETS[3].map(v => ({x: -v.dx, y: -v.dy}))]
-};
+function followerOffsets(orientation, squadSize = 4) {
+    const all = QUAD_FOLLOWER_OFFSETS[orientation] || QUAD_FOLLOWER_OFFSETS[0];
+    if (!(squadSize >= 3)) return [];
+    if (squadSize >= 4) return all;
+    const out = [];
+    for (let i = 0; i < all.length; i++) {
+        if (!all[i].dx || !all[i].dy) out.push(all[i]);
+    }
+    return out;
+}
 
-function getFormationVectors(orientation) {
-    return formationVectorsByOrientation[orientation] || formationVectorsByOrientation[0];
+function getFormationVectors(orientation, squadSize = 4) {
+    if (!(squadSize >= 3)) return [{x: 0, y: 0}];
+    const offsets = followerOffsets(orientation, squadSize);
+    const vectors = [{x: 0, y: 0}];
+    for (let i = 0; i < offsets.length; i++) {
+        vectors.push({x: -offsets[i].dx, y: -offsets[i].dy});
+    }
+    return vectors;
 }
 
 const MOVE_DX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
@@ -226,6 +237,8 @@ function formationRange(a, b) {
 module.exports = {
 
     QUAD_FOLLOWER_OFFSETS,
+
+    followerOffsets,
 
     getFormationVectors,
 

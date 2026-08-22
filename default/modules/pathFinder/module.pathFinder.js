@@ -12,6 +12,7 @@ const pathRoute = require('pathRoute');
 
 module.exports = {
     QUAD_FOLLOWER_OFFSETS: pathFormation.QUAD_FOLLOWER_OFFSETS,
+    followerOffsets: pathFormation.followerOffsets,
     getSquadMatrix: pathFormation.getSquadMatrix,
     getFormationVectors: pathFormation.getFormationVectors,
     formationRange: pathFormation.formationRange,

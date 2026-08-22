@@ -503,7 +503,9 @@ RoomPosition.prototype.checkForImpassible = function (ignoreWall, ignoreCreep) {
         else if (!ignoreCreep && room && this.checkForCreep()) impassible = true;
     }
 
-    const expiry = ignoreCreep ? currentTick + CREEP_LIFE_TIME : currentTick + 10;
+    // ignoreCreep is structure/terrain only. A 1500-tick TTL kept demolished
+    // walls impassible, so quads refused the 2×2 gap they just opened.
+    const expiry = ignoreCreep ? currentTick + 1 : currentTick + 10;
     IMPASSIBLE_CACHE[cacheKey] = {value: impassible, tick: expiry};
     return impassible;
 };

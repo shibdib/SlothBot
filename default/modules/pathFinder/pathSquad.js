@@ -108,7 +108,7 @@ function isOccupiedByEnemy(leader, pos) {
 }
 
 function isFootprintWalkable(leaderPos, orientation, squadSize = 4) {
-    const vectors = squadSize >= 3 ? getFormationVectors(orientation) : [{x: 0, y: 0}];
+    const vectors = getFormationVectors(orientation, squadSize);
     const terrain = Game.map.getRoomTerrain(leaderPos.roomName);
     const onEdge = leaderPos.x === 0 || leaderPos.x === 49 || leaderPos.y === 0 || leaderPos.y === 49;
     for (const v of vectors) {
