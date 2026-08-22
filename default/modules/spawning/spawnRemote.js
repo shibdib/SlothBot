@@ -157,10 +157,13 @@ function ingestColonyRemoteSources(colonyRoom, rName) {
     // Do not steal a remote another colony is actively mining.
     if (remoteMining.isRemoteClaimedByOther(colonyRoom.name, rName)) return false;
 
+    if (!ROOM_REMOTE_TARGETS[colonyRoom.name]) ROOM_REMOTE_TARGETS[colonyRoom.name] = [];
+    const targets = ROOM_REMOTE_TARGETS[colonyRoom.name];
+
     let added = false;
     let claimed = false;
     for (const sd of remoteIntel.remoteSourceData) {
-        if (ROOM_REMOTE_TARGETS[colonyRoom.name].find(s => s.source === sd.source)) {
+        if (targets.find(s => s.source === sd.source)) {
             // Already have it — still ensure exclusive ownership if we hold targets.
             claimed = true;
             continue;
@@ -182,7 +185,7 @@ function ingestColonyRemoteSources(colonyRoom, rName) {
             sd.score = score;
         }
 
-        ROOM_REMOTE_TARGETS[colonyRoom.name].push({room: rName, source: sd.source, score});
+        targets.push({room: rName, source: sd.source, score});
         added = true;
         claimed = true;
     }
