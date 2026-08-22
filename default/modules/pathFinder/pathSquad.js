@@ -83,12 +83,18 @@ function squadMove(creep, path) {
 }
 
 function canSquadMove(leader, members, direction) {
-    if (!leader.room.hostileCreeps.length) return true;
+    const hostiles = !!leader.room.hostileCreeps.length;
     for (const member of members) {
         if (formationRange(member.pos, leader.pos) > 1) continue;
         const nextPos = posAfterMove(member.pos, direction);
         if (!nextPos) continue;
-        if (nextPos.roomName !== member.pos.roomName) continue;
+        if (nextPos.roomName !== member.pos.roomName) {
+            const terrain = Game.map.getRoomTerrain(nextPos.roomName);
+            if (terrain.get(nextPos.x, nextPos.y) === TERRAIN_MASK_WALL) return false;
+            if (Game.rooms[nextPos.roomName] && nextPos.checkForImpassible(false, true)) return false;
+            continue;
+        }
+        if (!hostiles) continue;
         if (nextPos.checkForImpassible(false, true) || isOccupiedByEnemy(leader, nextPos)) return false;
     }
     return true;
