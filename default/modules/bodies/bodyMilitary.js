@@ -161,16 +161,11 @@ const builders = {
     siegeDuo: buildSiegeDuo,
 
     SKAttacker(gen) {
+        // Keeper fight needs this 50-part melee mix; smaller bodies die.
         const movePair = (part) => BODYPART_COST[part] + BODYPART_COST[MOVE];
-        const minCost = 5 * movePair(ATTACK) + 1 * movePair(RANGED_ATTACK) + 3 * movePair(HEAL);
-        if (gen.energyAmount < minCost) return false;
-
-        const targetCost = 18 * movePair(ATTACK) + 2 * movePair(RANGED_ATTACK) + 5 * movePair(HEAL);
-        const scale = Math.min(1, gen.energyAmount / targetCost);
-        const attack = Math.max(5, Math.floor(18 * scale));
-        const rangedAttack = Math.max(1, Math.floor(2 * scale));
-        const heal = Math.max(3, Math.floor(5 * scale));
-        return {attack, rangedAttack, heal};
+        const cost = 20 * movePair(ATTACK) + 5 * movePair(HEAL);
+        if (gen.energyAmount < cost) return false;
+        return {attack: 20, heal: 5};
     },
 
     powerAttacker: () => ({attack: 25}),
