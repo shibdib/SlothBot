@@ -88,7 +88,7 @@ function getCreepMoveWeight(creep) {
 }
 
 function needsTow(creep) {
-    return !!(creep && !creep.className && !creep.hasActiveBodyparts(MOVE));
+    return !!(creep && !creep.className && !creep.hasActiveBodyparts(MOVE) && !creep.hasActiveBodyparts(HEAL));
 }
 
 function isPullSwapBlocker(creep) {
