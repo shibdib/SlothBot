@@ -26,23 +26,18 @@ const {
 const {getMiningRouteRooms, hasLiveSkAttacker, skGuardRoom} = require('remoteMining');
 
 const COSTS = {
-    owned: {wall: 255, swamp: 75, plain: 45, road: 1, container: 50},
+    owned: {wall: 255, swamp: 75, plain: 45, road: 1, container: 255},
     // wall must be 255 — PathFinder treats lower costs as walkable and will
     // route through terrain walls, producing unbuildable "desired" tiles.
-    remote: {wall: 255, swamp: 25, plain: 5, road: 1, container: 15},
+    // Containers are 255: a stationary harvester/upgrader sits on them, so the
+    // network must route around rather than through that tile.
+    remote: {wall: 255, swamp: 25, plain: 5, road: 1, container: 255},
 };
 
 const PATH_CACHE_TTL = 5000;
 const PLAN_CACHE = Object.create(null);
 const MATRIX_HEAP = {owned: Object.create(null), remote: Object.create(null)};
 const FAILED_PATH_RETRY = 50;
-
-const EXIT_DIRS = {
-    '1': FIND_EXIT_TOP,
-    '3': FIND_EXIT_RIGHT,
-    '5': FIND_EXIT_BOTTOM,
-    '7': FIND_EXIT_LEFT,
-};
 
 const TARGET_ORDER = {controller: 0, source: 1, mineral: 2, exit: 3};
 
@@ -110,6 +105,25 @@ function tileHasRoadBlockingStructure(pos) {
     return false;
 }
 
+/** True when a container (or container site) occupies the tile. */
+function tileHasContainer(pos) {
+    if (!pos) return false;
+    const room = Game.rooms[pos.roomName];
+    if (!room) return false;
+    for (const s of pos.lookFor(LOOK_STRUCTURES)) {
+        if (s.structureType === STRUCTURE_CONTAINER) return true;
+    }
+    for (const site of pos.lookFor(LOOK_CONSTRUCTION_SITES)) {
+        if (site.structureType === STRUCTURE_CONTAINER) return true;
+    }
+    return false;
+}
+
+/** Buildings and containers the road net must not traverse or land on. */
+function tileHasRoadAvoid(pos) {
+    return tileHasRoadBlockingStructure(pos) || tileHasContainer(pos);
+}
+
 let fingerprintTick = -1;
 const fingerprintCache = Object.create(null);
 
@@ -127,15 +141,18 @@ function roomStructureFingerprint(roomName) {
     let roads = 0;
     let sites = 0;
     let blockers = 0;
+    let containers = 0;
     for (const s of room.structures) {
         if (s.structureType === STRUCTURE_ROAD) roads++;
+        else if (s.structureType === STRUCTURE_CONTAINER) containers++;
         else if (isBlockingRoadStructureType(s.structureType)) blockers++;
     }
     for (const site of room.constructionSites) {
         if (site.structureType === STRUCTURE_ROAD) sites++;
+        else if (site.structureType === STRUCTURE_CONTAINER) containers++;
         else if (isBlockingRoadStructureType(site.structureType)) blockers++;
     }
-    const stamp = `${roads}x${sites}x${blockers}`;
+    const stamp = `${roads}x${sites}x${blockers}x${containers}`;
     fingerprintCache[roomName] = stamp;
     return stamp;
 }
@@ -160,6 +177,25 @@ function collectBlockedRoadKeys(room) {
     return blocked;
 }
 
+function collectContainerRoadKeys(room) {
+    const keys = new Set();
+    if (!room) return keys;
+    for (const s of room.structures) {
+        if (s.structureType === STRUCTURE_CONTAINER) keys.add(getPosKey(s.pos));
+    }
+    for (const site of room.constructionSites) {
+        if (site.structureType === STRUCTURE_CONTAINER) keys.add(getPosKey(site.pos));
+    }
+    return keys;
+}
+
+function collectAvoidRoadKeys(room) {
+    const avoid = collectBlockedRoadKeys(room);
+    const containers = collectContainerRoadKeys(room);
+    for (const key of containers) avoid.add(key);
+    return avoid;
+}
+
 function buildTerrainMatrix(roomName, profile) {
     const costs = COSTS[profile];
     const matrix = new PathFinder.CostMatrix();
@@ -178,20 +214,24 @@ function buildTerrainMatrix(roomName, profile) {
     if (!room) return matrix;
 
     const blocked = collectBlockedRoadKeys(room);
+    const containers = collectContainerRoadKeys(room);
 
-    // Roads/containers first, then blockers always win so stacked road+extension
-    // cannot keep a walkable road cost under a building.
+    // Roads first, then containers/blockers always win so a road stacked under
+    // an extension or container cannot keep a walkable cost on that tile.
     for (const s of room.structures) {
         if (s.structureType === STRUCTURE_ROAD) {
-            if (!blocked.has(getPosKey(s.pos))) matrix.set(s.pos.x, s.pos.y, costs.road);
-        } else if (s.structureType === STRUCTURE_CONTAINER) {
-            matrix.set(s.pos.x, s.pos.y, costs.container);
+            const key = getPosKey(s.pos);
+            if (!blocked.has(key) && !containers.has(key)) matrix.set(s.pos.x, s.pos.y, costs.road);
         }
     }
     for (const site of room.constructionSites) {
-        if (site.structureType === STRUCTURE_ROAD && !blocked.has(getPosKey(site.pos))) {
-            matrix.set(site.pos.x, site.pos.y, costs.road);
-        }
+        if (site.structureType !== STRUCTURE_ROAD) continue;
+        const key = getPosKey(site.pos);
+        if (!blocked.has(key) && !containers.has(key)) matrix.set(site.pos.x, site.pos.y, costs.road);
+    }
+    for (const key of containers) {
+        const parts = key.split('x');
+        matrix.set(Number(parts[0]), Number(parts[1]), costs.container);
     }
     for (const key of blocked) {
         const parts = key.split('x');
@@ -230,7 +270,7 @@ function plannedTileBlocked(roomName, key) {
     const x = Number(parts[0]);
     const y = Number(parts[1]);
     if (Number.isNaN(x) || Number.isNaN(y)) return true;
-    return tileHasRoadBlockingStructure(new RoomPosition(x, y, roomName));
+    return tileHasRoadAvoid(new RoomPosition(x, y, roomName));
 }
 
 function markPlannedTile(roomName, profile, key) {
@@ -252,13 +292,18 @@ function buildCostMatrix(roomName, profile = 'owned') {
     return ensureRoomMatrix(roomName, profile).clone();
 }
 
-function searchOnMatrix(from, to, matrix) {
+function searchOnMatrix(from, to, matrix, options) {
     const begin = from instanceof RoomPosition ? from : from.pos;
     const target = to instanceof RoomPosition ? to : to.pos;
-    const result = PathFinder.search(begin, {pos: target, range: 1}, {
-        heuristicWeight: 1.1,
+    const range = options && options.range != null ? options.range : 1;
+    const roomName = begin.roomName;
+    const result = PathFinder.search(begin, {pos: target, range}, {
+        heuristicWeight: 1,
         maxRooms: 1,
-        roomCallback: () => matrix,
+        maxOps: (options && options.maxOps) || 8000,
+        // Returning the same matrix for every room lets PathFinder step onto an
+        // exit and mark the search incomplete under maxRooms:1.
+        roomCallback: (rn) => (rn === roomName ? matrix : false),
     });
     if (result.incomplete || !result.path.length) return null;
     return result.path;
@@ -268,11 +313,12 @@ function searchOnMatrix(from, to, matrix) {
 function searchRemoteRoadPath(from, to, matrix) {
     const begin = from instanceof RoomPosition ? from : from.pos;
     const target = to instanceof RoomPosition ? to : to.pos;
+    const roomName = begin.roomName;
     const result = PathFinder.search(begin, {pos: target, range: 1}, {
         heuristicWeight: 1,
         maxRooms: 1,
         maxOps: 8000,
-        roomCallback: () => matrix,
+        roomCallback: (rn) => (rn === roomName ? matrix : false),
     });
     if (!result.path.length) return {path: null, incomplete: true};
     return {path: result.path, incomplete: !!result.incomplete};
@@ -339,6 +385,7 @@ function getLayoutRoadTiles(room) {
 }
 
 function classifyTarget(room, pos) {
+    if (pos && pos._exitRoadGoal) return 'exit';
     if (room.controller && pos.inRangeTo(room.controller, 1)) return 'controller';
     for (const source of room.sources) {
         if (pos.inRangeTo(source, 1)) return 'source';
@@ -348,21 +395,89 @@ function classifyTarget(room, pos) {
     return 'other';
 }
 
+function roadGoalRange(pos) {
+    return pos && pos._exitRoadGoal ? 0 : 1;
+}
+
 /**
- * Exit neighbors worth connecting: hops used by remote mining routes from this colony.
- * Avoids paving every edge of the room when only one or two exits matter.
+ * Exit neighbors worth connecting: remote mining hops, adjacent remotes
+ * (even before a route cache exists), and neighboring owned rooms.
  */
 function getOwnedExitNeighborRooms(room) {
     const useful = new Set();
-    const remotes = ROOM_REMOTE_TARGETS[room.name] || [];
+    const neighboring = Game.map.describeExits(room.name) || {};
+    const neighborSet = new Set(Object.values(neighboring));
+
+    const remotes = (typeof ROOM_REMOTE_TARGETS !== 'undefined' && ROOM_REMOTE_TARGETS[room.name]) || [];
     for (const entry of remotes) {
+        if (entry.room && neighborSet.has(entry.room)) useful.add(entry.room);
         const route = getMiningRouteRooms(room.name, entry.room);
         if (!route.length) continue;
         const idx = route.indexOf(room.name);
-        if (idx >= 0 && idx < route.length - 1) useful.add(route[idx + 1]);
-        else if (idx < 0) useful.add(route[0]);
+        const hop = idx >= 0 && idx < route.length - 1 ? route[idx + 1]
+            : (idx < 0 ? route[0] : null);
+        if (hop && neighborSet.has(hop)) useful.add(hop);
+    }
+
+    const owned = typeof MY_ROOMS !== 'undefined' ? MY_ROOMS : [];
+    for (let i = 0; i < owned.length; i++) {
+        if (neighborSet.has(owned[i])) useful.add(owned[i]);
+    }
+
+    // Remotes assigned but no cached route yet — still pave every edge so
+    // haulers aren't stuck in an unpaved room until probeMiningRoute runs.
+    if (!useful.size && remotes.length) {
+        for (const neighbor of neighborSet) useful.add(neighbor);
     }
     return useful;
+}
+
+function isWalkableInteriorGoal(pos) {
+    if (!pos) return false;
+    if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) return false;
+    const terrain = Game.map.getRoomTerrain(pos.roomName);
+    if (terrain.get(pos.x, pos.y) === TERRAIN_MASK_WALL) return false;
+    if (tileHasRoadAvoid(pos)) return false;
+    return true;
+}
+
+function inwardFromExit(pos) {
+    let x = pos.x;
+    let y = pos.y;
+    if (x <= 0) x = 1;
+    else if (x >= 49) x = 48;
+    if (y <= 0) y = 1;
+    else if (y >= 49) y = 48;
+    if (x === pos.x && y === pos.y) return pos;
+    return new RoomPosition(x, y, pos.roomName);
+}
+
+/**
+ * Interior tile just inside the chosen exit. PathFinder targeting the edge
+ * itself often goes incomplete under maxRooms:1 (it wants to step into the
+ * next room). Range 0 on this tile places the last road against the exit.
+ */
+function getOwnedExitGoal(room, neighbor) {
+    const dir = Game.map.findExit(room.name, neighbor);
+    if (!(dir > 0)) return null;
+    const tiles = room.find(dir);
+    if (!tiles.length) return null;
+    const mid = Math.floor((tiles.length - 1) / 2);
+    const tryAt = (i) => {
+        const edge = tiles[i];
+        if (!edge) return null;
+        const inward = inwardFromExit(edge);
+        return isWalkableInteriorGoal(inward) ? inward : null;
+    };
+    const direct = tryAt(mid);
+    if (direct) return direct;
+    for (let d = 1; d < tiles.length; d++) {
+        const a = tryAt(mid + d);
+        if (a) return a;
+        const b = tryAt(mid - d);
+        if (b) return b;
+    }
+    return tiles[mid];
 }
 
 function getRoadTargets(room) {
@@ -376,31 +491,26 @@ function getRoadTargets(room) {
         targets.push(pos);
     };
 
-    if (room.controller) {
-        const controllerContainer = global.resolveControllerContainer(room);
-        add(controllerContainer ? controllerContainer.pos : room.controller.pos);
-    }
+    // Path to the structure, not its container. Containers are impassable in
+    // the matrix (stationary creep); range 1 lands on a free adjacent tile.
+    // Targeting the container instead stopped one tile short of the source,
+    // and a source-pad extension on that last road left the source unpaved.
+    if (room.controller) add(room.controller.pos);
 
     for (const source of room.sources) {
-        const container = resolveSourceContainer(source, room);
-        add(container ? container.pos : source.pos);
+        add(source.pos);
     }
 
-    if (room.mineral) {
-        const extractorContainer = Game.getObjectById(room.memory.extractorContainer);
-        add(extractorContainer ? extractorContainer.pos : room.mineral.pos);
-    }
+    if (room.mineral) add(room.mineral.pos);
 
-    const neighboring = Game.map.describeExits(room.name);
-    if (neighboring) {
-        // Only pave toward remotes on active mining routes (not every room edge).
-        const usefulExits = getOwnedExitNeighborRooms(room);
-        for (const direction in EXIT_DIRS) {
-            const neighbor = neighboring[direction];
-            if (!neighbor || !usefulExits.has(neighbor)) continue;
-            const exits = room.find(EXIT_DIRS[direction]);
-            if (exits.length) add(exits[Math.floor((exits.length - 1) / 2)]);
-        }
+    const usefulExits = getOwnedExitNeighborRooms(room);
+    for (const neighbor of usefulExits) {
+        const goal = getOwnedExitGoal(room, neighbor);
+        if (!goal) continue;
+        // Range 0 only on an interior tile — targeting the edge with range 0
+        // is the PathFinder maxRooms:1 incomplete-path case.
+        if (!(goal.isExit && goal.isExit())) goal._exitRoadGoal = true;
+        add(goal);
     }
 
     // C4: plan.anchors.lab first.
@@ -423,10 +533,21 @@ function sortTargets(room, origin, targets) {
     });
 }
 
-function nearestNetworkPos(target, network, roomName) {
+function containerAdjacentTo(room, pos) {
+    if (!room || !pos) return null;
+    const containers = room.containers || [];
+    for (let i = 0; i < containers.length; i++) {
+        const c = containers[i];
+        if (c && c.pos && c.pos.inRangeTo(pos, 1)) return c.pos;
+    }
+    return null;
+}
+
+function nearestNetworkPos(target, network, roomName, avoid) {
     let best = null;
     let bestRange = Infinity;
     for (const key of network) {
+        if (avoid && avoid.has(key)) continue;
         const parts = key.split('x');
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), roomName);
         const range = target.getRangeTo(pos);
@@ -446,9 +567,14 @@ function buildConnectorTiles(room, layout) {
     const connector = new Set();
     let pathFailures = 0;
     let pathsAttempted = 0;
+    const avoid = collectAvoidRoadKeys(room);
     const matrix = ensureRoomMatrix(room.name, 'owned').clone();
 
-    for (const key of network) {
+    for (const key of [...network]) {
+        if (avoid.has(key)) {
+            network.delete(key);
+            continue;
+        }
         markTileOnMatrix(matrix, key, 'owned');
         markPlannedTile(room.name, 'owned', key);
     }
@@ -457,16 +583,25 @@ function buildConnectorTiles(room, layout) {
     if (!anchorPos) return {connector, pathFailures: 1, pathsAttempted: 1};
 
     for (const target of sortTargets(room, anchorPos, getRoadTargets(room))) {
-        const anchor = nearestNetworkPos(target, network, room.name);
+        const goalRange = roadGoalRange(target);
+        const anchor = nearestNetworkPos(target, network, room.name, avoid) || origin || anchorPos;
         if (!anchor) {
             pathsAttempted++;
             pathFailures++;
             continue;
         }
-        if (anchor.getRangeTo(target) <= 1) continue;
+        if (anchor.getRangeTo(target) <= goalRange) continue;
 
         pathsAttempted++;
-        const path = searchOnMatrix(anchor, target, matrix);
+        let path = searchOnMatrix(anchor, target, matrix, {range: goalRange});
+        // Harvest ring fully blocked (source-pad extensions): still reach the
+        // container so haulers have a paved stand next to it.
+        if (!path && goalRange === 1) {
+            const fallback = containerAdjacentTo(room, target);
+            if (fallback && anchor.getRangeTo(fallback) > 1) {
+                path = searchOnMatrix(anchor, fallback, matrix, {range: 1});
+            }
+        }
         if (!path) {
             pathFailures++;
             continue;
@@ -476,7 +611,7 @@ function buildConnectorTiles(room, layout) {
             if ((step.roomName || room.name) !== room.name) continue;
             const key = getPosKey(step);
             const pos = new RoomPosition(step.x, step.y, room.name);
-            if (pos.isExit()) continue;
+            if (pos.isExit() || avoid.has(key) || tileHasRoadAvoid(pos)) continue;
             network.add(key);
             markTileOnMatrix(matrix, key, 'owned');
             if (!isRoadSatisfied(pos)) markPlannedTile(room.name, 'owned', key);
@@ -537,9 +672,9 @@ function ownedRoadFingerprint(room) {
     }
     targetKeys.sort();
     parts.push(targetKeys.join('|'));
-    const blocked = [...collectBlockedRoadKeys(room)].sort();
-    parts.push(String(blocked.length));
-    parts.push(hashString(blocked.join('|')));
+    const avoided = [...collectAvoidRoadKeys(room)].sort();
+    parts.push(String(avoided.length));
+    parts.push(hashString(avoided.join('|')));
     return parts.join(';');
 }
 
@@ -549,7 +684,7 @@ function refreshRoadPlanMissing(room, plan) {
     for (const key of plan.desired) {
         const parts = key.split('x');
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
-        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
         if (isRoadSatisfied(pos)) continue;
         tilesDone = false;
         if (isRoadPlaceable(pos)) missing.push(pos);
@@ -569,7 +704,7 @@ function desiredTilesForPack(room, desired) {
         const x = Number(parts[0]);
         const y = Number(parts[1]);
         const pos = new RoomPosition(x, y, room.name);
-        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
         tiles.push({x, y});
     }
     return tiles;
@@ -733,7 +868,7 @@ function diffRoadTiles(room, desired) {
     for (const key of desired) {
         const parts = key.split('x');
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
-        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
         if (isRoadSatisfied(pos)) continue;
         complete = false;
         if (isRoadPlaceable(pos)) missing.push(pos);
@@ -928,7 +1063,7 @@ function addRemotePathTiles(room, path, needed, network, matrix) {
     for (const point of path) {
         if ((point.roomName || room.name) !== room.name) continue;
         const pos = new RoomPosition(point.x, point.y, room.name);
-        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
         const key = getPosKey(pos);
         needed.add(key);
         if (network) network.add(key);
@@ -974,15 +1109,19 @@ function buildRemoteRoadTiles(room, colony, context = {}) {
 
     const network = new Set();
     const matrix = ensureRoomMatrix(room.name, 'remote').clone();
+    const avoid = collectAvoidRoadKeys(room);
 
     const origin = targets[0];
     if (origin) {
-        network.add(getPosKey(origin));
-        markTileOnMatrix(matrix, getPosKey(origin), 'remote');
+        const originKey = getPosKey(origin);
+        if (!avoid.has(originKey)) {
+            network.add(originKey);
+            markTileOnMatrix(matrix, originKey, 'remote');
+        }
     }
 
     for (const target of sortRemoteTargets(room, origin, targets.slice(1))) {
-        const networkAnchor = nearestNetworkPos(target, network, room.name);
+        const networkAnchor = nearestNetworkPos(target, network, room.name, avoid);
         if (!networkAnchor) {
             pathsAttempted++;
             pathFailures++;
@@ -1048,14 +1187,14 @@ function remoteRoadGeometryFingerprint(room, colony, context = {}) {
     const targetKeys = [];
     for (let i = 0; i < targets.length; i++) targetKeys.push(getPosKey(targets[i]));
     targetKeys.sort();
-    const blocked = [...collectBlockedRoadKeys(room)].sort();
+    const avoided = [...collectAvoidRoadKeys(room)].sort();
     const fingerprint = [
         remoteTargetsStamp(colony),
         context.type || 'remote',
         context.remote || '',
         targetKeys.join('|'),
-        String(blocked.length),
-        hashString(blocked.join('|')),
+        String(avoided.length),
+        hashString(avoided.join('|')),
     ].join(';');
     remoteGeomFpCache[cacheKey] = fingerprint;
     return fingerprint;
@@ -1075,7 +1214,7 @@ function refreshRemotePlanMissing(room, plan) {
     for (const key of plan.desired) {
         const parts = key.split('x');
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
-        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
         if (isRoadSatisfied(pos)) continue;
         tilesDone = false;
         if (isRoadPlaceable(pos)) missing.push(pos);
@@ -1411,11 +1550,21 @@ function isOwnedRoomRoadEligible(room) {
 /**
  * True when the owned road net is not marked complete.
  * Complete requires packed tiles satisfied and pathFailures === 0.
+ * Stale fingerprints (new blockers/containers/exits) must replan even if a
+ * previous tick stamped complete.
  */
 function needsOwnedRoadWork(room) {
     if (!isOwnedRoomRoadEligible(room)) return false;
     if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return false;
-    return !getRoadsBuiltFlag(room);
+    if (!getRoadsBuiltFlag(room)) return true;
+    try {
+        const extra = room.memory && room.memory.plan && room.memory.plan.layers
+            && room.memory.plan.layers.roads && room.memory.plan.layers.roads.extra;
+        if (!extra || extra.fingerprint !== ownedRoadFingerprint(room)) return true;
+    } catch (e) {
+        return true;
+    }
+    return false;
 }
 
 function clearOwnedMatrixHeap(roomName) {
@@ -1455,6 +1604,7 @@ module.exports = {
     clearRoomMatrixCache,
     clearRoomPlanCache,
     tileHasRoadBlockingStructure,
+    tileHasRoadAvoid,
     isOwnedRoomRoadEligible,
     needsOwnedRoadWork,
     countRoadConstructionSites,

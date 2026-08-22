@@ -26,6 +26,7 @@ const {
     refreshRemotePlanMissing,
     canPlaceRemoteRoadSite,
     tileHasRoadBlockingStructure,
+    tileHasRoadAvoid,
     clearRemoteRoadWorkHintCache,
     clearRoomMatrixCache,
     clearRoomPathCache,
@@ -71,7 +72,7 @@ function tryPlaceNextRemoteRoad(room, colony, context = {}) {
     const plan = getRemoteRoadPlan(room, colony, context);
     let placed = 0;
     for (const pos of plan.missing) {
-        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
         if (!canPlaceRemoteRoadSite(room)) break;
         const result = tryCreateConstructionSite(pos, STRUCTURE_ROAD);
         if (result === OK) {
@@ -296,7 +297,7 @@ function placeOwnedRoads(room, options) {
     for (let i = 0; i < plan.missing.length; i++) {
         if (placed >= maxThisTick) break;
         const pos = plan.missing[i];
-        if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
         const res = siteBudget.tryPlace(room, 'roads', pos, STRUCTURE_ROAD, {layoutPending});
         if (res.ok) {
             placed++;

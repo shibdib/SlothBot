@@ -444,6 +444,27 @@ function tryPlaceRoomExtensions(room) {
  *   placeSite / canPlace let planner V2 inject siteBudget.
  * @returns {boolean} true if a site was placed
  */
+/** True when another walkable harvest tile remains besides skipPos and the container. */
+function hasOtherSourceHarvestTile(room, source, skipPos) {
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            if (!dx && !dy) continue;
+            const x = source.pos.x + dx;
+            const y = source.pos.y + dy;
+            if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+            if (skipPos && skipPos.x === x && skipPos.y === y) continue;
+            const pos = new RoomPosition(x, y, room.name);
+            if (pos.checkForWall()) continue;
+            if (pos.checkForImpassible(true, true)) continue;
+            if (pos.checkForContainer()) continue;
+            const site = pos.checkForConstructionSites();
+            if (site && site.structureType !== STRUCTURE_ROAD && site.structureType !== STRUCTURE_RAMPART) continue;
+            return true;
+        }
+    }
+    return false;
+}
+
 function buildSourceExtensions(room, options) {
     const opts = options || {};
     const placeFn = typeof opts.placeSite === 'function'
@@ -491,10 +512,21 @@ function buildSourceExtensions(room, options) {
             delete source.memory.accessReserved;
         }
 
+        // Fill the back of the container first so harvest-adjacent roads stay open.
+        extensionCandidates.sort((a, b) => {
+            const as = a.inRangeTo(source, 1) ? 1 : 0;
+            const bs = b.inRangeTo(source, 1) ? 1 : 0;
+            if (as !== bs) return as - bs;
+            if (hub) return a.getRangeTo(hub) - b.getRangeTo(hub);
+            return 0;
+        });
+
         for (const pos of extensionCandidates) {
             if (source.memory.accessReserved
                 && pos.x === source.memory.accessReserved.x
                 && pos.y === source.memory.accessReserved.y) continue;
+            // Keep one harvest tile so the owned road net can still reach the source.
+            if (pos.inRangeTo(source, 1) && !hasOtherSourceHarvestTile(room, source, pos)) continue;
             if (!canPlaceFn(room)) return false;
             const result = placeFn(pos, STRUCTURE_EXTENSION);
             if (result === OK) {
