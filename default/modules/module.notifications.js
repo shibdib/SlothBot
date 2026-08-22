@@ -41,6 +41,7 @@ function formatElapsed(ticks) {
  * @param {boolean} [options.immediate] send without grouping
  * @param {string} [options.logTag] log.a custom prefix
  * @param {string} [options.logPrefix] prepended to the console line (roomLink, etc.)
+ * @param {string} [options.emailPrefix] prepended only to the Game.notify email
  * @param {string} [options.emailExtra] appended only to the Game.notify email
  * @param {boolean} [options.email] force-disable email while still logging
  */
@@ -49,7 +50,9 @@ function notify(message, options = {}) {
     if (emailOn) {
         const group = options.immediate ? 0
             : (options.groupMinutes != null ? options.groupMinutes : DEFAULT_GROUP_MINUTES);
-        const emailMessage = options.emailExtra ? `${message}. ${options.emailExtra}` : message;
+        let emailMessage = message;
+        if (options.emailPrefix) emailMessage = `${options.emailPrefix} ${emailMessage}`;
+        if (options.emailExtra) emailMessage = `${emailMessage}. ${options.emailExtra}`;
         Game.notify(emailMessage, group);
     }
     const display = options.logPrefix ? `${options.logPrefix} ${message}` : message;
@@ -270,84 +273,96 @@ function safemodeChargeLabel(charges) {
     return `${charges} safemode charges`;
 }
 
+function countLabel(n, word) {
+    return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
 function buildSiegeMessage(roomName, reason, snap, prev) {
     const waveLabel = `${snap.waves || 0}/${snap.waveLimit || 8}`;
-    const lines = [`${roomName} [${reason}] roomDenial vs ${siegeOwnerLabel(snap, prev, reason)}`];
+    const lines = [`[${reason}] roomDenial vs ${siegeOwnerLabel(snap, prev, reason)}`];
 
     const started = (prev && prev.firstTick) || snap.tick || Game.time;
-    lines.push(`elapsed ${formatElapsed(Game.time - started)}`);
+    const elapsed = Game.time - started;
+    if (elapsed > 0 && reason !== 'LAUNCH') lines.push(`elapsed ${formatElapsed(elapsed)}`);
 
-    let structureLine = `RCL ${snap.level || '?'}, ${snap.towers} tower(s)`;
-    if (snap.spawns != null) structureLine += `, ${snap.spawns} spawn(s)`;
+    let structureLine = `RCL ${snap.level || '?'}, ${countLabel(snap.towers || 0, 'tower')}`;
+    if (snap.spawns != null) structureLine += `, ${countLabel(snap.spawns, 'spawn')}`;
     lines.push(structureLine);
     if (snap.ramparts) lines.push(`ramparts ${compactNumber(snap.ramparts)}`);
 
     if (reason === 'TOWERS DOWN' && prev && prev.towers !== snap.towers) {
-        lines.push(`towers ${prev.towers} → ${snap.towers}`);
+        lines.push(`towers ${prev.towers}→${snap.towers}`);
     }
     if (reason === 'RCL DROP' && prev && prev.level !== snap.level) {
-        lines.push(`RCL ${prev.level} → ${snap.level}`);
+        lines.push(`RCL ${prev.level}→${snap.level}`);
     }
 
-    lines.push(reason === 'WAVE' ? `wave ${waveLabel} reached target` : `wave ${waveLabel}`);
-    if (snap.lastWave && reason !== 'WAVE') lines.push(`last wave ${Game.time - snap.lastWave} ticks ago`);
-    lines.push(`casualties ${compactNumber(snap.friendlyDead)} vs ${compactNumber(snap.enemyDead)} enemy`);
+    lines.push(`wave ${waveLabel}`);
+    if (snap.lastWave && reason !== 'WAVE' && reason !== 'LAUNCH') {
+        lines.push(`last wave ${Game.time - snap.lastWave} ticks ago`);
+    }
+
+    const friendlyDead = snap.friendlyDead || 0;
+    const enemyDead = snap.enemyDead || 0;
+    if (friendlyDead || enemyDead || SIEGE_END_REASONS[reason]) {
+        lines.push(`${compactNumber(friendlyDead)} vs ${compactNumber(enemyDead)} dead`);
+    }
 
     if (snap.onSite || snap.inbound) {
-        lines.push(`forces ${snap.onSite} on site, ${snap.inbound} inbound`);
+        lines.push(`${snap.onSite} on site, ${snap.inbound} inbound`);
     } else if (!SIEGE_END_REASONS[reason] && reason !== 'LAUNCH') {
-        lines.push('no siege creeps assigned');
+        lines.push('no siege creeps');
     }
 
-    if (snap.camping) lines.push('camping (towers and defenders cleared)');
+    if (snap.camping) lines.push('camping');
     if (snap.cleaner) lines.push('cleaner queued');
     if (snap.claimAttacker) lines.push('claim attacker queued');
-    if (snap.activeDefenders) lines.push('active defenders present');
-    if (snap.otherUsers && snap.otherUsers.length) lines.push(`also seen ${snap.otherUsers.join(', ')}`);
+    if (snap.activeDefenders) lines.push('active defenders');
+    if (snap.otherUsers && snap.otherUsers.length) lines.push(`also ${snap.otherUsers.join(', ')}`);
 
     if (snap.nukeLaunched) {
         const eta = snap.dDay ? snap.dDay - Game.time : 0;
-        let nukeLine = eta > 0 ? `nuke inbound (${eta} ticks)` : 'nuke launched';
+        let nukeLine = eta > 0 ? `nuke in ${eta} ticks` : 'nuke launched';
         if (snap.nukeTarget && snap.nukeTarget.x != null) nukeLine += ` @ ${snap.nukeTarget.x},${snap.nukeTarget.y}`;
         lines.push(nukeLine);
     }
     if (snap.safemode && snap.safemode > Game.time) {
-        lines.push(`target safemode (${snap.safemode - Game.time} ticks remaining)`);
+        lines.push(`safemode ${snap.safemode - Game.time} ticks`);
     }
     const charges = snap.safemodeCharges;
     if (charges != null && (reason === 'LAUNCH' || SIEGE_END_REASONS[reason] || charges === 0)) {
-        lines.push(charges ? safemodeChargeLabel(charges) : 'no safemode charges');
+        lines.push(charges ? safemodeChargeLabel(charges) : 'no safemode');
     }
     if (isDowngradeRelevant(snap)) {
-        lines.push(`downgrade in ${formatElapsed(snap.ticksToDowngrade)}`);
+        lines.push(`downgrade ${formatElapsed(snap.ticksToDowngrade)}`);
     }
     if (snap.lastKill) lines.push(`last kill ${Game.time - snap.lastKill} ticks ago`);
-    if ((reason === 'SUCCESS' || snap.camping) && snap.loot) lines.push('loot available');
+    if ((reason === 'SUCCESS' || snap.camping) && snap.loot) lines.push('loot');
 
     if (reason === 'SUCCESS') {
-        if (!snap.owner) lines.push('now unowned');
-        else if (prev && prev.owner && snap.owner !== prev.owner) lines.push(`now owned by ${snap.owner}`);
+        if (!snap.owner) lines.push('unowned');
+        else if (prev && prev.owner && snap.owner !== prev.owner) lines.push(`now ${snap.owner}`);
     }
 
     if (reason === 'LAUNCH') {
         const nearest = typeof findClosestOwnedRoom === 'function' ? findClosestOwnedRoom(roomName, true) : undefined;
         if (nearest !== undefined && nearest !== Infinity) lines.push(`${nearest} rooms from nearest colony`);
-        if (snap.manual) lines.push('manual operation');
+        if (snap.manual) lines.push('manual');
     }
-    if (snap.assignedRoom) lines.push(`assigned ${snap.assignedRoom}`);
+    if (snap.assignedRoom) lines.push(`from ${snap.assignedRoom}`);
 
     return lines.join('. ');
 }
 
 function sendSiege(roomName, reason, snap, prev) {
-    const historyUrl = typeof roomHistoryUrl === 'function' ? roomHistoryUrl(roomName) : undefined;
+    const historyLink = typeof roomHistoryNotifyLink === 'function' ? roomHistoryNotifyLink(roomName) : undefined;
     const firstContact = reason === 'WAVE' && (snap.waves || 0) === 1;
     notify(buildSiegeMessage(roomName, reason, snap, prev), {
         channel: 'siege',
         immediate: !!SIEGE_TERMINAL_REASONS[reason] || firstContact,
         logTag: 'HIGH COMMAND: ',
         logPrefix: typeof roomHistoryLink === 'function' ? roomHistoryLink(roomName) : roomLink(roomName),
-        emailExtra: historyUrl ? `history ${historyUrl}` : undefined,
+        emailPrefix: historyLink || roomName,
     });
 }
 

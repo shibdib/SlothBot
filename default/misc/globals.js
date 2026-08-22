@@ -2005,62 +2005,82 @@ let globals = function () {
     };
 
 
+    function resolveRoomName(roomArg) {
+        if (roomArg instanceof Room) return roomArg.name;
+        if (roomArg && roomArg.pos !== undefined) return roomArg.pos.roomName;
+        if (roomArg && roomArg.roomName !== undefined) return roomArg.roomName;
+        if (typeof roomArg === 'string') return roomArg;
+        return undefined;
+    }
+
+    // Game.notify auto-turns E37S19 into a live room link, which rips history hrefs
+    // apart. Encode NSEW in the URL path and as HTML entities in link text.
+    const ROOM_DIR_URL = {N: '%4E', S: '%53', E: '%45', W: '%57'};
+    const ROOM_DIR_HTML = {N: '&#78;', S: '&#83;', E: '&#69;', W: '&#87;'};
+
+    function encodeRoomDirs(roomName, map) {
+        if (!roomName) return roomName;
+        let out = '';
+        for (let i = 0; i < roomName.length; i++) {
+            const c = roomName.charAt(i);
+            out += map[c] || c;
+        }
+        return out;
+    }
+
+    function historyTick(tick) {
+        const t = tick == null ? Game.time : tick;
+        return t - (t % 20);
+    }
+
+    function historyHost() {
+        const shard = (Game.shard && Game.shard.name) || 'shard0';
+        const ptr = Game.shard && Game.shard.ptr;
+        const season = /season/i.test(shard);
+        const base = ptr ? 'https://screeps.com/ptr' : season ? 'https://screeps.com/season' : 'https://screeps.com/a';
+        return {base, shard};
+    }
+
     global.roomLink = function (roomArg, text = undefined, select = true) {
         let id;
         if (roomArg) id = roomArg.id; else return undefined;
-        let roomName;
-        if (roomArg instanceof Room) {
-            roomName = roomArg.name;
-        } else if (roomArg.pos !== undefined) {
-            roomName = roomArg.pos.roomName;
-        } else if (roomArg.roomName !== undefined) {
-            roomName = roomArg.roomName;
-        } else if (typeof roomArg === 'string') {
-            roomName = roomArg;
-        } else {
+        const roomName = resolveRoomName(roomArg);
+        if (!roomName) {
             console.log(`Invalid parameter to roomLink global function: ${roomArg} of type ${typeof roomArg}`);
+            return undefined;
         }
         text = text || (id ? roomArg : roomName);
         return `<a href="#!/room/${Game.shard.name}/${roomName}" ${select && id ? `onclick="angular.element('body').injector().get('RoomViewPendingSelector').set('${id}')"` : ``}>${text}</a>`;
     };
 
-    global.roomHistoryLink = function (roomArg, text = undefined, select = true) {
-        let roomName;
-        let id = roomArg.id;
-        if (roomArg instanceof Room) {
-            roomName = roomArg.name;
-        } else if (roomArg.pos !== undefined) {
-            roomName = roomArg.pos.roomName;
-        } else if (roomArg.roomName !== undefined) {
-            roomName = roomArg.roomName;
-        } else if (typeof roomArg === 'string') {
-            roomName = roomArg;
-        } else {
-            console.log(`Invalid parameter to roomLink global function: ${roomArg} of type ${typeof roomArg}`);
-        }
-        text = text || (id ? roomArg : roomName);
-        return `<a href="#!/history/${Game.shard.name}/${roomName}?t=${Game.time}" ${select && id ? `onclick="angular.element('body').injector().get('RoomViewPendingSelector').set('${id}')"` : ``}>${text}</a>`;
-    };
-
-    // Full URL for emails / external clients. Console should keep using roomHistoryLink.
-    global.roomHistoryUrl = function (roomArg, tick) {
-        let roomName;
-        if (roomArg instanceof Room) {
-            roomName = roomArg.name;
-        } else if (roomArg && roomArg.pos !== undefined) {
-            roomName = roomArg.pos.roomName;
-        } else if (roomArg && roomArg.roomName !== undefined) {
-            roomName = roomArg.roomName;
-        } else if (typeof roomArg === 'string') {
-            roomName = roomArg;
-        } else {
+    global.roomHistoryLink = function (roomArg, text = undefined, select = true, tick) {
+        if (!roomArg && roomArg !== '') return undefined;
+        const id = roomArg && roomArg.id;
+        const roomName = resolveRoomName(roomArg);
+        if (!roomName) {
+            console.log(`Invalid parameter to roomHistoryLink global function: ${roomArg} of type ${typeof roomArg}`);
             return undefined;
         }
+        text = text || (id ? roomArg : roomName);
         const shard = (Game.shard && Game.shard.name) || 'shard0';
-        const ptr = Game.shard && Game.shard.ptr;
-        const season = /season/i.test(shard);
-        const base = ptr ? 'https://screeps.com/ptr' : season ? 'https://screeps.com/season' : 'https://screeps.com/a';
-        return `${base}/#!/history/${shard}/${roomName}?t=${tick || Game.time}`;
+        return `<a href="#!/history/${shard}/${roomName}?t=${historyTick(tick)}" ${select && id ? `onclick="angular.element('body').injector().get('RoomViewPendingSelector').set('${id}')"` : ``}>${text}</a>`;
+    };
+
+    // Full URL for emails / external clients. Room name is encoded so Game.notify
+    // does not rewrite E37S19 into a live-room <a> and break the href.
+    global.roomHistoryUrl = function (roomArg, tick) {
+        const roomName = resolveRoomName(roomArg);
+        if (!roomName) return undefined;
+        const {base, shard} = historyHost();
+        return `${base}/#!/history/${shard}/${encodeRoomDirs(roomName, ROOM_DIR_URL)}?t=${historyTick(tick)}`;
+    };
+
+    // Short Game.notify history link: same idea as roomLink, full URL in href.
+    global.roomHistoryNotifyLink = function (roomArg, text, tick) {
+        const roomName = resolveRoomName(roomArg);
+        const url = global.roomHistoryUrl(roomArg, tick);
+        if (!roomName || !url) return undefined;
+        return `<a href='${url}'>${encodeRoomDirs(text || roomName, ROOM_DIR_HTML)}</a>`;
     };
 
     global.getRandomInt = function (min, max) {
