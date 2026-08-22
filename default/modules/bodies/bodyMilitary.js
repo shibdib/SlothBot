@@ -11,6 +11,39 @@ const {
     checkForNeededMove,
 } = require('bodySiegeBoosts');
 
+let _waveMoveBoostTick = -1;
+let _waveMoveBoostCache = {};
+
+function liveWaveMoveBoost(gen, waitFor) {
+    if (!(waitFor > 1) || !gen.creepInfo) return null;
+    const dest = gen.creepInfo.destination || '';
+    const op = gen.creepInfo.operation || '';
+    const role = gen.role;
+    const key = `${role}|${dest}|${op}`;
+    if (_waveMoveBoostTick !== Game.time) {
+        _waveMoveBoostTick = Game.time;
+        _waveMoveBoostCache = {};
+    }
+    if (Object.prototype.hasOwnProperty.call(_waveMoveBoostCache, key)) return _waveMoveBoostCache[key];
+
+    let found = null;
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory) continue;
+        const r = c.memory.oldRole || c.memory.role || '';
+        if (r !== role) continue;
+        if ((c.memory.destination || '') !== dest) continue;
+        if (op && c.memory.operation && c.memory.operation !== op) continue;
+        const nb = c.memory.neededBoosts;
+        if (nb && nb.moveBoost && nb.moveFactor > 1) {
+            found = {boost: nb.moveBoost, factor: nb.moveFactor};
+            break;
+        }
+    }
+    _waveMoveBoostCache[key] = found;
+    return found;
+}
+
 function buildLongbowFamily(gen) {
     let tough, toughData, heal, rangedAttack;
 
@@ -20,9 +53,11 @@ function buildLongbowFamily(gen) {
 
     const defaultWaitFor = gen.role === 'longbow' ? 1 : 2;
     const waitFor = (gen.creepInfo && gen.creepInfo.misc && gen.creepInfo.misc.waitFor) || defaultWaitFor;
-    // Mineral gate is per body. Requiring waitFor-live on the first spawn
-    // blocked quads in rooms that could still field one boosted longbow.
-    const moveData = checkForNeededMove(gen, 1);
+    // MOVE parts scale with the boost (T3 ≈ 10 MOVE vs 25 unboosted). A per-body
+    // mineral gate let the whole wave spawn that shape when only one body could
+    // actually boost — quads then crawled. HEAL/TOUGH stay per-body below.
+    const committed = liveWaveMoveBoost(gen, waitFor);
+    const moveData = committed || checkForNeededMove(gen, waitFor);
     const moveFactor = moveData.factor || 1;
 
     if (gen.creepInfo && Memory.targetRooms[gen.creepInfo.destination] && Memory.targetRooms[gen.creepInfo.destination].boosts) {

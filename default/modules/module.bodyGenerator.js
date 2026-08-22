@@ -102,7 +102,14 @@ class ModuleBodyGenerator {
 
         if (this.creepInfo && this.creepInfo.body) {
             if (this.bodyCost(this.creepInfo.body) <= this.energyAmount) {
-                return {body: this.creepInfo.body, info: this.creepInfo};
+                const body = this.creepInfo.body;
+                const moves = body.filter(p => p === MOVE).length;
+                const others = body.length - moves;
+                const needsMoveBoost = moves > 0 && others > moves;
+                const hasMoveBoost = this.creepInfo.neededBoosts && this.creepInfo.neededBoosts.moveBoost;
+                if (!needsMoveBoost || hasMoveBoost) {
+                    return {body, info: this.creepInfo};
+                }
             }
         }
 

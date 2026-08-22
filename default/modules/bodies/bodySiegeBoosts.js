@@ -41,7 +41,7 @@ function checkForNeededMove(gen, squadSize = 1) {
         const factor = moveFatigueFactor(boost);
         if (factor < 2) continue;
         const moveParts = Math.ceil(getMaxSiegeCombatBudget(factor) / factor);
-        if (gen.room.store(boost) >= 30 * moveParts * squadSize) {
+        if (gen.room.store(boost) >= LAB_BOOST_MINERAL * moveParts * squadSize) {
             return {boost, factor, moveParts};
         }
     }
