@@ -10,9 +10,9 @@
  * - Heavy intel refresh only when cached is stale (HEAVY_INTEL_TICKS); hubCheck is once-and-stamped
  * - Highway, active remotes, early-warning exits, and auxiliary scout ops in target pool
  * - Background/exploratory sweep now reliably refreshes very old intel (BACKGROUND_STALE_TICKS window)
- * - Throttled low-prio strategic work opportunistically yields to oldest-intel maintenance
  * - Border-fill low-prio now only for truly background-stale neighbors (prevents starving distant old intel)
  * - Throttle bypass only for claim/support (>=95); expansion scouts wait THROTTLE_TICKS
+ * - Maintenance observes wait for the throttle (do not fill idle ticks — that was 15 heavy intel/tick)
  * - Skip rooms with live creep vision (owned rooms + any room with my creeps)
  */
 
@@ -28,7 +28,6 @@ const TUNING = {
     HIGH_PRIORITY: 85,
     THROTTLE_BYPASS_PRIORITY: 95,     // claim (100) / requestingSupport (95); not expansion scouts (88)
     RECENTLY_OBSERVED_TICKS: 75,
-    HIGH_STRATEGIC_FOR_RANDOM: 50,    // below this, prefer background oldest-intel maintenance over low-prio strategic
     HEAVY_INTEL_TICKS: CREEP_LIFE_TIME * 5,
     ACTIVE_REMOTE_WINDOW: 500,
 };
@@ -67,34 +66,12 @@ class ObserverControl {
         const topPriority = reachable.length ? (priorities[reachable[0]] || 0) : 0;
         const throttled = (state.lastRun[roomName] | 0) + TUNING.THROTTLE_TICKS > currentTime;
 
-        // Only claim / support bypass throttle. Expansion scouts (88) wait.
-        if (throttled && topPriority >= TUNING.THROTTLE_BYPASS_PRIORITY) {
-            // fall through to pick it
-        } else if (throttled && topPriority > 0 && topPriority < TUNING.HIGH_STRATEGIC_FOR_RANDOM) {
-            // Throttled + only low/medium strategic work available.
-            // Prefer background oldest-intel maintenance (exploratory refresh of ancient rooms)
-            // over burning the observe on yet another low-prio border/op target.
-            // This is the main fix for "36d old room in range but never observed".
-            const maint = this.findOldestIntelTarget(roomName, currentTime, state);
-            if (maint) {
-                state.lastRun[roomName] = currentTime;
-                if (!hasCreepVision(maint, currentTime)) {
-                    this.issueObservation(observer, roomName, maint, state);
-                }
-                return;
-            }
-            // no good maintenance target right now — fall through and do the low strategic
-        } else if (throttled) {
-            // throttled and nothing strategic at all this tick — still allow occasional maintenance
-            const maint = this.findOldestIntelTarget(roomName, currentTime, state);
-            if (maint) {
-                state.lastRun[roomName] = currentTime;
-                if (!hasCreepVision(maint, currentTime)) {
-                    this.issueObservation(observer, roomName, maint, state);
-                }
-                return;
-            }
-            return; // nothing to do
+        // Only claim / support bypass throttle. Maintenance of ancient intel still
+        // happens on the unthrottled tick (findOldestIntelTarget fallback below).
+        // Filling throttled ticks with maintenance re-ran areExitsReachable on every
+        // observer every tick (~15 heavy intel refreshes) and blew CPU.
+        if (throttled && topPriority < TUNING.THROTTLE_BYPASS_PRIORITY) {
+            return;
         }
 
         state.lastRun[roomName] = currentTime;
@@ -112,8 +89,10 @@ class ObserverControl {
 
         const observed = Game.rooms[previous];
         if (observed) {
-            const forceHeavy = needsHeavyIntel(INTEL[previous], currentTime);
-            observed.cacheRoomIntel(forceHeavy);
+            // Never force=true here. cacheRoomIntel already does heavy work when
+            // `cached` is stale; force re-runs areExitsReachable (multi-PathFinder)
+            // on every ancient-room observe even when obstacles is already known.
+            observed.cacheRoomIntel();
             observer.operationPlanner(observed);
             markRecentlyObserved(state, previous, currentTime);
             delete state.observedRooms[roomName];

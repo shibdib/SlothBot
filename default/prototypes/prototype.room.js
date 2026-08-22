@@ -590,10 +590,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
     // === LIGHT UPDATE (every ~150 ticks) ===
     if (!roomIntel.microUpdate || roomIntel.microUpdate + 150 < currentTime) {
-        const structures = global.roomStructuresFromGame
-            ? global.roomStructuresFromGame(this)
-            : this.find(FIND_STRUCTURES);
-        const deposits = this.find(FIND_DEPOSITS);
+        const structures = this.structures;
+        const deposits = this.sources.length === 0 ? this.find(FIND_DEPOSITS) : [];
 
         // Invader Core — collapse tick is attackable life; invuln is stored separately
         // so planners can refuse to launch while the core takes no damage.
@@ -774,6 +772,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             const slot = 6 + (hash % Math.max(1, spreadTicks - 6));
             if (since !== slot) return;
         }
+        // Cap PathFinder / hubCheck / towerData bursts. Observer + colony can otherwise
+        // stack several first-visit heavies on one tick (~10 CPU each).
+        if (!consumeHeavyIntelSlot()) return;
     }
 
     roomIntel.cached = currentTime;
@@ -988,31 +989,58 @@ function updateRemoteSourceData(room, roomName, source, distance) {
     if (colonyRoom) remoteMining.pruneRoomRemoteTargets(roomName, colonyRoom);
 }
 
+const MAX_HEAVY_INTEL_PER_TICK = 1;
+
+function consumeHeavyIntelSlot() {
+    if (global._heavyIntelTick !== Game.time) {
+        global._heavyIntelTick = Game.time;
+        global._heavyIntelUsed = 0;
+    }
+    const cap = global.MAX_HEAVY_INTEL_PER_TICK || MAX_HEAVY_INTEL_PER_TICK;
+    if (global._heavyIntelUsed >= cap) return false;
+    global._heavyIntelUsed++;
+    return true;
+}
+
 function areExitsReachable(room) {
     if (!room.controller) return true;
-    const exits = Object.values(Game.map.describeExits(room.name));
-    for (let exitRoom of exits) {
-        const exitPositions = room.find(room.findExitTo(exitRoom));
+    const exits = Object.values(Game.map.describeExits(room.name) || {});
+    if (!exits.length) return true;
+
+    let costs = null;
+    const roomCallback = function (roomName) {
+        if (roomName !== room.name) return false;
+        if (costs) return costs;
+        costs = new PathFinder.CostMatrix();
+        const structs = room.structures;
+        for (let i = 0; i < structs.length; i++) {
+            const s = structs[i];
+            if (OBSTACLE_OBJECT_TYPES.includes(s.structureType) || s.structureType === STRUCTURE_RAMPART) {
+                costs.set(s.pos.x, s.pos.y, Infinity);
+            }
+        }
+        return costs;
+    };
+
+    const origin = room.controller.pos;
+    for (let e = 0; e < exits.length; e++) {
+        const exitDir = room.findExitTo(exits[e]);
+        const exitPositions = room.find(exitDir);
         if (!exitPositions.length) continue;
+        // Midpoint plus ends — one successful path means this edge is reachable.
+        // Walking every exit tile was up to ~50 PathFinder searches per edge.
+        const samples = [exitPositions[exitPositions.length >> 1]];
+        if (exitPositions.length > 2) {
+            samples.push(exitPositions[0], exitPositions[exitPositions.length - 1]);
+        }
         let pathsFound = false;
-        for (let exitPos of exitPositions) {
-            const path = PathFinder.search(room.controller.pos, {pos: exitPos, range: 0}, {
-                maxOps: 5000,
+        for (let i = 0; i < samples.length; i++) {
+            const path = PathFinder.search(origin, {pos: samples[i], range: 0}, {
+                maxOps: 2000,
+                maxRooms: 1,
                 plainCost: 1,
                 swampCost: 1,
-                roomCallback: function (roomName) {
-                    let r = Game.rooms[roomName];
-                    if (!r) return false;
-                    let costs = new PathFinder.CostMatrix();
-                    const rStructs = global.roomStructuresFromGame
-                        ? global.roomStructuresFromGame(r)
-                        : r.find(FIND_STRUCTURES);
-                    rStructs.forEach(s => {
-                        if (_.union(OBSTACLE_OBJECT_TYPES, [STRUCTURE_RAMPART]).includes(s.structureType)) costs.set(s.pos.x, s.pos.y, Infinity);
-                    });
-                    r.find(FIND_CREEPS).forEach(c => costs.set(c.pos.x, c.pos.y, 0));
-                    return costs;
-                }
+                roomCallback
             });
             if (!path.incomplete) {
                 pathsFound = true;

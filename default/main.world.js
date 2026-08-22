@@ -247,7 +247,12 @@ class World {
 
             try {
                 // invaderCheck runs inside Colony.defenseController — avoid duplicate creep scans here
-                room.cacheRoomIntel();
+                const intel = INTEL[roomName];
+                const now = Game.time;
+                if (!intel || !intel.microUpdate || intel.microUpdate + 150 < now
+                    || !intel.cached || intel.cached + CREEP_LIFE_TIME < now) {
+                    room.cacheRoomIntel();
+                }
                 new colony(room, this.colonyCreeps[roomName] || []);
             } catch (e) {
                 log.e(`Colony Module experienced an error in room ${roomLink(roomName)}`);
