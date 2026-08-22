@@ -23,9 +23,10 @@ const {
     isOwnedRoomRoadEligible,
     countRoadConstructionSites,
     getRemoteRoadPlan,
+    refreshRemotePlanMissing,
     canPlaceRemoteRoadSite,
     tileHasRoadBlockingStructure,
-    clearRemoteRoadVerifyCache,
+    clearRemoteRoadWorkHintCache,
     clearRoomMatrixCache,
     clearRoomPathCache,
     clearOwnedRoomRoadCaches,
@@ -68,17 +69,23 @@ function tryPlaceNextRemoteRoad(room, colony, context = {}) {
         removeRoadsUnderObstacles(room);
     }
     const plan = getRemoteRoadPlan(room, colony, context);
+    let placed = 0;
     for (const pos of plan.missing) {
         if (pos.isExit() || tileHasRoadBlockingStructure(pos)) continue;
-        if (!canPlaceRemoteRoadSite(room)) return false;
+        if (!canPlaceRemoteRoadSite(room)) break;
         const result = tryCreateConstructionSite(pos, STRUCTURE_ROAD);
         if (result === OK) {
-            clearRemoteRoadVerifyCache(room.name);
-            return true;
+            placed++;
+            continue;
         }
-        if (result === ERR_NOT_OWNER) return false;
+        if (result === ERR_NOT_OWNER || result === ERR_FULL) break;
     }
-    return false;
+    if (placed) {
+        refreshRemotePlanMissing(room, plan);
+        // Keep the corridor geometry; only drop work-hint caches.
+        clearRemoteRoadWorkHintCache(room.name);
+    }
+    return placed > 0;
 }
 
 function clearOwnedRoomRoadNetwork(roomOrName) {
