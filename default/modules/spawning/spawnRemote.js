@@ -343,9 +343,12 @@ function handleContestedRoom(room) {
         return spawnState.contestedRemotes[room.name] = undefined;
     }
     if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) {
+        const flow = getFlowContext(room);
+        const canQuad = spawnEnergyState(room) >= 2 && flow.flowHealthy && flow.spareIncome >= 8;
+        const waitFor = canQuad ? 4 : 2;
         if (queueCreepIfNeeded({
             room, role: 'longbowSquad', priority: PRIORITIES.remoteHarvester + 1,
-            numberNeeded: 4, destination: remoteName, misc: {waitFor: 4}
+            numberNeeded: waitFor, destination: remoteName, misc: {waitFor: waitFor}
         })) {
             if (!intel.contestingCount) intel.contestingCount = 1;
             else intel.contestingCount++;

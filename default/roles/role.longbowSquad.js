@@ -86,6 +86,10 @@ const FORMING_ABANDON_TTL = 600;
 // room queues wipe after 500 ticks without a spawn.
 const FORMING_STALL_TICKS = 500;
 
+// Assembled wave waiting on labs. LabTech already prioritizes wave fill;
+// past this, commit whatever landed or recycle if nothing did.
+const BOOST_WAIT_TICKS = 300;
+
 // After commit, wait this long for stragglers to reach the leader before
 // leaving the colony. Past that, go anyway so one stuck body cannot freeze
 // the wave.
@@ -150,9 +154,15 @@ class RoleLongbowSquad {
         if (!(waitFor > 1)) return true;
         if (creep.memory.boostAttempt || creep.memory.hasBoosted) return true;
         if (this.isSquadCommitted(creep)) return true;
-        // Grouped size, not room headcount — two pairs of 2 used to boost, lose
-        // renew, and freeze under recruit TTL before they could merge.
-        return this.waveAssembled(creep);
+        if (this.waveAssembled(creep)) return true;
+        // Overlap spawn and boost: a renewed body in a partial squad may start
+        // while the last egg is still in the spawn. A leftover solo must not
+        // dump minerals, and an incomplete wave with nothing incoming must
+        // keep renewing or two pairs boost, skip renew, and freeze under TTL.
+        if ((creep.ticksToLive || 0) <= CREEP_LIFE_TIME * 0.8) return false;
+        if (creep.memory.needsRenewal) return false;
+        if (this.waveLiveAtHome(creep) < 2) return false;
+        return !!(creep.waveStillIncoming && creep.waveStillIncoming());
     }
 
     handleLeader() {
@@ -817,6 +827,17 @@ class RoleLongbowSquad {
         return true;
     }
 
+    waveLiveAtHome(creep, squad) {
+        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
+        let live = 0;
+        for (let i = 0; i < wave.length; i++) {
+            const c = wave[i];
+            if (!c || c.spawning || c.room.name !== creep.room.name) continue;
+            live++;
+        }
+        return live;
+    }
+
     waveBoosted(creep, squad) {
         const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
         if (!wave.length) return false;
@@ -1016,6 +1037,7 @@ class RoleLongbowSquad {
             if (!c.memory.misc) c.memory.misc = {};
             c.memory.misc.sealed = true;
             c.memory.misc.committedSize = waitFor;
+            c.memory.misc.boostWaitTick = undefined;
             c.memory.initialFormUp = true;
         }
     }
@@ -1056,6 +1078,13 @@ class RoleLongbowSquad {
         if (creep.waveStillIncoming && creep.waveStillIncoming()) return false;
         const since = creep.memory.misc.formLiveTick || Game.time;
         return Game.time - since >= FORMING_STALL_TICKS;
+    }
+
+    waveBoostStalled(creep, squad) {
+        if (!this.waveAssembled(creep, squad) || this.isSquadCommitted(creep)) return false;
+        if (!creep.memory.misc) creep.memory.misc = {};
+        if (!creep.memory.misc.boostWaitTick) creep.memory.misc.boostWaitTick = Game.time;
+        return Game.time - creep.memory.misc.boostWaitTick >= BOOST_WAIT_TICKS;
     }
 
     // Seal without committedSize so a replacement waitFor wave can still spawn
@@ -1138,6 +1167,9 @@ class RoleLongbowSquad {
         }
 
         if (!this.waveAssembled(creep, squad)) {
+            if (creep.memory.misc && creep.memory.misc.boostWaitTick) {
+                creep.memory.misc.boostWaitTick = undefined;
+            }
             const abandoned = this.abandonIncompleteWave(creep, squad);
             if (abandoned === 'recycle') return true;
             if (abandoned === 'sealed') return false;
@@ -1147,8 +1179,23 @@ class RoleLongbowSquad {
         }
 
         if (!this.waveBoosted(creep, squad)) {
-            if (!creep.memory.boosts) this.goToMusterPad(creep);
-            return true;
+            if (this.waveBoostStalled(creep, squad)) {
+                const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
+                let anyBoosted = false;
+                for (let i = 0; i < wave.length; i++) {
+                    const c = wave[i];
+                    if (!c) continue;
+                    if (c.memory.hasBoosted && c.memory.hasBoosted.length) anyBoosted = true;
+                    if (c.clearBoostLabs) c.clearBoostLabs();
+                }
+                if (!anyBoosted) {
+                    this.recycleWave(creep, squad);
+                    return true;
+                }
+            } else {
+                if (!creep.memory.boosts) this.goToMusterPad(creep);
+                return true;
+            }
         }
 
         if (!this.waveReadyToCommit(creep, squad)) return true;

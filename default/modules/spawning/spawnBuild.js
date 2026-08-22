@@ -169,7 +169,9 @@ function preReserveBoostLab(room, creepName, neededBoosts, body, role, misc) {
         lab.memory.paused = true;
         lab.memory.neededBoost = reservation.boost;
         if (wave > 1) {
-            lab.memory.amount = Math.max(lab.memory.amount || 0, reservation.amount * wave);
+            // Pooled waitFor total is owned by reserveWaveBoosts. Seed one
+            // body so labTech has a floor until the first live creep runs.
+            if (!lab.memory.amount) lab.memory.amount = reservation.amount;
         } else {
             lab.memory.amount = (lab.memory.amount || 0) + reservation.amount;
         }
@@ -199,14 +201,20 @@ function isWaveCreepMemory(memory, wave) {
 }
 
 function reservationAllowed(room) {
-    if (!spawnEnergyState(room)) return false;
-    return getCreepCount(room, 'stationaryHarvester') > 0;
+    if (spawnEnergyState(room) < 1) return false;
+    if (!getCreepCount(room, 'stationaryHarvester')) return false;
+    if (room.storage && !getCreepCount(room, 'hauler')) return false;
+    return true;
 }
+
+const WAVE_FALLBACK_ROLES = new Set(['hauler', 'stationaryHarvester', 'shuttle']);
 
 function idleReserveCount(room, availableCount, owned, demand, spawn0Excluded, busyWave) {
     const cap = maxMilitaryReserve(owned);
     let idleCap = Math.min(cap, demand) - busyWave;
     if (idleCap < 0) idleCap = 0;
+    // State 1 is getting by, not stable — at most one locked spawn.
+    if (spawnEnergyState(room) < 2) idleCap = Math.min(idleCap, 1);
     if (!spawn0Excluded && owned >= 2) {
         idleCap = Math.min(idleCap, Math.max(0, availableCount - 1));
     } else {
@@ -216,11 +224,12 @@ function idleReserveCount(room, availableCount, owned, demand, spawn0Excluded, b
 }
 
 function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
-    const {only, excludeKey, spawned} = opts;
+    const {only, excludeKey, spawned, fallbackRoles} = opts;
     let waitingOnEnergy = false;
     for (let i = 0; i < queue.length; i++) {
         const item = queue[i];
         if (!item || !item.role || !item.body || !item.body.length) continue;
+        if (fallbackRoles && !WAVE_FALLBACK_ROLES.has(item.role)) continue;
         if (only && item.cacheKey !== only.cacheKey) continue;
         if (excludeKey && item.wave && item.cacheKey === excludeKey) continue;
         const left = (item.remaining || 1) - (spawned[item.cacheKey] || 0);
@@ -229,7 +238,7 @@ function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
         const cost = global.UNIT_COST(item.body);
         if (cost > energyCapacity) continue;
         if (cost > energyLeft) {
-            if (only) {
+            if (only && !fallbackRoles) {
                 waitingOnEnergy = true;
                 break;
             }
@@ -333,10 +342,12 @@ function processBuildQueue(room) {
 
     const lastSpawn = spawnState.lastBuilt[room.name];
     if (lastSpawn && lastSpawn + 500 < currentTick && room.energyAvailable >= 300) {
-        if (!wave || wave.global) {
+        // A closestRoom quad lives on the global queue. Wiping the room
+        // cache because that wave is forming deleted haulers/drones.
+        if (!formingWave) {
             CREEP_QUEUES[room.name] = {};
             spawnState.lastBuilt[room.name] = currentTick;
-            if (!wave) return;
+            return;
         }
     }
 
@@ -391,17 +402,34 @@ function processBuildQueue(room) {
         return true;
     };
 
+    const spawnWaveFallback = (spawn) => {
+        const fallback = pickQueueItem(queue, energyLeft, energyCapacity, {
+            excludeKey: wave.cacheKey, spawned, fallbackRoles: true
+        });
+        if (!fallback.item) {
+            renewNearbyCreepIfNeeded(room, spawn);
+            return;
+        }
+        if (!consume(spawn, fallback.item, fallback.cost)) {
+            renewNearbyCreepIfNeeded(room, spawn);
+        }
+    };
+
     for (let i = 0; i < reservedSpawns.length; i++) {
         const pick = pickQueueItem(queue, energyLeft, energyCapacity, {only: wave, spawned});
+        if (pick.item) {
+            if (!consume(reservedSpawns[i], pick.item, pick.cost)) {
+                waveEnergyWait = true;
+                spawnWaveFallback(reservedSpawns[i]);
+            }
+            continue;
+        }
         if (pick.waitingOnEnergy) {
             waveEnergyWait = true;
-            break;
+            spawnWaveFallback(reservedSpawns[i]);
+            continue;
         }
-        if (!pick.item) break;
-        if (!consume(reservedSpawns[i], pick.item, pick.cost)) {
-            waveEnergyWait = true;
-            break;
-        }
+        break;
     }
 
     for (let i = 0; i < freeSpawns.length; i++) {
