@@ -1,4 +1,5 @@
 const highCommand = require('module.highCommand');
+const {notifySiegeEvent} = require('module.notifications');
 
 // attackDirection is a neighboring room name (current writer) or a
 // FIND_EXIT_* key (legacy intel). Either must resolve to a room name.
@@ -37,6 +38,7 @@ Creep.prototype.denyRoom = function (options = {}) {
                 this.memory.waveTracked = true;
                 Memory.targetRooms[this.room.name].lastWave = Game.time;
                 Memory.targetRooms[this.room.name].waves = (Memory.targetRooms[this.room.name].waves || 0) + 1;
+                notifySiegeEvent(this.room.name, 'WAVE');
             } else {
                 this.memory.waveTracked = true;
             }

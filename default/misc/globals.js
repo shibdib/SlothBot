@@ -2042,6 +2042,27 @@ let globals = function () {
         return `<a href="#!/history/${Game.shard.name}/${roomName}?t=${Game.time}" ${select && id ? `onclick="angular.element('body').injector().get('RoomViewPendingSelector').set('${id}')"` : ``}>${text}</a>`;
     };
 
+    // Full URL for emails / external clients. Console should keep using roomHistoryLink.
+    global.roomHistoryUrl = function (roomArg, tick) {
+        let roomName;
+        if (roomArg instanceof Room) {
+            roomName = roomArg.name;
+        } else if (roomArg && roomArg.pos !== undefined) {
+            roomName = roomArg.pos.roomName;
+        } else if (roomArg && roomArg.roomName !== undefined) {
+            roomName = roomArg.roomName;
+        } else if (typeof roomArg === 'string') {
+            roomName = roomArg;
+        } else {
+            return undefined;
+        }
+        const shard = (Game.shard && Game.shard.name) || 'shard0';
+        const ptr = Game.shard && Game.shard.ptr;
+        const season = /season/i.test(shard);
+        const base = ptr ? 'https://screeps.com/ptr' : season ? 'https://screeps.com/season' : 'https://screeps.com/a';
+        return `${base}/#!/history/${shard}/${roomName}?t=${tick || Game.time}`;
+    };
+
     global.getRandomInt = function (min, max) {
         return Math.floor(Math.random() * (max - min + 1) + min);
     };
