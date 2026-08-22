@@ -121,6 +121,8 @@ const LIVE_REMOTE_ROLES = {
     reserver: true,
     remoteBuilder: true,
     roadBuilder: true,
+    SKAttacker: true,
+    commodityMiner: true,
 };
 
 function markLiveWork(colony, remote) {
@@ -296,8 +298,13 @@ function pruneRemoteRoomCount(colonyName, colonyRoom) {
     if (rooms.length <= maxRooms) return;
 
     // Prefer live work, then best (lowest) haul scores. Higher scores are worse.
+    // SK rooms stay assigned across a guard TTL gap — dropping them stranded
+    // the room with no attacker, no harvesters, and no way to re-queue.
     ensureClaimIndex();
     rooms.sort((a, b) => {
+        const skA = isSkRoomName(a) ? 0 : 1;
+        const skB = isSkRoomName(b) ? 0 : 1;
+        if (skA !== skB) return skA - skB;
         const liveA = !!(liveWorkIndex[colonyName] && liveWorkIndex[colonyName][a]);
         const liveB = !!(liveWorkIndex[colonyName] && liveWorkIndex[colonyName][b]);
         if (liveA !== liveB) return liveA ? -1 : 1;
@@ -338,6 +345,38 @@ function getColonySkRooms(colonyName) {
         rooms.push(remoteName);
     }
     return rooms;
+}
+
+/** Assigned SK rooms, plus intel-owned SK if prune already dropped the paper claim. */
+function getColonySkGuardRooms(colonyName) {
+    const assigned = getColonySkRooms(colonyName);
+    const cap = maxSkRoomsPerColony();
+    if (assigned.length >= cap) return assigned;
+    const seen = new Set(assigned);
+    const out = assigned.slice();
+    const idx = global.getIntelIndexes ? global.getIntelIndexes() : null;
+    const pools = [];
+    if (idx && idx.activeRemotes) pools.push(idx.activeRemotes);
+    if (idx && idx.unownedSources) pools.push(idx.unownedSources);
+    for (let p = 0; p < pools.length && out.length < cap; p++) {
+        for (const name of pools[p]) {
+            if (seen.has(name) || !isSkRoomName(name)) continue;
+            const intel = INTEL[name];
+            if (!intel || !intel.remoteSourceData) continue;
+            let ours = false;
+            for (let i = 0; i < intel.remoteSourceData.length; i++) {
+                if (intel.remoteSourceData[i].colony === colonyName) {
+                    ours = true;
+                    break;
+                }
+            }
+            if (!ours) continue;
+            seen.add(name);
+            out.push(name);
+            if (out.length >= cap) break;
+        }
+    }
+    return out;
 }
 
 /**
@@ -637,18 +676,48 @@ function sourcePickScore(sourceEntry) {
     return sourceEntry.score - Math.min(6, (sources - 1) * 2);
 }
 
+function intelObservationTick(intel) {
+    return Math.max(intel.lastObservation || 0, intel.cached || 0, intel.microUpdate || 0);
+}
+
+/**
+ * Live combat/stronghold that should pause SK mining. Stale threatLevel from a
+ * previous invader wave must not drop the assignment forever once we have no vision.
+ */
+function skCombatBlocksMining(remoteName) {
+    const intel = INTEL[remoteName];
+    if (!intel) return false;
+    const vis = Game.rooms[remoteName];
+    if (vis) {
+        if (vis.structures.some(s => s.structureType === STRUCTURE_TOWER && !s.my)) return true;
+        return vis.hostileCreeps.some(c => {
+            const owner = c.owner && c.owner.username;
+            if (!owner || owner === 'Source Keeper') return false;
+            return c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK);
+        });
+    }
+    if (intel.invaderCore && intel.invaderCore > Game.time) return true;
+    if (intel.invaderTTL && intel.invaderTTL > Game.time) return true;
+    if (intel.threatLevel > 1 && intelObservationTick(intel) + 300 > Game.time) return true;
+    return false;
+}
+
 function shouldSkipRemotePrune(colonyRoom, remoteName) {
     if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) return true;
     if (!INTEL[remoteName]) return true;
-    if (INTEL[remoteName].threatLevel > 1) return true;
     if (isSectorCenterRoomName(remoteName)) {
         if (!isSectorCenterAddOn(colonyRoom.name, remoteName)) return true;
         if (INTEL[remoteName].owner || INTEL[remoteName].obstacles) return true;
-        if (INTEL[remoteName].roomHeat > 250) return true;
+        if (INTEL[remoteName].roomHeat > 250 && intelObservationTick(INTEL[remoteName]) + CREEP_LIFE_TIME > Game.time) return true;
         return false;
     }
     const isSk = !!(INTEL[remoteName].sk || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(remoteName)));
     if (isSk && !(SK_MINING && colonyRoom.level >= SK_MINING_LEVEL)) return true;
+    if (isSk) {
+        if (skCombatBlocksMining(remoteName)) return true;
+        return false;
+    }
+    if (INTEL[remoteName].threatLevel > 1) return true;
     if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
     if (INTEL[remoteName].reservation && ![MY_USERNAME, 'Invader'].includes(INTEL[remoteName].reservation)) return true;
     if (INTEL[remoteName].roomHeat > 250) return true;
@@ -1010,6 +1079,16 @@ function refreshLiveSkAttackers() {
         const dest = creep.memory.destination || creep.room.name;
         if (dest) liveSkByDest[dest] = true;
     }
+    if (typeof CREEP_QUEUES === 'undefined' || !CREEP_QUEUES) return;
+    for (const colony in CREEP_QUEUES) {
+        const queue = CREEP_QUEUES[colony];
+        if (!queue) continue;
+        for (const key in queue) {
+            const entry = queue[key];
+            if (!entry || entry.role !== 'SKAttacker') continue;
+            if (entry.destination) liveSkByDest[entry.destination] = true;
+        }
+    }
 }
 
 function hasLiveSkAttacker(remoteName) {
@@ -1105,8 +1184,10 @@ module.exports = {
     isContestedRemoteCandidate,
     isBlockedRemoteCandidate,
     isSkRoomName,
+    skCombatBlocksMining,
     isAllowedSkRoom,
     getColonySkRooms,
+    getColonySkGuardRooms,
     pruneExcessSkRooms,
     pruneOrphanSectorCenters,
     getAdjacentSectorCenter,

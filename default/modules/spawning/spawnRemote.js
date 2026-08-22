@@ -114,6 +114,10 @@ function hasSkAttackerCoverage(remoteName) {
     return remoteMining.hasLiveSkAttacker(remoteName);
 }
 
+function skTowersOrCombatBlock(remoteName) {
+    return remoteMining.skCombatBlocksMining(remoteName);
+}
+
 function queuedSkRoom(entry) {
     if (!entry) return undefined;
     if (entry.other && entry.other.skRoom) return entry.other.skRoom;
@@ -425,12 +429,18 @@ function handleRemoteBuilder(room) {
 }
 
 function handleSkCreeps(room, remoteName) {
+    const live = getCreepCount(undefined, 'SKAttacker', remoteName);
+    // Replacement must beat drones/remotes so spawn starts during the lead window.
+    const priority = live
+        ? PRIORITIES.hauler
+        : Math.max(1, PRIORITIES.remoteHarvester - 2);
     queueCreepIfNeeded({
         room,
         role: 'SKAttacker',
-        priority: Math.max(1, PRIORITIES.remoteHarvester - 2),
+        priority,
         numberNeeded: 1,
-        destination: remoteName
+        destination: remoteName,
+        colony: room.name,
     });
     if (!hasSkAttackerCoverage(remoteName)) return;
     queueCreepIfNeeded({
@@ -513,7 +523,11 @@ function handleRemoteHarvesters(room) {
         }
     }
 
-    const pool = replacements.length ? replacements : (atCap ? [] : eligible);
+    const skUnstaffed = eligible.filter(s =>
+        remoteMining.isKeeperYieldRoom(s.room)
+        && !getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source));
+    const pool = replacements.length ? replacements
+        : (skUnstaffed.length ? skUnstaffed : (atCap ? [] : eligible));
     let pick = null;
     let bestPickScore = Infinity;
     for (let i = 0; i < pool.length; i++) {
@@ -655,23 +669,21 @@ function processRemoteSpecificTasks(room, remoteName) {
     remoteMining.trackRemoteRoom(remoteName, room);
     if (!isSkRoom(remoteName)) handleReservation(room, remoteName);
     if (INTEL[remoteName].invaderCore) handleInvaderCore(room, remoteName);
-    if (skMiningAllowed(room) && isSkRoom(remoteName) && !INTEL[remoteName].towers) {
-        handleSkCreeps(room, remoteName);
-    }
 }
 
 function shouldSkipRemote(room, remoteName) {
     if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) return true;
     if (!INTEL[remoteName]) return true;
-    if (INTEL[remoteName].threatLevel > 1) return true;
     if (isSkRoom(remoteName) && !skMiningAllowed(room)) return true;
     if (isSkRoom(remoteName) && !remoteMining.isAllowedSkRoom(room.name, remoteName)) return true;
+    if (isSkRoom(remoteName)) return skTowersOrCombatBlock(remoteName);
+    if (INTEL[remoteName].threatLevel > 1) return true;
     if (remoteMining.isSectorCenterRoomName(remoteName)) {
         if (!skMiningAllowed(room) || !remoteMining.isSectorCenterAddOn(room.name, remoteName)) return true;
         if (INTEL[remoteName].owner || INTEL[remoteName].obstacles) return true;
         if (INTEL[remoteName].roomHeat > 250) return true;
         if (!INTEL[remoteName].sources) return true;
-        return false;
+        return skTowersOrCombatBlock(remoteMining.getSectorCenterSkParent(room.name, remoteName) || remoteName);
     }
     if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
     if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
@@ -726,6 +738,24 @@ function remoteCreepQueue(room) {
 
     for (let i = 0; i < activeRemotes.length; i++) {
         processRemoteSpecificTasks(room, activeRemotes[i]);
+    }
+
+    // SK guard is independent of harvest vision/threat gates. If the assignment
+    // survived prune, always queue the attacker so the room can restaff.
+    if (skMiningAllowed(room)) {
+        const guarded = new Set();
+        const queueGuard = (name) => {
+            if (!name || guarded.has(name) || !isSkRoom(name)) return;
+            if (skTowersOrCombatBlock(name)) return;
+            if (!remoteMining.isAllowedSkRoom(room.name, name)) return;
+            guarded.add(name);
+            handleSkCreeps(room, name);
+            remoteMining.probeMiningRoute(room.name, name, {allowLive: false});
+            ingestColonyRemoteSources(room, name);
+        };
+        const assignedSk = remoteMining.getColonySkGuardRooms(room.name);
+        for (let i = 0; i < assignedSk.length; i++) queueGuard(assignedSk[i]);
+        for (let i = 0; i < activeRemotes.length; i++) queueGuard(activeRemotes[i]);
     }
 
     handleBlockedRoom(room);

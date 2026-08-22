@@ -255,6 +255,37 @@ function getCreepCount(room = undefined, role, destination = undefined, operatio
     return data ? data.count : 0;
 }
 
+const REPLACEMENT_BUFFER = 80;
+const SK_ATTACKER_OVERLAP = 100;
+const TICKS_PER_ROOM = 50;
+
+function replacementOrigin(room, colony, destination) {
+    const colonyKey = colony && (typeof colony === 'string' ? colony : colony.name);
+    if (colonyKey) return colonyKey;
+    if (room) return typeof room === 'string' ? room : room.name;
+    if (destination) return findClosestOwnedRoom(destination, false, MAX_LEVEL);
+    return undefined;
+}
+
+function replacementHops(origin, destination) {
+    if (!origin || !destination || origin === destination) return 0;
+    let hops = Game.map.getRoomLinearDistance(origin, destination);
+    try {
+        const {getMiningRouteRooms} = require('remoteMining');
+        const route = getMiningRouteRooms(origin, destination);
+        if (route && route.length) hops = Math.max(hops, route.length);
+    } catch (e) { /* route cache unavailable */ }
+    return hops;
+}
+
+function replacementLeadTime(role, bodyLen, origin, destination) {
+    const spawnTime = 3 * (bodyLen || 1);
+    // +1 hop: walk from spawn to the colony exit (linear distance ignores that).
+    const travel = (replacementHops(origin, destination) + 1) * TICKS_PER_ROOM;
+    const overlap = role === 'SKAttacker' ? SK_ATTACKER_OVERLAP : 0;
+    return spawnTime + travel + REPLACEMENT_BUFFER + overlap;
+}
+
 function creepExpiringSoon(room = undefined, role, destination = undefined, operation = undefined, colony = undefined, assignment = undefined, waitFor = undefined) {
     updateCreepCountCache();
     const key = countLookupKey(role, room, destination, operation, colony, assignment, waitFor);
@@ -263,16 +294,8 @@ function creepExpiringSoon(room = undefined, role, destination = undefined, oper
     const data = CREEP_COUNT_CACHE.counts[key];
     if (!data || data.count <= 0 || data.minTTL === Infinity) return false;
 
-    let distance = 0;
-    if (destination) {
-        const colonyKey = colony && (typeof colony === 'string' ? colony : colony.name);
-        const originRoom = colonyKey
-            || (room && (typeof room === 'string' ? room : room.name))
-            || findClosestOwnedRoom(destination, false, MAX_LEVEL);
-        distance = originRoom ? Game.map.getRoomLinearDistance(originRoom, destination) * 50 : 0;
-    }
-    const spawnTime = 3 * data.bodyLen;
-    return data.minTTL <= (spawnTime + distance);
+    const origin = replacementOrigin(room, colony, destination);
+    return data.minTTL <= replacementLeadTime(role, data.bodyLen, origin, destination);
 }
 
 function getBodyAbilityPower(room, role) {
