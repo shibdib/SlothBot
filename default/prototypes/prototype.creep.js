@@ -24,6 +24,7 @@
 const {empireOpsPaused} = require('hcReadiness');
 const {runTowTruck} = require('pathTow');
 const {clearShibMove, getShibMove} = require('pathUtils');
+const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 
 const exitTileCache = {};
 
@@ -1072,7 +1073,12 @@ function expectedBoostParts(creep) {
     if (nb && nb.moveBoost) add(MOVE);
     const extra = creep.memory.misc && creep.memory.misc.boosts;
     if (extra) {
-        for (let i = 0; i < extra.length; i++) add(extra[i]);
+        for (let i = 0; i < extra.length; i++) {
+            const part = extra[i];
+            // RA/MOVE on the wishlist are opportunistic; neededBoosts pins the required set.
+            if (isOptionalSiegeBoost(part)) continue;
+            add(part);
+        }
     }
     return parts;
 }

@@ -9,3 +9,4 @@ module.exports.essentialCreepQueue = require('spawnEssential').essentialCreepQue
 module.exports.miscCreepQueue = require('spawnMisc').miscCreepQueue;
 module.exports.remoteCreepQueue = require('spawnRemote').remoteCreepQueue;
 module.exports.globalCreepQueue = require('spawnGlobal').globalCreepQueue;
+module.exports.resolvePendingAssignments = require('spawnOperations').resolvePendingAssignments;

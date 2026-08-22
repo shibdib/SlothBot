@@ -3,6 +3,7 @@
  */
 const {siegeLevel} = require('hcUtils');
 const {notifySiegeLaunch, notifySiegeEnd} = require('module.notifications');
+const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS} = require('bodySiegeBoosts');
 
 Creep.prototype.scoutRoom = function () {
     if (this.room.name !== this.memory.destination) {
@@ -126,10 +127,14 @@ function handleScoutOperation(room) {
 
     if (intel.sk && towers.length) {
         Memory.targetRooms[room.name].type = 'stronghold';
-        Memory.targetRooms[room.name].boosts = [HEAL];
+        Memory.targetRooms[room.name].boosts = SIEGE_REQUIRED_BOOSTS.slice();
+        Memory.targetRooms[room.name].optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();
     } else if (isHostile && siegeLevel(towers.length || intel.towers || 0)) {
         Memory.targetRooms[room.name].type = 'roomDenial';
-        if (towers.length) Memory.targetRooms[room.name].boosts = [HEAL];
+        if (towers.length) {
+            Memory.targetRooms[room.name].boosts = SIEGE_REQUIRED_BOOSTS.slice();
+            Memory.targetRooms[room.name].optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();
+        }
         log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
         notifySiegeLaunch(room.name);
     } else if (isHostile && (towers.length || intel.towers)) {
@@ -197,5 +202,8 @@ function updateRoomLevel(room) {
         const coreAlive = targetRoom.type === 'stronghold' && room.structures.some(s => s.structureType === STRUCTURE_INVADER_CORE);
         targetRoom.level = coreAlive ? 1 : 0;
     }
-    if (!towers.length && targetRoom.type !== 'stronghold') targetRoom.boosts = undefined;
+    if (!towers.length && targetRoom.type !== 'stronghold') {
+        targetRoom.boosts = undefined;
+        targetRoom.optionalBoosts = undefined;
+    }
 }

@@ -6,7 +6,7 @@
 
 const generator = require('module.bodyGenerator');
 const {getCreepCount, creepExpiringSoon, invalidateCreepCountCache} = require('spawnCounts');
-const {collectGlobalOperations, unassignRoom} = require('spawnOperations');
+const {collectGlobalOperations, releaseAssignmentIfStuck, generatedBodyMissingBoosts} = require('spawnOperations');
 const {spawnEnergyState} = require('spawnFlow');
 const {roomInSpawnRecovery} = require('bodyHelpers');
 
@@ -213,57 +213,25 @@ function prepareQueueItems(merged, room) {
         const target = creep.destination && (creep.other && creep.other.assignment
             ? creep.other.assignment
             : creep.destination);
-        const opMemory = target
-            ? Memory.targetRooms[target] || Memory.auxiliaryTargets[target]
-            : null;
 
         const generatedInfo = new generator(room.level, creep.role, room, creep).generateBody();
-        const liveForOp = (creep.destination && creep.role)
-            ? getCreepCount(undefined, creep.role, creep.destination, creep.operation)
-            : 0;
         if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
-            if (opMemory && opMemory.assignedRoom === room.name
-                && (!liveForOp || isWaitForLongbowWave(creep))) {
-                unassignRoom(target, 'Unable to generate needed body.');
-            }
+            releaseAssignmentIfStuck(room, target, 'Unable to generate needed body.', creep);
             continue;
         }
 
         const body = generatedInfo.body;
         if (!body.length) continue;
 
-        const requiredBoosts = [];
-        if (opMemory && opMemory.boosts) {
-            for (let i = 0; i < opMemory.boosts.length; i++) requiredBoosts.push(opMemory.boosts[i]);
+        if (generatedInfo.info && generatedInfo.info.neededBoosts) {
+            creep.neededBoosts = generatedInfo.info.neededBoosts;
         }
-        if (creep.misc && creep.misc.boosts) {
-            for (let i = 0; i < creep.misc.boosts.length; i++) {
-                if (!requiredBoosts.includes(creep.misc.boosts[i])) requiredBoosts.push(creep.misc.boosts[i]);
-            }
-        }
-        const nb = generatedInfo.info && generatedInfo.info.neededBoosts;
-        let missingBoosts = requiredBoosts.length &&
-            !room.boostCheck(body, undefined, opMemory && opMemory.boostTier, 1, requiredBoosts);
-        if (!missingBoosts && nb && nb.toughBoost && body.includes(TOUGH)) {
-            const toughCount = body.filter(p => p === TOUGH).length;
-            missingBoosts = room.store(nb.toughBoost) < 30 * toughCount;
-        }
-        if (!missingBoosts && nb && nb.moveBoost && body.includes(MOVE)) {
-            const moveCount = body.filter(p => p === MOVE).length;
-            missingBoosts = room.store(nb.moveBoost) < 30 * moveCount;
-        }
-        if (missingBoosts) {
-            if (opMemory && opMemory.assignedRoom === room.name
-                && (!liveForOp || isWaitForLongbowWave(creep))) {
-                unassignRoom(target, 'Missing required boosts.');
-            }
+        if (generatedBodyMissingBoosts(room, body, creep)) {
+            releaseAssignmentIfStuck(room, target, 'Missing required boosts.', creep);
             continue;
         }
 
         creep.body = body;
-        if (generatedInfo.info && generatedInfo.info.neededBoosts) {
-            creep.neededBoosts = generatedInfo.info.neededBoosts;
-        }
         creep.sortPriority = computeSortPriority(creep, room);
 
         if (isWaitForLongbowWave(creep)) {

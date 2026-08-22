@@ -236,6 +236,7 @@ class World {
 
     colonyManager() {
         const rooms = shuffle([...MY_ROOMS]); // Cache rooms to avoid global lookups
+        spawning.resolvePendingAssignments();
 
         for (const roomName of rooms) {
             const room = Game.rooms[roomName];

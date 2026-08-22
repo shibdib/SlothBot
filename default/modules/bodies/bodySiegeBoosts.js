@@ -6,6 +6,18 @@
 
 const toughMulti = {GO: 0.75, GHO2: 0.55, XGHO2: 0.35};
 
+// HEAL/TOUGH gate the siege body. RA/MOVE are lab wish-list only.
+const SIEGE_REQUIRED_BOOSTS = [TOUGH, HEAL];
+const SIEGE_OPTIONAL_BOOSTS = [RANGED_ATTACK, MOVE];
+
+function isOptionalSiegeBoost(part) {
+    return part === RANGED_ATTACK || part === MOVE;
+}
+
+function siegeLabBoosts() {
+    return SIEGE_REQUIRED_BOOSTS.concat(SIEGE_OPTIONAL_BOOSTS);
+}
+
 function moveFatigueFactor(boost) {
     if (!boost || !BOOSTS[MOVE] || !BOOSTS[MOVE][boost]) return 1;
     return BOOSTS[MOVE][boost].fatigue || 1;
@@ -166,4 +178,8 @@ module.exports = {
     checkForNeededHeal,
     checkForNeededTough,
     checkForNeededMove,
+    SIEGE_REQUIRED_BOOSTS,
+    SIEGE_OPTIONAL_BOOSTS,
+    isOptionalSiegeBoost,
+    siegeLabBoosts,
 };

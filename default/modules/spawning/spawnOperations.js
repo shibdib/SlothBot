@@ -15,12 +15,14 @@ const {
     roomStockpileRatio,
 } = require('hcReadiness');
 const {spawnEnergyState} = require('spawnFlow');
+const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
 const HELPER_ROLES = new Set(['cleaner', 'claimAttacker', 'remoteHauler']);
 const HELPER_LEVEL = 4;
 const INVISIBLE_ASSIGNMENT_TIMEOUT = 50;
 const ASSIGNMENT_FAILURE_COOLDOWN = 5;
+const ROOM_ASSIGN_EXCLUDE = 100;
 const LOAD_PER_SPAWN_CAP = 6;
 const ROLE_ASSIGN_WEIGHT = {
     longbowSquad: 100,
@@ -33,8 +35,109 @@ const ROLE_ASSIGN_WEIGHT = {
     scout: 10
 };
 const assignmentCooldown = {};
+const assignmentExcludeUntil = {};
 let militaryLoadCache = {tick: -1, loads: null};
 let assignedRoomCache = {tick: -1, results: {}};
+let assignmentResolvedTick = -1;
+
+function invalidateAssignmentCaches() {
+    assignedRoomCache = {tick: -1, results: {}};
+    militaryLoadCache = {tick: -1, loads: null};
+}
+
+function markAssignmentExclude(destination, roomName) {
+    if (!destination || !roomName) return;
+    assignmentExcludeUntil[`${destination}|${roomName}`] = Game.time + ROOM_ASSIGN_EXCLUDE;
+}
+
+function isAssignmentExcluded(destination, roomName) {
+    const key = `${destination}|${roomName}`;
+    const until = assignmentExcludeUntil[key];
+    if (!until) return false;
+    if (until <= Game.time) {
+        delete assignmentExcludeUntil[key];
+        return false;
+    }
+    return true;
+}
+
+function cloneCreepInfo(creepInfo) {
+    if (!creepInfo) return {};
+    const clone = Object.assign({}, creepInfo);
+    clone.other = Object.assign({}, creepInfo.other || {});
+    clone.misc = Object.assign({}, creepInfo.misc || {});
+    if (clone.misc.boosts) clone.misc.boosts = clone.misc.boosts.slice();
+    clone.body = undefined;
+    clone.neededBoosts = undefined;
+    return clone;
+}
+
+// Body-gen already refused rooms that cannot field required HEAL/TOUGH.
+// Listed RA/MOVE are optional lab boosts — requiring full-part mineral
+// stock here unassigned rooms that could still spawn, then reassigned them.
+function generatedBodyMissingBoosts(room, body, creepInfo) {
+    if (!room || !body || !body.length) return true;
+    const nb = creepInfo && creepInfo.neededBoosts;
+    if (!nb) return false;
+    const short = (part, boost) => {
+        if (!boost || !body.includes(part)) return false;
+        return room.store(boost) < LAB_BOOST_MINERAL * body.filter(p => p === part).length;
+    };
+    if (nb.boost && nb.boostPart && short(nb.boostPart, nb.boost)) return true;
+    if (short(TOUGH, nb.toughBoost)) return true;
+    if (short(MOVE, nb.moveBoost)) return true;
+    return false;
+}
+
+function optionalBoostPenalty(room, creepInfo, body) {
+    const wanted = [];
+    const add = (list) => {
+        if (!list) return;
+        for (let i = 0; i < list.length; i++) {
+            const part = list[i];
+            if (!isOptionalSiegeBoost(part)) continue;
+            if (!wanted.includes(part)) wanted.push(part);
+        }
+    };
+    const dest = creepInfo && creepInfo.destination;
+    const op = dest && (Memory.targetRooms[dest] || Memory.auxiliaryTargets[dest]);
+    add(op && op.optionalBoosts);
+    add(creepInfo && creepInfo.misc && creepInfo.misc.boosts);
+    let penalty = 0;
+    for (let i = 0; i < wanted.length; i++) {
+        const part = wanted[i];
+        if (!body.includes(part) || !BOOST_USE || !BOOST_USE[part]) continue;
+        const needed = LAB_BOOST_MINERAL * body.filter(p => p === part).length;
+        const tiers = BOOST_USE[part];
+        let stocked = false;
+        for (let t = 0; t < tiers.length; t++) {
+            if (room.store(tiers[t]) >= needed) {
+                stocked = true;
+                break;
+            }
+        }
+        if (!stocked) penalty += 3;
+    }
+    return penalty;
+}
+
+function tryGenerateAssignableBody(room, creepInfo, destination) {
+    const op = destination && (Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination]);
+    const prevTier = op ? op.boostTier : undefined;
+    const clone = cloneCreepInfo(creepInfo);
+    let generatedInfo;
+    try {
+        generatedInfo = new generator(room.level, clone.role, room, clone).generateBody();
+    } finally {
+        if (op) {
+            if (prevTier === undefined) delete op.boostTier;
+            else op.boostTier = prevTier;
+        }
+    }
+    if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) return null;
+    if (generatedBodyMissingBoosts(room, generatedInfo.body, clone)) return null;
+    return {body: generatedInfo.body, info: clone};
+}
 
 function buildOperationsSignature() {
     let sig = '';
@@ -62,7 +165,44 @@ function pruneEmptyOperations() {
     }
 }
 
+function entryTarget(entry) {
+    if (!entry) return undefined;
+    return (entry.other && entry.other.assignment) || entry.destination;
+}
+
+function resolvePendingAssignments(force) {
+    if (!force && assignmentResolvedTick === Game.time) return;
+    assignmentResolvedTick = Game.time;
+
+    const seen = {};
+    const consider = (target, fallbackEntry) => {
+        if (!target || seen[target]) return;
+        const opMemory = Memory.targetRooms[target] || Memory.auxiliaryTargets[target];
+        if (!opMemory) return;
+        seen[target] = true;
+        const intel = INTEL[target];
+        const levelTarget = computeOpLevelTarget(target, opMemory, intel);
+        const entry = heaviestQueuedEntry(target, fallbackEntry || {role: 'longbow', destination: target});
+        resolveAssignment(target, opMemory, levelTarget, entry, intel);
+    };
+
+    const globalQueue = CREEP_QUEUES['global'] || {};
+    for (const key in globalQueue) {
+        const entry = globalQueue[key];
+        if (!entry || !entry.destination) continue;
+        consider(entryTarget(entry), entry);
+    }
+
+    for (const target in Memory.targetRooms || {}) {
+        if (Memory.targetRooms[target] && Memory.targetRooms[target].assignedRoom) consider(target);
+    }
+    for (const target in Memory.auxiliaryTargets || {}) {
+        if (Memory.auxiliaryTargets[target] && Memory.auxiliaryTargets[target].assignedRoom) consider(target);
+    }
+}
+
 function collectGlobalOperations(room) {
+    resolvePendingAssignments();
     const globalQueue = CREEP_QUEUES['global'];
     if (!globalQueue) return {};
     const out = {};
@@ -82,27 +222,16 @@ function considerGlobalEntry(room, entry) {
     }
     if (entry.destination === room.name) return null;
 
-    const target = entry.other && entry.other.assignment ? entry.other.assignment : entry.destination;
+    const target = entryTarget(entry);
     const opMemory = Memory.targetRooms[target] || Memory.auxiliaryTargets[target];
-    if (!opMemory) return null;
-
-    const intel = INTEL[target];
-    const levelTarget = computeOpLevelTarget(target, opMemory, intel);
+    if (!opMemory || opMemory.assignedRoom !== room.name) return null;
 
     if (HELPER_ROLES.has(entry.role)) {
         if (room.level < HELPER_LEVEL) return null;
-        const winner = getAssignedRoom(target, HELPER_LEVEL, entry, {helper: true});
-        if (winner !== room.name) return null;
         return {...entry};
     }
 
-    if (entry.closestRoom) {
-        const assigned = resolveAssignment(room, target, opMemory, levelTarget, entry, intel);
-        if (assigned !== room.name) return null;
-    } else if (opMemory.assignedRoom && opMemory.assignedRoom !== room.name) {
-        return null;
-    }
-
+    const levelTarget = computeOpLevelTarget(target, opMemory, INTEL[target]);
     if (room.level < levelTarget) return null;
 
     return {...entry};
@@ -141,7 +270,7 @@ function clearAssignmentWaitState(opMemory) {
 }
 
 function assignmentAllowsMissingIntel(opMemory, entry) {
-    return opMemory.type === 'scout' || entry.role === 'scout';
+    return opMemory.type === 'scout' || !!(entry && entry.role === 'scout');
 }
 
 function hasInflightOpCreeps(target, operation) {
@@ -179,8 +308,8 @@ function handleInvisibleAssignmentWait(target, opMemory) {
     return true;
 }
 
-function handleAssignmentReadinessWait(room, target, opMemory, reason) {
-    if (room.name !== opMemory.assignedRoom) return opMemory.assignedRoom;
+function handleAssignmentReadinessWait(target, opMemory, reason) {
+    if (!opMemory.assignedRoom || !Game.rooms[opMemory.assignedRoom]) return opMemory.assignedRoom;
 
     const now = Game.time;
     if (opMemory.assignmentEnergyLastTick !== now) {
@@ -188,14 +317,14 @@ function handleAssignmentReadinessWait(room, target, opMemory, reason) {
         opMemory.assignmentEnergyLastTick = now;
         if (opMemory.assignmentEnergyCounter > 100) {
             if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
-            unassignRoom(target, reason);
+            unassignRoom(target, reason, {excludeRoom: true, cooldown: true});
             return null;
         }
     }
     return opMemory.assignedRoom;
 }
 
-function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
+function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
     const now = Game.time;
     if (opMemory.assignedRoom) {
         const assigned = Game.rooms[opMemory.assignedRoom];
@@ -213,11 +342,11 @@ function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
                 const tier = getOpTier(opMemory, entry);
                 if (!isRoomReadyForTier(assigned, tier)) {
                     if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
-                    return handleAssignmentReadinessWait(room, target, opMemory, 'Room is not combat ready.');
+                    return handleAssignmentReadinessWait(target, opMemory, 'Room is not combat ready.');
                 }
             } else if (Memory.auxiliaryTargets[target] && !isLiveAuxReady(assigned)) {
                 if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
-                return handleAssignmentReadinessWait(room, target, opMemory, 'Room is not auxiliary ready.');
+                return handleAssignmentReadinessWait(target, opMemory, 'Room is not auxiliary ready.');
             }
 
             clearAssignmentWaitState(opMemory);
@@ -225,7 +354,7 @@ function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
             const stale = opMemory.assignedAt && opMemory.assignedAt + (CREEP_LIFE_TIME * 2) < now;
             if (!stale) return opMemory.assignedRoom;
             if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
-            unassignRoom(target, 'Refreshing assignment.');
+            return refreshStaleAssignment(target, opMemory, levelTarget, entry);
         }
     }
 
@@ -236,6 +365,25 @@ function resolveAssignment(room, target, opMemory, levelTarget, entry, intel) {
 
     opMemory.assignedRoom = resolved;
     opMemory.assignedAt = now;
+    clearAssignmentWaitState(opMemory);
+    retargetFormingWaitForColony(target, entry && entry.operation, resolved);
+    log.a(`Assigning the operation in ${roomLink(target)} to ${roomLink(resolved)}`, 'OPERATIONS:');
+    return resolved;
+}
+
+function refreshStaleAssignment(target, opMemory, levelTarget, entry) {
+    const previous = opMemory.assignedRoom;
+    markAssignmentExclude(target, previous);
+    invalidateAssignmentCaches();
+    const resolved = getAssignedRoom(target, levelTarget, heaviestQueuedEntry(target, entry));
+    if (!resolved) {
+        delete assignmentExcludeUntil[`${target}|${previous}`];
+        opMemory.assignedAt = Game.time;
+        return previous;
+    }
+    unassignRoom(target, 'Refreshing assignment.');
+    opMemory.assignedRoom = resolved;
+    opMemory.assignedAt = Game.time;
     clearAssignmentWaitState(opMemory);
     retargetFormingWaitForColony(target, entry && entry.operation, resolved);
     log.a(`Assigning the operation in ${roomLink(target)} to ${roomLink(resolved)}`, 'OPERATIONS:');
@@ -270,7 +418,7 @@ function heaviestQueuedEntry(targetRoom, fallback) {
     if (!globalQueue) return best;
     for (const key in globalQueue) {
         const e = globalQueue[key];
-        const dest = e.destination || (e.other && e.other.assignment);
+        const dest = entryTarget(e);
         if (dest !== targetRoom) continue;
         const w = roleAssignWeight(e.role);
         if (w > bestW) {
@@ -296,7 +444,7 @@ function getMilitaryLoadByColony() {
     const globalQueue = CREEP_QUEUES['global'] || {};
     for (const key in globalQueue) {
         const e = globalQueue[key];
-        const dest = e.destination || (e.other && e.other.assignment);
+        const dest = entryTarget(e);
         if (!dest) continue;
         const op = Memory.targetRooms[dest] || Memory.auxiliaryTargets[dest];
         if (op && op.assignedRoom) bump(op.assignedRoom, 1);
@@ -347,15 +495,16 @@ function computeAssignmentScore(myRoom, routeDistance, load, isAuxiliary) {
     return score;
 }
 
-function getAssignedRoom(targetRoom, level, creepInfo, options = {}) {
-    const cacheKey = getAssignedRoomCacheKey(targetRoom, level, creepInfo) + (options.helper ? ':h' : '');
+function getAssignedRoom(targetRoom, level, creepInfo) {
+    if (!creepInfo) creepInfo = {role: 'longbow', destination: targetRoom};
+    const cacheKey = getAssignedRoomCacheKey(targetRoom, level, creepInfo);
     if (assignedRoomCache.tick === Game.time &&
         Object.prototype.hasOwnProperty.call(assignedRoomCache.results, cacheKey)) {
         return assignedRoomCache.results[cacheKey];
     }
     if (assignedRoomCache.tick !== Game.time) assignedRoomCache = {tick: Game.time, results: {}};
 
-    if (!options.helper && assignmentCooldown[targetRoom] && assignmentCooldown[targetRoom] > Game.time) {
+    if (assignmentCooldown[targetRoom] && assignmentCooldown[targetRoom] > Game.time) {
         assignedRoomCache.results[cacheKey] = null;
         return null;
     }
@@ -363,7 +512,7 @@ function getAssignedRoom(targetRoom, level, creepInfo, options = {}) {
     const loads = getMilitaryLoadByColony();
     const isAuxiliary = !!Memory.auxiliaryTargets[targetRoom];
     const opType = Memory.targetRooms[targetRoom] && Memory.targetRooms[targetRoom].type;
-    const isHelper = !!options.helper || HELPER_ROLES.has(creepInfo.role);
+    const isHelper = HELPER_ROLES.has(creepInfo.role);
     const isScout = opType === 'scout' || creepInfo.role === 'scout';
     const isClaimRole = CLAIM_ROLES.has(creepInfo.role);
     const maxDistance = isClaimRole ? 12 : 22;
@@ -386,14 +535,17 @@ function getAssignedRoom(targetRoom, level, creepInfo, options = {}) {
         if (distance > maxDistance) continue;
         if (isClaimRole && estimateClaimRouteTicks(distance) > CREEP_CLAIM_LIFE_TIME - 10) continue;
 
+        if (isAssignmentExcluded(targetRoom, key)) continue;
+
         const spawnCap = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] || 1;
         const load = loads[key] || 0;
         if (load >= spawnCap * LOAD_PER_SPAWN_CAP) continue;
 
-        const generatedInfo = new generator(myRoom.level, creepInfo.role, myRoom, creepInfo).generateBody();
-        if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) continue;
+        const generated = tryGenerateAssignableBody(myRoom, creepInfo, targetRoom);
+        if (!generated) continue;
 
-        const score = computeAssignmentScore(myRoom, distance, load, isAuxiliary);
+        const score = computeAssignmentScore(myRoom, distance, load, isAuxiliary)
+            + optionalBoostPenalty(myRoom, creepInfo, generated.body);
         if (isBetterAssignmentCandidate(score, distance, load, key, best)) {
             best = {key, score, distance, load};
         }
@@ -401,11 +553,19 @@ function getAssignedRoom(targetRoom, level, creepInfo, options = {}) {
 
     const resolved = best ? best.key : null;
     assignedRoomCache.results[cacheKey] = resolved;
-    if (!resolved && !options.helper) assignmentCooldown[targetRoom] = Game.time + ASSIGNMENT_FAILURE_COOLDOWN;
+    if (!resolved) assignmentCooldown[targetRoom] = Game.time + ASSIGNMENT_FAILURE_COOLDOWN;
     return resolved;
 }
 
-function unassignRoom(destination, logEntry) {
+function releaseAssignmentIfStuck(room, destination, reason, creep) {
+    const opMemory = Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination];
+    if (!opMemory || !room || opMemory.assignedRoom !== room.name) return;
+    if (creep && HELPER_ROLES.has(creep.role)) return;
+    if (hasInflightOpCreeps(destination, opMemory.type)) return;
+    unassignRoom(destination, reason, {excludeRoom: true, cooldown: true});
+}
+
+function unassignRoom(destination, logEntry, options = {}) {
     const opMemory = Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination];
     if (!opMemory || !opMemory.assignedRoom) return;
     const fromRoom = opMemory.assignedRoom;
@@ -415,7 +575,13 @@ function unassignRoom(destination, logEntry) {
     delete opMemory.assignmentEnergyLastTick;
     delete opMemory.assignmentInvisibleCounter;
     delete opMemory.assignmentInvisibleLastTick;
-    delete assignmentCooldown[destination];
+    if (options.excludeRoom) markAssignmentExclude(destination, fromRoom);
+    if (options.cooldown) {
+        assignmentCooldown[destination] = Game.time + ASSIGNMENT_FAILURE_COOLDOWN;
+    } else {
+        delete assignmentCooldown[destination];
+    }
+    invalidateAssignmentCaches();
     log.a(`Unassigning the operation in ${roomLink(destination)} from ${roomLink(fromRoom)}. ${logEntry}`, 'OPERATIONS:');
 }
 
@@ -436,7 +602,11 @@ function getPriority(operationRoom) {
 module.exports = {
     buildOperationsSignature,
     pruneEmptyOperations,
+    resolvePendingAssignments,
     collectGlobalOperations,
     unassignRoom,
+    releaseAssignmentIfStuck,
+    generatedBodyMissingBoosts,
     getPriority,
 };
+

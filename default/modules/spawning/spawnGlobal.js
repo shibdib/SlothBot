@@ -10,8 +10,9 @@ const {getEmpireReadiness} = require('hcReadiness');
 const {collectThreatRemotes} = require('harassUtils');
 const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded, pruneQueueCache} = require('spawnQueue');
-const {buildOperationsSignature, pruneEmptyOperations, getPriority} = require('spawnOperations');
+const {buildOperationsSignature, pruneEmptyOperations, getPriority, resolvePendingAssignments} = require('spawnOperations');
 const {getSiegeTowerDamage} = require('module.bodyGenerator');
+const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS, siegeLabBoosts} = require('bodySiegeBoosts');
 
 function queueHarassmentCreeps() {
     // Harassment is independent of OFFENSIVE_OPERATIONS so live shards can raid
@@ -83,7 +84,9 @@ function globalCreepQueue() {
         operation.priority = priority;
 
         if (operation.builders) {
-            queueCreepIfNeeded({role: 'drone', priority: PRIORITIES.drone + 1, numberNeeded: 6, destination: key});
+            queueCreepIfNeeded({
+                role: 'drone', priority: PRIORITIES.drone + 1, numberNeeded: 6, destination: key, closestRoom: true
+            });
         }
 
         const intel = INTEL[key];
@@ -176,11 +179,13 @@ function globalCreepQueue() {
                 const rdTowers = rdIntel && rdIntel.towers || 0;
                 const rdWaves = operation.waves || 0;
                 if (rdTowers) {
-                    operation.boosts = [TOUGH, RANGED_ATTACK, HEAL, MOVE];
+                    operation.boosts = SIEGE_REQUIRED_BOOSTS.slice();
+                    operation.optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();
                     const siegeDamage = getSiegeTowerDamage(rdIntel) || rdTowers * 600;
                     // Melee siegeDuo is not used here: the healer is sized for two
                     // stacked bodies and cannot be built at RCL 6 against even one tower.
                     const useSolo = siegeDamage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
+                    const labBoosts = siegeLabBoosts();
                     if (useSolo) {
                         queueCreepIfNeeded({
                             role: 'longbow',
@@ -189,19 +194,20 @@ function globalCreepQueue() {
                             destination: key,
                             closestRoom: true,
                             operation: 'roomDenial',
-                            misc: {boosts: [TOUGH, RANGED_ATTACK, HEAL, MOVE]}
+                            misc: {boosts: labBoosts}
                         });
                     } else {
                         const waitFor = (rdWaves >= 2 || siegeDamage > 960) ? 4 : 2;
                         queueCreepIfNeeded({
                             role: 'longbowSquad', priority, numberNeeded: waitFor, destination: key,
-                            misc: {waitFor: waitFor, boosts: [TOUGH, RANGED_ATTACK, HEAL, MOVE]},
+                            misc: {waitFor: waitFor, boosts: labBoosts},
                             closestRoom: true,
                             operation: 'roomDenial'
                         });
                     }
                 } else {
                     operation.boosts = undefined;
+                    operation.optionalBoosts = undefined;
                     queueCreepIfNeeded({
                         role: 'longbow',
                         priority,
@@ -260,8 +266,9 @@ function globalCreepQueue() {
                 }
                 break;
             case 'stronghold': {
-                const shBoosts = [TOUGH, RANGED_ATTACK, HEAL, MOVE];
-                operation.boosts = shBoosts;
+                const shBoosts = siegeLabBoosts();
+                operation.boosts = SIEGE_REQUIRED_BOOSTS.slice();
+                operation.optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();
                 const shTowers = (intel && intel.towers) || 0;
                 const shWaitFor = shTowers >= 2 ? 4 : 2;
                 queueCreepIfNeeded({
@@ -285,6 +292,8 @@ function globalCreepQueue() {
             }
         }
     }
+
+    resolvePendingAssignments(true);
 }
 
 module.exports = {globalCreepQueue};
