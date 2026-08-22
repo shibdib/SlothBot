@@ -153,6 +153,76 @@ function getFormationVectors(orientation) {
     return formationVectorsByOrientation[orientation] || formationVectorsByOrientation[0];
 }
 
+const MOVE_DX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
+const MOVE_DY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
+
+// Cardinal step into an adjacent room, or 0 if they do not share an edge.
+function exitDirectionTo(fromRoom, toRoom) {
+    if (!fromRoom || !toRoom || fromRoom === toRoom) return 0;
+    const exits = Game.map.describeExits(fromRoom);
+    if (!exits) return 0;
+    if (exits[TOP] === toRoom) return TOP;
+    if (exits[RIGHT] === toRoom) return RIGHT;
+    if (exits[BOTTOM] === toRoom) return BOTTOM;
+    if (exits[LEFT] === toRoom) return LEFT;
+    return 0;
+}
+
+// Next tile after a move, including the matching exit tile in the next room.
+function posAfterMove(pos, direction) {
+    if (!pos || !(direction >= TOP && direction <= TOP_LEFT)) return undefined;
+    const next = pos.positionAtDirection(direction);
+    if (next) return next;
+    const exits = Game.map.describeExits(pos.roomName);
+    if (!exits) return undefined;
+    let nx = pos.x + MOVE_DX[direction];
+    let ny = pos.y + MOVE_DY[direction];
+    let roomName;
+    if (ny < 0) {
+        roomName = exits[TOP];
+        ny = 49;
+    } else if (ny > 49) {
+        roomName = exits[BOTTOM];
+        ny = 0;
+    } else if (nx < 0) {
+        roomName = exits[LEFT];
+        nx = 49;
+    } else if (nx > 49) {
+        roomName = exits[RIGHT];
+        nx = 0;
+    }
+    if (!roomName) return undefined;
+    if (nx < 0) nx = 0;
+    else if (nx > 49) nx = 49;
+    if (ny < 0) ny = 0;
+    else if (ny > 49) ny = 49;
+    return new RoomPosition(nx, ny, roomName);
+}
+
+// Chebyshev range that treats matching exit tiles in neighboring rooms as adjacent.
+// A packed 2×2 straddling dest (0,y) / staging (49,y) is range 1, not Infinity.
+function formationRange(a, b) {
+    if (!a || !b) return Infinity;
+    if (a.roomName === b.roomName) {
+        return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+    }
+    const exits = Game.map.describeExits(a.roomName);
+    if (!exits) return Infinity;
+    if (exits[RIGHT] === b.roomName && a.x >= 48 && b.x <= 1) {
+        return Math.max(Math.abs((b.x + 50) - a.x), Math.abs(a.y - b.y));
+    }
+    if (exits[LEFT] === b.roomName && a.x <= 1 && b.x >= 48) {
+        return Math.max(Math.abs(a.x - (b.x - 50)), Math.abs(a.y - b.y));
+    }
+    if (exits[BOTTOM] === b.roomName && a.y >= 48 && b.y <= 1) {
+        return Math.max(Math.abs(a.x - b.x), Math.abs((b.y + 50) - a.y));
+    }
+    if (exits[TOP] === b.roomName && a.y <= 1 && b.y >= 48) {
+        return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - (b.y - 50)));
+    }
+    return Infinity;
+}
+
 module.exports = {
 
     QUAD_FOLLOWER_OFFSETS,
@@ -164,5 +234,11 @@ module.exports = {
     getCachedMatrix,
 
     buildSquadMatrix,
+
+    exitDirectionTo,
+
+    posAfterMove,
+
+    formationRange,
 
 };

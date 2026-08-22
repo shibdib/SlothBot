@@ -17,7 +17,7 @@ const {findRoute} = require('pathRoute');
 
 const {serializePath} = require('pathPathCache');
 
-const {getSquadMatrix, getFormationVectors} = require('pathFormation');
+const {getSquadMatrix, getFormationVectors, posAfterMove, formationRange} = require('pathFormation');
 
 function resolveAllowedRooms(originRoom, targetRoom, options) {
     const route = findRoute(originRoom, targetRoom, options);
@@ -43,7 +43,7 @@ function squadMove(creep, path) {
 
     const orientation = creep.memory.squadOrientation || 0;
     const squadSize = members.length + 1;
-    const newLeaderPos = creep.pos.positionAtDirection(move);
+    const newLeaderPos = posAfterMove(creep.pos, move);
 
     if (newLeaderPos) {
         if (newLeaderPos.checkForImpassible(false, true) || !isFootprintWalkable(newLeaderPos, orientation, squadSize)) {
@@ -59,11 +59,14 @@ function squadMove(creep, path) {
 
     creep.move(move);
     for (const member of members) {
-        if (member.pos.getRangeTo(creep) > 1) continue;
-        const nextPos = member.pos.positionAtDirection(move);
+        // Same-room adjacency plus the 2×2 split across an exit (range 1 through
+        // the edge). getRangeTo is Infinity across rooms, which used to drop the
+        // back row and send only 2 into dest.
+        if (formationRange(member.pos, creep.pos) > 1) continue;
+        const nextPos = posAfterMove(member.pos, move);
         if (!nextPos) {
-            // Room-edge step: same direction crosses with the leader.
-            // shibMove(leader) would path to 25,25 of the next room.
+            member.move(move);
+        } else if (nextPos.roomName !== member.pos.roomName) {
             member.move(move);
         } else if (nextPos.checkForImpassible(false, true)) {
             member.shibMove(creep, {range: 0, forceSolo: true});
@@ -82,14 +85,17 @@ function squadMove(creep, path) {
 function canSquadMove(leader, members, direction) {
     if (!leader.room.hostileCreeps.length) return true;
     for (const member of members) {
-        const nextPos = member.pos.positionAtDirection(direction);
+        if (formationRange(member.pos, leader.pos) > 1) continue;
+        const nextPos = posAfterMove(member.pos, direction);
         if (!nextPos) continue;
+        if (nextPos.roomName !== member.pos.roomName) continue;
         if (nextPos.checkForImpassible(false, true) || isOccupiedByEnemy(leader, nextPos)) return false;
     }
     return true;
 }
 
 function isOccupiedByEnemy(leader, pos) {
+    if (!pos || !Game.rooms[pos.roomName]) return false;
     const occupant = pos.lookFor(LOOK_CREEPS)[0];
     leader.memory.blockingCreep = occupant && !occupant.my ? occupant.id : undefined;
     return occupant && !occupant.my;
@@ -98,10 +104,15 @@ function isOccupiedByEnemy(leader, pos) {
 function isFootprintWalkable(leaderPos, orientation, squadSize = 4) {
     const vectors = squadSize >= 3 ? getFormationVectors(orientation) : [{x: 0, y: 0}];
     const terrain = Game.map.getRoomTerrain(leaderPos.roomName);
+    const onEdge = leaderPos.x === 0 || leaderPos.x === 49 || leaderPos.y === 0 || leaderPos.y === 49;
     for (const v of vectors) {
         const mx = leaderPos.x - v.x;
         const my = leaderPos.y - v.y;
-        if (mx < 0 || mx > 49 || my < 0 || my > 49) return false;
+        if (mx < 0 || mx > 49 || my < 0 || my > 49) {
+            // Rest of the 2×2 is still in the previous room during an exit hop.
+            if (onEdge) continue;
+            return false;
+        }
         if (terrain.get(mx, my) === TERRAIN_MASK_WALL) return false;
         if (new RoomPosition(mx, my, leaderPos.roomName).checkForImpassible(false, true)) return false;
     }
@@ -178,6 +189,11 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
 
     if (!result.path.length) return false;
     return !!squadMove(this, serializePath(this.pos, result.path));
+};
+
+Creep.prototype.shibSquadStep = function (direction) {
+    if (!(direction >= TOP && direction <= TOP_LEFT)) return false;
+    return squadMove(this, String(direction));
 };
 
 module.exports = {
