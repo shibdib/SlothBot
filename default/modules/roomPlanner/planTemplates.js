@@ -103,8 +103,33 @@ let labTemplate = [{"x": 0, "y": 0}, {"x": 0, "y": 1}, {"x": 1, "y": 0}, {"x": -
     "y": -1
 }, {"x": 1, "y": 1}, {"x": 0, "y": 2}, {"x": -1, "y": 1}, {"x": -1, "y": 2}];
 
-// Reaction input pair only — production also needs ≥1 output lab (see searchLabHubAnchorsMinProduction).
+// Reaction input pair only — production also needs ≥1 output lab (see searchLabHubByRing).
 const labHubPairTemplate = [labTemplate[0], labTemplate[1]];
+
+/** 8-adjacent collar around labTemplate (18 tiles). labTech is half-move. */
+function offsetsAround(tiles) {
+    const inner = new Set();
+    for (let i = 0; i < tiles.length; i++) inner.add(tiles[i].x + ',' + tiles[i].y);
+    const ring = [];
+    const seen = new Set();
+    for (let i = 0; i < tiles.length; i++) {
+        const t = tiles[i];
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                if (!dx && !dy) continue;
+                const x = t.x + dx;
+                const y = t.y + dy;
+                const key = x + ',' + y;
+                if (inner.has(key) || seen.has(key)) continue;
+                seen.add(key);
+                ring.push({x, y});
+            }
+        }
+    }
+    return ring;
+}
+
+const labRoadTemplate = offsetsAround(labTemplate);
 
 // Compact core used when the full bunker template cannot fit.
 // Extensions, towers, labs, and late-game singles (factory, power spawn, nuker, observer)
@@ -122,5 +147,6 @@ module.exports = {
     coreTemplate,
     labTemplate,
     labHubPairTemplate,
+    labRoadTemplate,
     protectedStructureTypes,
 };

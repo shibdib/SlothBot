@@ -45,6 +45,8 @@ const siteBudget = require('planSiteBudget');
 const {isPlannerShadow} = require('planFlag');
 
 const LAB_HUB_SEARCH_COOLDOWN = 500;
+const LAB_HUB_SEARCH_CPU_RESERVE = 10;
+const LAB_HUB_PATH_MAX_OPS = 4000;
 const HUB_EXTENSION_VALIDATE_COOLDOWN = 500;
 const TOWER_HUB_MIN_DIST = 6;
 const TOWER_HUB_MAX_DIST = 10;
@@ -411,22 +413,60 @@ function recoverLabHubFromLabs(room) {
     return false;
 }
 
-function buildLabSearchContext(room) {
+function labSearchCpuExceeded() {
+    if (typeof Game === 'undefined' || !Game.cpu || !Game.cpu.getUsed) return false;
+    const limit = Game.cpu.tickLimit || 500;
+    return Game.cpu.getUsed() > limit - LAB_HUB_SEARCH_CPU_RESERVE;
+}
+
+function isLabBlockingStructureType(structureType, allowWalls) {
+    if (structureType === STRUCTURE_ROAD || structureType === STRUCTURE_RAMPART) return false;
+    if (allowWalls && structureType === STRUCTURE_WALL) return false;
+    return true;
+}
+
+function addWorldBlockedTiles(room, blocked, allowWalls) {
+    // Match placeLabs / checkForAllStructure: anything except road + rampart blocks.
+    // Walls are destroyable at place time, so the fallback pass may ignore them.
+    const structs = room.structures || [];
+    for (let i = 0; i < structs.length; i++) {
+        const s = structs[i];
+        if (!s || !s.pos) continue;
+        if (!isLabBlockingStructureType(s.structureType, allowWalls)) continue;
+        blocked.add(s.pos.x + ',' + s.pos.y);
+    }
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const s = sites[i];
+        if (!s || !s.pos) continue;
+        if (!isLabBlockingStructureType(s.structureType, allowWalls)) continue;
+        blocked.add(s.pos.x + ',' + s.pos.y);
+    }
+}
+
+function buildLabSearchContext(room, allowWalls) {
     const hubXY = resolveHub(room);
     if (!hubXY) return null;
     const bunkerHub = new RoomPosition(hubXY.x, hubXY.y, room.name);
     const terrain = Game.map.getRoomTerrain(room.name);
-    const sources = room.sources;
+    const sources = room.sources || [];
     const controller = room.controller;
     const bunkerTmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-    const bunkerOccupied = new Set();
+    const blocked = new Set();
     for (let e = 0; e < bunkerTmpl.length; e++) {
         const entry = bunkerTmpl[e];
         for (let p = 0; p < entry.pos.length; p++) {
             const dx = entry.pos[p].x;
             const dy = entry.pos[p].y;
-            bunkerOccupied.add((bunkerHub.x + dx) + ',' + (bunkerHub.y + dy));
+            blocked.add((bunkerHub.x + dx) + ',' + (bunkerHub.y + dy));
         }
+    }
+    addWorldBlockedTiles(room, blocked, !!allowWalls);
+    if (controller) blocked.add(controller.pos.x + ',' + controller.pos.y);
+    if (room.mineral) blocked.add(room.mineral.pos.x + ',' + room.mineral.pos.y);
+    for (let i = 0; i < sources.length; i++) {
+        const s = sources[i];
+        if (s && s.pos) blocked.add(s.pos.x + ',' + s.pos.y);
     }
 
     let minDx = 0, maxDx = 0, minDy = 0, maxDy = 0;
@@ -455,13 +495,24 @@ function buildLabSearchContext(room) {
         return out;
     });
 
+    const sourceXY = [];
+    for (let i = 0; i < sources.length; i++) {
+        const s = sources[i];
+        if (s && s.pos) sourceXY.push({x: s.pos.x, y: s.pos.y});
+    }
+    const mineralXY = room.mineral && room.mineral.pos
+        ? {x: room.mineral.pos.x, y: room.mineral.pos.y}
+        : null;
+
     return {
         bunkerHub,
         terrain,
-        sources,
-        controller,
-        bunkerOccupied,
+        sourceXY,
+        mineralXY,
+        controllerXY: controller ? {x: controller.pos.x, y: controller.pos.y} : null,
+        blocked,
         labPerimeter,
+        allowWalls: !!allowWalls,
         xMin: Math.max(2, 1 - minDx),
         xMax: Math.min(47, 48 - maxDx),
         yMin: Math.max(2, 1 - minDy),
@@ -470,24 +521,29 @@ function buildLabSearchContext(room) {
 }
 
 function isLabTileValid(ctx, cx, cy, index) {
-    const bunkerHub = ctx.bunkerHub;
     const terrain = ctx.terrain;
-    const sources = ctx.sources;
-    const controller = ctx.controller;
-    const bunkerOccupied = ctx.bunkerOccupied;
+    const blocked = ctx.blocked;
     const labPerimeter = ctx.labPerimeter;
     const dx = labTemplate[index].x;
     const dy = labTemplate[index].y;
     const tx = cx + dx;
     const ty = cy + dy;
+    if (tx < 1 || tx > 48 || ty < 1 || ty > 48) return false;
     if (terrain.get(tx, ty) === TERRAIN_MASK_WALL) return false;
-    if (bunkerOccupied.has(tx + ',' + ty)) return false;
-    if (Math.abs(tx - controller.pos.x) <= 1 && Math.abs(ty - controller.pos.y) <= 1) return false;
+    if (blocked.has(tx + ',' + ty)) return false;
+    const controllerXY = ctx.controllerXY;
+    if (controllerXY && Math.abs(tx - controllerXY.x) <= 1 && Math.abs(ty - controllerXY.y) <= 1) {
+        return false;
+    }
+    const sources = ctx.sourceXY;
     for (let i = 0; i < sources.length; i++) {
         const s = sources[i];
-        if (Math.abs(tx - s.pos.x) <= 1 && Math.abs(ty - s.pos.y) <= 1) return false;
+        if (Math.abs(tx - s.x) <= 1 && Math.abs(ty - s.y) <= 1) return false;
     }
-    if (new RoomPosition(tx, ty, bunkerHub.roomName).checkForImpassible()) return false;
+    const mineralXY = ctx.mineralXY;
+    if (mineralXY && Math.abs(tx - mineralXY.x) <= 1 && Math.abs(ty - mineralXY.y) <= 1) {
+        return false;
+    }
     const perim = labPerimeter[index];
     for (let i = 0; i < perim.length; i++) {
         const ax = cx + perim[i].x;
@@ -499,67 +555,119 @@ function isLabTileValid(ctx, cx, cy, index) {
     return false;
 }
 
-function searchLabHubAnchors(ctx, requiredIndices) {
-    const candidates = [];
-    for (let cx = ctx.xMin; cx <= ctx.xMax; cx++) {
-        for (let cy = ctx.yMin; cy <= ctx.yMax; cy++) {
-            let ok = true;
-            for (let i = 0; i < requiredIndices.length; i++) {
-                if (!isLabTileValid(ctx, cx, cy, requiredIndices[i])) {
-                    ok = false;
-                    break;
-                }
-            }
-            if (!ok) continue;
-            const dxHub = Math.abs(cx - ctx.bunkerHub.x);
-            const dyHub = Math.abs(cy - ctx.bunkerHub.y);
-            candidates.push({x: cx, y: cy, score: Math.max(dxHub, dyHub)});
-        }
+function labStampFullValid(ctx, cx, cy) {
+    for (let i = 0; i < labTemplate.length; i++) {
+        if (!isLabTileValid(ctx, cx, cy, i)) return false;
     }
-    return candidates;
+    return true;
 }
 
-function searchLabHubAnchorsMinProduction(ctx) {
-    const outputIndices = [];
-    for (let i = LAB_HUB_INPUT_INDICES[1] + 1; i < labTemplate.length; i++) outputIndices.push(i);
-    const candidates = [];
-    for (let cx = ctx.xMin; cx <= ctx.xMax; cx++) {
-        for (let cy = ctx.yMin; cy <= ctx.yMax; cy++) {
-            if (!LAB_HUB_INPUT_INDICES.every(i => isLabTileValid(ctx, cx, cy, i))) continue;
-            let extraCount = 0;
-            for (let o = 0; o < outputIndices.length; o++) {
-                if (isLabTileValid(ctx, cx, cy, outputIndices[o])) extraCount++;
-            }
-            if (!extraCount) continue;
-            const dxHub = Math.abs(cx - ctx.bunkerHub.x);
-            const dyHub = Math.abs(cy - ctx.bunkerHub.y);
-            candidates.push({x: cx, y: cy, score: Math.max(dxHub, dyHub), extraCount});
-        }
+function labStampMinValid(ctx, cx, cy) {
+    if (!isLabTileValid(ctx, cx, cy, LAB_HUB_INPUT_INDICES[0])) return 0;
+    if (!isLabTileValid(ctx, cx, cy, LAB_HUB_INPUT_INDICES[1])) return 0;
+    let extraCount = 0;
+    for (let i = LAB_HUB_INPUT_INDICES[1] + 1; i < labTemplate.length; i++) {
+        if (isLabTileValid(ctx, cx, cy, i)) extraCount++;
     }
-    return candidates;
+    return extraCount;
+}
+
+function forEachChebyshevRing(hubX, hubY, range, xMin, xMax, yMin, yMax, fn) {
+    if (range <= 0) {
+        if (hubX >= xMin && hubX <= xMax && hubY >= yMin && hubY <= yMax) fn(hubX, hubY);
+        return;
+    }
+    const yTop = hubY - range;
+    const yBot = hubY + range;
+    for (let x = hubX - range; x <= hubX + range; x++) {
+        if (x < xMin || x > xMax) continue;
+        if (yTop >= yMin && yTop <= yMax) fn(x, yTop);
+        if (yBot !== yTop && yBot >= yMin && yBot <= yMax) fn(x, yBot);
+    }
+    for (let y = hubY - range + 1; y <= hubY + range - 1; y++) {
+        if (y < yMin || y > yMax) continue;
+        const xLeft = hubX - range;
+        const xRight = hubX + range;
+        if (xLeft >= xMin && xLeft <= xMax) fn(xLeft, y);
+        if (xRight !== xLeft && xRight >= xMin && xRight <= xMax) fn(xRight, y);
+    }
+}
+
+function pathToLabHubOk(ctx, candidate) {
+    const result = PathFinder.search(
+        ctx.bunkerHub,
+        {pos: new RoomPosition(candidate.x, candidate.y, ctx.bunkerHub.roomName), range: 1},
+        {maxRooms: 1, maxOps: LAB_HUB_PATH_MAX_OPS}
+    );
+    if (result.incomplete) return false;
+    return result.path.length <= candidate.score * 2 + 8;
 }
 
 function pickLabHubCandidate(ctx, candidates, preferExtraLabs) {
-    if (!candidates.length) return null;
+    if (!candidates.length) return {chosen: null, walkable: false};
     if (preferExtraLabs) {
         candidates.sort((a, b) => (b.extraCount - a.extraCount) || (a.score - b.score));
     } else {
         candidates.sort((a, b) => a.score - b.score);
     }
-    let chosen = null;
     const probe = Math.min(candidates.length, 8);
     for (let i = 0; i < probe; i++) {
         const c = candidates[i];
-        const result = PathFinder.search(ctx.bunkerHub,
-            {pos: new RoomPosition(c.x, c.y, ctx.bunkerHub.roomName), range: 1},
-            {maxRooms: 1, maxOps: 2000});
-        if (result.incomplete) continue;
-        if (result.path.length <= c.score * 2 + 4) {
-            chosen = c;
-            break;
+        if (pathToLabHubOk(ctx, c)) return {chosen: c, walkable: true};
+    }
+    return {chosen: candidates[0], walkable: false};
+}
+
+/**
+ * Walk Chebyshev rings from the bunker hub so a valid stamp far from the core
+ * is still found. Prefers a walkable hub over a closer disconnected pocket.
+ * Cheap occupancy (no per-tile checkForImpassible) so the full room finishes.
+ */
+function searchLabHubByRing(ctx, minProduction) {
+    const hubX = ctx.bunkerHub.x;
+    const hubY = ctx.bunkerHub.y;
+    const maxRange = Math.max(
+        Math.max(hubX - ctx.xMin, ctx.xMax - hubX),
+        Math.max(hubY - ctx.yMin, ctx.yMax - hubY)
+    );
+    let fallback = null;
+    for (let r = 0; r <= maxRange; r++) {
+        if (labSearchCpuExceeded()) {
+            return {chosen: null, incomplete: true};
+        }
+        const ring = [];
+        forEachChebyshevRing(hubX, hubY, r, ctx.xMin, ctx.xMax, ctx.yMin, ctx.yMax, function (cx, cy) {
+            if (minProduction) {
+                const extraCount = labStampMinValid(ctx, cx, cy);
+                if (!extraCount) return;
+                ring.push({x: cx, y: cy, score: r, extraCount});
+            } else if (labStampFullValid(ctx, cx, cy)) {
+                ring.push({x: cx, y: cy, score: r});
+            }
+        });
+        if (!ring.length) continue;
+        const pick = pickLabHubCandidate(ctx, ring, !!minProduction);
+        if (pick.walkable && pick.chosen) {
+            return {chosen: pick.chosen, incomplete: false};
+        }
+        if (!fallback && pick.chosen) fallback = pick.chosen;
+    }
+    return {chosen: fallback, incomplete: false};
+}
+
+function commitFoundLabHub(room, chosen, partial) {
+    commitLabHub(room, chosen, partial);
+    if (typeof log !== 'undefined' && log.a) {
+        if (partial) {
+            const extra = chosen.extraCount ? ', ' + chosen.extraCount + ' extra slot(s)' : '';
+            log.a('Lab hub (partial) placed at (' + chosen.x + ',' + chosen.y + ') for ' + room.name
+                + ', range ' + chosen.score + ' from bunker hub' + extra);
+        } else {
+            log.a('Lab hub (full) placed at (' + chosen.x + ',' + chosen.y + ') for ' + room.name
+                + ', range ' + chosen.score + ' from bunker hub');
         }
     }
-    return chosen || candidates[0];
+    return true;
 }
 
 function findLabHub(room) {
@@ -569,29 +677,28 @@ function findLabHub(room) {
 
     if (recoverLabHubFromLabs(room)) return true;
 
-    const ctx = buildLabSearchContext(room);
-    if (!ctx) return false;
-    const fullIndices = labTemplate.map((_, i) => i);
+    const passes = [false, true];
+    for (let p = 0; p < passes.length; p++) {
+        const ctx = buildLabSearchContext(room, passes[p]);
+        if (!ctx) return false;
 
-    let chosen = pickLabHubCandidate(ctx, searchLabHubAnchors(ctx, fullIndices), false);
-    if (chosen) {
-        commitLabHub(room, chosen, false);
-        if (typeof log !== 'undefined' && log.a) {
-            log.a('Lab hub (full) placed at (' + chosen.x + ',' + chosen.y + ') for ' + room.name
-                + ', range ' + chosen.score + ' from bunker hub');
+        let result = searchLabHubByRing(ctx, false);
+        if (result.incomplete) {
+            if (typeof log !== 'undefined' && log.a) {
+                log.a('Lab hub search in ' + room.name + ' hit CPU reserve; retry next visit.');
+            }
+            return false;
         }
-        return true;
-    }
+        if (result.chosen) return commitFoundLabHub(room, result.chosen, false);
 
-    chosen = pickLabHubCandidate(ctx, searchLabHubAnchorsMinProduction(ctx), true);
-    if (chosen) {
-        commitLabHub(room, chosen, true);
-        if (typeof log !== 'undefined' && log.a) {
-            const extra = chosen.extraCount ? ', ' + chosen.extraCount + ' extra slot(s)' : '';
-            log.a('Lab hub (partial) placed at (' + chosen.x + ',' + chosen.y + ') for ' + room.name
-                + ', range ' + chosen.score + ' from bunker hub' + extra);
+        result = searchLabHubByRing(ctx, true);
+        if (result.incomplete) {
+            if (typeof log !== 'undefined' && log.a) {
+                log.a('Lab hub search in ' + room.name + ' hit CPU reserve; retry next visit.');
+            }
+            return false;
         }
-        return true;
+        if (result.chosen) return commitFoundLabHub(room, result.chosen, true);
     }
 
     room.memory.labHubSearchFailed = Game.time + LAB_HUB_SEARCH_COOLDOWN;

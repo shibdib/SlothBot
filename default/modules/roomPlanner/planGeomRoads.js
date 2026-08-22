@@ -11,7 +11,7 @@
  * Implementation lives here (no longer a re-export shim of planRoads).
  */
 
-const {bunkerTemplate} = require('planTemplates');
+const {bunkerTemplate, labRoadTemplate} = require('planTemplates');
 const {ensurePlan, getPlan, packTiles, unpackTiles, getLabHub} = require('planDoc');
 const {
     setRoadsBuiltFlag,
@@ -38,6 +38,8 @@ const PATH_CACHE_TTL = 5000;
 const PLAN_CACHE = Object.create(null);
 const MATRIX_HEAP = {owned: Object.create(null), remote: Object.create(null)};
 const FAILED_PATH_RETRY = 50;
+/** Bump when desired-set geometry changes (lab collar, …) so packed plans rebuild. */
+const OWNED_ROAD_PLAN_REV = 1;
 
 const TARGET_ORDER = {controller: 0, source: 1, mineral: 2, exit: 3};
 
@@ -384,6 +386,37 @@ function getLayoutRoadTiles(room) {
     return tiles;
 }
 
+function resolveLabHubXY(room) {
+    try {
+        const res = getLabHub(room);
+        return res && res.hub ? res.hub : null;
+    } catch (e) {
+        return room.memory && room.memory.labHub ? room.memory.labHub : null;
+    }
+}
+
+/**
+ * Collar around the lab stamp so half-move labTech can stand/walk on roads
+ * while filling. Not seeded into the connector network first — that would
+ * make the lab target already "in range" and skip the bunker→lab path.
+ */
+function getLabRingRoadTiles(room) {
+    const tiles = new Set();
+    const hub = resolveLabHubXY(room);
+    if (!hub || !labRoadTemplate) return tiles;
+    const terrain = Game.map.getRoomTerrain(room.name);
+    for (let i = 0; i < labRoadTemplate.length; i++) {
+        const x = hub.x + labRoadTemplate[i].x;
+        const y = hub.y + labRoadTemplate[i].y;
+        if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+        if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+        const pos = new RoomPosition(x, y, room.name);
+        if (tileHasRoadAvoid(pos)) continue;
+        tiles.add(getPosKey(pos));
+    }
+    return tiles;
+}
+
 function classifyTarget(room, pos) {
     if (pos && pos._exitRoadGoal) return 'exit';
     if (room.controller && pos.inRangeTo(room.controller, 1)) return 'controller';
@@ -662,6 +695,7 @@ function getPersistedRoadLayer(room) {
 function ownedRoadFingerprint(room) {
     const origin = getRoadOrigin(room);
     const parts = [
+        'r' + OWNED_ROAD_PLAN_REV,
         origin ? `${origin.x},${origin.y}` : 'no',
         room.memory && room.memory.dynamicLayout ? 'd' : 'b',
     ];
@@ -789,6 +823,8 @@ function shouldRetryFailedPaths(plan) {
 function computeOwnedRoadPlan(room, fingerprint) {
     const layout = getLayoutRoadTiles(room);
     const built = buildConnectorTiles(room, layout);
+    const labRing = getLabRingRoadTiles(room);
+    for (const key of labRing) built.connector.add(key);
     const desired = new Set([...layout, ...built.connector]);
     const targets = getRoadTargets(room);
     const origin = getRoadOrigin(room);
@@ -1592,6 +1628,7 @@ module.exports = {
     diffRoadTiles,
     getRoadOrigin,
     getLayoutRoadTiles,
+    getLabRingRoadTiles,
     getConnectorRoadTiles: room => getRoadPlan(room).connector,
     getRoadTargets,
     findRoadPath,
