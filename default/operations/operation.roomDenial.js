@@ -1,27 +1,77 @@
 const highCommand = require('module.highCommand');
 const {notifySiegeEvent} = require('module.notifications');
 
+// Must match ATTACK_ROUTE_MAX_EXTRA_HOPS in prototype.room.js. Intel may pick
+// a flank that is better for towers; creeps skip it if it is this many hops
+// farther from their colony than the closest staging neighbor.
+const ATTACK_ROUTE_MAX_EXTRA_HOPS = 2;
+
+function isFriendlyOwner(owner) {
+    if (!owner) return true;
+    if (owner === MY_USERNAME) return true;
+    return typeof FRIENDLIES !== 'undefined' && FRIENDLIES.includes(owner);
+}
+
+function attackRouteHops(from, to) {
+    if (!from || !to) return Infinity;
+    if (from === to) return 0;
+    try {
+        const hops = require('pathRoute').routeDistance(from, to);
+        if (hops < Infinity) return hops;
+    } catch (e) { /* pathfinder not loaded yet */
+    }
+    return Game.map.getRoomLinearDistance(from, to);
+}
+
 // attackDirection is a neighboring room name (current writer) or a
 // FIND_EXIT_* key (legacy intel). Either must resolve to a room name.
-function resolveDenialStaging(dest) {
-    if (!dest) return dest;
+function resolveAttackRoom(dest) {
+    if (!dest) return undefined;
     const attack = INTEL[dest] && INTEL[dest].attackDirection;
-    if (!attack) return dest;
+    if (!attack) return undefined;
     const exits = Game.map.describeExits(dest);
-    if (!exits) return dest;
+    if (!exits) return undefined;
     if (exits[attack]) return exits[attack];
     const neighbors = Object.values(exits);
     for (let i = 0; i < neighbors.length; i++) {
         if (neighbors[i] === attack) return attack;
     }
-    return dest;
+    return undefined;
+}
+
+function resolveDenialStaging(dest, origin) {
+    if (!dest) return dest;
+    const attackRoom = resolveAttackRoom(dest);
+    if (!attackRoom) return dest;
+    const exits = Game.map.describeExits(dest);
+    if (!exits) return dest;
+
+    if (origin && origin !== dest && origin !== attackRoom) {
+        const attackHops = attackRouteHops(origin, attackRoom);
+        const neighbors = Object.values(exits);
+        let minHops = attackHops;
+        for (let i = 0; i < neighbors.length; i++) {
+            const n = neighbors[i];
+            const intel = INTEL[n];
+            if (intel && intel.owner && !isFriendlyOwner(intel.owner)) continue;
+            const hops = attackRouteHops(origin, n);
+            if (hops < minHops) minHops = hops;
+        }
+        if (attackHops > minHops + ATTACK_ROUTE_MAX_EXTRA_HOPS) return dest;
+    }
+    return attackRoom;
 }
 
 Creep.prototype.ensureDenialStaging = function () {
     if (!this.memory.destination) return;
     if (!this.memory.misc) this.memory.misc = {};
-    if (!this.memory.misc.stagingRoom) {
-        this.memory.misc.stagingRoom = resolveDenialStaging(this.memory.destination);
+    const origin = this.memory.misc.formColony || this.memory.colony;
+    const resolved = resolveDenialStaging(this.memory.destination, origin);
+    const current = this.memory.misc.stagingRoom;
+    if (!current || current === this.memory.destination) {
+        this.memory.misc.stagingRoom = resolved;
+    } else if (!this.memory.misc.staged && resolved !== this.memory.destination && resolved !== current) {
+        this.memory.misc.stagingRoom = resolved;
     }
     if (this.memory.misc.stagingRoom === this.room.name) this.memory.misc.staged = true;
 };

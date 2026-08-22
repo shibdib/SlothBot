@@ -1290,11 +1290,22 @@ class RoleLongbowSquad {
     holdForQuadEntry(creep, squad) {
         if (!this.isQuad(creep) || !creep.memory.destination) return false;
         if (this.inHomeColony(creep)) return false;
+        if (creep.ensureDenialStaging) creep.ensureDenialStaging();
         const dest = creep.memory.destination;
         const inDest = creep.room.name === dest;
         const nextToDest = Game.map.getRoomLinearDistance(creep.room.name, dest) <= 1;
         const split = this.squadSplitAcrossDest(creep, dest);
         if (!inDest && !nextToDest && !split) return false;
+
+        // Intel picked a staging neighbor. Do not hop in from a different
+        // adjacent room just because the shortest path brushed dest's other face.
+        const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
+        const stagingIsNeighbor = !!(staging && staging !== dest
+            && Game.map.getRoomLinearDistance(staging, dest) <= 1);
+        if (!inDest && !split && stagingIsNeighbor && creep.room.name !== staging) {
+            this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
+            return true;
+        }
 
         const fullSquad = (squad || this.getSquad()).concat(creep);
         const together = this.isFormationPacked(fullSquad, creep);

@@ -623,8 +623,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             const newOwner = this.controller.owner?.username;
             if (newOwner !== roomIntel.owner) roomIntel.ownerChanged = true;
             roomIntel.owner = newOwner;
-            if (roomIntel.owner) {
-                if (roomIntel.ownerChanged) roomIntel.attackDirection = determineBestAttackRoute(this);
+            if (roomIntel.owner && !isFriendlyOwner(roomIntel.owner)) {
+                const attack = determineBestAttackRoute(this);
+                if (attack) roomIntel.attackDirection = attack;
+                else delete roomIntel.attackDirection;
             } else {
                 delete roomIntel.attackDirection;
             }
@@ -1022,40 +1024,180 @@ function areExitsReachable(room) {
     return true;
 }
 
-function determineBestAttackRoute(room) {
-    const barriers = global.collectRoomBarriers
-        ? global.collectRoomBarriers(room)
-        : room.ramparts.concat(room.constructedWalls || []).filter(Boolean);
-    if (!barriers.length) return undefined;
-    const roomExits = Object.values(Game.map.describeExits(room.name));
-    const viableExits = roomExits.filter(exit => !INTEL[exit] || !INTEL[exit].owner || INTEL[exit].owner === MY_USERNAME);
-    if (!viableExits.length) return undefined;
+function isFriendlyOwner(owner) {
+    if (!owner) return true;
+    if (owner === MY_USERNAME) return true;
+    return typeof FRIENDLIES !== 'undefined' && FRIENDLIES.includes(owner);
+}
 
-    let bestExitRoom = viableExits[0];
-    let lowestBarrierCount = Infinity;
+// How many extra route hops past the closest staging neighbor we will accept
+// for a better combat exit. 2 rooms is a flank; 3+ is walking around the target.
+const ATTACK_ROUTE_MAX_EXTRA_HOPS = 2;
 
-    for (const exit of viableExits) {
-        const exitDirection = room.findExitTo(exit);
-        const exitTiles = room.find(exitDirection).filter(t => t.getRangeTo(t.findClosestByRange(barriers)) > 2);
-        if (!exitTiles.length) continue;
+function attackRouteHops(from, to) {
+    if (!from || !to) return Infinity;
+    if (from === to) return 0;
+    try {
+        const hops = require('pathRoute').routeDistance(from, to);
+        if (hops < Infinity) return hops;
+    } catch (e) { /* pathfinder not loaded yet */
+    }
+    return Game.map.getRoomLinearDistance(from, to);
+}
 
-        const exitTile = exitTiles[0];
-        const attackRoute = room.findPath(room.controller.pos, exitTile, {
-            ignoreCreeps: true, ignoreDestructibleStructures: true, ignoreRoads: true
-        });
+function attackRouteOrigin(dest) {
+    const op = (typeof Memory !== 'undefined' && Memory.targetRooms && Memory.targetRooms[dest])
+        || (typeof Memory !== 'undefined' && Memory.auxiliaryTargets && Memory.auxiliaryTargets[dest]);
+    if (op && op.assignedRoom) return op.assignedRoom;
+    if (typeof findClosestOwnedRoom === 'function') return findClosestOwnedRoom(dest);
+    return undefined;
+}
 
-        let barrierCount = 0;
-        attackRoute.forEach(tile => {
-            const pos = new RoomPosition(tile.x, tile.y, room.name);
-            if (pos.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_RAMPART || s.structureType === STRUCTURE_WALL)) barrierCount++;
-        });
+function isViableStagingRoom(roomName) {
+    const intel = INTEL[roomName];
+    if (!intel) return true;
+    if (intel.owner && !isFriendlyOwner(intel.owner)) return false;
+    return true;
+}
 
-        if (barrierCount < lowestBarrierCount) {
-            lowestBarrierCount = barrierCount;
-            bestExitRoom = exit;
+function stagingCost(roomName) {
+    const intel = INTEL[roomName];
+    if (!intel) return 50;
+    let cost = 0;
+    if (intel.sk) cost += 300;
+    if (intel.towers) cost += 400;
+    if (intel.threatLevel) cost += 80 * intel.threatLevel;
+    return cost;
+}
+
+function inwardDelta(dir) {
+    if (dir === TOP) return {dx: 0, dy: 1};
+    if (dir === BOTTOM) return {dx: 0, dy: -1};
+    if (dir === LEFT) return {dx: 1, dy: 0};
+    return {dx: -1, dy: 0};
+}
+
+function exitTileDamage(pos, towers) {
+    let dmg = 0;
+    for (let i = 0; i < towers.length; i++) {
+        dmg += TOWER_POWER_FROM_RANGE(pos.getRangeTo(towers[i]), TOWER_POWER_ATTACK);
+    }
+    return dmg;
+}
+
+function inwardBarrierHits(room, x, y, dir) {
+    const {dx, dy} = inwardDelta(dir);
+    let hits = 0;
+    for (let step = 1; step <= 2; step++) {
+        const tx = x + dx * step;
+        const ty = y + dy * step;
+        if (tx < 1 || tx > 48 || ty < 1 || ty > 48) continue;
+        const structs = new RoomPosition(tx, ty, room.name).lookFor(LOOK_STRUCTURES);
+        for (let i = 0; i < structs.length; i++) {
+            const s = structs[i];
+            if (s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART) continue;
+            if (s.my || (s.structureType === STRUCTURE_RAMPART && s.isPublic)) continue;
+            hits += s.hits || 0;
         }
     }
-    return bestExitRoom;
+    return hits;
+}
+
+function scoreExitEdge(room, dir, towers) {
+    const tiles = room.find(dir);
+    if (!tiles.length) return null;
+    const along = (dir === TOP || dir === BOTTOM) ? (t) => t.x : (t) => t.y;
+    const open = [];
+    for (let i = 0; i < tiles.length; i++) {
+        const t = tiles[i];
+        if (t.checkForObstacleStructure && t.checkForObstacleStructure()) continue;
+        if (room.getTerrain().get(t.x, t.y) === TERRAIN_MASK_WALL) continue;
+        open.push(t);
+    }
+    if (!open.length) return null;
+    open.sort((a, b) => along(a) - along(b));
+
+    const scorePair = (a, b) => {
+        const towerDmg = Math.max(exitTileDamage(a, towers), b ? exitTileDamage(b, towers) : 0);
+        let barrierHits = inwardBarrierHits(room, a.x, a.y, dir);
+        if (b) barrierHits += inwardBarrierHits(room, b.x, b.y, dir);
+        return {towerDmg, barrierHits, quadWidth: b ? 2 : 1};
+    };
+
+    let best = null;
+    for (let i = 0; i < open.length - 1; i++) {
+        if (along(open[i + 1]) - along(open[i]) !== 1) continue;
+        const scored = scorePair(open[i], open[i + 1]);
+        if (!best
+            || scored.towerDmg < best.towerDmg
+            || (scored.towerDmg === best.towerDmg && scored.barrierHits < best.barrierHits)) {
+            best = scored;
+        }
+    }
+    if (!best) best = scorePair(open[0], null);
+    return best;
+}
+
+function determineBestAttackRoute(room) {
+    const exits = Game.map.describeExits(room.name);
+    if (!exits) return undefined;
+
+    const origin = attackRouteOrigin(room.name);
+    const towers = (room.towers || []).filter((t) => {
+        try {
+            return t.store && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST;
+        } catch (e) {
+            return false;
+        }
+    });
+
+    const candidates = [];
+    const dirs = [TOP, RIGHT, BOTTOM, LEFT];
+    for (let i = 0; i < dirs.length; i++) {
+        const dir = dirs[i];
+        const staging = exits[dir];
+        if (!staging || !isViableStagingRoom(staging)) continue;
+        const geom = scoreExitEdge(room, dir, towers);
+        if (!geom) continue;
+        candidates.push({
+            staging,
+            hops: attackRouteHops(origin, staging),
+            stagingCost: stagingCost(staging),
+            towerDmg: geom.towerDmg,
+            barrierHits: geom.barrierHits,
+            quadWidth: geom.quadWidth
+        });
+    }
+    if (!candidates.length) return undefined;
+
+    let minHops = Infinity;
+    for (let i = 0; i < candidates.length; i++) {
+        if (candidates[i].hops < minHops) minHops = candidates[i].hops;
+    }
+
+    let best = null;
+    let bestScore = Infinity;
+    for (let i = 0; i < candidates.length; i++) {
+        const c = candidates[i];
+        const extra = (c.hops < Infinity && minHops < Infinity) ? c.hops - minHops : 0;
+        if (extra > ATTACK_ROUTE_MAX_EXTRA_HOPS) continue;
+        const score = c.towerDmg
+            + c.barrierHits / 50000
+            + extra * 400
+            + (c.quadWidth >= 2 ? 0 : 2000)
+            + c.stagingCost;
+        if (score < bestScore) {
+            bestScore = score;
+            best = c;
+        }
+    }
+    if (!best) {
+        for (let i = 0; i < candidates.length; i++) {
+            if (candidates[i].hops === minHops) return candidates[i].staging;
+        }
+        return candidates[0].staging;
+    }
+    return best.staging;
 }
 
 let invaderAlert = {};
