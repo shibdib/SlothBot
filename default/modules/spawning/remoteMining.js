@@ -379,15 +379,36 @@ function getColonySkGuardRooms(colonyName) {
     return out;
 }
 
+/** True when the two rooms share a cardinal exit (not a Chebyshev diagonal). */
+function isExitNeighbor(fromName, toName) {
+    if (!fromName || !toName) return false;
+    const exits = Game.map.describeExits(fromName);
+    if (!exits) return false;
+    for (const neighbor of Object.values(exits)) {
+        if (neighbor === toName) return true;
+    }
+    return false;
+}
+
+function assignedSkHasNonAdjacent(colonyName, assigned) {
+    for (let i = 0; i < assigned.length; i++) {
+        if (!isExitNeighbor(colonyName, assigned[i])) return true;
+    }
+    return false;
+}
+
 /**
- * Source-keeper remotes are allowed when none are assigned yet, or this room is
- * one of the colony's assigned SK rooms (capped at SK_MINING_MAX_ROOMS).
+ * Source-keeper remotes are allowed when under the colony cap, already assigned,
+ * or this room shares an exit with the colony while an assigned SK does not.
+ * Linear (Chebyshev) distance treats diagonal SK rooms as range 1, so without
+ * the exit check a diagonal assignment would block the adjacent SK forever.
  */
 function isAllowedSkRoom(colonyName, remoteName) {
     if (!remoteName || !isSkRoomName(remoteName)) return true;
     const assigned = getColonySkRooms(colonyName);
-    if (!assigned.length) return true;
-    return assigned.indexOf(remoteName) !== -1;
+    if (assigned.indexOf(remoteName) !== -1) return true;
+    if (assigned.length < maxSkRoomsPerColony()) return true;
+    return isExitNeighbor(colonyName, remoteName) && assignedSkHasNonAdjacent(colonyName, assigned);
 }
 
 function isSectorCenterRoomName(roomName) {
@@ -477,6 +498,10 @@ function pruneExcessSkRooms(colonyName) {
 
     ensureClaimIndex();
     skRooms.sort((a, b) => {
+        // Exit-adjacent SK beats a diagonal even if the diagonal already has an attacker.
+        const adjA = isExitNeighbor(colonyName, a) ? 0 : 1;
+        const adjB = isExitNeighbor(colonyName, b) ? 0 : 1;
+        if (adjA !== adjB) return adjA - adjB;
         const liveAtkA = hasLiveSkAttacker(a) ? 0 : 1;
         const liveAtkB = hasLiveSkAttacker(b) ? 0 : 1;
         if (liveAtkA !== liveAtkB) return liveAtkA - liveAtkB;
@@ -764,12 +789,19 @@ function getCandidateRemotesForProbe(colonyRoom) {
 
     const add = (rName, priority) => {
         if (seen.has(rName) || !remoteIntelEligible(colonyRoom, rName)) return false;
-        // Discovery only: never pick up a second SK room. Assigned SK rooms (priority 0)
-        // still come through so pruneExcessSkRooms can rank and drop extras.
+        // Discovery only: never pick up a second SK room, unless this one shares an
+        // exit and an already-listed SK does not — pruneExcessSkRooms then keeps
+        // the adjacent room. Assigned SK rooms (priority 0) still come through so
+        // prune can rank and drop extras.
         if (priority > 0 && isSkRoomName(rName)) {
+            let listedSk = false;
+            let listedNonAdjacentSk = false;
             for (let i = 0; i < ordered.length; i++) {
-                if (isSkRoomName(ordered[i].room)) return false;
+                if (!isSkRoomName(ordered[i].room)) continue;
+                listedSk = true;
+                if (!isExitNeighbor(colony, ordered[i].room)) listedNonAdjacentSk = true;
             }
+            if (listedSk && !(listedNonAdjacentSk && isExitNeighbor(colony, rName))) return false;
         }
         seen.add(rName);
         ordered.push({room: rName, priority});
@@ -819,6 +851,10 @@ function getCandidateRemotesForProbe(colonyRoom) {
 
     pool.sort((a, b) => {
         if (b.sources !== a.sources) return b.sources - a.sources;
+        // Chebyshev linear==1 includes diagonals (2 hops). Prefer a shared exit.
+        const adjA = isExitNeighbor(colony, a.room) ? 0 : 1;
+        const adjB = isExitNeighbor(colony, b.room) ? 0 : 1;
+        if (adjA !== adjB) return adjA - adjB;
         if (a.linear !== b.linear) return a.linear - b.linear;
         return b.stale - a.stale;
     });

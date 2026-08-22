@@ -125,6 +125,22 @@ function queuedSkRoom(entry) {
     return entry.destination;
 }
 
+/** Pick up an SK room that shares an exit, even if a diagonal SK is already assigned. */
+function ingestAdjacentSkRooms(room) {
+    if (!skMiningAllowed(room)) return;
+    const exits = Game.map.describeExits(room.name);
+    if (!exits) return;
+    for (const neighbor of Object.values(exits)) {
+        if (!isSkRoom(neighbor)) continue;
+        if (!remoteMining.isAllowedSkRoom(room.name, neighbor)) continue;
+        if (remoteMining.isRemoteClaimedByOther(room.name, neighbor)) continue;
+        if (skTowersOrCombatBlock(neighbor)) continue;
+        ensureSkIntel(neighbor);
+        remoteMining.probeMiningRoute(room.name, neighbor, {allowLive: true});
+        ingestColonyRemoteSources(room, neighbor);
+    }
+}
+
 function purgeUnguardedSkQueue(room) {
     const queue = CREEP_QUEUES[room.name];
     if (!queue) return;
@@ -725,6 +741,7 @@ function remoteCreepQueue(room) {
         if (homeIntel) homeIntel.refreshRemotes = undefined;
     }
 
+    ingestAdjacentSkRooms(room);
     remoteMining.pruneExcessSkRooms(room.name);
     remoteMining.pruneOrphanSectorCenters(room.name);
 
