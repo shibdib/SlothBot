@@ -157,23 +157,27 @@ function preReserveBoostLab(room, creepName, neededBoosts, body, role, misc) {
     const wave = (misc && misc.waitFor > 1) ? misc.waitFor : 1;
     const usedLabs = new Set();
     for (const reservation of reservations) {
-        const lab = _.find(room.labs, s =>
-            !usedLabs.has(s.id) &&
-            s.isActive() &&
-            !s.memory.itemNeeded &&
-            (!s.memory.neededBoost || s.memory.neededBoost === reservation.boost)
-        );
+        const lab = (typeof pickBoostLab === 'function')
+            ? pickBoostLab(room, reservation.boost, usedLabs)
+            : _.find(room.labs, s =>
+                !usedLabs.has(s.id) &&
+                s.isActive() &&
+                !s.memory.itemNeeded &&
+                (!s.memory.neededBoost || s.memory.neededBoost === reservation.boost)
+            );
         if (!lab) continue;
         usedLabs.add(lab.id);
 
         lab.memory.paused = true;
         lab.memory.neededBoost = reservation.boost;
+        const cap = (lab.store.getCapacity && lab.store.getCapacity(reservation.boost)) || 3000;
         if (wave > 1) {
-            // Pooled waitFor total is owned by reserveWaveBoosts. Seed one
-            // body so labTech has a floor until the first live creep runs.
-            if (!lab.memory.amount) lab.memory.amount = reservation.amount;
+            // Full waitFor pool from the first spawn so labTech can load each
+            // boost into its own lab before the last body pops. max() so later
+            // eggs in the same wave don't stack another copy on top.
+            lab.memory.amount = Math.min(cap, Math.max(lab.memory.amount || 0, reservation.amount * wave));
         } else {
-            lab.memory.amount = (lab.memory.amount || 0) + reservation.amount;
+            lab.memory.amount = Math.min(cap, (lab.memory.amount || 0) + reservation.amount);
         }
         const names = lab.memory.preReservedFor || [];
         if (!names.includes(creepName)) names.push(creepName);

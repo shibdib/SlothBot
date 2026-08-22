@@ -1392,7 +1392,15 @@ class RoleLabTech {
         const first = primaryIsEnergy ? energyExtras : mineralExtras;
         const second = primaryIsEnergy ? mineralExtras : energyExtras;
 
-        this.allocateFillAmounts([primary, ...first], source, capacity);
+        const primaryDest = Game.getObjectById(primary.deliveryTarget);
+        const destMem = primaryDest && this.room.memory._structureMemory
+            && this.room.memory._structureMemory[primaryDest.id];
+        // Wave boost labs: fill one mineral to the pooled waitFor amount
+        // before sprinkling leftover carry on the next boost. Hub inputs
+        // still share the load so both reactions stay fed.
+        const greedyBoost = !primaryIsEnergy && !!(destMem && destMem.neededBoost);
+
+        this.allocateFillAmounts([primary, ...first], source, capacity, greedyBoost);
         for (const t of first) {
             if (t.amount > 0) tasks.push(t);
         }
@@ -1412,7 +1420,7 @@ class RoleLabTech {
         }
     }
 
-    allocateFillAmounts(candidates, source, capacity) {
+    allocateFillAmounts(candidates, source, capacity, greedy) {
         if (!candidates.length || capacity <= 0) return 0;
         for (const t of candidates) {
             const dest = Game.getObjectById(t.deliveryTarget);
@@ -1426,16 +1434,25 @@ class RoleLabTech {
         const needs = live.map(t => t.amount);
         const totalNeed = needs.reduce((sum, n) => sum + n, 0);
         if (totalNeed > capacity) {
-            const n = live.length;
-            const floorShare = Math.floor(capacity / n);
-            const assigned = needs.map(need => Math.min(need, floorShare));
-            let remaining = capacity - assigned.reduce((sum, a) => sum + a, 0);
-            for (let i = 0; i < n && remaining > 0; i++) {
-                const more = Math.min(needs[i] - assigned[i], remaining);
-                assigned[i] += more;
-                remaining -= more;
+            if (greedy) {
+                let remaining = capacity;
+                for (let i = 0; i < live.length; i++) {
+                    const take = Math.min(needs[i], remaining);
+                    live[i].amount = take;
+                    remaining -= take;
+                }
+            } else {
+                const n = live.length;
+                const floorShare = Math.floor(capacity / n);
+                const assigned = needs.map(need => Math.min(need, floorShare));
+                let remaining = capacity - assigned.reduce((sum, a) => sum + a, 0);
+                for (let i = 0; i < n && remaining > 0; i++) {
+                    const more = Math.min(needs[i] - assigned[i], remaining);
+                    assigned[i] += more;
+                    remaining -= more;
+                }
+                for (let i = 0; i < n; i++) live[i].amount = assigned[i];
             }
-            for (let i = 0; i < n; i++) live[i].amount = assigned[i];
         }
 
         if (source && source.store) {

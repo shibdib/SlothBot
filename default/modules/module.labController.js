@@ -396,6 +396,14 @@ class LabManager {
                 mem.requested = Game.time;
                 return;
             }
+            // Pooled waitFor fill still sitting for a body that hasn't spawned.
+            // A 50-part egg is 150 ticks; don't yank the lab mid-spawn.
+            if ((mem.amount || 0) > 0) {
+                if (!mem.requested || mem.requested + 250 < Game.time) {
+                    lab.memory = undefined;
+                }
+                return;
+            }
             if (!mem.requested || mem.requested + 150 < Game.time) {
                 lab.memory = undefined;
             }
