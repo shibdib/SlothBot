@@ -173,9 +173,10 @@ Object.assign(TerminalControl.prototype, {
             need = Math.max(need, REACTION_AMOUNT);
         }
 
-        // Demand ranks above pure free-space parking, but parking still counts
-        // so empire stock is retained before market dumps.
-        return (need > 0 ? 1e9 + need : 0) + free;
+        const hub = Memory._banker && Memory._banker.marketHub === room.name;
+        if (need > 0) return 1e9 + need + free;
+        if (hub) return 1e8 + free;
+        return -Infinity;
     },
 
     /**
@@ -255,8 +256,13 @@ Object.assign(TerminalControl.prototype, {
 
         const sendToRoom = (destRoomName, sellAmount, resourceType, label) => {
             const destRoom = Game.rooms[destRoomName];
-            if (!destRoom?.terminal) return false;
-            const destFree = destRoom.terminal.store.getFreeCapacity(resourceType);
+            // Owned rooms need a live terminal. Ally dests may be unvisible;
+            // Screeps still accepts send() to a known room name.
+            if (_.includes(MY_ROOMS, destRoomName) && !destRoom?.terminal) return false;
+            if (destRoom && !destRoom.terminal) return false;
+            const destFree = destRoom?.terminal
+                ? destRoom.terminal.store.getFreeCapacity(resourceType)
+                : sellAmount;
             sellAmount = clampSendAmount(sellAmount, resourceType, destRoomName, destFree);
             if (sellAmount < FIRE_SALE_MIN) return false;
             const txCost = Game.market.calcTransactionCost(sellAmount, terminal.pos.roomName, destRoomName);
@@ -278,7 +284,9 @@ Object.assign(TerminalControl.prototype, {
                 if (!room?.terminal || !room.controller || room.controller.level < 6) continue;
                 if (this.isCapacityPressured(room)) continue;
                 if (room.terminal.store.getFreeCapacity(resourceType) < FIRE_SALE_MIN) continue;
-                owned.push({name, score: this.scoreOwnedResourceNeed(room, resourceType)});
+                const score = this.scoreOwnedResourceNeed(room, resourceType);
+                if (score === -Infinity) continue;
+                owned.push({name, score});
             }
             owned.sort((a, b) => b.score - a.score);
             for (const {name} of owned) {

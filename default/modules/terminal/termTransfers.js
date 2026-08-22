@@ -5,7 +5,7 @@
  */
 
 const state = require('termState');
-const {getRoomKeepAmount, getPressureProtectAmount} = require('termKeep');
+const {getRoomKeepAmount, getPressureProtectAmount, isHubRoom} = require('termKeep');
 const {getDerivedCommodityAmount} = require('termCache');
 const FactoryControl = require('module.factoryController');
 const profiler = require('tools.profiler');
@@ -16,6 +16,9 @@ const RESOURCE_SEND_MIN = 100;
 const BATTERY_SEND_MIN = 50;
 const ENERGY_SEND_MIN = 5000;
 const PRESSURE_DEST_FREE_MIN = 5000;
+const PARK_TERMINAL_USED_MAX = 0.5;
+const PARK_STORAGE_FREE_MIN = 0.2;
+const DEST_TERMINAL_BUSY = 0.7;
 // 0.25 only covers ~9 rooms; alliance dests are often 15–30 rooms (fee ~0.4–0.65).
 const ALLY_FEE_MAX = 0.75;
 
@@ -60,6 +63,14 @@ function getRoomEffective(room, resource) {
     return amount;
 }
 
+function getExportFloor(room, resource, pressureRelief = false) {
+    if (pressureRelief) {
+        const protect = getPressureProtectAmount(room, resource);
+        return isFinite(protect) ? protect : Infinity;
+    }
+    return getRoomResourceDemand(room, resource) || 0;
+}
+
 function getTerminalExportable(room, resource, pressureRelief = false) {
     const terminal = room.terminal;
     if (!terminal || resource === RESOURCE_ENERGY) return 0;
@@ -67,18 +78,55 @@ function getTerminalExportable(room, resource, pressureRelief = false) {
     const inTerminal = terminal.store[resource] || 0;
     if (!inTerminal) return 0;
 
+    const floor = getExportFloor(room, resource, pressureRelief);
+    if (!isFinite(floor)) return 0;
+
     const effective = getRoomEffective(room, resource);
-    if (pressureRelief) {
-        const protect = getPressureProtectAmount(room, resource);
-        if (!isFinite(protect)) return 0;
-        const available = Math.min(inTerminal, Math.max(0, effective - protect));
-        return Math.min(available, PRESSURE_SEND_MAX);
+    const available = Math.min(inTerminal, Math.max(0, effective - floor));
+    const maxSend = pressureRelief ? PRESSURE_SEND_MAX : RESOURCE_SEND_MAX;
+    return Math.min(available, maxSend);
+}
+
+/**
+ * When the empire has surplus, any terminal may donate down to the protect
+ * floor (labs/boosts/hub keep). Local keep no longer blocks ally offload.
+ * Empire shortage: minerals/boosts are not donated.
+ */
+function getAllyExportable(room, resource, ledger) {
+    const terminal = room.terminal;
+    if (!terminal || resource === RESOURCE_ENERGY) return 0;
+
+    const inTerminal = terminal.store[resource] || 0;
+    if (!inTerminal) return 0;
+
+    if (resource !== RESOURCE_BATTERY) {
+        const {canEmpireSell} = require('termNetwork');
+        if (!canEmpireSell(resource, ledger)) return 0;
     }
 
-    const keep = getRoomResourceDemand(room, resource);
-    if (!keep || effective < keep) return 0;
-    const available = Math.min(inTerminal, Math.max(0, effective - keep));
+    const protect = getPressureProtectAmount(room, resource);
+    if (!isFinite(protect)) return 0;
+
+    const effective = getRoomEffective(room, resource);
+    const available = Math.min(inTerminal, Math.max(0, effective - protect));
     return Math.min(available, RESOURCE_SEND_MAX);
+}
+
+function destTerminalBusy(room) {
+    const terminal = room?.terminal;
+    if (!terminal) return true;
+    return terminal.store.getUsedCapacity() > TERMINAL_CAPACITY * DEST_TERMINAL_BUSY;
+}
+
+function destParkFree(room, resource, inbound) {
+    const terminal = room?.terminal;
+    if (!terminal) return 0;
+    const destFree = terminal.store.getFreeCapacity(resource) - inbound;
+    if (destFree < PRESSURE_DEST_FREE_MIN) return 0;
+    if (terminal.store.getUsedCapacity() > TERMINAL_CAPACITY * PARK_TERMINAL_USED_MAX) return 0;
+    const storage = room.storage;
+    if (storage && storage.store.getFreeCapacity() < STORAGE_CAPACITY * PARK_STORAGE_FREE_MIN) return 0;
+    return destFree;
 }
 
 function canUseTerminal(roomName) {
@@ -154,6 +202,9 @@ function planResourceTransfers(transfers, resource, profiles, options = {}) {
         const destRoom = Game.rooms[dest.name];
         const destFree = destRoom.terminal.store.getFreeCapacity(resource);
         if (destFree < RESOURCE_SEND_MIN) continue;
+        if (isRoomCapacityPressured(destRoom)) continue;
+        // Don't park keep-fills into an already busy satellite terminal.
+        if (destTerminalBusy(destRoom) && !getRoomLabNeeds(destRoom).has(resource) && !isHubRoom(destRoom)) continue;
 
         const remaining = Math.min(dest.need, destFree, RESOURCE_SEND_MAX);
         const candidates = [];
@@ -373,7 +424,6 @@ function collectAllyTransferRequests() {
 }
 
 function planAllyTransfers(transfers, ledger, profiles) {
-    const {canEmpireSell} = require('termNetwork');
     const requests = collectAllyTransferRequests();
     if (!requests.length) return;
 
@@ -408,7 +458,7 @@ function planAllyTransfers(transfers, ledger, profiles) {
 
             if (resourceType === RESOURCE_BATTERY) {
                 if (room.energyState < 2) continue;
-                const available = getTerminalExportable(room, resourceType);
+                const available = getAllyExportable(room, resourceType, ledger);
                 const sendAmount = Math.min(available, RESOURCE_SEND_MAX, amount);
                 if (sendAmount < BATTERY_SEND_MIN) continue;
                 const cost = txCost(profile.name, roomName, sendAmount);
@@ -425,9 +475,7 @@ function planAllyTransfers(transfers, ledger, profiles) {
                 continue;
             }
 
-            if (!canEmpireSell(resourceType, ledger)) continue;
-
-            const available = getTerminalExportable(room, resourceType);
+            const available = getAllyExportable(room, resourceType, ledger);
             const sendAmount = Math.min(available, RESOURCE_SEND_MAX, amount);
             if (sendAmount < RESOURCE_SEND_MIN) continue;
 
@@ -495,15 +543,17 @@ function planHubConsolidation(transfers, ledger, profiles) {
 }
 
 /**
- * Evacuate pressured rooms to ANY non-pressured terminal with free space.
- * Demand-based balancing alone cannot clear rooms full of resources everyone already has
- * (e.g. 440k UH sitting in a non-hub storage).
+ * Evacuate pressured rooms. Prefer dests that actually need the resource, then
+ * the hub, then allies who requested it. Last-resort parking is only allowed
+ * into rooms with lots of terminal AND storage headroom so we do not congest
+ * random working terminals.
  *
  * Minerals first; if the terminal is energy-heavy, also plan energy dumps to rooms
  * that can still accept energy (prefer low energyState). Never leave energy for
  * market fire-sales while an owned room has free terminal capacity.
  */
 function planPressureTransfers(transfers, profiles) {
+    const {getInboundPlannedAmount} = require('termMarket');
     const pressured = [];
     for (const profile of profiles) {
         const room = Game.rooms[profile.name];
@@ -512,6 +562,8 @@ function planPressureTransfers(transfers, profiles) {
         pressured.push(profile.name);
     }
     if (!pressured.length) return;
+
+    const allyRequests = collectAllyTransferRequests();
 
     for (const srcName of pressured) {
         const srcRoom = Game.rooms[srcName];
@@ -538,8 +590,17 @@ function planPressureTransfers(transfers, profiles) {
                 if (!destRoom?.terminal || !canUseTerminal(profile.name)) continue;
                 if (isRoomCapacityPressured(destRoom)) continue;
 
-                const destFree = destRoom.terminal.store.getFreeCapacity(resource);
+                const inbound = getInboundPlannedAmount(profile.name, resource, transfers);
+                const destFree = destRoom.terminal.store.getFreeCapacity(resource) - inbound;
                 if (destFree < destFreeMin) continue;
+
+                const demand = getRoomResourceDemand(destRoom, resource);
+                const effective = getRoomEffective(destRoom, resource);
+                const underKeep = demand ? Math.max(0, demand - effective - inbound) : 0;
+                const hub = isHubRoom(destRoom);
+                // Demand and hub always accept. Parking elsewhere requires unused
+                // terminal/storage headroom so we don't stuff a working satellite.
+                if (underKeep < RESOURCE_SEND_MIN && !hub && !destParkFree(destRoom, resource, inbound)) continue;
 
                 let sendAmount = Math.min(amount, destFree, PRESSURE_SEND_MAX,
                     maxAffordableByEnergy(srcName, profile.name, srcEnergy));
@@ -551,16 +612,40 @@ function planPressureTransfers(transfers, profiles) {
                 // for a nearby dump if we don't insist on a 25k send.
                 if (!energyStarved && cost > sendAmount * 0.35) continue;
 
-                const demand = getRoomResourceDemand(destRoom, resource);
-                const effective = getRoomEffective(destRoom, resource);
-                const underKeep = demand ? Math.max(0, demand - effective) : 0;
+                const bonus = underKeep ? 3 : hub ? 2 : 0;
                 candidates.push({
                     from: srcName,
                     to: profile.name,
                     resource,
                     amount: sendAmount,
                     kind: 'pressure',
-                    score: scoreTransfer(underKeep || destFree, cost, underKeep ? 3 : 1) + sendAmount / 5000,
+                    score: scoreTransfer(underKeep || destFree, cost, bonus) + sendAmount / 5000,
+                });
+            }
+
+            // Allies who asked for this resource beat stuffing a random owned room.
+            for (const req of allyRequests) {
+                if (req.resourceType !== resource || req.roomName === srcName) continue;
+                const destRoom = Game.rooms[req.roomName];
+                if (destRoom) {
+                    if (!destRoom.terminal || isRoomCapacityPressured(destRoom)) continue;
+                    const destFree = destRoom.terminal.store.getFreeCapacity(resource);
+                    if (destFree < RESOURCE_SEND_MIN) continue;
+                }
+                let sendAmount = Math.min(amount, req.amount || amount, PRESSURE_SEND_MAX,
+                    maxAffordableByEnergy(srcName, req.roomName, srcEnergy));
+                sendAmount = clampSendToEnergy(srcName, req.roomName, resource, sendAmount, srcEnergy);
+                if (sendAmount < RESOURCE_SEND_MIN) continue;
+                const cost = txCost(srcName, req.roomName, sendAmount);
+                if (cost > sendAmount * ALLY_FEE_MAX) continue;
+                candidates.push({
+                    from: srcName,
+                    to: req.roomName,
+                    resource,
+                    amount: sendAmount,
+                    kind: 'pressure',
+                    ally: req.username,
+                    score: scoreTransfer(sendAmount, cost, 2.5) + sendAmount / 5000,
                 });
             }
 
@@ -740,13 +825,13 @@ function executeTransfer(terminal, transfer) {
     recordTransferEnergyCost(terminal, resource, amount, to);
     markTerminalsUsed(terminal.room.name, to, resource);
 
-    const label = transfer.kind === 'pressure' ? 'Pressure relief'
+    const label = transfer.kind === 'pressure' ? (transfer.ally ? `Pressure relief (ally ${transfer.ally})` : 'Pressure relief')
         : transfer.kind === 'hub' ? 'Hub feed'
             : transfer.kind === 'ally' ? `Ally ${transfer.ally}` : 'Balancing';
     const msg = `${label}: ${amount} ${resource} to ${roomLink(to)} from ${roomLink(terminal.room.name)}`;
-    if (transfer.kind === 'ally') log.a(msg, 'Market: ');
-    else if (resource === RESOURCE_ENERGY && transfer.kind === 'energy') log.i(msg, 'Market: ');
-    else log.a(msg, 'Market: ');
+    if (transfer.kind === 'ally' || transfer.ally) log.a(msg, 'Market: ');
+    else if (transfer.kind === 'pressure' || transfer.kind === 'urgent') log.w(msg, 'Market: ');
+    else log.i(msg, 'Market: ');
     return true;
 }
 

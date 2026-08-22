@@ -4,6 +4,26 @@
  * Per-room terminal keep amounts.
  */
 
+function isHubRoom(room) {
+    return !!(room && Memory._banker && Memory._banker.marketHub === room.name);
+}
+
+function roomUsesResource(room, resource) {
+    if (!room || !resource) return false;
+    if (room.memory.producingBoost === resource) return true;
+    if (room.memory.neededCommodity === resource) return true;
+    if (resource === RESOURCE_GHODIUM && room.nuker) return true;
+    if (room.memory.commodityProduction) {
+        const comm = COMMODITIES[room.memory.commodityProduction];
+        if (comm && comm.components && comm.components[resource]) return true;
+    }
+    for (const lab of room.labs || []) {
+        if (lab.memory?.itemNeeded === resource) return true;
+        if (lab.memory?.neededBoost === resource) return true;
+    }
+    return false;
+}
+
 function getRoomKeepAmount(room, resource) {
     if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) return 0;
     if (resource === RESOURCE_ENERGY) return 0;
@@ -15,7 +35,12 @@ function getRoomKeepAmount(room, resource) {
         }
         return 0;
     }
-    if (ALL_BOOSTS.includes(resource)) return BOOST_AMOUNT(room, resource);
+    if (ALL_BOOSTS.includes(resource)) {
+        // Hub holds the empire stockpile. Satellites only retain boosts they are
+        // actually using — full BOOST_AMOUNT in every room congests terminals.
+        if (isHubRoom(room) || roomUsesResource(room, resource)) return BOOST_AMOUNT(room, resource);
+        return 0;
+    }
     if (resource === RESOURCE_BATTERY) return 1000;
     if (room.memory.commodityProduction && room.mineral && room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
     if (BASE_MINERALS.includes(resource)) return room.terminal ? REACTION_AMOUNT : 0;
@@ -75,4 +100,10 @@ function getPressureProtectAmount(room, resource) {
     return protect;
 }
 
-module.exports = {getRoomKeepAmount, getPressureProtectAmount, isStorageCapacityCritical};
+module.exports = {
+    getRoomKeepAmount,
+    getPressureProtectAmount,
+    isStorageCapacityCritical,
+    isHubRoom,
+    roomUsesResource,
+};
