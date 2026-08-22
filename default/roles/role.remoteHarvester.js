@@ -135,27 +135,22 @@ class RoleRemoteHarvester {
 
         if (!this.container || Game.time % 5 === 0) this.refreshContainerTarget();
 
-        // Move to or stay on container
-        if (this.container && !this.creep.memory.onContainer) {
-            if (!this.creep.pos.isEqualTo(this.container.pos)) {
-                return this.creep.shibMove(this.container, {range: 0});
-            }
-            this.creep.memory.onContainer = true;
-        } else if (!this.container && Game.time % 10 === 0) {
+        if (!this.container) {
             harvestDepositContainer(this.source, this.creep);
             this.refreshContainerTarget();
-        } else if (!this.creep.memory.onContainer && !this.creep.pos.isNearTo(this.source)) {
+        }
+
+        if (this.container) {
+            if (!this.moveToContainerSpot()) return;
+        } else if (!this.creep.pos.isNearTo(this.source)) {
             return this.creep.shibMove(this.source);
         }
 
-        // Handle container or construction site
-        if (this.container && this.handleContainer()) {
-            return;
-        } else {
-            this.handleDroppedResources();
-        }
+        // Build/repair consumes the work intent — do not harvest the same tick.
+        if (this.container && this.handleContainer()) return;
 
-        // Harvest logic
+        this.handleDroppedResources();
+
         const result = this.creep.harvest(this.source);
         if (result === OK) {
             if (!this.creep.memory.other.haulingRequired) {
@@ -169,29 +164,58 @@ class RoleRemoteHarvester {
             this.creep.shibMove(this.source);
         } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
             if (this.container && this.container.store) this.creep.repair(this.container);
-            this.creep.idleFor(this.source.ticksToRegeneration + 1);
+            if (!this.container || !this.container.progressTotal) {
+                this.creep.idleFor(this.source.ticksToRegeneration + 1);
+            }
         }
     }
 
+    /**
+     * Stand on the container/site. If a keeper is on the tile, work from range 1
+     * instead of chasing the spot forever.
+     */
+    moveToContainerSpot() {
+        if (this.creep.pos.isEqualTo(this.container.pos)) {
+            this.creep.memory.onContainer = true;
+            return true;
+        }
+        this.creep.memory.onContainer = undefined;
+        const occupant = this.container.pos.checkForCreep();
+        const blocked = occupant && occupant.id !== this.creep.id;
+        if (blocked && this.creep.pos.isNearTo(this.container)) return true;
+        this.creep.shibMove(this.container, {range: blocked ? 1 : 0});
+        return false;
+    }
+
     handleContainer() {
-        // Repair or manage container
         if (this.container.hits) {
             const containerStore = this.container.store.getUsedCapacity();
             if (this.creep.store[RESOURCE_ENERGY]) {
-                if (this.container.hits < this.container.hitsMax * 0.5 || (this.container.hits < this.container.hitsMax && containerStore >= CONTAINER_CAPACITY * 0.95)) {
-                    return this.creep.repair(this.container);
+                if (this.container.hits < this.container.hitsMax * 0.5
+                    || (this.container.hits < this.container.hitsMax && containerStore >= CONTAINER_CAPACITY * 0.95)) {
+                    this.creep.repair(this.container);
+                    return true;
                 }
             }
             this.creep.memory.energyAmount = containerStore;
             this.creep.memory.energyId = this.container.id;
-        } else if (this.container.progressTotal) { // If it's a construction site
-            const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
-            if (dropped && dropped.amount > 500 && !this.creep.store.getFreeCapacity()) {
-                return this.creep.build(this.container);
-            }
-            this.creep.memory.energyAmount = dropped ? dropped.amount : 0;
-            this.creep.memory.energyId = dropped ? dropped.id : undefined;
+            return false;
         }
+
+        if (!this.container.progressTotal) return false;
+
+        if (this.creep.store[RESOURCE_ENERGY]) {
+            this.creep.build(this.container);
+            return true;
+        }
+        const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
+        if (dropped && dropped.resourceType === RESOURCE_ENERGY) {
+            this.creep.pickup(dropped);
+            return true;
+        }
+        this.creep.memory.energyAmount = dropped ? dropped.amount : 0;
+        this.creep.memory.energyId = dropped ? dropped.id : undefined;
+        return false;
     }
 
     handleDroppedResources() {
@@ -256,31 +280,44 @@ function harvestDepositContainer(source, creep) {
         return site.id;
     }
 
-    if (creep.memory.siteAttempt) return;
+    if (!canPlaceConstructionSite(creep.room)) return;
 
-    const buildPos = findBestContainerPos(source);
-    if (!buildPos || buildPos.checkForConstructionSites() || buildPos.checkForImpassible()) return;
-
-    if (creep.pos.isEqualTo(buildPos) && creep.pos.getRangeTo(source) === 1) {
-        creep.memory.siteAttempt = true;
-        if (canPlaceConstructionSite(creep.room)) tryCreateConstructionSite(buildPos, STRUCTURE_CONTAINER);
-    } else if (creep.pos.checkForWall()) {
-        findContainerSpot(creep.room, source.pos);
+    const spots = containerCandidatePositions(source);
+    for (let i = 0; i < spots.length; i++) {
+        const buildPos = spots[i];
+        if (buildPos.checkForWall() || buildPos.checkForObstacleStructure()) continue;
+        const existing = buildPos.checkForConstructionSites();
+        if (existing) {
+            if (existing.structureType === STRUCTURE_CONTAINER) return;
+            // Source container outranks a road site on the harvest tile.
+            if (existing.structureType === STRUCTURE_ROAD && i === 0) {
+                existing.remove();
+            }
+            continue;
+        }
+        if (tryCreateConstructionSite(buildPos, STRUCTURE_CONTAINER) === OK) return;
     }
 }
 
-function findContainerSpot(room, position) {
+function containerCandidatePositions(source) {
+    const best = findBestContainerPos(source);
+    const spots = [];
+    const seen = new Set();
+    const add = (pos) => {
+        if (!pos) return;
+        const key = pos.x + 'x' + pos.y;
+        if (seen.has(key)) return;
+        seen.add(key);
+        spots.push(pos);
+    };
+    add(best);
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
-            if (xOff !== 0 || yOff !== 0) {
-                let pos = new RoomPosition(position.x + xOff, position.y + yOff, room.name);
-                if (!pos.checkForImpassible() && !pos.checkForConstructionSites()) {
-                    if (canPlaceConstructionSite(room)) tryCreateConstructionSite(pos, STRUCTURE_CONTAINER);
-                    return;
-                }
-            }
+            if (!xOff && !yOff) continue;
+            add(new RoomPosition(source.pos.x + xOff, source.pos.y + yOff, source.pos.roomName));
         }
     }
+    return spots;
 }
 
 profiler.registerClass(RoleRemoteHarvester, 'RemoteHarvester');

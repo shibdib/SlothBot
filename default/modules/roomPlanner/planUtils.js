@@ -668,16 +668,22 @@ function isRoadPlaceable(pos) {
 }
 
 function findBestContainerPos(source) {
-    let bestPos, bestCount;
+    const room = Game.rooms[source.pos.roomName];
+    const lairs = room && room.keeperLairs && room.keeperLairs.length ? room.keeperLairs : null;
+    const nearestLair = lairs ? source.pos.findClosestByRange(lairs) : null;
+
+    let bestPos, bestScore;
     for (let xOff = -1; xOff <= 1; xOff++) {
         for (let yOff = -1; yOff <= 1; yOff++) {
-            if (xOff !== 0 || yOff !== 0) {
-                let pos = new RoomPosition(source.pos.x + xOff, source.pos.y + yOff, source.pos.roomName);
-                if (pos.checkForWall()) continue;
-                if (!bestCount || pos.countOpenTerrainAround(true, true) > bestCount) {
-                    bestCount = pos.countOpenTerrainAround(true, true);
-                    bestPos = pos;
-                }
+            if (!xOff && !yOff) continue;
+            const pos = new RoomPosition(source.pos.x + xOff, source.pos.y + yOff, source.pos.roomName);
+            if (pos.checkForWall()) continue;
+            let score = pos.countOpenTerrainAround(true, true);
+            // Keepers walk lair → source and camp the near side. Prefer the far tile.
+            if (nearestLair) score += pos.getRangeTo(nearestLair) * 3;
+            if (bestScore === undefined || score > bestScore) {
+                bestScore = score;
+                bestPos = pos;
             }
         }
     }
