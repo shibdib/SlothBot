@@ -161,8 +161,11 @@ function waveSpawnDemand(waitFor) {
     return 0;
 }
 
-function maxMilitaryReserve(spawnCount) {
+function maxMilitaryReserve(spawnCount, waitFor) {
     if (spawnCount <= 1) return 0;
+    // Quad waves: two bodies at a time. A 2-spawn room locking only one
+    // spawn serializes 4 × 150 ticks and the first body leaves ~300 TTL short.
+    if (waitFor >= 4) return Math.min(spawnCount, 2);
     if (spawnCount === 2) return 1;
     return 2;
 }

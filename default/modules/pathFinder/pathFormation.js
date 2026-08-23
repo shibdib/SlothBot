@@ -234,6 +234,20 @@ function formationRange(a, b) {
     return Infinity;
 }
 
+function isQuadCreep(creep) {
+    if (!creep || !creep.memory) return false;
+    if ((creep.memory.squadMembers || []).length >= 2) return true;
+    if (!creep.memory.groupLeader) return false;
+    const leader = Game.getObjectById(creep.memory.groupLeader);
+    return !!(leader && (leader.memory.squadMembers || []).length >= 2);
+}
+
+function wouldEnterDest(pos, direction, destRoom) {
+    if (!pos || !destRoom || pos.roomName === destRoom) return false;
+    const next = posAfterMove(pos, direction);
+    return !!(next && next.roomName === destRoom);
+}
+
 module.exports = {
 
     QUAD_FOLLOWER_OFFSETS,
@@ -253,5 +267,9 @@ module.exports = {
     posAfterMove,
 
     formationRange,
+
+    isQuadCreep,
+
+    wouldEnterDest,
 
 };

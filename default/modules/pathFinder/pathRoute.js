@@ -19,16 +19,57 @@ const ROUTE_DISTANCE_TTL = CREEP_LIFE_TIME * 3;
 const EXIT_TILE_CACHE = Object.create(null);
 const HOP_GOAL_COUNT = 3;
 
+function avoidList(options) {
+    if (!options || typeof options !== 'object' || !options.avoid) return null;
+    return Array.isArray(options.avoid) ? options.avoid : [options.avoid];
+}
+
+function isAvoided(roomName, options) {
+    const rooms = avoidList(options);
+    return !!(rooms && rooms.includes(roomName));
+}
+
+function filterAvoidedRooms(rooms, options, keep) {
+    const roomsAvoid = avoidList(options);
+    if (!roomsAvoid || !rooms || !rooms.length) return rooms;
+    const keepSet = keep && keep.length ? keep : [];
+    const out = [];
+    for (let i = 0; i < rooms.length; i++) {
+        const r = rooms[i];
+        if (keepSet.includes(r) || !roomsAvoid.includes(r)) out.push(r);
+    }
+    return out;
+}
+
+// Going to the dest-adjacent staging room: never route through dest itself.
+function attachStagingAvoid(creep, target, options) {
+    if (!creep || !creep.memory || !target || !options) return options;
+    const dest = creep.memory.destination;
+    const misc = creep.memory.misc;
+    const staging = misc && misc.stagingRoom;
+    if (!dest || !staging || staging === dest) return options;
+    if (target.roomName !== staging) return options;
+    if (creep.pos.roomName === dest || creep.pos.roomName === staging) return options;
+    const extra = avoidList(options) ? avoidList(options).slice() : [];
+    if (!extra.includes(dest)) extra.push(dest);
+    options.avoid = extra;
+    return options;
+}
+
 function routeCacheKey(from, to, options = {}) {
     const shortest = typeof options === 'boolean' ? options : !!options.shortest;
     const offRoad = typeof options === 'object' && !!options.offRoad;
-    return `${from}_${to}${shortest ? '_short' : ''}${offRoad ? '_off' : ''}`;
+    const roomsAvoid = typeof options === 'object' ? avoidList(options) : null;
+    const avoidKey = roomsAvoid && roomsAvoid.length
+        ? `_av${roomsAvoid.slice().sort().join(',')}` : '';
+    return `${from}_${to}${shortest ? '_short' : ''}${offRoad ? '_off' : ''}${avoidKey}`;
 }
 
 function isRoomBlocked(roomName, origin, destination, options) {
     const intel = INTEL[roomName];
     const rStatus = roomStatus(roomName);
     if (rStatus === 'closed' || (intel && !intel.isHighway && rStatus !== roomStatus(origin))) return true;
+    if (isAvoided(roomName, options)) return true;
     if (Memory.avoidRooms?.includes(roomName)) return true;
     if (intel?.owner && !FRIENDLIES.includes(intel.owner) && intel.towers) return true;
     if (options.blockHostileOwned && intel?.owner && !FRIENDLIES.includes(intel.owner)) return true;
@@ -254,6 +295,7 @@ function findRoute(origin, destination, options = {}) {
     const route = Game.map.findRoute(origin, destination, {
         routeCallback: (roomName) => {
             if (roomName === origin || roomName === destination) return 1;
+            if (isAvoided(roomName, options)) return Infinity;
             if (useIntelCosts) return roomCost(roomName, origin, destination, options);
             const rStatus = roomStatus(roomName);
             if (rStatus === 'closed') return Infinity;
@@ -337,6 +379,12 @@ function deleteRoute(from, to) {
 module.exports = {
 
     findRoute,
+
+    attachStagingAvoid,
+
+    filterAvoidedRooms,
+
+    avoidList,
 
     cacheRoute,
 

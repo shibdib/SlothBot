@@ -20,7 +20,17 @@ const {
 
 const {requestTow, needsTow} = require('pathTow');
 
-const {findRoute, deleteRoute, estimateClaimRouteTicks, exitHopTarget, onExitToward} = require('pathRoute');
+const {
+    findRoute,
+    deleteRoute,
+    estimateClaimRouteTicks,
+    exitHopTarget,
+    onExitToward,
+    attachStagingAvoid,
+    filterAvoidedRooms
+} = require('pathRoute');
+
+const {isQuadCreep, wouldEnterDest, posAfterMove} = require('pathFormation');
 
 /**
  * Claim/reserver TTL gate for *mission* travel only.
@@ -180,6 +190,8 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     let target = normalizePos(heading);
     if (!origin || !target) return;
 
+    attachStagingAvoid(creep, target, options);
+
     if (options.maxOps == null) options.maxOps = DEFAULT_MAXOPS;
     if (options.range == null) options.range = 1;
     if (options.maxRooms == null) options.maxRooms = 7;
@@ -204,6 +216,20 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         if (!creep.className && creep.fatigue > 0) {
             if (creep.memory && !creep.memory.military) creep.idleFor(1);
             return true;
+        }
+        const hopPos = posAfterMove(origin, options.hopExitDir);
+        const avoid = options.avoid && (Array.isArray(options.avoid) ? options.avoid : [options.avoid]);
+        if (hopPos && avoid && avoid.includes(hopPos.roomName)) {
+            clearShibMove(creep);
+            return false;
+        }
+        const dest = creep.memory && creep.memory.destination;
+        if (dest && isQuadCreep(creep) && wouldEnterDest(origin, options.hopExitDir, dest)) {
+            const misc = creep.memory.misc;
+            if (misc && misc.stagingRoom && misc.stagingRoom !== dest && !misc.staged) {
+                clearShibMove(creep);
+                return false;
+            }
         }
         clearShibMove(creep);
         creep.move(options.hopExitDir);
@@ -244,6 +270,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             }
             allowedRooms = [origin.roomName];
         }
+        allowedRooms = filterAvoidedRooms(allowedRooms, options, [origin.roomName, target.roomName]);
         return PathFinder.search(origin, {pos: target, range: options.range || 1}, {
             maxOps: options.maxOps || DEFAULT_MAXOPS,
             maxRooms: allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 16),
@@ -375,6 +402,14 @@ function executePath(creep, pathInfo, options, origin, heading) {
     const nextDirection = parseInt(pathInfo.path[0], 10);
     if (!nextDirection) return false;
 
+    // Quad members only enter dest via squadMove (packed 2×2). Solo shibMove
+    // hops here are how a quad walked in 1-at-a-time chasing the leader.
+    const dest = creep.memory && creep.memory.destination;
+    if (dest && isQuadCreep(creep) && wouldEnterDest(creep.pos, nextDirection, dest)) {
+        clearShibMove(creep);
+        return false;
+    }
+
     const nextPos = creep.pos.positionAtDirection(nextDirection);
 
     if (pathInfo.pathPosTime && handleBarrier(creep, nextPos, options)) return true;
@@ -476,6 +511,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             ? [origin.roomName].concat(Object.values(Game.map.describeExits(origin.roomName)))
             : [origin.roomName];
     }
+    allowedRooms = filterAvoidedRooms(allowedRooms, options, [origin.roomName, target.roomName]);
 
     const goals = options.hopGoals && options.hopGoals.length
         ? options.hopGoals

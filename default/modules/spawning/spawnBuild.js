@@ -213,18 +213,31 @@ function reservationAllowed(room) {
 
 const WAVE_FALLBACK_ROLES = new Set(['hauler', 'stationaryHarvester', 'shuttle']);
 
-function idleReserveCount(room, availableCount, owned, demand, spawn0Excluded, busyWave) {
-    const cap = maxMilitaryReserve(owned);
+function idleReserveCount(room, availableCount, owned, demand, busyWave, waitFor) {
+    const cap = maxMilitaryReserve(owned, waitFor);
     let idleCap = Math.min(cap, demand) - busyWave;
     if (idleCap < 0) idleCap = 0;
     // State 1 is getting by, not stable — at most one locked spawn.
     if (spawnEnergyState(room) < 2) idleCap = Math.min(idleCap, 1);
-    if (!spawn0Excluded && owned >= 2) {
+    const energyOk = spawnEnergyState(room) >= 2;
+    // Healthy rooms can put both spawns on a quad. Leaving one free used
+    // to serialize the wave (600 ticks) and dump TTL on the first pair.
+    const leaveOneFree = owned >= 2 && !(waitFor >= 4 && energyOk);
+    if (leaveOneFree) {
         idleCap = Math.min(idleCap, Math.max(0, availableCount - 1));
     } else {
         idleCap = Math.min(idleCap, availableCount);
     }
     return idleCap;
+}
+
+function spawnHeldByRenewer(spawn, room) {
+    const creeps = room.myCreeps || [];
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (c && c.memory && c.memory.needsRenewal && c.pos.isNearTo(spawn)) return true;
+    }
+    return false;
 }
 
 function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
@@ -357,17 +370,16 @@ function processBuildQueue(room) {
 
     const totalSpawns = room.spawns || [];
     const owned = ownedSpawnCount(room);
-    const renewalCreep = room.myCreeps.find(c => c.memory.needsRenewal);
-    const spawn0Excluded = !!(renewalCreep && totalSpawns.length > 1);
 
-    let availableSpawns = totalSpawns.filter(s => isMySpawn(s) && !s.spawning);
-    if (spawn0Excluded) {
-        const firstId = totalSpawns[0] && totalSpawns[0].id;
-        availableSpawns = availableSpawns.filter(s => s.id !== firstId);
-    }
+    // Creeps run before spawning, so an adjacent renewer already issued
+    // renewCreep this tick. Skip that spawn so spawnCreep does not overwrite it.
+    // Do not reserve a spawn for a renewer still walking — finishing the wave
+    // is the TTL win; they top off after the last body pops.
+    let availableSpawns = totalSpawns.filter(s => isMySpawn(s) && !s.spawning && !spawnHeldByRenewer(s, room));
 
     const canReserve = formingWave && reservationAllowed(room);
-    const demand = canReserve ? waveSpawnDemand(wave.misc.waitFor) : 0;
+    const waitFor = (wave && wave.misc && wave.misc.waitFor) || 0;
+    const demand = canReserve ? waveSpawnDemand(waitFor) : 0;
     let busyWave = 0;
     if (wave) {
         for (let i = 0; i < totalSpawns.length; i++) {
@@ -378,7 +390,7 @@ function processBuildQueue(room) {
         }
     }
     const reserveCount = canReserve
-        ? idleReserveCount(room, availableSpawns.length, owned, demand, spawn0Excluded, busyWave)
+        ? idleReserveCount(room, availableSpawns.length, owned, demand, busyWave, waitFor)
         : 0;
 
     const reservedSpawns = availableSpawns.slice(0, reserveCount);
@@ -452,7 +464,7 @@ function processBuildQueue(room) {
         const left = Math.max(0, (wave.remaining || 0) - (spawned[wave.cacheKey] || 0));
         const lock = reserveCount + busyWave;
         const bits = [`Wave ${wave.role} ${left}/${wave.numberNeeded || wave.misc.waitFor}`];
-        bits.push(`lock ${lock}/${maxMilitaryReserve(owned)}`);
+        bits.push(`lock ${lock}/${maxMilitaryReserve(owned, waitFor)}`);
         if (waveEnergyWait) bits.push('⚡wait');
         if (!canReserve) bits.push('no-lock');
         const hud = bits.join('  |  ');

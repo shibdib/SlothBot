@@ -13,7 +13,7 @@ const {DEFAULT_MAXOPS, FLEE_RANGE} = require('pathState');
 
 const {normalizePos, getPosKey, getMoveWeight, endpointInRange, gatherThreats} = require('pathUtils');
 
-const {findRoute} = require('pathRoute');
+const {findRoute, attachStagingAvoid, filterAvoidedRooms} = require('pathRoute');
 
 const {serializePath} = require('pathPathCache');
 
@@ -21,11 +21,13 @@ const {getSquadMatrix, getFormationVectors, posAfterMove, formationRange} = requ
 
 function resolveAllowedRooms(originRoom, targetRoom, options) {
     const route = findRoute(originRoom, targetRoom, options);
+    let rooms;
     if (route?.length) {
-        if (!route.includes(originRoom)) route.unshift(originRoom);
-        return route;
+        rooms = route.includes(originRoom) ? route.slice() : [originRoom].concat(route);
+    } else {
+        rooms = [originRoom].concat(Object.values(Game.map.describeExits(originRoom)));
     }
-    return [originRoom].concat(Object.values(Game.map.describeExits(originRoom)));
+    return filterAvoidedRooms(rooms, options, [originRoom, targetRoom]);
 }
 
 
@@ -55,6 +57,37 @@ function squadMove(creep, path) {
     if (!canSquadMove(creep, members, move)) {
         creep.memory._shibSquadMove = undefined;
         return false;
+    }
+
+    // Dest hop is a 2-tick 2×2 slide: leader (front row) crosses with the
+    // dest-side column, back row occupies the exit. Abort if anyone would
+    // enter dest while the leader is still stepping onto the exit — that is
+    // the "front row leaks in, re-form under towers" case.
+    const dest = creep.memory.destination;
+    const leaderEnteringDest = !!(dest && newLeaderPos && newLeaderPos.roomName === dest
+        && creep.pos.roomName !== dest);
+    const misc = creep.memory.misc;
+    const stagingBypass = !!(dest && misc && misc.stagingRoom && misc.stagingRoom !== dest
+        && !misc.staged && creep.pos.roomName !== dest);
+    // Don't walk through dest to reach the dest-adjacent staging room.
+    if (leaderEnteringDest && stagingBypass) {
+        creep.memory._shibSquadMove = undefined;
+        return false;
+    }
+    if (leaderEnteringDest && members.some(m => formationRange(m.pos, creep.pos) > 1)) {
+        creep.memory._shibSquadMove = undefined;
+        return false;
+    }
+    if (dest && creep.pos.roomName !== dest) {
+        for (const member of members) {
+            if (formationRange(member.pos, creep.pos) > 1) continue;
+            const memberNext = posAfterMove(member.pos, move);
+            if (memberNext && memberNext.roomName === dest && member.pos.roomName !== dest
+                && !leaderEnteringDest) {
+                creep.memory._shibSquadMove = undefined;
+                return false;
+            }
+        }
     }
 
     creep.move(move);
@@ -133,6 +166,7 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     if (!this.memory._shibSquadMove) this.memory._shibSquadMove = {};
     options.squad = true;
     _.defaults(options, {range: 1});
+    attachStagingAvoid(this, target, options);
 
     const cache = this.memory._shibSquadMove;
     const orientation = this.memory.squadOrientation || 0;

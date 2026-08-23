@@ -1714,19 +1714,33 @@ Creep.prototype.handleRenewing = function (targetTicks) {
     }
     if (!this.memory.renewalLimit) this.memory.renewalLimit = Game.time + 2000;
     this.memory.needsRenewal = true;
-    let spawn = this.room.spawns.find((s) => !s.spawning);
-    if (!spawn) {
-        if (this.room.name !== this.memory.colony) this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22});
-        else this.idleFor(5);
-    } else {
-        switch (spawn.renewCreep(this)) {
-            case OK:
-                this.memory.boostAttempt = undefined;
-                break;
-            case ERR_NOT_IN_RANGE:
-            case ERR_BUSY:
-                this.shibMove(spawn, {forceSolo: true});
+    const mine = [];
+    const all = this.room.spawns || [];
+    for (let i = 0; i < all.length; i++) {
+        try {
+            if (all[i].my) mine.push(all[i]);
+        } catch (e) { /* ignore */
         }
+    }
+    if (!mine.length) {
+        if (this.memory.colony && this.room.name !== this.memory.colony) {
+            this.shibMove(new RoomPosition(25, 25, this.memory.colony), {range: 22});
+        }
+        return true;
+    }
+    const idle = mine.filter(s => !s.spawning);
+    const spawn = (idle.length ? this.pos.findClosestByRange(idle) : this.pos.findClosestByRange(mine)) || mine[0];
+    if (spawn.spawning) {
+        if (!this.pos.isNearTo(spawn)) this.shibMove(spawn, {range: 1, forceSolo: true});
+        return true;
+    }
+    switch (spawn.renewCreep(this)) {
+        case OK:
+            this.memory.boostAttempt = undefined;
+            break;
+        case ERR_NOT_IN_RANGE:
+        case ERR_BUSY:
+            this.shibMove(spawn, {range: 1, forceSolo: true});
     }
     return true;
 };

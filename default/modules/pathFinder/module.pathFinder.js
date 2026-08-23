@@ -18,6 +18,8 @@ module.exports = {
     formationRange: pathFormation.formationRange,
     posAfterMove: pathFormation.posAfterMove,
     exitDirectionTo: pathFormation.exitDirectionTo,
+    isQuadCreep: pathFormation.isQuadCreep,
+    wouldEnterDest: pathFormation.wouldEnterDest,
     findRoute: pathRoute.findRoute,
     deleteRoute: pathRoute.deleteRoute,
     getRoute: pathRoute.getRoute,
