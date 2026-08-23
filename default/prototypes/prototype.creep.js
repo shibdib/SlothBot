@@ -1615,6 +1615,13 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
             return false;
         }
         if (isWaitForWave(this) && !planCoversExpectedBoosts(this, plan)) {
+            // Required remaining boosts are not in room.store. LabTech cannot
+            // invent them — finish with what landed so the wave can commit
+            // instead of camping the pad until BOOST_WAIT_TICKS.
+            if (this.memory.hasBoosted && this.memory.hasBoosted.length) {
+                finishBoosting(this);
+                return false;
+            }
             return false;
         }
         // Claim a lab for every plan entry upfront so labtech sees the full

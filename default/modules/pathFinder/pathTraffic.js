@@ -19,6 +19,9 @@ function isHomeRoomYieldingSquad(creep) {
     if (!home || creep.room.name !== home) return false;
     if (creep.memory.needsRenewal) return false;
     if (creep.memory.boosts && !creep.memory.boostAttempt) return false;
+    // Forming waves yield. Committed ones are leaving the bunker — haulers
+    // path around them instead of shoving them back onto the pad.
+    if (creep.memory.initialFormUp || (creep.memory.misc && creep.memory.misc.sealed)) return false;
     const role = creep.memory.role || '';
     const old = creep.memory.oldRole || '';
     if (role !== 'longbowSquad' && role !== 'longbow'

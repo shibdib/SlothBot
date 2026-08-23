@@ -152,8 +152,9 @@ class RoleLongbowSquad {
         const creep = this.creep;
         const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
         if (!(waitFor > 1)) return true;
-        if (creep.memory.boostAttempt || creep.memory.hasBoosted) return true;
-        if (this.isSquadCommitted(creep)) return true;
+        if (creep.memory.boostAttempt) return true;
+        if (this.isSquadCommitted(creep)) return false;
+        if (creep.memory.hasBoosted) return true;
         if (this.waveAssembled(creep)) return true;
         // Overlap spawn and boost: a renewed body in a partial squad may start
         // while the last egg is still in the spawn. A leftover solo must not
@@ -769,6 +770,10 @@ class RoleLongbowSquad {
     // Unarmed creeps used to form followers around a leader still forceSolo-ing.
     needsSquadFormation(creep) {
         if (!creep || !creep.room) return false;
+        // Packing in the spawn bunker fights the economy and parked committed
+        // quads on a 2×2 pad (waitingToAssemble + viable) instead of leaving.
+        // Form at home is the muster pad; pack in the next room.
+        if (this.inHomeColony(creep)) return false;
         if (this.nearDestination(creep)) return true;
         const room = creep.room;
         if (room.hostileStructures && room.hostileStructures.length) return true;
@@ -838,11 +843,18 @@ class RoleLongbowSquad {
         return live;
     }
 
+    waveMemberBoostSettled(c) {
+        if (!c) return false;
+        if (c.memory.boosts) return false;
+        if (c.memory.boostAttempt) return true;
+        return !!(c.memory.hasBoosted && c.memory.hasBoosted.length);
+    }
+
     waveBoosted(creep, squad) {
         const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
         if (!wave.length) return false;
         for (let i = 0; i < wave.length; i++) {
-            if (!wave[i] || !wave[i].memory.boostAttempt) return false;
+            if (!this.waveMemberBoostSettled(wave[i])) return false;
         }
         return true;
     }
@@ -852,7 +864,7 @@ class RoleLongbowSquad {
         if (!wave.length) return false;
         for (let i = 0; i < wave.length; i++) {
             const c = wave[i];
-            if (!c || !c.memory.boostAttempt || c.memory.boosts) return false;
+            if (!this.waveMemberBoostSettled(c)) return false;
             if (c.room.name !== creep.room.name) return false;
         }
         return true;
@@ -1034,6 +1046,7 @@ class RoleLongbowSquad {
         for (let i = 0; i < members.length; i++) {
             const c = members[i];
             if (!c) continue;
+            if (c.clearBoostLabs) c.clearBoostLabs();
             if (!c.memory.misc) c.memory.misc = {};
             c.memory.misc.sealed = true;
             c.memory.misc.committedSize = waitFor;
@@ -1206,10 +1219,14 @@ class RoleLongbowSquad {
 
     // After boost/commit, sit on the muster pad until the whole live squad is
     // in this room within range 3. Stops the leader from walking out while two
-    // bodies are still on the labs.
+    // bodies are still on the labs. One-shot: clearing gatherTick on timeout
+    // used to re-arm the next tick as soon as anyone was >3 (the leader taking
+    // a step, a slow follower), so boosted quads bounced back to the pad forever.
     gatherBeforeDepart(creep, squad) {
         if (!this.isQuad(creep) || !this.inHomeColony(creep)) return false;
         if (!this.isSquadCommitted(creep)) return false;
+        if (!creep.memory.misc) creep.memory.misc = {};
+        if (creep.memory.misc.gatherDone) return false;
         const members = (squad && squad.length) ? squad.concat(creep) : this.squadForWave(creep);
         let spread = false;
         for (let i = 0; i < members.length; i++) {
@@ -1220,11 +1237,13 @@ class RoleLongbowSquad {
             }
         }
         if (!spread) {
+            creep.memory.misc.gatherDone = true;
             if (creep.memory.gatherTick) creep.memory.gatherTick = undefined;
             return false;
         }
         if (!creep.memory.gatherTick) creep.memory.gatherTick = Game.time;
         if (Game.time - creep.memory.gatherTick >= DEPART_GATHER_TICKS) {
+            creep.memory.misc.gatherDone = true;
             creep.memory.gatherTick = undefined;
             return false;
         }
