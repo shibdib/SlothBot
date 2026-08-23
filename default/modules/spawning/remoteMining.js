@@ -349,7 +349,7 @@ function getColonySkRooms(colonyName) {
 
 /** Assigned SK rooms, plus intel-owned SK if prune already dropped the paper claim. */
 function getColonySkGuardRooms(colonyName) {
-    const assigned = getColonySkRooms(colonyName);
+    const assigned = getColonySkRooms(colonyName).filter(r => isExitNeighbor(colonyName, r));
     const cap = maxSkRoomsPerColony();
     if (assigned.length >= cap) return assigned;
     const seen = new Set(assigned);
@@ -361,6 +361,7 @@ function getColonySkGuardRooms(colonyName) {
     for (let p = 0; p < pools.length && out.length < cap; p++) {
         for (const name of pools[p]) {
             if (seen.has(name) || !isSkRoomName(name)) continue;
+            if (!isExitNeighbor(colonyName, name)) continue;
             const intel = INTEL[name];
             if (!intel || !intel.remoteSourceData) continue;
             let ours = false;
@@ -398,17 +399,19 @@ function assignedSkHasNonAdjacent(colonyName, assigned) {
 }
 
 /**
- * Source-keeper remotes are allowed when under the colony cap, already assigned,
- * or this room shares an exit with the colony while an assigned SK does not.
- * Linear (Chebyshev) distance treats diagonal SK rooms as range 1, so without
- * the exit check a diagonal assignment would block the adjacent SK forever.
+ * Source-keeper remotes must share a cardinal exit with the colony. Diagonals and
+ * 2+ hop SK rooms are never mined. Sector-center energy is a separate add-on of
+ * an adjacent SK, not an SK room itself.
+ * Under the cap, any exit-adjacent SK is allowed. A leftover non-adjacent
+ * assignment still lets an adjacent candidate through so prune can swap.
  */
 function isAllowedSkRoom(colonyName, remoteName) {
     if (!remoteName || !isSkRoomName(remoteName)) return true;
+    if (!isExitNeighbor(colonyName, remoteName)) return false;
     const assigned = getColonySkRooms(colonyName);
     if (assigned.indexOf(remoteName) !== -1) return true;
     if (assigned.length < maxSkRoomsPerColony()) return true;
-    return isExitNeighbor(colonyName, remoteName) && assignedSkHasNonAdjacent(colonyName, assigned);
+    return assignedSkHasNonAdjacent(colonyName, assigned);
 }
 
 function isSectorCenterRoomName(roomName) {
@@ -494,7 +497,14 @@ function pruneExcessSkRooms(colonyName) {
 
     const skRooms = Object.keys(byRoom).filter(isSkRoomName);
     const maxSk = maxSkRoomsPerColony();
-    if (skRooms.length <= maxSk) return;
+    let hasNonAdjacent = false;
+    for (let i = 0; i < skRooms.length; i++) {
+        if (!isExitNeighbor(colonyName, skRooms[i])) {
+            hasNonAdjacent = true;
+            break;
+        }
+    }
+    if (skRooms.length <= maxSk && !hasNonAdjacent) return;
 
     ensureClaimIndex();
     skRooms.sort((a, b) => {
@@ -517,7 +527,10 @@ function pruneExcessSkRooms(colonyName) {
         return a < b ? -1 : a > b ? 1 : 0;
     });
 
-    const keep = new Set(skRooms.slice(0, maxSk));
+    const keep = new Set();
+    for (let i = 0; i < skRooms.length && keep.size < maxSk; i++) {
+        if (isExitNeighbor(colonyName, skRooms[i])) keep.add(skRooms[i]);
+    }
     const next = [];
     const removedByRoom = {};
     for (let i = 0; i < targets.length; i++) {
@@ -739,6 +752,7 @@ function shouldSkipRemotePrune(colonyRoom, remoteName) {
     const isSk = !!(INTEL[remoteName].sk || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(remoteName)));
     if (isSk && !(SK_MINING && colonyRoom.level >= SK_MINING_LEVEL)) return true;
     if (isSk) {
+        if (!isExitNeighbor(colonyRoom.name, remoteName)) return true;
         if (skCombatBlocksMining(remoteName)) return true;
         return false;
     }
@@ -789,11 +803,12 @@ function getCandidateRemotesForProbe(colonyRoom) {
 
     const add = (rName, priority) => {
         if (seen.has(rName) || !remoteIntelEligible(colonyRoom, rName)) return false;
-        // Discovery only: never pick up a second SK room, unless this one shares an
-        // exit and an already-listed SK does not — pruneExcessSkRooms then keeps
-        // the adjacent room. Assigned SK rooms (priority 0) still come through so
-        // prune can rank and drop extras.
+        // Discovery only: SK rooms must share an exit. Never pick up a second SK
+        // unless this one is adjacent and an already-listed SK is not — prune then
+        // keeps the adjacent room. Assigned SK (priority 0) still come through so
+        // prune can drop extras / non-neighbors.
         if (priority > 0 && isSkRoomName(rName)) {
+            if (!isExitNeighbor(colony, rName)) return false;
             let listedSk = false;
             let listedNonAdjacentSk = false;
             for (let i = 0; i < ordered.length; i++) {
@@ -801,7 +816,7 @@ function getCandidateRemotesForProbe(colonyRoom) {
                 listedSk = true;
                 if (!isExitNeighbor(colony, ordered[i].room)) listedNonAdjacentSk = true;
             }
-            if (listedSk && !(listedNonAdjacentSk && isExitNeighbor(colony, rName))) return false;
+            if (listedSk && !listedNonAdjacentSk) return false;
         }
         seen.add(rName);
         ordered.push({room: rName, priority});
@@ -1149,6 +1164,7 @@ function shouldRecycleExcessSkCreep(creep) {
     if (!remote || !isSkRoomName(remote)) return false;
     const colony = creep.memory.colony;
     if (!colony) return false;
+    if (!isExitNeighbor(colony, remote)) return true;
     const assigned = getColonySkRooms(colony);
     if (!assigned.length) return false;
     return assigned.indexOf(remote) === -1;
