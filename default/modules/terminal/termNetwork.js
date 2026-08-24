@@ -127,6 +127,23 @@ function collectDemand(resources) {
                 }
             }
         }
+
+        if (room.terminal) {
+            const boostNeed = {};
+            for (const lab of room.labs || []) {
+                const mem = lab.memory;
+                if (!mem || !mem.neededBoost) continue;
+                boostNeed[mem.neededBoost] = (boostNeed[mem.neededBoost] || 0) + (mem.amount || 0);
+            }
+            for (const resource in boostNeed) {
+                const target = boostNeed[resource];
+                if (!target) continue;
+                const stored = getRoomEffective(room, resource);
+                if (stored < target) {
+                    urgent.push({resource, room: name, deficit: target - stored});
+                }
+            }
+        }
     }
 
     return {demand, urgent};

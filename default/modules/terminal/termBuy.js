@@ -12,11 +12,13 @@
 const {getEffectiveSupply} = require('termNetwork');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
 const {getInboundPlannedAmount, getEmpireBuyCandidates} = require('termMarket');
+const {empireHasSpareBoostType} = require('termKeep');
 
 const TerminalControl = require('termClass');
 
 /** Combat-oriented boost categories from BOOST_USE. */
 const COMBAT_BOOST_TYPES = new Set(['attack', 'ranged_attack', 'heal', 'tough', 'dismantle', 'move']);
+const ALLY_COMBAT_BOOST_AMOUNT = 10000;
 
 function getBoostUseType(resource) {
     if (typeof BOOST_USE === 'undefined' || !BOOST_USE) return null;
@@ -26,91 +28,138 @@ function getBoostUseType(resource) {
     return null;
 }
 
-function isResourceStockLow(candidate, threshold = 0.5) {
-    if (candidate.stockRatio != null) return candidate.stockRatio < threshold;
-    return true;
+function isCombatRole(entry) {
+    if (!entry) return false;
+    if (entry.military) return true;
+    return typeof COMBAT_ROLES !== 'undefined' && COMBAT_ROLES.includes(entry.role);
+}
+
+function addCombatBoostPart(parts, part) {
+    if (!part) return;
+    if (COMBAT_BOOST_TYPES.has(part)) parts.add(part);
+}
+
+function addCombatBoostParts(parts, list) {
+    if (!list) return;
+    for (let i = 0; i < list.length; i++) addCombatBoostPart(parts, list[i]);
 }
 
 /**
- * Ally help should only ask for base minerals (stockpile), plus boosts we need right now.
- * Intermediates / peacetime lab pipeline fill should not spam allies.
+ * Combat boost types we actually need for offensive/defensive ops, plus any
+ * specific resources already reserved on labs.
  */
-function collectAllyRequestUrgency() {
-    const labBoostNeeds = new Set();
-    let combat = false;
-    let upgrade = false;
-    let build = false;
+function collectMilitaryBoostNeed() {
+    const parts = new Set();
 
     for (const name of MY_ROOMS) {
         const room = Game.rooms[name];
         if (!room) continue;
-
-        if (room.level < 8) {
-            upgrade = true;
-            build = true;
+        if (room.memory.dangerousAttack || room.memory.earlyWarning) {
+            addCombatBoostPart(parts, ATTACK);
+            addCombatBoostPart(parts, RANGED_ATTACK);
+            addCombatBoostPart(parts, HEAL);
+            addCombatBoostPart(parts, TOUGH);
         }
-        if (room.constructionSites && room.constructionSites.length) build = true;
-
-        if (room.memory.dangerousAttack) combat = true;
-        const intel = typeof INTEL !== 'undefined' ? INTEL[name] : null;
-        if (intel && intel.threatLevel > 0) combat = true;
-
         for (const lab of room.labs || []) {
             const boost = lab.memory && lab.memory.neededBoost;
             if (!boost) continue;
-            labBoostNeeds.add(boost);
             const t = getBoostUseType(boost);
-            if (t && COMBAT_BOOST_TYPES.has(t)) combat = true;
-            if (t === 'upgrade') upgrade = true;
-            if (t === 'build') build = true;
+            if (t && COMBAT_BOOST_TYPES.has(t)) parts.add(t);
         }
     }
 
-    if (!combat && typeof CREEP_QUEUES !== 'undefined') {
+    if (typeof CREEP_QUEUES !== 'undefined' && CREEP_QUEUES) {
         for (const queueName in CREEP_QUEUES) {
             const queue = CREEP_QUEUES[queueName];
             if (!queue || typeof queue !== 'object') continue;
             for (const key in queue) {
                 const entry = queue[key];
-                if (!entry) continue;
-                const isCombat = entry.military
-                    || (typeof COMBAT_ROLES !== 'undefined' && COMBAT_ROLES.includes(entry.role));
-                if (isCombat) {
-                    combat = true;
-                    break;
-                }
+                if (!isCombatRole(entry)) continue;
+                addCombatBoostParts(parts, entry.misc && entry.misc.boosts);
             }
-            if (combat) break;
         }
     }
 
-    return {labBoostNeeds, combat, upgrade, build};
-}
-
-function shouldRequestAllyResource(mineral, candidate, urgency) {
-    if (BASE_MINERALS.includes(mineral)) return true;
-
-    const boostType = getBoostUseType(mineral);
-    if (!boostType) return false;
-
-    // Creeps are reserved against labs for this exact boost — pull ASAP if low.
-    if (urgency.labBoostNeeds.has(mineral)) {
-        return isResourceStockLow(candidate, 0.75);
+    const opBuckets = [Memory.targetRooms, Memory.auxiliaryTargets];
+    for (let b = 0; b < opBuckets.length; b++) {
+        const mem = opBuckets[b];
+        if (!mem) continue;
+        for (const roomName in mem) {
+            const op = mem[roomName];
+            if (!op) continue;
+            addCombatBoostParts(parts, op.boosts);
+            addCombatBoostParts(parts, op.optionalBoosts);
+        }
     }
 
-    if (!isResourceStockLow(candidate, 0.5)) return false;
+    return {parts};
+}
 
-    if (COMBAT_BOOST_TYPES.has(boostType)) return urgency.combat;
-    if (boostType === 'upgrade') return urgency.upgrade;
-    if (boostType === 'build') return urgency.build;
-    return false;
+/**
+ * Ally help asks for base minerals always. Boosts only when a military op
+ * needs them and we have nothing in-empire to ship.
+ */
+function collectMilitaryBoostAllyRequests(roomName) {
+    const rows = [];
+    if (typeof BOOST_USE === 'undefined' || !BOOST_USE) return rows;
+
+    const need = collectMilitaryBoostNeed();
+    const requested = new Set();
+
+    const push = (resource) => {
+        if (!resource || requested.has(resource)) return;
+        requested.add(resource);
+        rows.push({
+            resourceType: resource,
+            amount: ALLY_COMBAT_BOOST_AMOUNT,
+            priority: 0.9,
+            roomName,
+            terminal: true
+        });
+    };
+
+    for (const part of need.parts) {
+        if (empireHasSpareBoostType(part)) continue;
+        const tiers = BOOST_USE[part];
+        if (tiers && tiers[0]) push(tiers[0]);
+    }
+
+    return rows;
+}
+
+function isAllyBoostRequest(resourceType) {
+    if (!resourceType) return false;
+    if (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resourceType)) return true;
+    return !!getBoostUseType(resourceType);
+}
+
+function publishAllyResourceRequests(terminal, mineralAdds) {
+    if (!ALLY_HELP_REQUESTS[MY_USERNAME]) return;
+    const bucket = ALLY_HELP_REQUESTS[MY_USERNAME].requests || (ALLY_HELP_REQUESTS[MY_USERNAME].requests = {});
+    let resourceRequests = bucket.resource ? bucket.resource : [];
+    resourceRequests = resourceRequests.filter((r) => r.roomName !== terminal.room.name);
+    for (let i = 0; i < mineralAdds.length; i++) resourceRequests.push(mineralAdds[i]);
+    const combatBoosts = collectMilitaryBoostAllyRequests(terminal.room.name);
+    for (let i = 0; i < combatBoosts.length; i++) resourceRequests.push(combatBoosts[i]);
+    bucket.resource = resourceRequests;
+}
+
+function syncAllyBoostRequests() {
+    if (!ALLY_HELP_REQUESTS || !ALLY_HELP_REQUESTS[MY_USERNAME]) return;
+    const hub = Memory._banker && Memory._banker.marketHub;
+    if (!hub) return;
+    const bucket = ALLY_HELP_REQUESTS[MY_USERNAME].requests;
+    if (!bucket || !Array.isArray(bucket.resource)) return;
+    bucket.resource = bucket.resource.filter((r) => r && r.roomName === hub && !isAllyBoostRequest(r.resourceType));
+    const combatBoosts = collectMilitaryBoostAllyRequests(hub);
+    for (let i = 0; i < combatBoosts.length; i++) bucket.resource.push(combatBoosts[i]);
 }
 
 Object.assign(TerminalControl.prototype, {
 
     placeBuyOrders(terminal, globalOrders, myOrders) {
         const buyCandidates = shuffle(getEmpireBuyCandidates());
-        const allyUrgency = collectAllyRequestUrgency();
+        const allyMineralAdds = [];
 
         for (const candidate of buyCandidates) {
             const mineral = candidate.resource;
@@ -129,24 +178,14 @@ Object.assign(TerminalControl.prototype, {
                 buyAmount = Math.min(buyAmount, target * 0.5);
             }
 
-            // Ally requests: base minerals always; boosts only when urgently needed and low.
-            if (ALLY_HELP_REQUESTS[MY_USERNAME]) {
-                const requests = ALLY_HELP_REQUESTS[MY_USERNAME].requests || {};
-                let resourceRequests = requests.resource ? requests.resource : [];
-                resourceRequests = resourceRequests.filter((r) =>
-                    r.roomName === terminal.room.name && r.resourceType !== mineral
-                );
-                if (shouldRequestAllyResource(mineral, candidate, allyUrgency)) {
-                    const isAsapBoost = !BASE_MINERALS.includes(mineral);
-                    resourceRequests.push({
-                        resourceType: mineral,
-                        amount: buyAmount,
-                        priority: isAsapBoost ? 0.9 : (isLabNeed ? 0.5 : 0.2),
-                        roomName: terminal.room.name,
-                        terminal: true
-                    });
-                }
-                ALLY_HELP_REQUESTS[MY_USERNAME].requests.resource = resourceRequests;
+            if (BASE_MINERALS.includes(mineral)) {
+                allyMineralAdds.push({
+                    resourceType: mineral,
+                    amount: buyAmount,
+                    priority: isLabNeed ? 0.5 : 0.2,
+                    roomName: terminal.room.name,
+                    terminal: true
+                });
             }
 
             if (Game.market.credits < CREDIT_BUFFER * 0.6 && !isLabNeed) continue;
@@ -201,6 +240,8 @@ Object.assign(TerminalControl.prototype, {
                 }
             }
         }
+
+        publishAllyResourceRequests(terminal, allyMineralAdds);
 
         const empireLabNeeds = new Set();
         for (const name of MY_ROOMS) {
@@ -315,3 +356,5 @@ Object.assign(TerminalControl.prototype, {
     }
 
 });
+
+module.exports = {syncAllyBoostRequests};

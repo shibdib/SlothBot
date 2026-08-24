@@ -4,7 +4,7 @@
 
 const profiler = require("tools.profiler");
 const FactoryControl = require('module.factoryController');
-const {getRoomKeepAmount} = require('termInventory');
+const {getRoomKeepAmount, getOperationalProtectAmount, getRoomOperationalNeed} = require('termKeep');
 
 const BALANCE_MIN_TRANSFER = 100;
 const STORAGE_ENERGY_RESERVE = 25000;
@@ -140,6 +140,10 @@ class RoleLabTech {
         if (fillBoost) return fillBoost;
         const energyBoost = this.findBoostLabEnergyTask(labs, labStructMem, storage, terminal);
         if (energyBoost) return energyBoost;
+
+        // 2c. Stage boosts other rooms need into the terminal so the network can send.
+        const networkBoost = this.findNetworkBoostExport(storage, terminal);
+        if (networkBoost) return networkBoost;
 
         // 3. Ground cleanup — non-energy drops and tombstones
         if (storeTarget) {
@@ -723,8 +727,16 @@ class RoleLabTech {
 
     getTerminalRetainFloor(resource) {
         const keep = this.getKeepAmount(resource);
+        const sell = this.getSellOrderTerminalTarget(resource);
+        if (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource)) {
+            // Storage holds the bulk stockpile. Terminal only needs an export
+            // slice plus whatever this room's own labs/upgraders require.
+            const localOp = getOperationalProtectAmount(this.room, resource);
+            const buffer = Math.min(keep || TERMINAL_EXPORT_CEILING, TERMINAL_EXPORT_CEILING);
+            return Math.max(localOp, buffer, sell);
+        }
         if (!keep) return 0;
-        return Math.max(keep + BALANCE_KEEP_HYSTERESIS, this.getSellOrderTerminalTarget(resource));
+        return Math.max(keep + BALANCE_KEEP_HYSTERESIS, sell);
     }
 
     getStructureCapacity(structure) {
@@ -771,11 +783,66 @@ class RoleLabTech {
     }
 
     getTerminalShortfall(structure, resource) {
-        const keep = this.getKeepAmount(resource);
-        if (!keep) return 0;
         const sellTarget = this.getSellOrderTerminalTarget(resource);
         if (sellTarget) return 0;
+        if (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource)) {
+            const floor = this.getTerminalRetainFloor(resource);
+            if (!floor) return 0;
+            return floor - BALANCE_KEEP_HYSTERESIS - (structure.store[resource] || 0);
+        }
+        const keep = this.getKeepAmount(resource);
+        if (!keep) return 0;
         return keep - BALANCE_KEEP_HYSTERESIS - (structure.store[resource] || 0);
+    }
+
+    findNetworkBoostExport(storage, terminal) {
+        if (!storage || !terminal) return null;
+        if (this.isStructureNearFull(terminal)) return null;
+        const terminalFree = terminal.store.getFreeCapacity();
+        if (terminalFree < BALANCE_MIN_TRANSFER) return null;
+        if (typeof ALL_BOOSTS === 'undefined' || !ALL_BOOSTS.length) return null;
+
+        let best = null;
+        let bestWant = 0;
+        const resources = Object.keys(storage.store);
+        for (let i = 0; i < resources.length; i++) {
+            const resource = resources[i];
+            if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
+            if (!ALL_BOOSTS.includes(resource)) continue;
+            const inStorage = storage.store[resource] || 0;
+            if (inStorage < BALANCE_MIN_TRANSFER) continue;
+            const protect = getOperationalProtectAmount(this.room, resource);
+            const spare = (this.room.store(resource) || 0) - protect;
+            if (spare < BALANCE_MIN_TRANSFER) continue;
+
+            let remoteNeed = 0;
+            for (let r = 0; r < MY_ROOMS.length; r++) {
+                const name = MY_ROOMS[r];
+                if (name === this.room.name) continue;
+                const dest = Game.rooms[name];
+                if (!dest || !dest.terminal) continue;
+                const need = getRoomOperationalNeed(dest, resource);
+                if (!need) continue;
+                const have = dest.store(resource) || 0;
+                if (have < need) remoteNeed += need - have;
+            }
+            if (remoteNeed < BALANCE_MIN_TRANSFER) continue;
+            const inTerminal = terminal.store[resource] || 0;
+            if (inTerminal >= remoteNeed) continue;
+            const want = Math.min(
+                remoteNeed - inTerminal,
+                spare,
+                inStorage,
+                TERMINAL_EXPORT_CEILING,
+                terminalFree
+            );
+            if (want > bestWant) {
+                bestWant = want;
+                best = resource;
+            }
+        }
+        if (!best || bestWant < BALANCE_MIN_TRANSFER) return null;
+        return this.makeBalanceTask(storage, terminal, best, Math.min(bestWant, 5000));
     }
 
     getTerminalBatteryTarget() {
@@ -1278,10 +1345,11 @@ class RoleLabTech {
         for (const resource of Object.keys(storage.store)) {
             if (resource === RESOURCE_ENERGY) continue;
             const keep = this.getKeepAmount(resource);
-            if (!keep) continue;
+            const isBoost = typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource);
+            if (!keep && !isBoost) continue;
             const deficit = this.getTerminalShortfall(terminal, resource);
             if (deficit < BALANCE_MIN_TRANSFER || !(storage.store[resource] > 0)) continue;
-            candidates.push({resource, deficit, priority: deficit / keep});
+            candidates.push({resource, deficit, priority: deficit / (keep || TERMINAL_EXPORT_CEILING)});
         }
         candidates.sort((a, b) => b.priority - a.priority);
 
@@ -1325,6 +1393,9 @@ class RoleLabTech {
         if (sellTask) return sellTask;
 
         if (!needsRoutineBalance) return null;
+
+        const networkBoost = this.findNetworkBoostExport(storage, terminal);
+        if (networkBoost) return networkBoost;
 
         const idleExport = this.findIdleExportToTerminal(storage, terminal);
         if (idleExport) return idleExport;

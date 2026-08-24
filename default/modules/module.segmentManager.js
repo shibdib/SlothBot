@@ -100,6 +100,11 @@ module.exports.storeAllyRequests = function () {
     ensureMyAllyRequests();
     pruneOwnRequestsToHub();
     try {
+        require('termBuy').syncAllyBoostRequests();
+    } catch (e) {
+        log.d(`Error syncing ally boost requests: ${e}`, 'SEGMENT MANAGER: ');
+    }
+    try {
         RawMemory.segments[90] = JSON.stringify(ALLY_HELP_REQUESTS[MY_USERNAME]);
     } catch (e) {
         log.e(`Error storing ally requests: ${e}`, 'SEGMENT MANAGER: ');

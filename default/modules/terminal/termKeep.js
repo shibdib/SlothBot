@@ -4,8 +4,96 @@
  * Per-room terminal keep amounts.
  */
 
+// One lab load. Enough to pre-reserve upgrader WORK boosts so spawn/claim can start.
+const UPGRADE_BOOST_WORKING_STOCK = 3000;
+
+let upgradePrefTick = -1;
+let upgradePref = null;
+
 function isHubRoom(room) {
     return !!(room && Memory._banker && Memory._banker.marketHub === room.name);
+}
+
+function isUpgradeBoost(resource) {
+    return !!(typeof BOOST_USE !== 'undefined' && BOOST_USE && BOOST_USE.upgrade
+        && BOOST_USE.upgrade.includes(resource));
+}
+
+function roomCanUseUpgradeBoosts(room) {
+    if (!room || !room.terminal || !(room.labs && room.labs.length)) return false;
+    if (room.level < 6) return false;
+    if (!room.energyState) return false;
+    if (room.level === 8 && room.energyState < 2) return false;
+    return true;
+}
+
+function preferredUpgradeBoost() {
+    if (upgradePrefTick === Game.time) return upgradePref;
+    upgradePrefTick = Game.time;
+    upgradePref = null;
+    if (typeof BOOST_USE === 'undefined' || !BOOST_USE || !BOOST_USE.upgrade) return null;
+    const totalFn = typeof getResourceTotal === 'function' ? getResourceTotal : () => 0;
+    for (let i = 0; i < BOOST_USE.upgrade.length; i++) {
+        const t = BOOST_USE.upgrade[i];
+        if ((totalFn(t) || 0) >= UPGRADE_BOOST_WORKING_STOCK) {
+            upgradePref = t;
+            return t;
+        }
+    }
+    upgradePref = BOOST_USE.upgrade[0];
+    return upgradePref;
+}
+
+function getRoomUpgradeBoostNeed(room, resource) {
+    if (!roomCanUseUpgradeBoosts(room) || !isUpgradeBoost(resource)) return 0;
+    const tiers = BOOST_USE.upgrade;
+    let haveAll = 0;
+    for (let i = 0; i < tiers.length; i++) haveAll += room.store(tiers[i]) || 0;
+    const haveThis = room.store(resource) || 0;
+    if (haveAll >= UPGRADE_BOOST_WORKING_STOCK) {
+        return haveThis > 0 ? Math.min(haveThis, UPGRADE_BOOST_WORKING_STOCK) : 0;
+    }
+    if (haveThis > 0) return UPGRADE_BOOST_WORKING_STOCK;
+    return resource === preferredUpgradeBoost() ? UPGRADE_BOOST_WORKING_STOCK : 0;
+}
+
+/**
+ * What this room actually needs on hand: lab reaction inputs, reserved
+ * boost labs, and a small upgrader working stock. Not the empire stockpile.
+ */
+function getRoomOperationalNeed(room, resource) {
+    if (!room || !resource) return 0;
+    let need = 0;
+    const labs = room.labs || [];
+    for (let i = 0; i < labs.length; i++) {
+        const mem = labs[i].memory;
+        if (!mem) continue;
+        if (mem.itemNeeded === resource) need = Math.max(need, REACTION_AMOUNT);
+        if (mem.neededBoost === resource) need = Math.max(need, mem.amount || 0);
+    }
+    need = Math.max(need, getRoomUpgradeBoostNeed(room, resource));
+    return need;
+}
+
+/**
+ * Floor a room may export down to when filling another room's operational
+ * boost/lab need. Does not include hub BOOST_AMOUNT stockpile keep.
+ */
+function getOperationalProtectAmount(room, resource) {
+    if (!room || resource === RESOURCE_OPS || resource === RESOURCE_POWER || resource === RESOURCE_ENERGY) {
+        return 0;
+    }
+    let protect = getRoomOperationalNeed(room, resource);
+    if (room.memory.neededCommodity === resource) {
+        protect = Math.max(protect, REACTION_AMOUNT);
+    }
+    if (room.memory.commodityProduction) {
+        const comm = COMMODITIES[room.memory.commodityProduction];
+        if (comm && comm.components && comm.components[resource]) {
+            protect = Math.max(protect, REACTION_AMOUNT);
+        }
+    }
+    return protect;
 }
 
 function roomUsesResource(room, resource) {
@@ -36,10 +124,10 @@ function getRoomKeepAmount(room, resource) {
         return 0;
     }
     if (ALL_BOOSTS.includes(resource)) {
-        // Hub holds the empire stockpile. Satellites only retain boosts they are
-        // actually using — full BOOST_AMOUNT in every room congests terminals.
-        if (isHubRoom(room) || roomUsesResource(room, resource)) return BOOST_AMOUNT(room, resource);
-        return 0;
+        // Hub holds the empire stockpile. Satellites keep only operational
+        // amounts (labs / upgrader working stock) so leftover can ship.
+        if (isHubRoom(room)) return BOOST_AMOUNT(room, resource);
+        return getRoomOperationalNeed(room, resource);
     }
     if (resource === RESOURCE_BATTERY) return 1000;
     if (room.memory.commodityProduction && room.mineral && room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
@@ -71,27 +159,9 @@ function getPressureProtectAmount(room, resource) {
         return storageReserve + buffer;
     }
 
-    let protect = 0;
-    for (const lab of room.labs || []) {
-        if (lab.memory?.itemNeeded === resource) {
-            protect = Math.max(protect, REACTION_AMOUNT);
-        }
-        if (lab.memory?.neededBoost === resource) {
-            const amt = lab.memory.amount || BOOST_AMOUNT(room, resource);
-            protect = Math.max(protect, amt);
-        }
-    }
+    let protect = getOperationalProtectAmount(room, resource);
     if (room.memory.producingBoost === resource) {
         protect = Math.max(protect, BOOST_AMOUNT(room, resource));
-    }
-    if (room.memory.neededCommodity === resource) {
-        protect = Math.max(protect, REACTION_AMOUNT);
-    }
-    if (room.memory.commodityProduction) {
-        const comm = COMMODITIES[room.memory.commodityProduction];
-        if (comm && comm.components && comm.components[resource]) {
-            protect = Math.max(protect, REACTION_AMOUNT);
-        }
     }
 
     if (!storageCritical) {
@@ -100,9 +170,35 @@ function getPressureProtectAmount(room, resource) {
     return protect;
 }
 
+function empireHasSpareBoost(resource, minAmount = 100) {
+    if (!resource || typeof MY_ROOMS === 'undefined') return false;
+    for (let i = 0; i < MY_ROOMS.length; i++) {
+        const room = Game.rooms[MY_ROOMS[i]];
+        if (!room) continue;
+        const spare = (room.store(resource) || 0) - getOperationalProtectAmount(room, resource);
+        if (spare >= minAmount) return true;
+    }
+    return false;
+}
+
+function empireHasSpareBoostType(boostType, minAmount = 100) {
+    if (!boostType || typeof BOOST_USE === 'undefined' || !BOOST_USE || !BOOST_USE[boostType]) return false;
+    const tiers = BOOST_USE[boostType];
+    for (let i = 0; i < tiers.length; i++) {
+        if (empireHasSpareBoost(tiers[i], minAmount)) return true;
+    }
+    return false;
+}
+
 module.exports = {
+    UPGRADE_BOOST_WORKING_STOCK,
     getRoomKeepAmount,
     getPressureProtectAmount,
+    getOperationalProtectAmount,
+    getRoomOperationalNeed,
+    getRoomUpgradeBoostNeed,
+    empireHasSpareBoost,
+    empireHasSpareBoostType,
     isStorageCapacityCritical,
     isHubRoom,
     roomUsesResource,

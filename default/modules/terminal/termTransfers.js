@@ -5,7 +5,13 @@
  */
 
 const state = require('termState');
-const {getRoomKeepAmount, getPressureProtectAmount, isHubRoom} = require('termKeep');
+const {
+    getRoomKeepAmount,
+    getPressureProtectAmount,
+    getOperationalProtectAmount,
+    getRoomOperationalNeed,
+    isHubRoom
+} = require('termKeep');
 const {getDerivedCommodityAmount} = require('termCache');
 const FactoryControl = require('module.factoryController');
 const profiler = require('tools.profiler');
@@ -49,7 +55,11 @@ function getRoomLabNeeds(room) {
 }
 
 function getRoomResourceDemand(room, resource) {
-    let need = getRoomKeepAmount(room, resource);
+    // Boost stockpile keep lives at the hub for buy/sell. Network fills only
+    // operational need (labs, reserved boosts, upgrader working stock).
+    let need = (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource))
+        ? getRoomOperationalNeed(room, resource)
+        : getRoomKeepAmount(room, resource);
     if (getRoomLabNeeds(room).has(resource)) need = Math.max(need, REACTION_AMOUNT);
     if (resource === RESOURCE_BATTERY) {
         need = Math.max(need, FactoryControl.factoryBatteryInboundNeed(room));
@@ -67,6 +77,11 @@ function getExportFloor(room, resource, pressureRelief = false) {
     if (pressureRelief) {
         const protect = getPressureProtectAmount(room, resource);
         return isFinite(protect) ? protect : Infinity;
+    }
+    // Boosts: export down to operational protect, not hub BOOST_AMOUNT keep,
+    // so rooms that already have stock can fill labs/upgraders elsewhere.
+    if (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource)) {
+        return getOperationalProtectAmount(room, resource);
     }
     return getRoomResourceDemand(room, resource) || 0;
 }
@@ -204,7 +219,11 @@ function planResourceTransfers(transfers, resource, profiles, options = {}) {
         if (destFree < RESOURCE_SEND_MIN) continue;
         if (isRoomCapacityPressured(destRoom)) continue;
         // Don't park keep-fills into an already busy satellite terminal.
-        if (destTerminalBusy(destRoom) && !getRoomLabNeeds(destRoom).has(resource) && !isHubRoom(destRoom)) continue;
+        // Operational boost/lab need still accepts — those rooms asked for it.
+        if (destTerminalBusy(destRoom)
+            && !getRoomLabNeeds(destRoom).has(resource)
+            && !getRoomOperationalNeed(destRoom, resource)
+            && !isHubRoom(destRoom)) continue;
 
         const remaining = Math.min(dest.need, destFree, RESOURCE_SEND_MAX);
         const candidates = [];
