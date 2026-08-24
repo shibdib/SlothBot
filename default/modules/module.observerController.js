@@ -9,6 +9,7 @@
  * - Strategic picks skip fresh intel unless priority >= HIGH_PRIORITY
  * - Heavy intel refresh only when cached is stale (HEAVY_INTEL_TICKS); hubCheck is once-and-stamped
  * - Highway, active remotes, early-warning exits, and auxiliary scout ops in target pool
+ * - Nearby highways swept every HIGHWAY_SWEEP_TICKS so power banks are found while still mineable
  * - Background/exploratory sweep now reliably refreshes very old intel (BACKGROUND_STALE_TICKS window)
  * - Border-fill low-prio now only for truly background-stale neighbors (prevents starving distant old intel)
  * - Throttle bypass only for claim/support (>=95); expansion scouts wait THROTTLE_TICKS
@@ -22,6 +23,9 @@ const TUNING = {
     THROTTLE_TICKS: 5,
     STALE_INTEL_TICKS: 50,            // short window for *reactive* / hot intel (power, threats, active remotes)
     BACKGROUND_STALE_TICKS: 5000,     // rooms with intel older than this (~hours) are eligible for background/exploratory refresh
+    HIGHWAY_SWEEP_TICKS: 750,         // catch power banks (5k TTL) while still mineable
+    HIGHWAY_SWEEP_RANGE: 8,           // matches power/commodity launch range
+    HIGHWAY_SWEEP_PRIORITY: 55,
     EMPTY_SWEEP_BACKOFF_TICKS: 25,
     PRUNE_INTERVAL_TICKS: 1500,
     MAX_OBSERVE_RETRIES: 3,
@@ -257,7 +261,11 @@ class ObserverControl {
         }
         for (const rName of (idx.power || [])) {
             const r = INTEL[rName];
-            if (r && r.power && r.power > ct) add(rName, 70);
+            if (r && r.power && r.power > ct) {
+                // Incomplete bank intel (pre-field format) needs a faster refresh
+                // so launch can see amount / hits / contest before committing.
+                add(rName, r.powerAmount == null ? 80 : 70);
+            }
         }
         for (const rName of (idx.commodity || [])) {
             const r = INTEL[rName];
@@ -303,6 +311,13 @@ class ObserverControl {
                     add(neighbor, 35);
                 }
             }
+        }
+
+        // Highway discovery: banks last 5k ticks. Background 5k sweep misses most of them.
+        // Only enqueue rooms whose last look is older than HIGHWAY_SWEEP_TICKS so this
+        // does not starve with the 50-tick reactive window.
+        if (typeof MAX_LEVEL === 'undefined' || MAX_LEVEL >= 4) {
+            addNearbyHighways(add, currentTime);
         }
 
         const targets = Object.keys(priorityByRoom).sort((a, b) => priorityByRoom[b] - priorityByRoom[a]);
@@ -473,6 +488,36 @@ function isRecentlyObserved(target, currentTime, state) {
     }
     return true;
 }
+
+function isHighwayCoords(x, y) {
+    return (Math.abs(x) % 10 === 0) || (Math.abs(y) % 10 === 0);
+}
+
+function addNearbyHighways(add, currentTime) {
+    const owned = global.MY_ROOMS || [];
+    const range = TUNING.HIGHWAY_SWEEP_RANGE;
+    const seen = new Set();
+    for (const home of owned) {
+        const hp = parseRoomName(home);
+        if (!hp) continue;
+        for (let dx = -range; dx <= range; dx++) {
+            for (let dy = -range; dy <= range; dy++) {
+                if (!dx && !dy) continue;
+                const x = hp.x + dx;
+                const y = hp.y + dy;
+                if (!isHighwayCoords(x, y)) continue;
+                const name = formatRoomName(x, y);
+                if (seen.has(name)) continue;
+                seen.add(name);
+                const intel = INTEL[name];
+                const age = intel && intel.lastObservation;
+                if (age && currentTime - age < TUNING.HIGHWAY_SWEEP_TICKS) continue;
+                add(name, TUNING.HIGHWAY_SWEEP_PRIORITY);
+            }
+        }
+    }
+}
+
 function isIntelStale(intel, currentTime) {
     // Short-horizon "reactive" staleness for urgent things (power banks, active threats, etc.).
     // Background/exploratory maintenance of ancient intel uses BACKGROUND_STALE_TICKS instead.

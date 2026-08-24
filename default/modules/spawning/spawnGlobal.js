@@ -147,27 +147,7 @@ function globalCreepQueue() {
                 });
                 break;
             case 'power':
-                if (!operation.complete) {
-                    const powerSpace = operation.space || 1;
-                    const powerAttacker = getCreepCount(undefined, 'powerAttacker', key);
-                    queueCreepIfNeeded({
-                        role: 'powerHealer', priority, numberNeeded: powerAttacker * 1.5, destination: key,
-                        misc: {boosts: [HEAL]}, closestRoom: true
-                    });
-                    queueCreepIfNeeded({
-                        role: 'powerAttacker', priority: priority - 1, numberNeeded: powerSpace, destination: key,
-                        misc: {boosts: [ATTACK]}, closestRoom: true
-                    });
-                }
-                if (operation.hauler) {
-                    queueCreepIfNeeded({
-                        role: 'powerHauler',
-                        priority,
-                        numberNeeded: operation.hauler,
-                        destination: key,
-                        closestRoom: true
-                    });
-                }
+                queuePowerOperation(operation, key, priority);
                 break;
             case 'remoteDenial':
                 const remotes = _.filter(_.map(Game.map.describeExits(key)), function (r) {
@@ -306,6 +286,82 @@ function globalCreepQueue() {
     }
 
     resolvePendingAssignments(true);
+}
+
+const POWER_HEALERS_PER_ATTACKER = 2;
+const POWER_HAULER_CARRY = 1250;
+
+function powerHaulerCount(operation, key) {
+    if (operation.haulers) return operation.haulers;
+    const amount = operation.powerAmount || (INTEL[key] && INTEL[key].powerAmount) || 0;
+    return Math.max(1, Math.ceil(amount / POWER_HAULER_CARRY));
+}
+
+function powerHitsLeft(operation, key) {
+    const room = Game.rooms[key];
+    if (room) {
+        const bank = room.impassibleStructures.find(s => s.structureType === STRUCTURE_POWER_BANK);
+        if (!bank) return 0;
+        return bank.hits;
+    }
+    const intel = INTEL[key];
+    if (intel && intel.powerHits != null) return intel.powerHits;
+    return typeof POWER_BANK_HITS !== 'undefined' ? POWER_BANK_HITS : 2000000;
+}
+
+function powerLiveDps(key, operation) {
+    const room = Game.rooms[key];
+    let dps = 0;
+    if (room) {
+        const creeps = room.myCreeps || [];
+        for (let i = 0; i < creeps.length; i++) {
+            const c = creeps[i];
+            if (!c.memory || c.memory.role !== 'powerAttacker') continue;
+            dps += abilityPower(c.body).meleeAttack || 0;
+        }
+    }
+    if (!dps) dps = (operation.space || 1) * 25 * ATTACK_POWER;
+    return dps;
+}
+
+function powerHaulersDue(operation, key) {
+    if (operation.complete) return true;
+    const hits = powerHitsLeft(operation, key);
+    if (!hits) return true;
+    const dist = findClosestOwnedRoom(key, true) || 8;
+    const eta = dist * 50 + 200;
+    return hits / powerLiveDps(key, operation) <= eta;
+}
+
+function queuePowerOperation(operation, key, priority) {
+    const hits = powerHitsLeft(operation, key);
+    if (!operation.complete && hits > 80000) {
+        const attackers = Math.max(1, operation.space || 1);
+        queueCreepIfNeeded({
+            role: 'powerHealer',
+            priority,
+            numberNeeded: attackers * POWER_HEALERS_PER_ATTACKER,
+            destination: key,
+            misc: {boosts: [HEAL]},
+            closestRoom: true
+        });
+        queueCreepIfNeeded({
+            role: 'powerAttacker',
+            priority: priority - 1,
+            numberNeeded: attackers,
+            destination: key,
+            closestRoom: true
+        });
+    }
+    if (powerHaulersDue(operation, key)) {
+        queueCreepIfNeeded({
+            role: 'powerHauler',
+            priority,
+            numberNeeded: powerHaulerCount(operation, key),
+            destination: key,
+            closestRoom: true
+        });
+    }
 }
 
 module.exports = {globalCreepQueue};

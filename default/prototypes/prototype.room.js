@@ -558,12 +558,64 @@ Room.prototype.store = function (resource, unused = false) {
     return (unused ? this._resourceStoreUnused : this._resourceStore)[resource] || 0;
 };
 
+function clearPowerBankIntel(roomIntel) {
+    if (!roomIntel.power && !roomIntel.powerAmount && !roomIntel.powerHits &&
+        roomIntel.powerSpace == null && !roomIntel.powerMined &&
+        roomIntel.powerX == null && roomIntel.powerY == null) {
+        return false;
+    }
+    roomIntel.power = undefined;
+    roomIntel.powerAmount = undefined;
+    roomIntel.powerHits = undefined;
+    roomIntel.powerSpace = undefined;
+    roomIntel.powerMined = undefined;
+    roomIntel.powerX = undefined;
+    roomIntel.powerY = undefined;
+    return true;
+}
+
+function isPowerBankMinedByOthers(room, powerBank) {
+    const creeps = room.creeps;
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c || c.my) continue;
+        if (!c.hasActiveBodyparts(ATTACK) && !c.hasActiveBodyparts(HEAL)) continue;
+        if (c.pos.getRangeTo(powerBank) <= 1) return true;
+    }
+    return false;
+}
+
+function collectPowerBankIntel(room, roomIntel) {
+    if (room._powerIntelTick === Game.time) return false;
+    room._powerIntelTick = Game.time;
+
+    if (room.sources.length > 0) return clearPowerBankIntel(roomIntel);
+
+    const powerBank = room.structures.find(s => s.structureType === STRUCTURE_POWER_BANK);
+    if (!powerBank) return clearPowerBankIntel(roomIntel);
+
+    roomIntel.power = Game.time + powerBank.ticksToDecay;
+    roomIntel.powerAmount = powerBank.power;
+    roomIntel.powerHits = powerBank.hits;
+    roomIntel.powerSpace = powerBank.pos.countOpenTerrainAround(false, true);
+    roomIntel.powerX = powerBank.pos.x;
+    roomIntel.powerY = powerBank.pos.y;
+    // Others currently cracking it. Hits-below-full is stored separately so our
+    // own mining does not look like a contest.
+    roomIntel.powerMined = isPowerBankMinedByOthers(room, powerBank) || undefined;
+    return true;
+}
+
 Room.prototype.cacheRoomIntel = function (force = false) {
     const currentTime = Game.time;
     if (!INTEL[this.name]) INTEL[this.name] = {name: this.name, shardName: Game.shard.name};
     const roomIntel = INTEL[this.name];
     roomIntel.lastObservation = currentTime;
     roomIntel.safemode = this.controller && this.controller.safeMode ? currentTime + this.controller.safeMode : undefined;
+
+    // Power banks decay in 5k ticks and can be claimed by another player in
+    // tens of ticks. Record them on every vision, not only the 150-tick light cadence.
+    const powerIntelChanged = collectPowerBankIntel(this, roomIntel);
 
     const owned = !!(this.controller && this.controller.my);
     if (!force) {
@@ -572,6 +624,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         const heavyDue = !roomIntel.cached || roomIntel.cached + heavyTTL < currentTime;
         if (!lightDue && !heavyDue) {
             INTEL[this.name] = roomIntel;
+            if (powerIntelChanged && global.updateIntelIndex) {
+                global.updateIntelIndex(this.name, roomIntel, roomIntel);
+            }
             return;
         }
     }
@@ -673,13 +728,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             }
         }
 
-        // Highway intel
+        // Highway intel (power banks are collected on every vision above)
         if (this.sources.length === 0) {
             const commodityDeposit = _.max(deposits.filter(d => d.ticksToDecay >= 2000), d => d.ticksToDecay);
             roomIntel.commodity = commodityDeposit?.depositType;
             roomIntel.commodityCooldown = commodityDeposit?.lastCooldown;
-            const powerBank = structures.find(s => s.structureType === STRUCTURE_POWER_BANK);
-            roomIntel.power = powerBank ? Game.time + powerBank.ticksToDecay : undefined;
             const portal = structures.find(s => s.structureType === STRUCTURE_PORTAL);
             roomIntel.portal = portal ? JSON.stringify({
                 destination: portal.destination,
@@ -688,7 +741,6 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         } else {
             roomIntel.commodity = undefined;
             roomIntel.commodityCooldown = undefined;
-            roomIntel.power = undefined;
             roomIntel.portal = undefined;
         }
 

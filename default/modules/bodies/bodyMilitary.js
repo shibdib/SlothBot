@@ -224,8 +224,11 @@ const builders = {
         return {attack: 20, heal: 5};
     },
 
+    // 25 ATTACK reflects 375/tick unboosted, 1500 at T3 (POWER_BANK_HIT_BACK 0.5).
+    // Two 20-HEAL mates cover that at every matched boost tier, with spare if
+    // one healer is a step late. 1:1 MOVE so they can leave the road.
     powerAttacker: () => ({attack: 25}),
-    powerHealer: () => ({heal: 16}),
+    powerHealer: () => ({heal: 20}),
 
     powerHauler(gen) {
         let carry = Math.floor(gen.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
