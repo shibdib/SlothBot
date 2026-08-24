@@ -242,6 +242,15 @@ function isQuadCreep(creep) {
     return !!(leader && (leader.memory.squadMembers || []).length >= 2);
 }
 
+// Duo or quad. Solo longbows still hop dest via shibMove.
+function isSquadCreep(creep) {
+    if (!creep || !creep.memory) return false;
+    if ((creep.memory.squadMembers || []).length >= 1) return true;
+    if (!creep.memory.groupLeader) return false;
+    const leader = Game.getObjectById(creep.memory.groupLeader);
+    return !!(leader && (leader.memory.squadMembers || []).length >= 1);
+}
+
 function wouldEnterDest(pos, direction, destRoom) {
     if (!pos || !destRoom || pos.roomName === destRoom) return false;
     const next = posAfterMove(pos, direction);
@@ -269,6 +278,8 @@ module.exports = {
     formationRange,
 
     isQuadCreep,
+
+    isSquadCreep,
 
     wouldEnterDest,
 

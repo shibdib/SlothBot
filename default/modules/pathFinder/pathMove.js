@@ -30,7 +30,7 @@ const {
     filterAvoidedRooms
 } = require('pathRoute');
 
-const {isQuadCreep, wouldEnterDest, posAfterMove} = require('pathFormation');
+const {isSquadCreep, wouldEnterDest, posAfterMove} = require('pathFormation');
 
 /**
  * Claim/reserver TTL gate for *mission* travel only.
@@ -224,12 +224,11 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             return false;
         }
         const dest = creep.memory && creep.memory.destination;
-        if (dest && isQuadCreep(creep) && wouldEnterDest(origin, options.hopExitDir, dest)) {
-            const misc = creep.memory.misc;
-            if (misc && misc.stagingRoom && misc.stagingRoom !== dest && !misc.staged) {
-                clearShibMove(creep);
-                return false;
-            }
+        // Grouped duos/quads only enter dest via squadMove so the formation
+        // slides in together. Solo shibMove hops are 1-at-a-time entry.
+        if (dest && isSquadCreep(creep) && wouldEnterDest(origin, options.hopExitDir, dest)) {
+            clearShibMove(creep);
+            return false;
         }
         clearShibMove(creep);
         creep.move(options.hopExitDir);
@@ -402,10 +401,10 @@ function executePath(creep, pathInfo, options, origin, heading) {
     const nextDirection = parseInt(pathInfo.path[0], 10);
     if (!nextDirection) return false;
 
-    // Quad members only enter dest via squadMove (packed 2×2). Solo shibMove
-    // hops here are how a quad walked in 1-at-a-time chasing the leader.
+    // Grouped duos/quads only enter dest via squadMove. Solo shibMove hops
+    // here are how a squad walked in 1-at-a-time chasing the leader.
     const dest = creep.memory && creep.memory.destination;
-    if (dest && isQuadCreep(creep) && wouldEnterDest(creep.pos, nextDirection, dest)) {
+    if (dest && isSquadCreep(creep) && wouldEnterDest(creep.pos, nextDirection, dest)) {
         clearShibMove(creep);
         return false;
     }

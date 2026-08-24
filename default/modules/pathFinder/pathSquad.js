@@ -100,6 +100,10 @@ function squadMove(creep, path) {
         if (!nextPos) {
             member.move(move);
         } else if (nextPos.roomName !== member.pos.roomName) {
+            // Duo 1×1: skip a follower who would land on dest wall so the
+            // leader can still hop the open tile. Quads already aborted in
+            // canSquadMove if any in-formation landing is blocked.
+            if (roomCrossBlocked(nextPos)) continue;
             member.move(move);
         } else if (nextPos.checkForImpassible(false, true)) {
             member.shibMove(creep, {range: 0, forceSolo: true});
@@ -115,16 +119,27 @@ function squadMove(creep, path) {
     return true;
 }
 
+function roomCrossBlocked(nextPos) {
+    if (!nextPos) return true;
+    const terrain = Game.map.getRoomTerrain(nextPos.roomName);
+    if (terrain.get(nextPos.x, nextPos.y) === TERRAIN_MASK_WALL) return true;
+    return !!(Game.rooms[nextPos.roomName] && nextPos.checkForImpassible(false, true));
+}
+
 function canSquadMove(leader, members, direction) {
     const hostiles = !!leader.room.hostileCreeps.length;
+    const duo = members.length < 2;
     for (const member of members) {
         if (formationRange(member.pos, leader.pos) > 1) continue;
         const nextPos = posAfterMove(member.pos, direction);
         if (!nextPos) continue;
         if (nextPos.roomName !== member.pos.roomName) {
-            const terrain = Game.map.getRoomTerrain(nextPos.roomName);
-            if (terrain.get(nextPos.x, nextPos.y) === TERRAIN_MASK_WALL) return false;
-            if (Game.rooms[nextPos.roomName] && nextPos.checkForImpassible(false, true)) return false;
+            if (roomCrossBlocked(nextPos)) {
+                // Duo fits a 1-wide dest hole: leave the blocked follower
+                // behind this tick instead of cancelling the leader's hop.
+                if (duo) continue;
+                return false;
+            }
             continue;
         }
         if (!hostiles) continue;
