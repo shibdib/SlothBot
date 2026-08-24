@@ -21,7 +21,7 @@ function operationSustainability(room, operationRoom = room.name) {
 
     if (room.controller?.safeMode) {
         markAsPending(operationRoom, room);
-        return true;
+        return 'remoteDenial';
     }
 
     if (operation.sustainabilityCheck === Game.time) return;
@@ -68,7 +68,7 @@ function operationSustainability(room, operationRoom = room.name) {
         stampOperationCooldown(operationRoom, Memory.targetRooms[operationRoom], true);
         if (opType === 'roomDenial') notifySiegeEnd(operationRoom, 'UNSUSTAINABLE', Memory.targetRooms[operationRoom]);
         delete Memory.targetRooms[operationRoom];
-        return true;
+        return (typeof HARASSMENT_OPERATIONS !== 'undefined' && HARASSMENT_OPERATIONS) ? 'harass' : 'borderPatrol';
     }
 
     saveOperation(operationRoom, operation);

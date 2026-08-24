@@ -42,16 +42,6 @@ function pickStrongholdTarget(room, fromPos) {
     return bunker;
 }
 
-function trackStrongholdWave(creep) {
-    if (creep.memory.waveTracked) return;
-    const op = Memory.targetRooms[creep.room.name];
-    if (op && (!op.lastWave || op.lastWave + 20 < Game.time)) {
-        op.lastWave = Game.time;
-        op.waves = (op.waves || 0) + 1;
-    }
-    creep.memory.waveTracked = true;
-}
-
 Creep.prototype.pickStrongholdTarget = function () {
     return pickStrongholdTarget(this.room, this.pos);
 };
@@ -78,9 +68,14 @@ Creep.prototype.strongholdAttack = function (options = {}) {
     this.say(sentence[Game.time % sentence.length], true);
 
     if (this.room.name === destination) {
-        trackStrongholdWave(this);
-        if (highCommand.operationSustainability(this.room)) {
-            this.memory.operation = 'borderPatrol';
+        const nextOp = highCommand.operationSustainability(this.room);
+        if (nextOp) {
+            this.memory.operation = nextOp;
+            const ids = this.memory.squadMembers || [];
+            for (let i = 0; i < ids.length; i++) {
+                const m = Game.getObjectById(ids[i]);
+                if (m && m.memory) m.memory.operation = nextOp;
+            }
             return;
         }
 

@@ -112,7 +112,10 @@ function waveBodiesNeedingBoost(creepInfo, resource) {
         if (op && c.memory.operation && c.memory.operation !== op) continue;
         const r = c.memory.oldRole || c.memory.role || '';
         if (r !== role) continue;
-        if (c.memory.boostAttempt || (c.memory.misc && c.memory.misc.sealed)) {
+        // Sealed bodies already left home. Counting them made a replacement
+        // waitFor-4 look fully covered while the labs were empty.
+        if (c.memory.misc && c.memory.misc.sealed) continue;
+        if (c.memory.boostAttempt) {
             committed++;
             continue;
         }
@@ -588,7 +591,10 @@ function getMilitaryLoadByColony() {
 }
 
 function getAssignedRoomCacheKey(targetRoom, level, creepInfo) {
-    return `${targetRoom}:${level}:${creepInfo.role || ''}`;
+    const misc = (creepInfo && creepInfo.misc) || {};
+    const waitFor = misc.waitFor || 0;
+    const boosts = (misc.boosts && misc.boosts.length) ? misc.boosts.slice().sort().join('+') : '';
+    return `${targetRoom}:${level}:${(creepInfo && creepInfo.role) || ''}:${waitFor}:${boosts}`;
 }
 
 function assignmentFlags(targetRoom, creepInfo) {
@@ -657,18 +663,20 @@ function computeAssignmentScore(myRoom, routeDistance, load, isAuxiliary) {
     const stocked = roomStockpileRatio(myRoom) >= 0.8;
     const flowReady = (energyState >= 2 || stocked) && trend >= 0 && flowSpare >= 4;
 
-    const energyWeight = isAuxiliary ? 3 : 6;
+    // Weights are hop-equivalent. Energy 2 vs 3 used to cost 6 rooms and skip
+    // a healthy neighbor for a distant full bunker.
+    const energyWeight = isAuxiliary ? 1 : 2;
     if (energyState < 3) score += (3 - energyState) * energyWeight;
 
-    if (flowStressed) score += isAuxiliary ? 6 : 14;
-    else if (!isAuxiliary && energyState < 2 && !stocked) score += 5;
+    if (flowStressed) score += isAuxiliary ? 3 : 6;
+    else if (!isAuxiliary && energyState < 2 && !stocked) score += 2;
 
-    if (flowSpare < 0) score += isAuxiliary ? 5 : 10;
-    else if (flowSpare < 4) score += isAuxiliary ? 2 : 4;
-    else if (flowReady) score -= 4;
+    if (flowSpare < 0) score += isAuxiliary ? 2 : 4;
+    else if (flowSpare < 4) score += 1;
+    else if (flowReady) score -= 2;
 
     const spawnCap = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level];
-    if (spawnCap > 0) score += (load / spawnCap) * 4;
+    if (spawnCap > 0) score += (load / spawnCap) * 2;
 
     return score;
 }

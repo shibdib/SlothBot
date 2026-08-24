@@ -66,6 +66,19 @@ function safeStructureIsActive(structure) {
     }
 }
 
+function armedTowers(room) {
+    const list = room.towers || [];
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+        const s = list[i];
+        try {
+            if (s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && safeStructureIsActive(s)) out.push(s);
+        } catch (e) { /* inaccessible */
+        }
+    }
+    return out;
+}
+
 let hubCache = {};
 Object.defineProperty(Room.prototype, 'hub', {
     get: function () {
@@ -623,10 +636,16 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             roomIntel.owner = newOwner;
             if (roomIntel.owner && !isFriendlyOwner(roomIntel.owner)) {
                 const attack = determineBestAttackRoute(this);
-                if (attack) roomIntel.attackDirection = attack;
-                else delete roomIntel.attackDirection;
+                if (attack) {
+                    roomIntel.attackDirection = attack;
+                    roomIntel.attackDirectionOrigin = attackRouteOrigin(this.name);
+                } else {
+                    delete roomIntel.attackDirection;
+                    delete roomIntel.attackDirectionOrigin;
+                }
             } else {
                 delete roomIntel.attackDirection;
+                delete roomIntel.attackDirectionOrigin;
             }
             roomIntel.reservation = this.controller.reservation?.username;
 
@@ -675,6 +694,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
 
         // Armed hostiles
         roomIntel.armedHostile = this.hostileCreeps.length && this.hostileCreeps.some(c => c && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK))) ? Game.time : undefined;
+        if (roomIntel.owner && !isFriendlyOwner(roomIntel.owner)) {
+            roomIntel.activeDefenders = !!roomIntel.armedHostile;
+        }
 
         // SK towers
         if (roomIntel.sk) {
@@ -683,6 +705,18 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 purgeBadRoute(this.name);
                 roomIntel.towers = towers.length;
                 roomIntel.towerData = this.towerData(towers);
+            } else {
+                roomIntel.towers = undefined;
+                roomIntel.towerData = undefined;
+            }
+        } else if (roomIntel.owner && !isFriendlyOwner(roomIntel.owner)) {
+            // Spawn and siege vs occupy key off INTEL.towers. Leaving this on
+            // the heavy cadence left the count stale for a full creep life
+            // after we knocked towers down. towerData grids stay heavy.
+            const towers = armedTowers(this);
+            if (towers.length) {
+                purgeBadRoute(this.name);
+                roomIntel.towers = towers.length;
             } else {
                 roomIntel.towers = undefined;
                 roomIntel.towerData = undefined;
@@ -824,13 +858,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
 
         // Towers
-        const towers = this.towers.filter(s => {
-            try {
-                return s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST && safeStructureIsActive(s);
-            } catch (e) {
-                return false;
-            }
-        });
+        const towers = armedTowers(this);
         if (towers.length) {
             purgeBadRoute(this.name);
             roomIntel.towers = towers.length;
@@ -876,6 +904,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     } else {
         delete roomIntel.level;
         delete roomIntel.attackDirection;
+        delete roomIntel.attackDirectionOrigin;
         delete roomIntel.owner;
         delete roomIntel.reservation;
         delete roomIntel.safemode;
@@ -1060,7 +1089,7 @@ function isFriendlyOwner(owner) {
 
 // How many extra route hops past the closest staging neighbor we will accept
 // for a better combat exit. 2 rooms is a flank; 3+ is walking around the target.
-const ATTACK_ROUTE_MAX_EXTRA_HOPS = 2;
+global.ATTACK_ROUTE_MAX_EXTRA_HOPS = 2;
 
 function attackRouteHops(from, to) {
     if (!from || !to) return Infinity;
@@ -1166,11 +1195,11 @@ function scoreExitEdge(room, dir, towers) {
     return best;
 }
 
-function determineBestAttackRoute(room) {
+function determineBestAttackRoute(room, origin) {
     const exits = Game.map.describeExits(room.name);
     if (!exits) return undefined;
 
-    const origin = attackRouteOrigin(room.name);
+    const originRoom = origin || attackRouteOrigin(room.name);
     const towers = (room.towers || []).filter((t) => {
         try {
             return t.store && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST;
@@ -1189,7 +1218,7 @@ function determineBestAttackRoute(room) {
         if (!geom) continue;
         candidates.push({
             staging,
-            hops: attackRouteHops(origin, staging),
+            hops: attackRouteHops(originRoom, staging),
             stagingCost: stagingCost(staging),
             towerDmg: geom.towerDmg,
             barrierHits: geom.barrierHits,
@@ -1208,7 +1237,7 @@ function determineBestAttackRoute(room) {
     for (let i = 0; i < candidates.length; i++) {
         const c = candidates[i];
         const extra = (c.hops < Infinity && minHops < Infinity) ? c.hops - minHops : 0;
-        if (extra > ATTACK_ROUTE_MAX_EXTRA_HOPS) continue;
+        if (extra > global.ATTACK_ROUTE_MAX_EXTRA_HOPS) continue;
         const score = c.towerDmg
             + c.barrierHits / 50000
             + extra * 400
@@ -1227,6 +1256,10 @@ function determineBestAttackRoute(room) {
     }
     return best.staging;
 }
+
+Room.prototype.determineBestAttackRoute = function (origin) {
+    return determineBestAttackRoute(this, origin);
+};
 
 let invaderAlert = {};
 

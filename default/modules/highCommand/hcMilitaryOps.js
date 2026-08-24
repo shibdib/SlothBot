@@ -11,7 +11,7 @@
  */
 
 const state = require('hcState');
-const {siegeLevel, strongholdSiegeLevel, siegeFeasibility, scoreTarget, checkForNap} = require('hcUtils');
+const {siegeLevel, siegeOpLevel, strongholdSiegeLevel, siegeFeasibility, scoreTarget, checkForNap} = require('hcUtils');
 const {setTarget} = require('hcTargets');
 const {notifySiegeLaunch} = require('module.notifications');
 const {getOpsPauseReason} = require('hcReadiness');
@@ -63,7 +63,8 @@ function roomHasRemote(roomName, owner) {
     const neighbors = Object.values(exits);
     for (let i = 0; i < neighbors.length; i++) {
         const intel = INTEL[neighbors[i]];
-        if (!intel || !intel.owner || intel.owner === owner) return true;
+        if (!intel || !intel.owner) return true;
+        if (intel.owner === owner) continue;
     }
     return false;
 }
@@ -112,7 +113,7 @@ function pickMissionForUser(rooms, opts) {
     }
 
     if (bestSiege && allowSiege) {
-        return {type: 'roomDenial', room: bestSiege.name, level: bestSiege.towers <= 2 ? 3 : 4};
+        return {type: 'roomDenial', room: bestSiege.name, level: siegeOpLevel(bestSiege.towers)};
     }
     if (bestNaked && allowOccupy) {
         return {type: 'guard', room: bestNaked.name, level: 1};

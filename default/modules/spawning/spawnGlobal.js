@@ -188,7 +188,13 @@ function globalCreepQueue() {
                     const siegeDamage = getSiegeTowerDamage(rdIntel) || rdTowers * 600;
                     // Melee siegeDuo is not used here: the healer is sized for two
                     // stacked bodies and cannot be built at RCL 6 against even one tower.
-                    const useSolo = siegeDamage <= 960 && !rdIntel.activeDefenders && rdWaves < 2;
+                    // Solos need a recent dest look with no armed hostiles. Missing
+                    // that used to keep sending boosted singles into unseen defenders.
+                    const destSeen = rdIntel.lastObservation
+                        && Game.time - rdIntel.lastObservation < CREEP_LIFE_TIME;
+                    const defenders = !!(rdIntel.activeDefenders
+                        || (rdIntel.armedHostile && Game.time - rdIntel.armedHostile < CREEP_LIFE_TIME));
+                    const useSolo = siegeDamage <= 960 && destSeen && !defenders && rdWaves < 2;
                     const labBoosts = siegeLabBoosts();
                     if (useSolo) {
                         queueCreepIfNeeded({

@@ -112,6 +112,7 @@ function handleRoomDenialOperation(room) {
     const towers = room.towers[0];
     const armedHostiles = room.hostileCreeps.find((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
     Memory.targetRooms[room.name].camping = !towers && !armedHostiles;
+    if (INTEL[room.name]) INTEL[room.name].activeDefenders = !!armedHostiles;
 
     updateRoomLevel(room);
     handleCleanerAndClaimAttacker(room);

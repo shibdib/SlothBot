@@ -4,7 +4,7 @@
  * Target room assignment for military and auxiliary ops.
  */
 
-const {getPriority} = require('hcUtils');
+const {getPriority, scoreOriginDistance} = require('hcUtils');
 const {notifySiegeLaunch} = require('module.notifications');
 
 function setTarget(room, operation, level = 1, military = true) {
@@ -14,7 +14,7 @@ function setTarget(room, operation, level = 1, military = true) {
         tick: Game.time,
         type: operation,
         level: level,
-        priority: getPriority(room),
+        priority: getPriority(room, operation),
         // Sieges need more waves to break fortified rooms; harassment ops can cancel sooner
         waveLimit: (operation === 'roomDenial' || operation === 'stronghold') ? 8 : 4
     };
@@ -25,7 +25,21 @@ function setTarget(room, operation, level = 1, military = true) {
         if (global.updateIntelIndex) global.updateIntelIndex(room, null, INTEL[room]);
     }
     if (operation === 'roomDenial') notifySiegeLaunch(room);
-    return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Nearest Friendly Room - ${findClosestOwnedRoom(room, true)} rooms away)`, 'HIGH COMMAND: ');
+    return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Nearest capable room - ${scoreOriginDistance(room, operation)} rooms away)`, 'HIGH COMMAND: ');
+}
+
+function recordSiegeWave(destination) {
+    if (!destination) return;
+    const op = Memory.targetRooms[destination];
+    if (!op || (op.type !== 'roomDenial' && op.type !== 'stronghold')) return;
+    if (op.waveRecordTick === Game.time) return;
+    op.waveRecordTick = Game.time;
+    op.waves = (op.waves || 0) + 1;
+    op.lastWave = Game.time;
+    try {
+        require('module.notifications').notifySiegeEvent(destination, 'WAVE');
+    } catch (e) { /* notifications optional at boot */
+    }
 }
 
 function operationRan(target) {
@@ -56,6 +70,7 @@ function stampOperationCooldown(roomName, target, force) {
 
 module.exports = {
     setTarget,
+    recordSiegeWave,
     operationRan,
     stampOperationCooldown,
 };

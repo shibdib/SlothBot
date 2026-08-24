@@ -17,7 +17,8 @@ function intelOwner(intel) {
 
 function rampartLevelEquivalent(intel) {
     if (!intel || !intel.rampartMedHP) return 0;
-    return Math.min(intel.rampartMedHP / 100000000, 1.5);
+    // 50M ≈ 1.0 strength. Same-RCL 100M bunkers must fail the >= -1 launch gate.
+    return Math.min(intel.rampartMedHP / 50000000, 2.5);
 }
 
 // Positive = we should be able to siege, negative = outmatched. Compares relative composite
@@ -27,12 +28,33 @@ function siegeFeasibility(r) {
     return myStrength - userStrength(r.owner) - rampartLevelEquivalent(r);
 }
 
+function scoreOriginMinLevel(type, intel) {
+    if (type === 'stronghold') return 7;
+    if (type === 'roomDenial') {
+        const towers = (intel && intel.towers) || 0;
+        return towers >= 2 ? 7 : 6;
+    }
+    if (type === 'guard' || type === 'remoteDenial') {
+        if (typeof MAX_LEVEL === 'undefined') return 4;
+        return Math.max(4, MAX_LEVEL - 1);
+    }
+    return 1;
+}
+
+function scoreOriginDistance(roomName, type) {
+    const intel = (typeof INTEL !== 'undefined' && INTEL[roomName]) || null;
+    const dist = findClosestOwnedRoom(roomName, true, scoreOriginMinLevel(type, intel));
+    return dist == null ? Infinity : dist;
+}
+
 function scoreTarget(roomName, type, warPriorityByUser = null) {
     const r = INTEL[roomName];
     if (!r) return Infinity;
 
     let score = 0;
-    const distance = findClosestOwnedRoom(roomName, true);
+    // Assignment will not spawn a siege from an RCL5 neighbor. Score the hop
+    // from a room that can actually take the op.
+    const distance = scoreOriginDistance(roomName, type);
 
     score += distance * 20;
 
@@ -94,8 +116,8 @@ function checkForNap(user) {
     return false;
 }
 
-function getPriority(room) {
-    const range = findClosestOwnedRoom(room, true);
+function getPriority(room, type) {
+    const range = scoreOriginDistance(room, type);
     if (range <= 1) return PRIORITIES.priority;
     if (range <= 3) return PRIORITIES.urgent;
     if (range <= 5) return PRIORITIES.high;
@@ -108,6 +130,14 @@ function siegeLevel(towerCount) {
     if (towerCount >= 3) return MAX_LEVEL >= 8;
     if (towerCount >= 2) return MAX_LEVEL >= 7;
     return MAX_LEVEL >= 6;
+}
+
+function siegeOpLevel(towerCount) {
+    const n = towerCount || 0;
+    if (n >= 3) return 4;
+    if (n === 2) return 3;
+    if (n === 1) return 2;
+    return 1;
 }
 
 // Strongholds: 1-tower at RCL 6+, 2–3 towers only at RCL 8. Four-plus is a
@@ -148,6 +178,12 @@ module.exports = {
     getPriority,
 
     siegeLevel,
+
+    siegeOpLevel,
+
+    scoreOriginMinLevel,
+
+    scoreOriginDistance,
 
     strongholdSiegeLevel,
 

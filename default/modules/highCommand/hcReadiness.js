@@ -127,7 +127,12 @@ function isRoomReadyForTier(room, tier) {
     }
     if (tier === OP_TIER.DENIAL) return isLiveCombatReady(room);
     if (tier === OP_TIER.SIEGE) {
-        return isLiveCombatReady(room) && room.level >= 7 && roomMilitaryFlowSpare(room) >= 0;
+        // RCL floor is computeOpLevelTarget (1 tower → 6, 2+ → 7). Using
+        // isLiveCombatReady here reimposed matureRoomLevel (usually 7).
+        if (roomMilitaryFlowSpare(room) < 0) return false;
+        if (isRoomStruggling(room)) return false;
+        if ((room.energyState || 0) >= 1) return true;
+        return roomHasCombatStockpile(room);
     }
     return isLiveCombatReady(room);
 }

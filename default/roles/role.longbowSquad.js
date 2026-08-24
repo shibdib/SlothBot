@@ -27,6 +27,7 @@ const {
     exitDirectionTo,
     wouldEnterDest
 } = require("module.pathFinder");
+const {recordSiegeWave} = require('hcTargets');
 const stagingCache = {}; // creepId → {x, y, tick, roomName}
 const musterCache = {}; // roomName → {x, y, tick}
 const formupAssignCache = {tick: 0, claimed: {}}; // leaderId → {creepId → "x,y"} this tick
@@ -292,11 +293,7 @@ class RoleLongbowSquad {
             this.clearQuadSnake(creep);
             creep.memory.waitingToAssemble = false;
             if (creep.memory.destination) {
-                if (creep.ensureDenialStaging) creep.ensureDenialStaging();
-                const transitTarget = (creep.memory.misc?.stagingRoom && !creep.memory.misc.staged)
-                    ? creep.memory.misc.stagingRoom
-                    : creep.memory.destination;
-                this.leaderTransit(new RoomPosition(25, 25, transitTarget), {range: 22});
+                this.transitToOpTarget(creep);
             } else if (creep.memory.operation) {
                 this.operationManagement();
             } else {
@@ -1171,6 +1168,8 @@ class RoleLongbowSquad {
             c.memory.misc.boostWaitTick = undefined;
             c.memory.initialFormUp = true;
         }
+        const op = creep.memory.operation;
+        if (op === 'roomDenial' || op === 'stronghold') recordSiegeWave(creep.memory.destination);
     }
 
     formingWaveMinTTL(creep, squad) {
@@ -1235,6 +1234,8 @@ class RoleLongbowSquad {
             c.memory.quadSnakeDir = undefined;
             c.memory._shibSquadMove = undefined;
         }
+        const op = creep.memory.operation;
+        if (op === 'roomDenial' || op === 'stronghold') recordSiegeWave(creep.memory.destination);
     }
 
     // TTL below FORMING_ABANDON_TTL after renew fails, or no new body and
@@ -1265,10 +1266,16 @@ class RoleLongbowSquad {
         return !!(dest && (Memory.targetRooms[dest] || Memory.auxiliaryTargets[dest]));
     }
 
+    destSiegeLive(dest) {
+        const op = dest && (Memory.targetRooms[dest] || Memory.auxiliaryTargets[dest]);
+        return !!(op && (op.type === 'roomDenial' || op.type === 'stronghold'));
+    }
+
     cancelledDestAtHome(creep) {
         const dest = creep.memory.destination;
         if (!dest || ['borderPatrol', 'guard', 'harass'].includes(creep.memory.operation)) return false;
-        if (this.destOpLive(dest)) return false;
+        const siegeOp = creep.memory.operation === 'roomDenial' || creep.memory.operation === 'stronghold';
+        if (siegeOp ? this.destSiegeLive(dest) : this.destOpLive(dest)) return false;
         const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
         return !!(home && creep.room.name === home);
     }
@@ -1776,10 +1783,10 @@ class RoleLongbowSquad {
     leadPackedQuad(creep) {
         if (creep.memory.operation === 'stronghold') {
             creep.strongholdAttack({squadMove: true});
-            if (creep.memory.operation === 'borderPatrol') return;
+            if (creep.memory.operation !== 'stronghold') return;
         } else if (creep.memory.operation === 'roomDenial') {
             creep.denyRoom({squadMove: true});
-            if (creep.memory.operation === 'borderPatrol') return;
+            if (creep.memory.operation !== 'roomDenial') return;
         }
 
         if (creep.memory.destination && creep.room.name === creep.memory.destination) {
@@ -1831,24 +1838,7 @@ class RoleLongbowSquad {
         }
 
         if (creep.memory.destination) {
-            if (creep.ensureDenialStaging) creep.ensureDenialStaging();
-            const transitTarget = (creep.memory.misc && creep.memory.misc.stagingRoom && !creep.memory.misc.staged)
-                ? creep.memory.misc.stagingRoom
-                : creep.memory.destination;
-            const destDir = transitTarget && exitDirectionTo(creep.room.name, transitTarget);
-            // Dest-adjacent: only the coordinated exit hop, never a PathFinder
-            // walk into dest 25,25 (that unpacks the formation on the dest strip).
-            // Staging neighbors still use normal transit — only dest itself is gated.
-            if (transitTarget === creep.memory.destination && destDir && creep.room.name !== transitTarget) {
-                if (this.onDestFacingExit(creep, transitTarget)) {
-                    if (this.stepFormationIntoDest(creep)) return true;
-                    return true;
-                }
-                const pad = this.findStaging(creep);
-                if (pad) return this.leaderTransit(pad, {range: 0});
-                return true;
-            }
-            return this.leaderTransit(new RoomPosition(25, 25, transitTarget), {range: 22});
+            return this.transitToOpTarget(creep);
         }
 
         if (creep.memory.operation) return this.operationManagement();
@@ -1867,39 +1857,74 @@ class RoleLongbowSquad {
         return out;
     }
 
+    towerOperateMultiplier(tower) {
+        if (!tower || !tower.effects || !tower.effects.length) return 1;
+        let op;
+        for (let i = 0; i < tower.effects.length; i++) {
+            if (tower.effects[i].effect === PWR_OPERATE_TOWER) {
+                op = tower.effects[i];
+                break;
+            }
+        }
+        if (!op || !op.level || !POWER_INFO[PWR_OPERATE_TOWER]) return 1;
+        return 1 + (POWER_INFO[PWR_OPERATE_TOWER].effect[op.level - 1] / 100);
+    }
+
+    liveTowerDump(towers) {
+        let dump = 0;
+        for (let i = 0; i < towers.length; i++) {
+            dump += TOWER_POWER_ATTACK * this.towerOperateMultiplier(towers[i]);
+        }
+        return dump;
+    }
+
     canTankLiveTowers(creep) {
+        const towers = this.liveHostileTowers();
+        if (!towers.length) return true;
         const squad = this.getSquad().concat(creep);
         let hps = 0;
         for (let i = 0; i < squad.length; i++) {
             hps += abilityPower(squad[i].body).effectiveHeal;
         }
-        return hps > this.liveHostileTowers().length * 600;
+        return hps >= this.liveTowerDump(towers);
+    }
+
+    fallBackFromTowers(creep) {
+        if (creep.ensureDenialStaging) creep.ensureDenialStaging();
+        const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
+        if (staging && staging !== creep.room.name) {
+            return this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
+        }
+        return creep.moveToRoomExit(staging || creep.memory.colony);
     }
 
     // Range 3 on the target unless live towers would dump 600/tick into the 2×2.
     // Empty towers do not count. Too close without the heal budget → walk back out.
+    // Cannot-tank used to orbit range 7 of the closest tower (outside RA 3), so
+    // the squad never chipped a wall. Fall back to dest-exit and breach instead.
     advancePackedQuad(creep, hostile) {
         const towers = this.liveHostileTowers();
         if (towers.length && !this.canTankLiveTowers(creep)) {
-            let closest = towers[0];
-            let closestRange = creep.pos.getRangeTo(closest);
+            let closestRange = creep.pos.getRangeTo(towers[0]);
             for (let i = 1; i < towers.length; i++) {
                 const r = creep.pos.getRangeTo(towers[i]);
-                if (r < closestRange) {
-                    closest = towers[i];
-                    closestRange = r;
-                }
+                if (r < closestRange) closestRange = r;
             }
-            if (closestRange < 6) {
-                if (creep.ensureDenialStaging) creep.ensureDenialStaging();
-                const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
-                if (staging && staging !== creep.room.name) {
-                    return this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
-                }
-                return creep.moveToRoomExit(staging || creep.memory.colony);
+            const lethalRange = (typeof TOWER_OPTIMAL_RANGE === 'number') ? TOWER_OPTIMAL_RANGE : 5;
+            if (closestRange <= lethalRange) return this.fallBackFromTowers(creep);
+
+            const isTower = hostile.structureType === STRUCTURE_TOWER;
+            if (creep.pos.getRangeTo(hostile) <= 3 && !isTower) return;
+
+            const barrier = this.pickBorderBreachTarget(creep, this.isQuad(creep) ? 2 : 1);
+            if (this.applyBreachTarget(creep, barrier)) {
+                const range = this.barrierApproachRange(barrier);
+                if (creep.pos.getRangeTo(barrier) > range) return this.leaderTransit(barrier, {range});
+                return;
             }
-            if (closestRange <= 8) return;
-            return this.leaderTransit(closest, {range: 7});
+            // Already outside full tower dump. Falling back to staging just so
+            // holdForSquadEntry hops us in again wastes TTL. Hold and fire.
+            return;
         }
         return this.leaderTransit(hostile, {range: this.barrierApproachRange(hostile)});
     }
@@ -2299,14 +2324,19 @@ class RoleLongbowSquad {
     hasFullSquad(creep) {
         if (creep.memory.initialFormUp || !creep.memory.misc?.waitFor) return true;
 
-        // Op cancelled: forming waves stay waitFor at home until abandon/recycle.
-        // Committed or already-away squads retarget so they do not park for a 4th.
-        if (creep.memory.destination && !['borderPatrol', 'guard'].includes(creep.memory.operation)
-            && !this.destOpLive(creep.memory.destination)) {
+        // Op cancelled or safemode-converted to remoteDenial: forming waves
+        // recycle at home. destOpLive is still true after safemode.
+        const dest = creep.memory.destination;
+        const siegeOp = creep.memory.operation === 'roomDenial' || creep.memory.operation === 'stronghold';
+        const destGone = dest && (siegeOp ? !this.destSiegeLive(dest) : !this.destOpLive(dest));
+        if (destGone && !['borderPatrol', 'guard'].includes(creep.memory.operation)) {
             const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
             const atHome = !!(home && creep.room.name === home);
             if (!this.isSquadCommitted(creep) && atHome) return false;
-            creep.memory.operation = HARASSMENT_OPERATIONS ? 'harass' : 'borderPatrol';
+            const liveType = dest && (Memory.targetRooms[dest] || Memory.auxiliaryTargets[dest]);
+            const liveOp = liveType && liveType.type;
+            creep.memory.operation = liveOp === 'remoteDenial' ? 'remoteDenial'
+                : (HARASSMENT_OPERATIONS ? 'harass' : 'borderPatrol');
             if (!creep.memory.misc) creep.memory.misc = {};
             creep.memory.misc.waitFor = 0;
         }
@@ -2869,14 +2899,15 @@ class RoleLongbowSquad {
             creep.memory._engageCache = {tick: Game.time, room: creep.room.name, ours, theirs};
         }
 
-        const hostileTowers = (this.room.towers || []).filter(t => {
-            const o = t.safeOwnerName ? t.safeOwnerName() : undefined;
-            return o && !FRIENDLIES.includes(o);
-        });
+        const hostileTowers = this.liveHostileTowers();
         let towerDmg = 0;
-        for (const t of hostileTowers) {
+        for (let i = 0; i < hostileTowers.length; i++) {
+            const t = hostileTowers[i];
             const range = t.pos.getRangeTo(creep);
-            towerDmg += range <= 5 ? 600 : range < 20 ? 600 - 450 * (range - 5) / 15 : 150;
+            const base = (typeof TOWER_POWER_FROM_RANGE === 'function')
+                ? TOWER_POWER_FROM_RANGE(range, TOWER_POWER_ATTACK)
+                : (range <= 5 ? 600 : range < 20 ? 600 - 450 * (range - 5) / 15 : 150);
+            towerDmg += base * this.towerOperateMultiplier(t);
         }
 
         const netOurDps = Math.max(ours.dps - theirs.hps, 0);
@@ -2915,30 +2946,35 @@ class RoleLongbowSquad {
         }
     }
 
-    destinationManagement() {
-        if (this.creep.ensureDenialStaging) this.creep.ensureDenialStaging();
-        let destination = this.creep.memory.misc?.stagingRoom && !this.creep.memory.misc.staged
-            ? this.creep.memory.misc.stagingRoom
-            : this.creep.memory.destination;
-
-        if (this.room.name !== destination) {
-            if (destination === this.creep.memory.destination) {
-                const destDir = exitDirectionTo(this.creep.room.name, destination);
-                if (destDir) {
-                    if (this.onDestFacingExit(this.creep, destination)) {
-                        if (this.stepFormationIntoDest(this.creep)) return true;
-                        return true;
-                    }
-                    const pad = this.findStaging(this.creep);
-                    if (pad) return this.leaderTransit(pad, {range: 0});
-                    return true;
-                }
+    // Staging neighbor until staged; dest-adjacent hops the pad, never dest 25,25.
+    transitToOpTarget(creep) {
+        if (creep.ensureDenialStaging) creep.ensureDenialStaging();
+        const dest = creep.memory.destination;
+        if (!dest) return false;
+        const transitTarget = (creep.memory.misc && creep.memory.misc.stagingRoom && !creep.memory.misc.staged)
+            ? creep.memory.misc.stagingRoom
+            : dest;
+        const destDir = exitDirectionTo(creep.room.name, transitTarget);
+        if (transitTarget === dest && destDir && creep.room.name !== dest) {
+            if (this.onDestFacingExit(creep, dest)) {
+                if (this.stepFormationIntoDest(creep)) return true;
+                return true;
             }
-            return this.leaderTransit(new RoomPosition(25, 25, destination), {range: 22});
+            const pad = this.findStaging(creep);
+            if (pad) return this.leaderTransit(pad, {range: 0});
+            return true;
+        }
+        return this.leaderTransit(new RoomPosition(25, 25, transitTarget), {range: 22});
+    }
+
+    destinationManagement() {
+        if (this.room.name !== this.creep.memory.destination) {
+            return this.transitToOpTarget(this.creep);
         }
 
         // In destination room
-        if (this.creep.memory.misc?.stagingRoom === this.room.name) {
+        if (this.creep.memory.misc?.stagingRoom === this.room.name
+            && this.room.name !== this.creep.memory.destination) {
             this.creep.memory.misc.staged = true;
             return;
         }
