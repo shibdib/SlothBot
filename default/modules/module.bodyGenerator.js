@@ -93,9 +93,11 @@ class ModuleBodyGenerator {
             const destBoosts = this.creepInfo && this.creepInfo.destination
                 && Memory.targetRooms[this.creepInfo.destination]
                 && Memory.targetRooms[this.creepInfo.destination].boosts;
-            const listedMove = this.creepInfo && this.creepInfo.misc && this.creepInfo.misc.boosts
-                && this.creepInfo.misc.boosts.includes(MOVE);
-            if (!destBoosts && !listedMove) {
+            const listed = this.creepInfo && this.creepInfo.misc && this.creepInfo.misc.boosts;
+            const mineralBody = destBoosts || (listed && (
+                listed.includes(MOVE) || listed.includes(HEAL) || listed.includes(TOUGH)
+            ));
+            if (!mineralBody) {
                 return {body: bodyCache[cacheKey], info: this.creepInfo};
             }
         }

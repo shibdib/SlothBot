@@ -1378,31 +1378,6 @@ Room.prototype.towerData = function (towers) {
     }
 };
 
-Room.prototype.boostCheck = function (body = undefined, parts = undefined, tier = undefined, partCount = 1, extraParts = undefined) {
-    if (body && body.includes(ATTACK) && !checkBoostType(this, ATTACK, tier)) return false;
-    if (body && body.includes(HEAL) && !checkBoostType(this, HEAL, tier)) return false;
-    if (extraParts && body) {
-        for (let i = 0; i < extraParts.length; i++) {
-            const part = extraParts[i];
-            if (part === HEAL || part === ATTACK) continue;
-            if (!body.includes(part) || !BOOST_USE[part]) continue;
-            // TOUGH/RA/MOVE may be a different mineral tier than HEAL. Any
-            // stocked tier passes the gate; neededBoosts pins the exact MOVE/TOUGH.
-            if (!checkBoostType(this, part, undefined)) return false;
-        }
-    }
-    return !(parts && !checkBoostType(this, parts, tier));
-
-    function checkBoostType(room, part, tier = undefined) {
-        const needed = 30 * (body && body.length ? body.filter(p => p === part).length : partCount);
-        if (body && body.length && tier === undefined) {
-            for (const boost of BOOST_USE[part]) if (room.store(boost) >= needed) return true;
-            return false;
-        }
-        return room.store(BOOST_USE[part][tier]) >= needed;
-    }
-};
-
 /* Typed structure accessors — lazy per-tick index over this.structures (no ID round-trip). */
 const multipleList = [STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_KEEPER_LAIR, STRUCTURE_PORTAL, STRUCTURE_LINK, STRUCTURE_TOWER, STRUCTURE_LAB, STRUCTURE_CONTAINER, STRUCTURE_POWER_BANK];
 const singleList = [STRUCTURE_OBSERVER, STRUCTURE_POWER_SPAWN, STRUCTURE_EXTRACTOR, STRUCTURE_NUKER, STRUCTURE_INVADER_CORE, STRUCTURE_FACTORY];

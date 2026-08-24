@@ -202,7 +202,9 @@ function updateRoomLevel(room) {
         const coreAlive = targetRoom.type === 'stronghold' && room.structures.some(s => s.structureType === STRUCTURE_INVADER_CORE);
         targetRoom.level = coreAlive ? 1 : 0;
     }
-    if (!towers.length && targetRoom.type !== 'stronghold') {
+    // Towerless roomDenial is no longer a siege. Guard/rebuild keep their
+    // lab wish-list so HEAL pinning still sees operation.boosts.
+    if (!towers.length && targetRoom.type === 'roomDenial') {
         targetRoom.boosts = undefined;
         targetRoom.optionalBoosts = undefined;
     }

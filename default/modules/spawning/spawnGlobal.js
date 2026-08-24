@@ -128,10 +128,14 @@ function globalCreepQueue() {
                         if ((maxLevelOfAttacker >= 7 && MAX_LEVEL < 7) || (maxLevelOfAttacker > MAX_LEVEL + 1)) continue;
                     }
                     const count = 4;
-                    const boosts = INTEL[key].threatLevel > 2 ? [RANGED_ATTACK, HEAL] : undefined;
+                    const boosted = INTEL[key].threatLevel > 2;
+                    if (boosted) {
+                        operation.boosts = [HEAL];
+                        operation.optionalBoosts = [RANGED_ATTACK];
+                    }
                     queueCreepIfNeeded({
                         role: 'longbowSquad', priority: priority + 1, numberNeeded: count, destination: key,
-                        misc: {waitFor: count, boosts: boosts}, closestRoom: true
+                        misc: {waitFor: count, boosts: boosted ? [RANGED_ATTACK, HEAL] : undefined}, closestRoom: true
                     });
                 }
                 break;
@@ -259,6 +263,8 @@ function globalCreepQueue() {
                         operation: 'guard'
                     });
                 } else if (opLevel > 1) {
+                    operation.boosts = [HEAL];
+                    operation.optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();
                     queueCreepIfNeeded({
                         role: 'longbowSquad', priority, numberNeeded: 2, destination: key,
                         misc: {waitFor: 2, boosts: [RANGED_ATTACK, HEAL, MOVE]}, closestRoom: true, operation: 'guard'

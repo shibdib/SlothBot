@@ -168,6 +168,33 @@ function checkForNeededTough(gen, squadSize = 1, rangedCreep = false, moveFactor
     return {boost: undefined, count: 0};
 }
 
+function pinAvailableHealBoost(gen, healCount) {
+    if (!gen || !gen.creepInfo || !(healCount > 0) || !BOOST_USE || !BOOST_USE[HEAL]) return;
+    const waitFor = gen.creepInfo.misc && gen.creepInfo.misc.waitFor;
+    const wave = waitFor > 1 ? waitFor : 1;
+    const needed = LAB_BOOST_MINERAL * healCount * wave;
+    for (let t = 0; t < BOOST_USE[HEAL].length; t++) {
+        const boost = BOOST_USE[HEAL][t];
+        if (gen.room.store(boost) < needed) continue;
+        if (!gen.creepInfo.neededBoosts) gen.creepInfo.neededBoosts = {};
+        const nb = gen.creepInfo.neededBoosts;
+        nb.boostPart = HEAL;
+        nb.boost = boost;
+        nb.boostTier = t;
+        nb.amount = healCount;
+        const dest = gen.creepInfo.destination;
+        if (dest && Memory.targetRooms[dest]) Memory.targetRooms[dest].boostTier = t;
+        return;
+    }
+}
+
+function pinToughBoost(gen, toughData, count) {
+    if (!gen || !gen.creepInfo || !toughData || !toughData.boost || !(count > 0)) return;
+    if (!gen.creepInfo.neededBoosts) gen.creepInfo.neededBoosts = {};
+    gen.creepInfo.neededBoosts.toughBoost = toughData.boost;
+    gen.creepInfo.neededBoosts.toughCount = count;
+}
+
 module.exports = {
     toughMulti,
     moveFatigueFactor,
@@ -178,6 +205,8 @@ module.exports = {
     checkForNeededHeal,
     checkForNeededTough,
     checkForNeededMove,
+    pinAvailableHealBoost,
+    pinToughBoost,
     SIEGE_REQUIRED_BOOSTS,
     SIEGE_OPTIONAL_BOOSTS,
     isOptionalSiegeBoost,

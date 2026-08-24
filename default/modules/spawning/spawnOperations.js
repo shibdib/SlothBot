@@ -24,6 +24,12 @@ const INVISIBLE_ASSIGNMENT_TIMEOUT = 50;
 const ASSIGNMENT_FAILURE_COOLDOWN = 5;
 const ROOM_ASSIGN_EXCLUDE = 100;
 const LOAD_PER_SPAWN_CAP = 6;
+// BOOST_USE lists T3, T2, T1 so index 0/1/2. Each step equals this many route
+// hops — otherwise a T1 body wins over a T3 room a few rooms farther.
+const BOOST_TIER_WEIGHT = 4;
+const WAVE_SHORTFALL_WEIGHT = 4;
+const STEAL_MARGIN = 4;
+const STEAL_CHECK_INTERVAL = 15;
 const ROLE_ASSIGN_WEIGHT = {
     longbowSquad: 100,
     siegeDuo: 90,
@@ -36,13 +42,16 @@ const ROLE_ASSIGN_WEIGHT = {
 };
 const assignmentCooldown = {};
 const assignmentExcludeUntil = {};
+const stealCheckAt = {};
 let militaryLoadCache = {tick: -1, loads: null};
 let assignedRoomCache = {tick: -1, results: {}};
+let waveBoostBodiesCache = {tick: -1, results: {}};
 let assignmentResolvedTick = -1;
 
 function invalidateAssignmentCaches() {
     assignedRoomCache = {tick: -1, results: {}};
     militaryLoadCache = {tick: -1, loads: null};
+    waveBoostBodiesCache = {tick: -1, results: {}};
 }
 
 function markAssignmentExclude(destination, roomName) {
@@ -72,20 +81,75 @@ function cloneCreepInfo(creepInfo) {
     return clone;
 }
 
-// Body-gen already refused rooms that cannot field required HEAL/TOUGH.
-// Listed RA/MOVE are optional lab boosts — requiring full-part mineral
-// stock here unassigned rooms that could still spawn, then reassigned them.
+function bodyPartCount(body, part) {
+    let n = 0;
+    for (let i = 0; i < body.length; i++) {
+        if (body[i] === part) n++;
+    }
+    return n;
+}
+
+function waveBodiesNeedingBoost(creepInfo, resource) {
+    const waitFor = creepInfo && creepInfo.misc && creepInfo.misc.waitFor;
+    if (!(waitFor > 1)) return 1;
+
+    const role = creepInfo.role || '';
+    const dest = creepInfo.destination || '';
+    const op = creepInfo.operation || '';
+    const cacheKey = `${role}|${dest}|${op}|${waitFor}|${resource || ''}`;
+    if (waveBoostBodiesCache.tick !== Game.time) {
+        waveBoostBodiesCache = {tick: Game.time, results: {}};
+    }
+    if (Object.prototype.hasOwnProperty.call(waveBoostBodiesCache.results, cacheKey)) {
+        return waveBoostBodiesCache.results[cacheKey];
+    }
+
+    let committed = 0;
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory) continue;
+        if ((c.memory.destination || '') !== dest) continue;
+        if (op && c.memory.operation && c.memory.operation !== op) continue;
+        const r = c.memory.oldRole || c.memory.role || '';
+        if (r !== role) continue;
+        if (c.memory.boostAttempt || (c.memory.misc && c.memory.misc.sealed)) {
+            committed++;
+            continue;
+        }
+        const boosted = c.memory.hasBoosted;
+        if (resource) {
+            if (boosted && boosted.includes(resource)) committed++;
+        } else if (boosted && boosted.length) {
+            committed++;
+        }
+    }
+
+    const bodies = Math.max(0, waitFor - committed);
+    waveBoostBodiesCache.results[cacheKey] = bodies;
+    return bodies;
+}
+
+// neededBoosts only — optional RA/MOVE stay scored, not gated.
+// Fail if a required part is absent (truncated bodies used to pass).
+// Stock must cover remaining wave bodies, not one.
 function generatedBodyMissingBoosts(room, body, creepInfo) {
     if (!room || !body || !body.length) return true;
     const nb = creepInfo && creepInfo.neededBoosts;
     if (!nb) return false;
-    const short = (part, boost) => {
-        if (!boost || !body.includes(part)) return false;
-        return room.store(boost) < LAB_BOOST_MINERAL * body.filter(p => p === part).length;
+
+    const missing = (part, boost, expectedCount) => {
+        if (!boost || !part) return false;
+        const count = bodyPartCount(body, part);
+        if (!count) return true;
+        if (expectedCount && count < expectedCount) return true;
+        const bodies = waveBodiesNeedingBoost(creepInfo, boost);
+        if (bodies <= 0) return false;
+        return room.store(boost) < LAB_BOOST_MINERAL * count * bodies;
     };
-    if (nb.boost && nb.boostPart && short(nb.boostPart, nb.boost)) return true;
-    if (short(TOUGH, nb.toughBoost)) return true;
-    if (short(MOVE, nb.moveBoost)) return true;
+
+    if (missing(nb.boostPart, nb.boost, nb.amount)) return true;
+    if (missing(TOUGH, nb.toughBoost, nb.toughCount)) return true;
+    if (missing(MOVE, nb.moveBoost)) return true;
     return false;
 }
 
@@ -109,15 +173,53 @@ function optionalBoostPenalty(room, creepInfo, body) {
         if (!body.includes(part) || !BOOST_USE || !BOOST_USE[part]) continue;
         const needed = LAB_BOOST_MINERAL * body.filter(p => p === part).length;
         const tiers = BOOST_USE[part];
-        let stocked = false;
+        let stockedTier = -1;
         for (let t = 0; t < tiers.length; t++) {
             if (room.store(tiers[t]) >= needed) {
-                stocked = true;
+                stockedTier = t;
                 break;
             }
         }
-        if (!stocked) penalty += 3;
+        // T1 (+2) must still beat having no boost at all (+3).
+        if (stockedTier < 0) penalty += 3;
+        else if (stockedTier > 0) penalty += stockedTier;
     }
+    return penalty;
+}
+
+function boostResourceTier(part, resource) {
+    if (!part || !resource || !BOOST_USE || !BOOST_USE[part]) return -1;
+    return BOOST_USE[part].indexOf(resource);
+}
+
+function waveBoostShortfall(room, body, part, resource, wave) {
+    if (!resource || !part || wave <= 1 || !body || !body.length) return 0;
+    const count = bodyPartCount(body, part);
+    if (!count) return 0;
+    const covered = Math.floor(room.store(resource) / (LAB_BOOST_MINERAL * count));
+    return Math.max(0, wave - covered);
+}
+
+function boostQualityPenalty(room, creepInfo, body) {
+    const nb = creepInfo && creepInfo.neededBoosts;
+    if (!nb || !body || !body.length) return 0;
+
+    let penalty = 0;
+    const addTier = (part, resource, weight) => {
+        const tier = boostResourceTier(part, resource);
+        if (tier > 0) penalty += tier * weight;
+    };
+    addTier(nb.boostPart, nb.boost, BOOST_TIER_WEIGHT);
+    addTier(TOUGH, nb.toughBoost, BOOST_TIER_WEIGHT);
+    addTier(MOVE, nb.moveBoost, 2);
+
+    const addWave = (part, resource) => {
+        if (!resource) return;
+        penalty += waveBoostShortfall(room, body, part, resource, waveBodiesNeedingBoost(creepInfo, resource)) * WAVE_SHORTFALL_WEIGHT;
+    };
+    addWave(nb.boostPart, nb.boost);
+    addWave(TOUGH, nb.toughBoost);
+    addWave(MOVE, nb.moveBoost);
     return penalty;
 }
 
@@ -308,7 +410,7 @@ function handleInvisibleAssignmentWait(target, opMemory) {
     return true;
 }
 
-function handleAssignmentReadinessWait(target, opMemory, reason) {
+function handleAssignmentReadinessWait(target, opMemory, reason, levelTarget, entry) {
     if (!opMemory.assignedRoom || !Game.rooms[opMemory.assignedRoom]) return opMemory.assignedRoom;
 
     const now = Game.time;
@@ -316,6 +418,8 @@ function handleAssignmentReadinessWait(target, opMemory, reason) {
         opMemory.assignmentEnergyCounter = (opMemory.assignmentEnergyCounter || 0) + 1;
         opMemory.assignmentEnergyLastTick = now;
         if (opMemory.assignmentEnergyCounter > 100) {
+            const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, reason, {force: true});
+            if (stolen) return stolen;
             if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
             unassignRoom(target, reason, {excludeRoom: true, cooldown: true});
             return null;
@@ -325,7 +429,6 @@ function handleAssignmentReadinessWait(target, opMemory, reason) {
 }
 
 function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
-    const now = Game.time;
     if (opMemory.assignedRoom) {
         const assigned = Game.rooms[opMemory.assignedRoom];
         // Intel can raise levelTarget (1 tower → 2) while a low-RCL room is
@@ -341,20 +444,27 @@ function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
             if (Memory.targetRooms[target]) {
                 const tier = getOpTier(opMemory, entry);
                 if (!isRoomReadyForTier(assigned, tier)) {
-                    if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
-                    return handleAssignmentReadinessWait(target, opMemory, 'Room is not combat ready.');
+                    if (stealCheckDue(target, opMemory.assignedAt)) {
+                        const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, 'Room is not combat ready.');
+                        if (stolen) return stolen;
+                    }
+                    return handleAssignmentReadinessWait(target, opMemory, 'Room is not combat ready.', levelTarget, entry);
                 }
             } else if (Memory.auxiliaryTargets[target] && !isLiveAuxReady(assigned)) {
-                if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
-                return handleAssignmentReadinessWait(target, opMemory, 'Room is not auxiliary ready.');
+                if (stealCheckDue(target, opMemory.assignedAt)) {
+                    const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, 'Room is not auxiliary ready.');
+                    if (stolen) return stolen;
+                }
+                return handleAssignmentReadinessWait(target, opMemory, 'Room is not auxiliary ready.', levelTarget, entry);
             }
 
             clearAssignmentWaitState(opMemory);
 
-            const stale = opMemory.assignedAt && opMemory.assignedAt + (CREEP_LIFE_TIME * 2) < now;
-            if (!stale) return opMemory.assignedRoom;
-            if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
-            return refreshStaleAssignment(target, opMemory, levelTarget, entry);
+            if (stealCheckDue(target, opMemory.assignedAt)) {
+                const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, 'Better source room.');
+                if (stolen) return stolen;
+            }
+            return opMemory.assignedRoom;
         }
     }
 
@@ -362,32 +472,56 @@ function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
 
     const resolved = getAssignedRoom(target, levelTarget, heaviestQueuedEntry(target, entry));
     if (!resolved) return null;
-
-    opMemory.assignedRoom = resolved;
-    opMemory.assignedAt = now;
-    clearAssignmentWaitState(opMemory);
-    retargetFormingWaitForColony(target, entry && entry.operation, resolved);
-    log.a(`Assigning the operation in ${roomLink(target)} to ${roomLink(resolved)}`, 'OPERATIONS:');
-    return resolved;
+    return commitAssignment(target, opMemory, entry, resolved);
 }
 
-function refreshStaleAssignment(target, opMemory, levelTarget, entry) {
-    const previous = opMemory.assignedRoom;
-    markAssignmentExclude(target, previous);
-    invalidateAssignmentCaches();
-    const resolved = getAssignedRoom(target, levelTarget, heaviestQueuedEntry(target, entry));
-    if (!resolved) {
-        delete assignmentExcludeUntil[`${target}|${previous}`];
-        opMemory.assignedAt = Game.time;
-        return previous;
-    }
-    unassignRoom(target, 'Refreshing assignment.');
-    opMemory.assignedRoom = resolved;
+function stealCheckDue(target, assignedAt) {
+    const last = stealCheckAt[target] || assignedAt || 0;
+    if (last + STEAL_CHECK_INTERVAL > Game.time) return false;
+    stealCheckAt[target] = Game.time;
+    return true;
+}
+
+function commitAssignment(target, opMemory, entry, roomName) {
+    opMemory.assignedRoom = roomName;
     opMemory.assignedAt = Game.time;
+    stealCheckAt[target] = Game.time;
     clearAssignmentWaitState(opMemory);
-    retargetFormingWaitForColony(target, entry && entry.operation, resolved);
-    log.a(`Assigning the operation in ${roomLink(target)} to ${roomLink(resolved)}`, 'OPERATIONS:');
-    return resolved;
+    retargetFormingWaitForColony(target, entry && entry.operation, roomName);
+    log.a(`Assigning the operation in ${roomLink(target)} to ${roomLink(roomName)}`, 'OPERATIONS:');
+    return roomName;
+}
+
+function tryStealAssignment(target, opMemory, levelTarget, entry, reason, options = {}) {
+    const previous = opMemory.assignedRoom;
+    if (!previous) return null;
+    const creepInfo = heaviestQueuedEntry(target, entry);
+    const force = !!(options && options.force);
+
+    if (force) {
+        markAssignmentExclude(target, previous);
+        invalidateAssignmentCaches();
+    }
+
+    const best = getAssignedRoomResult(target, levelTarget, creepInfo, {probe: true});
+    if (!best || best.key === previous) {
+        if (force) {
+            delete assignmentExcludeUntil[`${target}|${previous}`];
+            invalidateAssignmentCaches();
+        }
+        return null;
+    }
+
+    if (!force) {
+        const assigned = Game.rooms[previous];
+        const loads = getMilitaryLoadByColony();
+        const flags = assignmentFlags(target, creepInfo);
+        const currentEval = assigned && evaluateAssignmentCandidate(assigned, target, levelTarget, creepInfo, loads, flags);
+        if (currentEval && best.score + STEAL_MARGIN > currentEval.score) return null;
+    }
+
+    unassignRoom(target, reason || 'Better source room.', {excludeRoom: force});
+    return commitAssignment(target, opMemory, entry, best.key);
 }
 
 function retargetFormingWaitForColony(target, operation, newColony) {
@@ -457,6 +591,50 @@ function getAssignedRoomCacheKey(targetRoom, level, creepInfo) {
     return `${targetRoom}:${level}:${creepInfo.role || ''}`;
 }
 
+function assignmentFlags(targetRoom, creepInfo) {
+    const opType = Memory.targetRooms[targetRoom] && Memory.targetRooms[targetRoom].type;
+    const isClaimRole = CLAIM_ROLES.has(creepInfo.role);
+    return {
+        isAuxiliary: !!Memory.auxiliaryTargets[targetRoom],
+        opType,
+        isHelper: HELPER_ROLES.has(creepInfo.role),
+        isScout: opType === 'scout' || creepInfo.role === 'scout',
+        isClaimRole,
+        maxDistance: isClaimRole ? 12 : 22,
+    };
+}
+
+function evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads, flags) {
+    if (!myRoom || !myRoom.controller) return null;
+    const key = myRoom.name;
+    if (key === targetRoom) return null;
+    if (myRoom.controller.level !== myRoom.level || myRoom.downgraded) return null;
+    if (myRoom.level < level) return null;
+
+    const tier = flags.isHelper || flags.isAuxiliary || flags.isScout
+        ? OP_TIER.HARASS
+        : getOpTier({type: flags.opType}, creepInfo);
+    if (!isRoomReadyForTier(myRoom, tier)) return null;
+
+    const distance = myRoom.routeDistance(targetRoom, flags.isClaimRole ? {shortest: true} : {});
+    if (distance > flags.maxDistance) return null;
+    if (flags.isClaimRole && estimateClaimRouteTicks(distance) > CREEP_CLAIM_LIFE_TIME - 10) return null;
+
+    if (isAssignmentExcluded(targetRoom, key)) return null;
+
+    const spawnCap = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] || 1;
+    const load = loads[key] || 0;
+    if (load >= spawnCap * LOAD_PER_SPAWN_CAP) return null;
+
+    const generated = tryGenerateAssignableBody(myRoom, creepInfo, targetRoom);
+    if (!generated) return null;
+
+    const score = computeAssignmentScore(myRoom, distance, load, flags.isAuxiliary)
+        + optionalBoostPenalty(myRoom, generated.info, generated.body)
+        + boostQualityPenalty(myRoom, generated.info, generated.body);
+    return {key, score, distance, load};
+}
+
 function isBetterAssignmentCandidate(score, distance, load, key, best) {
     if (!best) return true;
     if (score < best.score) return true;
@@ -495,72 +673,54 @@ function computeAssignmentScore(myRoom, routeDistance, load, isAuxiliary) {
     return score;
 }
 
-function getAssignedRoom(targetRoom, level, creepInfo) {
+function getAssignedRoomResult(targetRoom, level, creepInfo, options = {}) {
     if (!creepInfo) creepInfo = {role: 'longbow', destination: targetRoom};
+    const probe = !!(options && options.probe);
     const cacheKey = getAssignedRoomCacheKey(targetRoom, level, creepInfo);
-    if (assignedRoomCache.tick === Game.time &&
+    if (!probe && assignedRoomCache.tick === Game.time &&
         Object.prototype.hasOwnProperty.call(assignedRoomCache.results, cacheKey)) {
         return assignedRoomCache.results[cacheKey];
     }
-    if (assignedRoomCache.tick !== Game.time) assignedRoomCache = {tick: Game.time, results: {}};
+    if (!probe && assignedRoomCache.tick !== Game.time) assignedRoomCache = {tick: Game.time, results: {}};
 
-    if (assignmentCooldown[targetRoom] && assignmentCooldown[targetRoom] > Game.time) {
+    if (!probe && assignmentCooldown[targetRoom] && assignmentCooldown[targetRoom] > Game.time) {
         assignedRoomCache.results[cacheKey] = null;
         return null;
     }
 
     const loads = getMilitaryLoadByColony();
-    const isAuxiliary = !!Memory.auxiliaryTargets[targetRoom];
-    const opType = Memory.targetRooms[targetRoom] && Memory.targetRooms[targetRoom].type;
-    const isHelper = HELPER_ROLES.has(creepInfo.role);
-    const isScout = opType === 'scout' || creepInfo.role === 'scout';
-    const isClaimRole = CLAIM_ROLES.has(creepInfo.role);
-    const maxDistance = isClaimRole ? 12 : 22;
-
+    const flags = assignmentFlags(targetRoom, creepInfo);
     let best = null;
     for (const key of MY_ROOMS) {
-        if (key === targetRoom) continue;
-
         const myRoom = Game.rooms[key];
         if (!myRoom) continue;
-        if (myRoom.controller.level !== myRoom.level || myRoom.downgraded) continue;
-        if (myRoom.level < level) continue;
-
-        const tier = isHelper || isAuxiliary || isScout
-            ? OP_TIER.HARASS
-            : getOpTier({type: opType}, creepInfo);
-        if (!isRoomReadyForTier(myRoom, tier)) continue;
-
-        const distance = myRoom.routeDistance(targetRoom, isClaimRole ? {shortest: true} : {});
-        if (distance > maxDistance) continue;
-        if (isClaimRole && estimateClaimRouteTicks(distance) > CREEP_CLAIM_LIFE_TIME - 10) continue;
-
-        if (isAssignmentExcluded(targetRoom, key)) continue;
-
-        const spawnCap = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] || 1;
-        const load = loads[key] || 0;
-        if (load >= spawnCap * LOAD_PER_SPAWN_CAP) continue;
-
-        const generated = tryGenerateAssignableBody(myRoom, creepInfo, targetRoom);
-        if (!generated) continue;
-
-        const score = computeAssignmentScore(myRoom, distance, load, isAuxiliary)
-            + optionalBoostPenalty(myRoom, creepInfo, generated.body);
-        if (isBetterAssignmentCandidate(score, distance, load, key, best)) {
-            best = {key, score, distance, load};
+        const evaluated = evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads, flags);
+        if (!evaluated) continue;
+        if (isBetterAssignmentCandidate(evaluated.score, evaluated.distance, evaluated.load, evaluated.key, best)) {
+            best = evaluated;
         }
     }
 
-    const resolved = best ? best.key : null;
-    assignedRoomCache.results[cacheKey] = resolved;
-    if (!resolved) assignmentCooldown[targetRoom] = Game.time + ASSIGNMENT_FAILURE_COOLDOWN;
-    return resolved;
+    if (!probe) {
+        assignedRoomCache.results[cacheKey] = best;
+        if (!best) assignmentCooldown[targetRoom] = Game.time + ASSIGNMENT_FAILURE_COOLDOWN;
+    }
+    return best;
+}
+
+function getAssignedRoom(targetRoom, level, creepInfo) {
+    const result = getAssignedRoomResult(targetRoom, level, creepInfo);
+    return result ? result.key : null;
 }
 
 function releaseAssignmentIfStuck(room, destination, reason, creep) {
     const opMemory = Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination];
     if (!opMemory || !room || opMemory.assignedRoom !== room.name) return;
     if (creep && HELPER_ROLES.has(creep.role)) return;
+
+    const levelTarget = computeOpLevelTarget(destination, opMemory, INTEL[destination]);
+    if (tryStealAssignment(destination, opMemory, levelTarget, creep, reason, {force: true})) return;
+
     if (hasInflightOpCreeps(destination, opMemory.type)) return;
     unassignRoom(destination, reason, {excludeRoom: true, cooldown: true});
 }

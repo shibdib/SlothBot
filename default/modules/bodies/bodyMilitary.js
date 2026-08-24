@@ -6,10 +6,31 @@ const {getSiegeDuoUnpaired} = require('bodyHelpers');
 const {
     toughMulti,
     getMaxSiegeCombatBudget,
+    getSiegeTowerDamage,
     checkForNeededHeal,
     checkForNeededTough,
     checkForNeededMove,
+    pinAvailableHealBoost,
+    pinToughBoost,
 } = require('bodySiegeBoosts');
+
+function listedBoosts(gen) {
+    return gen.creepInfo && gen.creepInfo.misc && gen.creepInfo.misc.boosts;
+}
+
+function wantsListedBoost(gen, part) {
+    const listed = listedBoosts(gen);
+    return !!(listed && listed.includes(part));
+}
+
+function destHasBoosts(gen) {
+    const dest = gen.creepInfo && gen.creepInfo.destination;
+    return !!(dest && Memory.targetRooms[dest] && Memory.targetRooms[dest].boosts);
+}
+
+function wantsHealBoost(gen) {
+    return destHasBoosts(gen) || wantsListedBoost(gen, HEAL);
+}
 
 let _waveMoveBoostTick = -1;
 let _waveMoveBoostCache = {};
@@ -60,12 +81,13 @@ function buildLongbowFamily(gen) {
     const moveData = committed || checkForNeededMove(gen, waitFor);
     const moveFactor = moveData.factor || 1;
 
-    if (gen.creepInfo && Memory.targetRooms[gen.creepInfo.destination] && Memory.targetRooms[gen.creepInfo.destination].boosts) {
+    const siegeDamage = getSiegeTowerDamage(INTEL[gen.creepInfo && gen.creepInfo.destination]);
+    if (wantsHealBoost(gen) && siegeDamage) {
         // Combat pools squad effectiveHeal against one tower volley. Size each
         // body as its share of waitFor, not as a solo tank of the full shot.
         const exposure = 1 / waitFor;
         heal = false;
-        if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
+        if (wantsListedBoost(gen, TOUGH)) {
             const desiredTough = checkForNeededTough(gen, 1, true, moveFactor);
             // Without the mineral the sizer assumed, combat's 1/toughMult
             // multiplier never happens — do not fall through to 0 TOUGH.
@@ -76,10 +98,7 @@ function buildLongbowFamily(gen) {
                 heal = checkForNeededHeal(gen, exposure, toughModifier, true, t, moveFactor);
                 if (heal) {
                     tough = t;
-                    if (gen.creepInfo.neededBoosts) {
-                        gen.creepInfo.neededBoosts.toughBoost = toughData.boost;
-                        gen.creepInfo.neededBoosts.toughCount = t;
-                    }
+                    pinToughBoost(gen, toughData, t);
                     break;
                 }
             }
@@ -91,6 +110,9 @@ function buildLongbowFamily(gen) {
         const moveShareUnboosted = BODYPART_COST[MOVE] / moveFactor;
         heal = Math.floor((gen.energyAmount * 0.3) / (BODYPART_COST[HEAL] + moveShareUnboosted));
         heal = Math.min(heal, 6);
+        // Guard/rebuild list HEAL without towers. Pin if the wave is stocked;
+        // do not fail the body — unboosted squads still have to spawn.
+        if (wantsHealBoost(gen)) pinAvailableHealBoost(gen, heal);
     }
     if (moveData.boost && gen.creepInfo) {
         if (!gen.creepInfo.neededBoosts) gen.creepInfo.neededBoosts = {};
@@ -124,16 +146,18 @@ function buildSiegeDuo(gen) {
     let tough, toughData, attack, heal;
 
     if (unpairedHealers > unpairedAttackers) {
-        if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
+        if (wantsListedBoost(gen, TOUGH)) {
             toughData = checkForNeededTough(gen, 2);
             tough = toughData.count;
+            pinToughBoost(gen, toughData, tough);
         }
         attack = Math.floor(gen.energyAmount / (BODYPART_COST[ATTACK] + BODYPART_COST[MOVE])) || 1;
         attack = Math.min(attack, getMaxSiegeCombatBudget() - (tough || 0));
     } else {
-        if (Memory.targetRooms[gen.creepInfo.destination] && Memory.targetRooms[gen.creepInfo.destination].boosts) {
+        const siegeDamage = getSiegeTowerDamage(INTEL[dest]);
+        if (wantsHealBoost(gen) && siegeDamage) {
             heal = false;
-            if (gen.creepInfo.misc && gen.creepInfo.misc.boosts && gen.creepInfo.misc.boosts.includes(TOUGH)) {
+            if (wantsListedBoost(gen, TOUGH)) {
                 const desiredTough = checkForNeededTough(gen, 2);
                 for (let t = desiredTough.count; t >= 0; t -= 2) {
                     toughData = t === desiredTough.count ? desiredTough : {boost: desiredTough.boost, count: t};
@@ -141,6 +165,7 @@ function buildSiegeDuo(gen) {
                     heal = checkForNeededHeal(gen, 2, toughModifier, false, t);
                     if (heal) {
                         tough = t;
+                        pinToughBoost(gen, toughData, t);
                         break;
                     }
                 }
@@ -151,6 +176,7 @@ function buildSiegeDuo(gen) {
         } else {
             heal = Math.floor((gen.energyAmount * 0.3) / (BODYPART_COST[HEAL] + BODYPART_COST[MOVE]));
             heal = Math.min(heal, 6);
+            if (wantsHealBoost(gen)) pinAvailableHealBoost(gen, heal);
         }
     }
     return {tough, toughData, attack, heal};
