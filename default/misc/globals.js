@@ -59,6 +59,8 @@ let globals = function () {
     };
 
     // Ticks after global reset where we avoid heavy work and watch for cold-cache spikes.
+    // Pair with main.js first-tick boot skip: that tick survives parse; this window
+    // spreads cold-cache work after the loop starts running again.
     global.POST_RESET_DANGER_TICKS = 150;
     // Spread heavy room intel (tower grids, areExitsReachable) � one room per slot, not all at once.
     global.POST_RESET_HEAVY_INTEL_SPREAD = 150;

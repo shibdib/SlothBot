@@ -2,22 +2,101 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 
-//Setup globals and prototypes
+// Core globals + prototypes only. World/planner/roles are lazy-loaded after the
+// parse tick so a global reset cannot blow tickLimit (see boot skip below).
 require("require");
 let memWipe, running;
-const tools = require("tools.misc");
-const world = require('main.world');
+let tools, world, cleanUp;
 const segments = require('module.segmentManager');
-const cleanUp = require('module.cleanup');
 const profiler = require('tools.profiler');
 
-if (PROFILER_ENABLED) profiler.enable();
+function tickLimitHeadroom() {
+    const limit = (Game.cpu && Game.cpu.tickLimit) || 500;
+    return limit - Game.cpu.getUsed();
+}
+
+function loadLoopModules() {
+    if (world) return;
+    require("operation.scout");
+    require("operation.guard");
+    require("operation.roomDenial");
+    require("operation.borderPatrol");
+    require("operation.harass");
+    require("operation.remoteDenial");
+    require("operation.stronghold");
+    tools = require("tools.misc");
+    world = require('main.world');
+    cleanUp = require('module.cleanup');
+}
+
+function requestBootSegments() {
+    try {
+        segments.init();
+    } catch (e) { /* boot tick */
+    }
+}
+
+// Towers still fire on parse/boot ticks so a global reset does not leave rooms undefended.
+function bootTickTowers() {
+    if (tickLimitHeadroom() < 30) return;
+    try {
+        if (global.purgeCorruptOwnedStructures) global.purgeCorruptOwnedStructures();
+        const towerCtrl = require('module.towerController');
+        for (const name in Game.rooms) {
+            if (tickLimitHeadroom() < 15) break;
+            const room = Game.rooms[name];
+            if (!room || !room.controller || !room.controller.my) continue;
+            const towers = room.towers;
+            if (!towers || !towers.length) continue;
+            towerCtrl.towerController(room);
+        }
+    } catch (e) {
+        console.log(`Boot tick towers: ${e}`);
+    }
+}
+
+function logBootSkip(reason) {
+    const used = Game.cpu.getUsed();
+    const limit = (Game.cpu && Game.cpu.tickLimit) || 500;
+    const msg = `Global reset ${reason} (CPU ${used.toFixed(1)}/${limit})`;
+    if (typeof log !== 'undefined' && log.a) log.a(msg);
+    else console.log(msg);
+}
+
 module.exports.loop = function () {
     try {
-        profiler.wrap(function () {
-            // Memhack Initialization
-            tryInitSameMemory();
+        tryInitSameMemory();
 
+        // First loop after this global: require("require") already paid parse + globals().
+        // Running World/intel/roles on the same tick is what trips
+        // "Script execution timed out: CPU time limit reached". Skip the heavy loop;
+        // POST_RESET_DANGER_TICKS / intel / hub bootstrap still run starting next tick.
+        if (!global._postResetBootSkip) {
+            global._postResetBootSkip = true;
+            requestBootSegments();
+            bootTickTowers();
+            logBootSkip('boot tick — skipped main loop');
+            return;
+        }
+
+        if (!world) {
+            loadLoopModules();
+            // World/planner parse can still eat most of tickLimit. Defer the loop
+            // one more tick if we would not have a safe margin to actually run it.
+            if (tickLimitHeadroom() < 100) {
+                requestBootSegments();
+                bootTickTowers();
+                logBootSkip('load tick — world parsed, deferred loop');
+                return;
+            }
+        }
+
+        if (PROFILER_ENABLED && !global._profilerEnabled) {
+            profiler.enable();
+            global._profilerEnabled = true;
+        }
+
+        profiler.wrap(function () {
             // Purge broken owner refs before any room.find() rebuilds driver FIND caches.
             if (global.purgeCorruptOwnedStructures) global.purgeCorruptOwnedStructures();
 

@@ -21,8 +21,15 @@
 
 'use strict';
 
-const roomPlanner = require('module.roomPlanner');
-const remoteMining = require('remoteMining');
+// Lazy: require.js used to pull the entire planner (~400KB) on every global reset
+// via this file, which is a large part of the tickLimit timeout on parse ticks.
+function getRoomPlanner() {
+    return require('module.roomPlanner');
+}
+
+function getRemoteMining() {
+    return require('remoteMining');
+}
 
 function safeOwnerName(creep) {
     try {
@@ -90,7 +97,7 @@ Object.defineProperty(Room.prototype, 'hub', {
             xy = this.memory.bunkerHub;
         }
         if (!xy || typeof xy.x !== 'number' || typeof xy.y !== 'number') {
-            return roomPlanner.findHub(this);
+            return getRoomPlanner().findHub(this);
         }
         if (!this._hub) {
             const key = xy.x + ',' + xy.y;
@@ -776,7 +783,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
 
         if (this.sources.length && !roomIntel.owner) {
-            remoteMining.bootstrapRemoteRoomOnVision(this);
+            getRemoteMining().bootstrapRemoteRoomOnVision(this);
         }
 
         // Remote source data — register new sources or refresh stale distance scores.
@@ -896,7 +903,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         // Attempt once (success or fail) and stamp hubCheckAt so a false
         // result cannot re-run findHub on every force/observe.
         if (!roomIntel.hubCheck && !roomIntel.hubCheckAt && !roomIntel.obstacles && roomIntel.sources === 2 && !this.hostileCreeps.length) {
-            roomIntel.hubCheck = roomPlanner.hubCheck(this);
+            roomIntel.hubCheck = getRoomPlanner().hubCheck(this);
             roomIntel.hubCheckAt = currentTime;
         }
 
@@ -1048,11 +1055,11 @@ function swampRoom(roomName) {
 }
 
 function calculateDistanceToHub(room, source, targetRoom) {
-    return remoteMining.calculateRemoteSourceScore(room, source, targetRoom);
+    return getRemoteMining().calculateRemoteSourceScore(room, source, targetRoom);
 }
 
 function updateRemoteSourceData(room, roomName, source, distance) {
-    if (!remoteMining.isRemoteSourceScoreAcceptable(roomName, room.name, distance)) return;
+    if (!getRemoteMining().isRemoteSourceScoreAcceptable(roomName, room.name, distance)) return;
 
     const remoteTargets = ROOM_REMOTE_TARGETS[roomName] || [];
     const existing = remoteTargets.find(s => s.source === source.id);
@@ -1067,7 +1074,7 @@ function updateRemoteSourceData(room, roomName, source, distance) {
     ROOM_REMOTE_TARGETS[roomName] = remoteTargets;
 
     const colonyRoom = Game.rooms[roomName];
-    if (colonyRoom) remoteMining.pruneRoomRemoteTargets(roomName, colonyRoom);
+    if (colonyRoom) getRemoteMining().pruneRoomRemoteTargets(roomName, colonyRoom);
 }
 
 const MAX_HEAVY_INTEL_PER_TICK = 1;

@@ -13,11 +13,6 @@ require("prototype.roomObject");
 require("prototype.room");
 require('module.pathFinder');
 
-// Operations
-require("operation.scout");
-require("operation.guard");
-require("operation.roomDenial");
-require("operation.borderPatrol");
-require("operation.harass");
-require("operation.remoteDenial");
-require("operation.stronghold");
+// Operations attach Creep/Observer prototypes used by military roles.
+// Loaded from main.js loadLoopModules() so a global-reset parse tick does not
+// also compile high-command + siege code. Boot tick does not run creeps.
