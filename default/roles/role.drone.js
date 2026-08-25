@@ -351,8 +351,13 @@ class RoleDrone {
         delete this.creep.memory.targetWallHits;
 
         const quadTrapWalls = new Set((this.room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
+        const combatFaces = new Set((this.room.memory.quadTrapCombatFaces || []).map(p => `${p.x},${p.y}`));
         const barrierStructures = this.room.barriers.filter(s => {
-            const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : 100000;
+            const trapKey = `${s.pos.x},${s.pos.y}`;
+            const tripwire = s.structureType === STRUCTURE_WALL
+                && quadTrapWalls.has(trapKey)
+                && !combatFaces.has(trapKey);
+            const cap = tripwire ? 20000 : 100000;
             return s.hits < cap;
         });
 

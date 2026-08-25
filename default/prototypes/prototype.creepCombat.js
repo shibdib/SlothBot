@@ -510,29 +510,187 @@ Creep.prototype.attackHostile = function (hostile) {
     return false;
 };
 
+const RAMPART_WALK_OCTALS = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+
+function isOwnedCombatRoom(room) {
+    return !!(room && typeof MY_ROOMS !== 'undefined' && MY_ROOMS.includes(room.name));
+}
+
+function armedHostilesNearby(creep, range) {
+    const list = creep.room.hostileCreeps || [];
+    for (let i = 0; i < list.length; i++) {
+        const h = list[i];
+        if (!h || !h.pos) continue;
+        if (typeof h.hasActiveBodyparts !== 'function') continue;
+        if (!(h.hasActiveBodyparts(RANGED_ATTACK) || h.hasActiveBodyparts(ATTACK) || h.hasActiveBodyparts(WORK))) {
+            continue;
+        }
+        if (creep.pos.getRangeTo(h) <= range) return true;
+    }
+    return false;
+}
+
+function isStandableFightingRampart(rampart, creep) {
+    if (!rampart || rampart.structureType !== STRUCTURE_RAMPART || !(rampart.hits > 0)) return false;
+    if (typeof structMy === 'function' && !structMy(rampart)) return false;
+    if (rampart.pos.checkForObstacleStructure()) return false;
+    const occ = rampart.pos.checkForCreep();
+    if (occ && occ.id !== creep.id) return false;
+    const others = creep.room.myCreeps || [];
+    for (let i = 0; i < others.length; i++) {
+        const c = others[i];
+        if (c && c.id !== creep.id && c.memory && c.memory.assignedRampart === rampart.id) return false;
+    }
+    return true;
+}
+
+/** True when this rampart has a walkable exterior neighbor attackers can stand on. */
+function isOpenFightingRampart(pos, room) {
+    if (!pos || !room) return false;
+    const terrain = Game.map.getRoomTerrain(room.name);
+    for (let i = 0; i < 8; i++) {
+        const nx = pos.x + RAMPART_WALK_OCTALS[i][0];
+        const ny = pos.y + RAMPART_WALK_OCTALS[i][1];
+        if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
+        if (terrain.get(nx, ny) & TERRAIN_MASK_WALL) continue;
+        const neighbor = new RoomPosition(nx, ny, room.name);
+        if (neighbor.checkForBuiltWall && neighbor.checkForBuiltWall()) continue;
+        if (neighbor.isInBunker && neighbor.isInBunker()) continue;
+        return true;
+    }
+    return false;
+}
+
+function listStandableRamparts(creep) {
+    const src = creep.room.ramparts && creep.room.ramparts.length
+        ? creep.room.ramparts
+        : (creep.room.structures || []);
+    const out = [];
+    for (let i = 0; i < src.length; i++) {
+        const r = src[i];
+        if (isStandableFightingRampart(r, creep)) out.push(r);
+    }
+    return out;
+}
+
+function closestByRange(fromPos, list) {
+    if (!fromPos || !list || !list.length) return null;
+    let best = null;
+    let bestRange = Infinity;
+    for (let i = 0; i < list.length; i++) {
+        const r = list[i];
+        const d = fromPos.getRangeTo(r);
+        if (d < bestRange) {
+            bestRange = d;
+            best = r;
+        }
+    }
+    return best;
+}
+
+function selectStickyFightingRampart(creep, target) {
+    const range = creep.hasActiveBodyparts(RANGED_ATTACK) ? 3 : 1;
+    const meleeOnly = creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK);
+    const assigned = creep.memory.assignedRampart ? Game.getObjectById(creep.memory.assignedRampart) : null;
+
+    if (assigned && isStandableFightingRampart(assigned, creep)) {
+        if (!target) return assigned;
+        if (assigned.pos.getRangeTo(target) <= range) return assigned;
+    }
+
+    const candidates = listStandableRamparts(creep);
+    if (!candidates.length) {
+        if (creep.memory.assignedRampart) delete creep.memory.assignedRampart;
+        return null;
+    }
+
+    let pick = null;
+    if (target && target.pos) {
+        let engage = [];
+        for (let i = 0; i < candidates.length; i++) {
+            if (candidates[i].pos.getRangeTo(target) <= range) engage.push(candidates[i]);
+        }
+        const targetInside = target.pos.isInBunker && target.pos.isInBunker();
+        if (meleeOnly && isOwnedCombatRoom(creep.room) && engage.length && !targetInside) {
+            const open = [];
+            for (let i = 0; i < engage.length; i++) {
+                if (isOpenFightingRampart(engage[i].pos, creep.room)) open.push(engage[i]);
+            }
+            if (open.length) engage = open;
+        }
+        if (engage.length) {
+            pick = closestByRange(creep.pos, engage);
+        } else {
+            let pool = candidates;
+            if (meleeOnly && isOwnedCombatRoom(creep.room) && !targetInside) {
+                const open = [];
+                for (let i = 0; i < candidates.length; i++) {
+                    if (isOpenFightingRampart(candidates[i].pos, creep.room)) open.push(candidates[i]);
+                }
+                if (open.length) pool = open;
+            }
+            pick = closestByRange(target.pos, pool);
+        }
+    } else {
+        pick = assigned && isStandableFightingRampart(assigned, creep)
+            ? assigned
+            : closestByRange(creep.pos, candidates);
+    }
+
+    if (pick) creep.memory.assignedRampart = pick.id;
+    else if (creep.memory.assignedRampart) delete creep.memory.assignedRampart;
+    return pick;
+}
+
+function moveAlongRamparts(creep, destPos) {
+    if (!destPos || creep.pos.isEqualTo(destPos)) return false;
+    const onRampart = !!(creep.pos.checkForRampart() && !creep.pos.checkForObstacleStructure());
+    const threatened = armedHostilesNearby(creep, 4);
+
+    if (!onRampart || !threatened) {
+        creep.shibMove(destPos, {range: 0});
+        return true;
+    }
+
+    if (creep.pos.isNearTo(destPos)) {
+        const occ = destPos.checkForCreep && destPos.checkForCreep();
+        if (!occ || occ.id === creep.id) {
+            creep.move(creep.pos.getDirectionTo(destPos));
+            return true;
+        }
+    }
+
+    let best = null;
+    let bestRange = creep.pos.getRangeTo(destPos);
+    for (let i = 0; i < 8; i++) {
+        const nx = creep.pos.x + RAMPART_WALK_OCTALS[i][0];
+        const ny = creep.pos.y + RAMPART_WALK_OCTALS[i][1];
+        if (nx < 1 || nx > 48 || ny < 1 || ny > 48) continue;
+        const step = new RoomPosition(nx, ny, creep.room.name);
+        if (!step.checkForRampart() || step.checkForObstacleStructure()) continue;
+        const occ = step.checkForCreep();
+        if (occ && occ.id !== creep.id) continue;
+        const r = step.getRangeTo(destPos);
+        if (r < bestRange) {
+            bestRange = r;
+            best = step;
+        }
+    }
+    if (best) {
+        creep.move(creep.pos.getDirectionTo(best));
+        return true;
+    }
+    return false;
+}
+
 Creep.prototype.fightFromRampart = function (hostile = undefined) {
     const target = hostile || this.findClosestEnemy(false, true);
     if (!target || !isValidHostileTarget(target) || !target.pos || !(this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK))) return false;
 
-    const range = this.hasActiveBodyparts(RANGED_ATTACK) ? 3 : 1;
-    const rampartFilter = r => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
-        (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos));
-    let ramparts = global.posMyStructuresInRange
-        ? global.posMyStructuresInRange(target.pos, range, {filter: rampartFilter})
-        : target.pos.findInRange(FIND_MY_STRUCTURES, range, {filter: rampartFilter});
+    const rampart = selectStickyFightingRampart(this, target);
+    if (!rampart) return false;
 
-    let position = this.pos.findClosestByPath(ramparts);
-
-    if (!position) {
-        const allRamparts = global.roomMyStructures
-            ? global.roomMyStructures(this.room, {filter: rampartFilter})
-            : this.room.find(FIND_MY_STRUCTURES, {filter: rampartFilter});
-        position = target.pos.findClosestByPath(allRamparts);
-    }
-
-    if (!position) return false;
-
-    if (!this.pos.isEqualTo(position)) this.shibMove(position, {range: 0});
+    if (!this.pos.isEqualTo(rampart.pos)) moveAlongRamparts(this, rampart.pos);
 
     if (this.hasActiveBodyparts(RANGED_ATTACK) && this.pos.getRangeTo(target) <= 3) {
         const threats = this.pos.findInRange(FIND_HOSTILE_CREEPS, 3);
@@ -550,14 +708,9 @@ Creep.prototype.fightRanged = function (target) {
     const range = this.pos.getRangeTo(target);
 
     if (MY_ROOMS.includes(this.room.name)) {
-        const rampartCoverFilter = r => r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
-            r.pos.getRangeTo(target) <= 3 && (!r.pos.checkForCreep() || r.pos.isEqualTo(this.pos));
-        const rampartCandidates = global.roomMyStructures
-            ? global.roomMyStructures(this.room, {filter: rampartCoverFilter})
-            : this.room.find(FIND_MY_STRUCTURES, {filter: rampartCoverFilter});
-        const rampartCover = this.pos.findClosestByPath(rampartCandidates);
+        const rampartCover = selectStickyFightingRampart(this, target);
         if (rampartCover) {
-            if (!this.pos.isEqualTo(rampartCover)) this.shibMove(rampartCover, {range: 0});
+            if (!this.pos.isEqualTo(rampartCover.pos)) moveAlongRamparts(this, rampartCover.pos);
             this.rangedAttack(target);
             return true;
         }
@@ -799,14 +952,15 @@ Creep.prototype.moveToRoomExit = function (towardRoom) {
 };
 
 Creep.prototype.findDefensivePosition = function (target) {
-    if (target) return this.fightFromRampart(target);
+    if (target && target !== this && target.id !== this.id) return this.fightFromRampart(target);
 
     const rampart = getAssignedRampart(this);
     if (rampart) {
         if (!this.memory.other) this.memory.other = {};
         if (this.pos.getRangeTo(rampart)) {
             this.memory.other.stationary = undefined;
-            return this.shibMove(rampart, {range: 0});
+            moveAlongRamparts(this, rampart.pos);
+            return true;
         }
         this.memory.other.stationary = true;
         return true;
@@ -1172,30 +1326,5 @@ function determineTowerDamage(range) {
 }
 
 function getAssignedRampart(creep, target = undefined) {
-    const range = creep.hasActiveBodyparts(RANGED_ATTACK) ? 3 : 1;
-    let position = creep.memory.assignedRampart ? Game.getObjectById(creep.memory.assignedRampart) : null;
-
-    if (target || !position) {
-        if (target) delete creep.memory.assignedRampart;
-
-        const filter = r => structMy(r) && r.structureType === STRUCTURE_RAMPART && !r.pos.checkForObstacleStructure() &&
-            !creep.room.myCreeps.some(c => c.memory.assignedRampart === r.id && c.id !== creep.id);
-
-        if (target) {
-            position = target.pos.findInRange(creep.room.structures, range, {filter})[0] ||
-                target.pos.findClosestByPath(creep.room.structures, {filter});
-        } else {
-            const hostiles = creep.room.hostileCreeps.filter(h =>
-                h.hasActiveBodyparts(ATTACK) || h.hasActiveBodyparts(RANGED_ATTACK) || h.hasActiveBodyparts(WORK)
-            );
-            if (hostiles.length) {
-                const available = creep.room.structures.filter(filter);
-                position = _.min(available, r =>
-                    _.min(hostiles.map(h => Math.abs(h.pos.x - r.pos.x) + Math.abs(h.pos.y - r.pos.y)))
-                );
-            }
-            if (!position) position = creep.pos.findClosestByPath(creep.room.structures, {filter});
-        }
-    }
-    return position;
+    return selectStickyFightingRampart(creep, target);
 }

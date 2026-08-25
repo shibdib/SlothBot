@@ -21,6 +21,7 @@ function getBarrierRepairList(room, maintenance) {
     if (barrierListCache[key]) return barrierListCache[key];
 
     const quadTrapWalls = new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
+    const combatFaces = new Set((room.memory.quadTrapCombatFaces || []).map(p => `${p.x},${p.y}`));
     let targetLimit = 100000;
     const rcl = room.level;
     if (rcl >= 8) targetLimit = 10000000;
@@ -29,7 +30,11 @@ function getBarrierRepairList(room, maintenance) {
     if (maintenance && rcl === 8) targetLimit = RAMPART_HITS_MAX[rcl];
 
     barrierListCache[key] = room.barriers.filter((s) => {
-        const cap = s.structureType === STRUCTURE_WALL && quadTrapWalls.has(`${s.pos.x},${s.pos.y}`) ? 20000 : targetLimit;
+        const trapKey = `${s.pos.x},${s.pos.y}`;
+        const tripwire = s.structureType === STRUCTURE_WALL
+            && quadTrapWalls.has(trapKey)
+            && !combatFaces.has(trapKey);
+        const cap = tripwire ? 20000 : targetLimit;
         return s.hits < cap;
     });
     return barrierListCache[key];

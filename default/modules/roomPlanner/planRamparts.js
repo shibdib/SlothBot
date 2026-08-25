@@ -33,6 +33,11 @@ const {
     choosePerimeterBarrierType,
     getRampartWalkCorridors,
     resolveTowerHubList,
+    getWalkwaySpots,
+    roomAllowsRcl8DefenseLayer,
+    roomSafeForSealConversion,
+    collectCombatFaceTraps,
+    QUAD_TRAP_TRIPWIRE_HITS,
 } = geom;
 
 const {quadTraps} = require('planState');
@@ -402,8 +407,10 @@ function wipeRoomBarriers(room) {
     }
     if (ROOM_RAMPART_SPOTS) ROOM_RAMPART_SPOTS[room.name] = undefined;
     quadTraps[room.name] = undefined;
+    invalidateRampartSpots(room);
     if (room.memory) {
         room.memory.quadTrapWalls = undefined;
+        room.memory.quadTrapCombatFaces = undefined;
         room.memory._barrierKeySet = undefined;
         room.memory._perimeterPlaceFails = undefined;
     }
@@ -453,6 +460,8 @@ function migrateRampartVersion() {
  * @param {{
  *   skipPerimeter?: boolean,
  *   skipProtective?: boolean,
+ *   skipWalkway?: boolean,
+ *   skipConvert?: boolean,
  *   skipQuad?: boolean,
  *   placeSite?: (pos: RoomPosition, structureType: string) => number,
  *   maxPerimeterPlace?: number,
@@ -480,9 +489,63 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
         if (!opts.skipProtective && room.energyState && buildProtectiveRamparts(room, layout)) return true;
     }
 
-    // Handle quad traps — RCL8 only, walls capped at 20k
-    if (!opts.skipQuad && room.level >= 8 && room.energyState && buildQuadTraps(room)) {
+    // RCL8 fighting layer: walkable seal, inner walkway, then outer teeth.
+    if (!opts.skipConvert && roomAllowsRcl8DefenseLayer(room) && convertSealWallsToRamparts(room)) {
         return true;
+    }
+    if (!opts.skipWalkway && roomAllowsRcl8DefenseLayer(room) && buildWalkwayRamparts(room)) {
+        return true;
+    }
+
+    // Quad-trap teeth — RCL8 only. Tripwire HP except combat faces (full waller cap).
+    if (!opts.skipQuad && roomAllowsRcl8DefenseLayer(room) && buildQuadTraps(room)) {
+        return true;
+    }
+
+    function convertSealWallsToRamparts(room) {
+        if (!hasPerimeterSpots(room.name)) return false;
+        if (perimeterHasMissingBuilt(room)) return false;
+        if (!roomSafeForSealConversion(room)) return false;
+        const spots = getPerimeterSpots(room.name);
+        for (let i = 0; i < spots.length; i++) {
+            const p = spots[i];
+            const pos = new RoomPosition(p.x, p.y, room.name);
+            const wall = pos.checkForBuiltWall && pos.checkForBuiltWall();
+            if (!wall) continue;
+            if (pos.checkForRampart()) continue;
+            if (pos.lookFor(LOOK_CONSTRUCTION_SITES).length) continue;
+            if (!canPlaceConstructionSite(room)) return false;
+            try {
+                if (wall.destroy() !== OK) continue;
+            } catch (e) {
+                continue;
+            }
+            const result = placeFn(pos, STRUCTURE_RAMPART);
+            if (result === OK) {
+                room._barrierKeySet = undefined;
+                room._barrierKeySetTick = undefined;
+                return true;
+            }
+            return result === ERR_NOT_OWNER || result === ERR_FULL;
+        }
+        return false;
+    }
+
+    function buildWalkwayRamparts(room) {
+        const tiles = getWalkwaySpots(room);
+        if (!tiles.length) return false;
+        let counter = 0;
+        for (let i = 0; i < tiles.length; i++) {
+            if (counter >= 3) return true;
+            const pos = new RoomPosition(tiles[i].x, tiles[i].y, room.name);
+            const buildOk = shouldBuildPerimeterTile(pos, room);
+            if (buildOk !== true) continue;
+            if (!canPlaceConstructionSite(room)) return true;
+            const result = placeFn(pos, STRUCTURE_RAMPART);
+            if (result === OK) counter++;
+            else if (result === ERR_NOT_OWNER || result === ERR_FULL) return true;
+        }
+        return counter > 0;
     }
 
     function handleBunkerRamparts(room, layout, count) {
@@ -599,7 +662,7 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
         if (!quadTraps[room.name]) setQuadTraps(room);
         if (!quadTraps[room.name] || !quadTraps[room.name].length) return false;
 
-        const QUAD_WALL_CAP = 20000;
+        const QUAD_WALL_CAP = QUAD_TRAP_TRIPWIRE_HITS;
         let counter = 0;
         const newWallPositions = room.memory.quadTrapWalls ? new Set(room.memory.quadTrapWalls.map(p => `${p.x},${p.y}`)) : new Set();
 
@@ -658,6 +721,11 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
             trapLocations.push({x: nx, y: ny});
         }
         quadTraps[room.name] = trapLocations;
+        try {
+            room.memory.quadTrapCombatFaces = collectCombatFaceTraps(room, trapLocations);
+        } catch (e) {
+            room.memory.quadTrapCombatFaces = [];
+        }
     }
 
 
@@ -1098,11 +1166,12 @@ function ensurePerimeterSites(room, options = {}) {
             break;
         }
 
-        // Checkerboard: (x+y) even → wall when open/non-corridor; odd → rampart.
+        // RCL5–7 checkerboard: (x+y) even → wall when open/non-corridor; odd → rampart.
+        // RCL8: always rampart so the fighting line is walkable (walls live on outer teeth).
         // Wall tiles that can't take a wall (road, corridor, blocked) fall back to rampart
         // so the seal never leaves a hole.
         if (!corridors) corridors = getRampartWalkCorridors(room);
-        const wantType = choosePerimeterBarrierType(pos, corridors);
+        const wantType = choosePerimeterBarrierType(pos, corridors, room);
         let lastResult = placeFn(pos, wantType);
         let placed = lastResult === OK;
         if (!placed && wantType === STRUCTURE_WALL) {
@@ -1646,12 +1715,25 @@ function inspectRamparts(room) {
     }
 
     const layoutPending = computeLayoutPending(room);
+    let walkwayPlanned = 0;
+    let walkwayMissing = 0;
+    try {
+        const walkway = getWalkwaySpots(room);
+        walkwayPlanned = walkway.length;
+        for (let i = 0; i < walkway.length; i++) {
+            const pos = new RoomPosition(walkway[i].x, walkway[i].y, room.name);
+            if (!pos.checkForRampart()) walkwayMissing++;
+        }
+    } catch (e) { /* ignore */
+    }
     return {
         room: room.name,
         rclOk: bunkerLevelAllowsPerimeter(room),
         hasSpots: hasPerimeterSpots(room.name),
         planned: spots.length,
         missing,
+        walkwayPlanned,
+        walkwayMissing,
         complete: spots.length > 0 && missing === 0,
         needsWork: perimeterHasMissingBuilt(room),
         barrierSites: countBarrierConstructionSites(room),

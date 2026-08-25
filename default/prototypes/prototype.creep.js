@@ -103,10 +103,12 @@ function wallRepairCap(room, structure) {
         entry = {
             targetLimit,
             quadTrap: new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`)),
+            combatFaces: new Set((room.memory.quadTrapCombatFaces || []).map(p => `${p.x},${p.y}`)),
         };
         repairCapCache[room.name] = entry;
     }
-    if (structure && entry.quadTrap.has(`${structure.pos.x},${structure.pos.y}`)) {
+    if (structure && entry.quadTrap.has(`${structure.pos.x},${structure.pos.y}`)
+        && !entry.combatFaces.has(`${structure.pos.x},${structure.pos.y}`)) {
         return Math.min(entry.targetLimit, 20000);
     }
     return entry.targetLimit;

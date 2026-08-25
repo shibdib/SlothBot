@@ -9,10 +9,14 @@ const extensionPositionCache = {}; // module-level -- never hits Memory serializ
 const dynamicLayoutCache = {}; // {extensions, corridors} per room
 
 const quadTraps = {};
+// Walkway ramparts are derived from the seal contour and must not live in
+// ROOM_RAMPART_SPOTS (that set is the leak-seal / isInBunker ring).
+const walkwayCache = {};
 
 module.exports = {
     tickTracker,
     extensionPositionCache,
     dynamicLayoutCache,
     quadTraps,
+    walkwayCache,
 };

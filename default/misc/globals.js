@@ -725,7 +725,7 @@ let globals = function () {
      *        debugBarriers('E52S16', {recompute: true})  // force hub-floodfill if cache empty
      *        debugBarriers('E52S16', {place: true})      // force ensurePerimeterSites this tick
      *
-     * Legend: green=built, yellow=site, red=missing, orange=blocked, blue=hub, red line=leak path
+     * Legend: green=built, yellow=site, red=missing, orange=blocked, blue=hub, cyan=walkway, red line=leak path
      * sealed:false means BFS can still walk hub → exit without crossing planned spots/barriers.
      * placeFails / probe explain why sites were not created.
      */
@@ -1196,7 +1196,10 @@ let globals = function () {
             if (ROOM_RAMPART_SPOTS) ROOM_RAMPART_SPOTS[rn] = undefined;
             if (typeof quadTraps !== 'undefined') quadTraps[rn] = undefined;
             const mem = Game.rooms[rn] && Game.rooms[rn].memory;
-            if (mem) mem.quadTrapWalls = undefined;
+            if (mem) {
+                mem.quadTrapWalls = undefined;
+                mem.quadTrapCombatFaces = undefined;
+            }
         }
         return {
             destroyed,

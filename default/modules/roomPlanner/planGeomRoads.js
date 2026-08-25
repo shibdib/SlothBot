@@ -38,8 +38,8 @@ const PATH_CACHE_TTL = 5000;
 const PLAN_CACHE = Object.create(null);
 const MATRIX_HEAP = {owned: Object.create(null), remote: Object.create(null)};
 const FAILED_PATH_RETRY = 50;
-/** Bump when desired-set geometry changes (lab collar, …) so packed plans rebuild. */
-const OWNED_ROAD_PLAN_REV = 1;
+/** Bump when desired-set geometry changes (lab collar, walkway, …) so packed plans rebuild. */
+const OWNED_ROAD_PLAN_REV = 2;
 
 const TARGET_ORDER = {controller: 0, source: 1, mineral: 2, exit: 3};
 
@@ -417,6 +417,27 @@ function getLabRingRoadTiles(room) {
     return tiles;
 }
 
+/** RCL8 inner walkway — roads so defenders can slide without dropping fatigue. */
+function getWalkwayRoadTiles(room) {
+    const tiles = new Set();
+    if (!room || !room.controller || room.controller.level < 8) return tiles;
+    let spots;
+    try {
+        spots = require('planGeomRamparts').getWalkwaySpots(room);
+    } catch (e) {
+        return tiles;
+    }
+    if (!spots || !spots.length) return tiles;
+    for (let i = 0; i < spots.length; i++) {
+        const p = spots[i];
+        if (!p) continue;
+        const pos = new RoomPosition(p.x, p.y, room.name);
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
+        tiles.add(getPosKey(pos));
+    }
+    return tiles;
+}
+
 function classifyTarget(room, pos) {
     if (pos && pos._exitRoadGoal) return 'exit';
     if (room.controller && pos.inRangeTo(room.controller, 1)) return 'controller';
@@ -688,6 +709,16 @@ function getPersistedRoadLayer(room) {
     }
 }
 
+function walkwayRoadFingerprint(room) {
+    if (!room || !room.controller || room.controller.level < 8) return '0';
+    try {
+        const spots = require('planGeomRamparts').getWalkwaySpots(room);
+        return String(spots && spots.length ? spots.length : 0);
+    } catch (e) {
+        return '0';
+    }
+}
+
 /**
  * Stable identity of the owned desired-set inputs. Existing roads are excluded
  * so placing a site does not force a PathFinder recompute.
@@ -698,6 +729,8 @@ function ownedRoadFingerprint(room) {
         'r' + OWNED_ROAD_PLAN_REV,
         origin ? `${origin.x},${origin.y}` : 'no',
         room.memory && room.memory.dynamicLayout ? 'd' : 'b',
+        room.controller && room.controller.level >= 8 ? 'w8' : 'w0',
+        'ww' + walkwayRoadFingerprint(room),
     ];
     const targets = getRoadTargets(room);
     const targetKeys = [];
@@ -825,6 +858,8 @@ function computeOwnedRoadPlan(room, fingerprint) {
     const built = buildConnectorTiles(room, layout);
     const labRing = getLabRingRoadTiles(room);
     for (const key of labRing) built.connector.add(key);
+    const walkway = getWalkwayRoadTiles(room);
+    for (const key of walkway) built.connector.add(key);
     const desired = new Set([...layout, ...built.connector]);
     const targets = getRoadTargets(room);
     const origin = getRoadOrigin(room);
