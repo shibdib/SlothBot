@@ -74,6 +74,11 @@ module.exports.status = function () {
         log.a('------------------------------- GLOBAL INFO -------------------------------', ' ');
         const gclProgress = ((Game.gcl.progress / Game.gcl.progressTotal) * 100).toFixed(2);
         log.a(`🏆 GCL: ${Game.gcl.level} <font color="#888888">(${gclProgress}%)</font> | 💻 CPU Bucket: <font color="#00B7EB">${Game.cpu.bucket}</font> | 👾 Creeps: <font color="#4CAF50">${_.size(Game.creeps)}</font>`, ' ');
+        const center = Memory.empireCenter;
+        if (center && center.room) {
+            const age = Game.time - (center.tick || Game.time);
+            log.a(`📍 Empire center: ${roomLink(center.room)} <font color="#888888">(world ${center.x}, ${center.y} · ${age} ticks)</font>`, ' ');
+        }
 
         log.a('------------------------------- COLONY INFO -------------------------------', ' ');
 

@@ -16,7 +16,7 @@ const {
 } = require('hcReadiness');
 const {spawnEnergyState} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
-const {scoreOriginMinLevel} = require('hcUtils');
+const {scoreOriginMinLevel, empireLinearDistance} = require('hcUtils');
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
 const HELPER_ROLES = new Set(['cleaner', 'claimAttacker', 'remoteHauler']);
@@ -773,8 +773,9 @@ function unassignRoom(destination, logEntry, options = {}) {
 }
 
 function getPriority(operationRoom) {
-    const range = findClosestOwnedRoom(operationRoom, true);
-    const typeMulti = Memory.targetRooms[operationRoom] ? 1 : 2;
+    const military = !!(Memory.targetRooms && Memory.targetRooms[operationRoom]);
+    const range = military ? empireLinearDistance(operationRoom) : findClosestOwnedRoom(operationRoom, true);
+    const typeMulti = military ? 1 : 2;
     const op = Memory.targetRooms[operationRoom] || Memory.auxiliaryTargets[operationRoom];
     const colonyName = (op && op.assignedRoom) || findClosestOwnedRoom(operationRoom, false, 1);
     const colony = colonyName && Game.rooms[colonyName];

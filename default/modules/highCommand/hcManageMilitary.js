@@ -5,7 +5,7 @@
  */
 
 const state = require('hcState');
-const {intelOwner, checkForNap, siegeFocusOwner, warPriorityMap} = require('hcUtils');
+const {intelOwner, checkForNap, siegeFocusOwner, warPriorityMap, empireLinearDistance} = require('hcUtils');
 const {stampOperationCooldown} = require('hcTargets');
 
 function manageMilitary() {
@@ -48,7 +48,7 @@ function manageMilitary() {
 
             case 'roomDenial':
                 if (target.camping) staleMulti = 9999;
-                else staleMulti = 5;
+                else staleMulti = 8;
 
                 if (activeSiege > state.SIEGE_LIMIT || !INTEL[key] || FRIENDLIES.includes(INTEL[key].owner) || !warTargetUsers.has(INTEL[key].owner)) {
                     log.a(`Canceling roomDenial in ${roomLink(key)} — too many sieges or non-hostile.`, 'HIGH COMMAND: ');
@@ -146,9 +146,11 @@ function manageMilitary() {
             continue;
         }
 
-        const staleTime = target.tick + (CREEP_LIFE_TIME * staleMulti);
+        const staleWindow = CREEP_LIFE_TIME * staleMulti;
         const lastKill = target.lastEnemyKilled;
-        if ((staleTime < Game.time && !lastKill) || (lastKill && lastKill.deathTime + (CREEP_LIFE_TIME * staleMulti) < Game.time)) {
+        const lastKillTime = lastKill && lastKill.deathTime;
+        const lastActivity = Math.max(target.tick || 0, lastKillTime || 0, target.lastWave || 0);
+        if (lastActivity + staleWindow < Game.time) {
             log.a(`Canceling operation in ${roomLink(key)} — stale.`, 'HIGH COMMAND: ');
             stampOperationCooldown(key, target);
             delete Memory.targetRooms[key];
@@ -168,14 +170,14 @@ function manageMilitary() {
         }
 
         if (type !== 'scout' && type !== 'guard' && type !== 'roomDenial' && owner &&
-            !THREATS.includes(owner) && findClosestOwnedRoom(key, true) > DEFENSIVE_BUBBLE &&
+            !THREATS.includes(owner) && empireLinearDistance(key) > DEFENSIVE_BUBBLE &&
             !_.pluck(WAR_TARGETS, 'user').includes(owner)) {
             log.a(`Canceling operation in ${roomLink(key)} — ${owner} no longer a threat.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
         }
 
-        if (target.waves && target.waves >= (target.waveLimit || 8)) {
+        if (target.waves && target.waves >= (target.waveLimit || (type === 'roomDenial' ? 12 : 8))) {
             log.a(`Canceling operation in ${roomLink(key)} — max waves reached.`, 'HIGH COMMAND: ');
             stampOperationCooldown(key, target);
             delete Memory.targetRooms[key];

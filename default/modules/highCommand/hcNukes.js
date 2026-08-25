@@ -11,7 +11,7 @@
 
 const state = require('hcState');
 
-const {checkForNap, scoreTarget} = require('hcUtils');
+const {checkForNap, scoreTarget, empireLinearDistance} = require('hcUtils');
 
 const {getEmpireReadiness} = require('hcReadiness');
 const {notify, notifySiegeEvent} = require('module.notifications');
@@ -213,7 +213,7 @@ function autoNuke() {
         }
     }
 
-    const MADTarget = _.min(madCandidates, r => findClosestOwnedRoom(r.name, true));
+    const MADTarget = _.min(madCandidates, r => empireLinearDistance(r.name));
 
     if (!MADTarget?.name) return false;
 

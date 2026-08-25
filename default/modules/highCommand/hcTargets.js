@@ -17,7 +17,7 @@ function setTarget(room, operation, level = 1, military = true) {
         level: level,
         priority: getPriority(room, operation),
         // Sieges need more waves to break fortified rooms; harassment ops can cancel sooner
-        waveLimit: (operation === 'roomDenial' || operation === 'stronghold') ? 8 : 4
+        waveLimit: operation === 'roomDenial' ? 12 : (operation === 'stronghold' ? 8 : 4)
     };
     if (military) Memory.targetRooms = cache; else Memory.auxiliaryTargets = cache;
     // Guard remotes may have no intel (unscanned neighbors are valid targets)
@@ -26,7 +26,9 @@ function setTarget(room, operation, level = 1, military = true) {
         if (global.updateIntelIndex) global.updateIntelIndex(room, null, INTEL[room]);
     }
     if (operation === 'roomDenial') notifySiegeLaunch(room);
-    return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Nearest capable room - ${scoreOriginDistance(room, operation)} rooms away)`, 'HIGH COMMAND: ');
+    const dist = scoreOriginDistance(room, operation);
+    const distLabel = Number.isFinite(dist) ? dist.toFixed(1) : '?';
+    return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Empire center ${distLabel} rooms)`, 'HIGH COMMAND: ');
 }
 
 /**
@@ -42,7 +44,7 @@ function promoteToRoomDenial(roomName) {
     }
     existing.type = 'roomDenial';
     existing.level = siegeOpLevel(intel.towers);
-    existing.waveLimit = 8;
+    existing.waveLimit = 12;
     existing.priority = getPriority(roomName, 'roomDenial');
     existing.tick = Game.time;
     if (intel.towers) {

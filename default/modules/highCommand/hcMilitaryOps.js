@@ -276,7 +276,7 @@ function militaryOperations() {
     const maxRemoteDenial = HARASSMENT_OPERATIONS
         ? (REMOTE_DENIAL_MAX_WITH_HARASS || 1)
         : Math.min(REMOTE_DENIAL_MAX_WITHOUT_HARASS || 3, state.OPERATION_LIMIT);
-    const siegeCooldown = ATTACK_COOLDOWN * 2;
+    const siegeCooldown = ATTACK_COOLDOWN;
 
     const orderedUsers = [];
     for (let i = 0; i < WAR_TARGETS.length; i++) {

@@ -27,6 +27,7 @@ const {autoNuke, offensiveNuke} = require('hcNukes');
 
 const {applyOperationLimits} = require('hcReadiness');
 const {reviewSieges} = require('module.notifications');
+const {refreshEmpireCenter} = require('hcUtils');
 
 
 function getCooldown(task) {
@@ -64,6 +65,8 @@ function highCommand() {
     // Ensure op containers exist early (housekeeping is on long cooldown; many direct accesses assume objects)
     if (!Memory.targetRooms) Memory.targetRooms = {};
     if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
+
+    refreshEmpireCenter();
 
     const readiness = applyOperationLimits(state);
     if (!readiness.canLaunchOps && state.lastNoSiegeWarning + 5000 < Game.time) {

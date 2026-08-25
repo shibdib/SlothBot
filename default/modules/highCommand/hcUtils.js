@@ -88,7 +88,7 @@ function roomDenialLaunchOk(intel) {
     if (!siegeLevel(intel.towers)) return false;
     if (siegeFeasibility(intel) < -1) return false;
     const crushNew = NEW_SPAWN_DENIAL && (intel.level || 0) <= 3;
-    if (!crushNew && (intel.lastSiege || 0) + ATTACK_COOLDOWN * 2 >= Game.time) return false;
+    if (!crushNew && (intel.lastSiege || 0) + ATTACK_COOLDOWN >= Game.time) return false;
     return true;
 }
 
@@ -106,9 +106,7 @@ function scoreOriginMinLevel(type, intel) {
 }
 
 function scoreOriginDistance(roomName, type) {
-    const intel = (typeof INTEL !== 'undefined' && INTEL[roomName]) || null;
-    const dist = findClosestOwnedRoom(roomName, true, scoreOriginMinLevel(type, intel));
-    return dist == null ? Infinity : dist;
+    return empireLinearDistance(roomName);
 }
 
 function scoreTarget(roomName, type, warPriorityByUser = null) {
@@ -116,11 +114,11 @@ function scoreTarget(roomName, type, warPriorityByUser = null) {
     if (!r) return Infinity;
 
     let score = 0;
-    // Assignment will not spawn a siege from an RCL5 neighbor. Score the hop
-    // from a room that can actually take the op.
+    // Rank by distance to the empire centroid. Spawn assignment still uses
+    // the nearest capable room; this is which dest we open.
     const distance = scoreOriginDistance(roomName, type);
 
-    score += distance * 20;
+    score += distance * 100;
 
     if (THREATS.includes(r.owner)) score -= 200;
     if (type === 'roomDenial') {
