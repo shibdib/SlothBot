@@ -251,7 +251,7 @@ function buildOperationsSignature() {
     for (const k of Object.keys(aux).sort()) {
         const o = aux[k];
         if (!o) continue;
-        sig += `a:${k}:${o.type || ''}:${o.tick || 0}:${o.level || 0}:${o.priority || 0};`;
+        sig += `a:${k}:${o.type || ''}:${o.tick || 0}:${o.level || 0}:${o.priority || 0}:${o.complete ? 1 : 0}:${o.haulers || 0};`;
     }
     return sig;
 }

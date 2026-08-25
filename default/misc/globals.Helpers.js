@@ -156,6 +156,18 @@ let helpers = function () {
     };
 
     /**
+     * Highway rooms sit on the 10-room grid lines (x%10===0 || y%10===0).
+     * Power banks and commodity deposits only spawn here.
+     * @param {string} roomName
+     * @returns {boolean}
+     */
+    global.isHighwayRoomName = function (roomName) {
+        if (!roomName || roomName.length < 4) return false;
+        const parsed = parseRoomXY(roomName);
+        return !!(parsed && (parsed.x % 10 === 0 || parsed.y % 10 === 0));
+    };
+
+    /**
      * Sector-center rooms (x%10===5 && y%10===5): no controller, no keepers, mineral only.
      * @param {string} roomName
      * @returns {boolean}

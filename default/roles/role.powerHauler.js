@@ -13,9 +13,7 @@ class RolePowerHauler {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        else if (this.creep.memory.misc && this.creep.memory.misc.deliveryRoom) {
-            this.roomDelivery();
-        } else if (_.sum(this.creep.store)) {
+        if (_.sum(this.creep.store)) {
             this.deliverResource();
         } else {
             this.pickupResource();
@@ -23,35 +21,46 @@ class RolePowerHauler {
     }
 
     housekeeping() {
-        // If low TTL return home and recycle
-        if (this.creep.ticksToLive < 75) {
-            this.creep.memory.destination = undefined;
+        if (!this.creep.memory.destination) {
             return this.creep.recycleCreep();
         }
-        if (!this.creep.memory.destination) {
+        const carrying = _.sum(this.creep.store) > 0;
+        const home = carrying
+            ? (this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 6) || this.creep.memory.colony)
+            : this.creep.memory.colony;
+        const hops = home ? Game.map.getRoomLinearDistance(this.room.name, home) : 0;
+        if (this.creep.ticksToLive < hops * 50 + 80) {
+            if (carrying) return false;
             return this.creep.recycleCreep();
         }
     }
 
     pickupResource() {
         if (this.room.name !== this.creep.memory.destination) {
+            const intel = INTEL[this.creep.memory.destination];
+            if (intel && intel.powerX != null) {
+                return this.creep.shibMove(new RoomPosition(intel.powerX, intel.powerY, this.creep.memory.destination), {range: 3});
+            }
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
         }
-        let power = this.room.find(FIND_DROPPED_RESOURCES, {filter: (r) => r.resourceType === RESOURCE_POWER})[0];
-        if (power) {
-            switch (this.creep.pickup(power)) {
+        const loot = findPowerLoot(this.room);
+        if (loot) {
+            const result = loot.store ? this.creep.withdraw(loot, RESOURCE_POWER) : this.creep.pickup(loot);
+            switch (result) {
                 case OK:
                     this.creep.memory.hauling = true;
                     break;
                 case ERR_NOT_IN_RANGE:
-                    this.creep.shibMove(power);
+                    this.creep.shibMove(loot);
                     break;
             }
+            return;
+        }
+        const bank = _.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_BANK);
+        if (bank) {
+            if (this.creep.pos.getRangeTo(bank) > 3) this.creep.shibMove(bank, {range: 3});
         } else {
-            if (!_.find(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_BANK)) {
-                Memory.auxiliaryTargets[this.room.name] = undefined;
-                this.creep.suicide();
-            }
+            this.creep.recycleCreep();
         }
     }
 
@@ -59,51 +68,53 @@ class RolePowerHauler {
         this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 6);
         if (this.room.name !== this.creep.memory.closestRoom) {
             return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.closestRoom), {range: 23});
-        } else {
-            let deliver = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_POWER_SPAWN && s.power < s.store.getFreeCapacity(RESOURCE_POWER))[0] || this.room.terminal || this.room.storage;
-            if (deliver) {
-                switch (this.creep.transfer(deliver, RESOURCE_POWER)) {
-                    case OK:
-                        this.creep.memory.hauling = _.sum(this.creep.store) > 0;
-                        break;
-                    case ERR_NOT_IN_RANGE:
-                        this.creep.shibMove(deliver);
-                        break;
-                }
+        }
+        const spawn = _.find(this.room.impassibleStructures, (s) =>
+            s.structureType === STRUCTURE_POWER_SPAWN &&
+            s.store.getFreeCapacity(RESOURCE_POWER) > 0
+        );
+        const deliver = spawn || this.room.terminal || this.room.storage;
+        if (deliver) {
+            switch (this.creep.transfer(deliver, RESOURCE_POWER)) {
+                case OK:
+                    this.creep.memory.hauling = _.sum(this.creep.store) > 0;
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    this.creep.shibMove(deliver);
+                    break;
             }
         }
     }
+}
 
-    roomDelivery() {
-        this.creep.say('Delivery!', true);
-        if (_.sum(this.creep.store)) {
-            const deliveryRoom = Game.rooms[this.creep.memory.misc.deliveryRoom];
-            if (this.room.name !== deliveryRoom.name) {
-                return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.misc.deliveryRoom), {range: 23});
-            } else {
-                let deliver = this.room.terminal || this.room.storage;
-                if (deliver) {
-                    for (let resourceType in this.creep.store) {
-                        switch (this.creep.transfer(deliver, resourceType)) {
-                            case ERR_NOT_IN_RANGE:
-                                this.creep.shibMove(deliver);
-                        }
-                    }
-                } else {
-                    this.creep.shibMove(deliveryRoom.controller, {range: 3});
-                }
-            }
-        } else {
-            if (this.room.name !== this.creep.memory.colony) {
-                return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.colony), {range: 23});
-            } else {
-                if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
-                    this.creep.say('Energy!', true);
-                    this.creep.withdrawResource();
-                }
-            }
+function findPowerLoot(room) {
+    let best = null;
+    let bestAmt = 0;
+    const drops = room.droppedResources || [];
+    for (let i = 0; i < drops.length; i++) {
+        const r = drops[i];
+        if (r.resourceType !== RESOURCE_POWER || r.amount <= bestAmt) continue;
+        best = r;
+        bestAmt = r.amount;
+    }
+    const tombs = room.tombstones || [];
+    for (let i = 0; i < tombs.length; i++) {
+        const amt = tombs[i].store[RESOURCE_POWER] || 0;
+        if (amt > bestAmt) {
+            best = tombs[i];
+            bestAmt = amt;
         }
     }
+    const ruins = room.ruins || [];
+    for (let i = 0; i < ruins.length; i++) {
+        const store = ruins[i].store;
+        const amt = store && store[RESOURCE_POWER] || 0;
+        if (amt > bestAmt) {
+            best = ruins[i];
+            bestAmt = amt;
+        }
+    }
+    return best;
 }
 
 profiler.registerClass(RolePowerHauler, 'PowerHauler');

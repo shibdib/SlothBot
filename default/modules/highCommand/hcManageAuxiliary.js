@@ -9,6 +9,40 @@
  */
 
 
+function powerTeamInRoom(roomName) {
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory || c.memory.destination !== roomName) continue;
+        if (c.memory.role === 'powerAttacker' || c.memory.role === 'powerHealer') return true;
+    }
+    return false;
+}
+
+function powerHaulersAssigned(roomName) {
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (c.my && c.memory && c.memory.role === 'powerHauler' && c.memory.destination === roomName) return true;
+    }
+    return false;
+}
+
+function roomHasPowerLoot(room) {
+    if (!room) return false;
+    const drops = room.droppedResources || [];
+    for (let i = 0; i < drops.length; i++) {
+        if (drops[i].resourceType === RESOURCE_POWER && drops[i].amount) return true;
+    }
+    const tombs = room.tombstones || [];
+    for (let i = 0; i < tombs.length; i++) {
+        if (tombs[i].store[RESOURCE_POWER]) return true;
+    }
+    const ruins = room.ruins || [];
+    for (let i = 0; i < ruins.length; i++) {
+        if (ruins[i].store && ruins[i].store[RESOURCE_POWER]) return true;
+    }
+    return false;
+}
+
 function manageAuxiliary() {
     if (!Memory.auxiliaryTargets || !_.size(Memory.auxiliaryTargets)) return;
 
@@ -35,12 +69,34 @@ function manageAuxiliary() {
 
         switch (type) {
             case 'power':
-                if (INTEL[key].power - 100 < Game.time) {
+                if (target.complete) {
+                    const vis = Game.rooms[key];
+                    const lootLeft = vis && (roomHasPowerLoot(vis) ||
+                        vis.impassibleStructures.some(s => s.structureType === STRUCTURE_POWER_BANK));
+                    if ((vis && !lootLeft && !powerHaulersAssigned(key)) ||
+                        (target.completeTick || target.tick) + CREEP_LIFE_TIME < Game.time) {
+                        log.a(`Canceling power mining in ${roomLink(key)} â€” haul complete.`, 'HIGH COMMAND: ');
+                        delete Memory.auxiliaryTargets[key];
+                    }
+                    continue;
+                }
+                const teamHere = powerTeamInRoom(key);
+                if (!INTEL[key] || !INTEL[key].power || INTEL[key].power <= Game.time) {
+                    target.complete = true;
+                    target.completeTick = Game.time;
+                    continue;
+                }
+                if (INTEL[key].power - 100 < Game.time && !teamHere) {
                     log.a(`Canceling power mining in ${roomLink(key)} â€” expiring.`, 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }
-                if (getResourceTotal(RESOURCE_POWER) >= DUMP_AMOUNT) {
+                if (INTEL[key].powerMined && !teamHere) {
+                    log.a(`Canceling power mining in ${roomLink(key)} â€” already being mined.`, 'HIGH COMMAND: ');
+                    delete Memory.auxiliaryTargets[key];
+                    continue;
+                }
+                if (!teamHere && getResourceTotal(RESOURCE_POWER) >= DUMP_AMOUNT) {
                     log.a(`Canceling power mining in ${roomLink(key)} â€” enough power.`, 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;
