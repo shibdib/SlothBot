@@ -235,7 +235,12 @@ function spawnHeldByRenewer(spawn, room) {
     const creeps = room.myCreeps || [];
     for (let i = 0; i < creeps.length; i++) {
         const c = creeps[i];
-        if (c && c.memory && c.memory.needsRenewal && c.pos.isNearTo(spawn)) return true;
+        if (!c || !c.memory || !c.memory.needsRenewal || !c.pos.isNearTo(spawn)) continue;
+        const misc = c.memory.misc;
+        // Incomplete waitFor waves used to camp both spawns for a top-off and
+        // block the remaining bodies. Finishing the wave is the TTL win.
+        if (misc && misc.waitFor > 1 && !misc.sealed && !c.memory.initialFormUp) continue;
+        return true;
     }
     return false;
 }

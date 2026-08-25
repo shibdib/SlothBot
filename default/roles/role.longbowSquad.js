@@ -28,6 +28,7 @@ const {
     wouldEnterDest
 } = require("module.pathFinder");
 const {recordSiegeWave} = require('hcTargets');
+const {clearOpQueueRole} = require('spawnQueue');
 const stagingCache = {}; // creepId → {x, y, tick, roomName}
 const musterCache = {}; // roomName → {x, y, tick}
 const formupAssignCache = {tick: 0, claimed: {}}; // leaderId → {creepId → "x,y"} this tick
@@ -147,7 +148,13 @@ class RoleLongbowSquad {
         if (!(waitFor > 1) && this.creep.fightFromRampart()) return true;
         this.creep.formSquad();
         if (this.creep.reserveWaveBoosts) this.creep.reserveWaveBoosts();
-        if (this.shouldAttemptBoost() && this.creep.tryToBoost()) return true;
+        if (this.shouldAttemptBoost() && this.creep.tryToBoost()) {
+            // Solos stay in boost. Uncommitted waitFor still has to run
+            // holdForWave so required-boost commit / stall-leave can fire
+            // while bodies sit at labs — returning here parked sieges until
+            // BOOST_TTL_FLOOR and then recycled them with no WAVE.
+            if (!(waitFor > 1) || this.isSquadCommitted(this.creep)) return true;
+        }
         if (this.shouldPreHeal(this.creep) && this.creep.hasActiveBodyparts(HEAL)) {
             this.creep.heal(this.creep);
         } else {
@@ -166,9 +173,13 @@ class RoleLongbowSquad {
         // start boosting only once the wave is live so early bodies can top
         // off on leftover spawns instead of leaving 150+ ticks short.
         if (!this.waveAssembled(creep)) return false;
+        const siegeOp = creep.memory.operation === 'roomDenial' || creep.memory.operation === 'stronghold';
+        if (siegeOp && this.waveHasRequiredSiegeBoosts(creep)) return false;
         if (creep.memory.hasBoosted) return true;
-        if ((creep.ticksToLive || 0) <= FORMING_RENEW_TARGET) return false;
-        if (creep.memory.needsRenewal) return false;
+        // Renew first when a spawn can actually do it. Camping a busy spawn
+        // for FORMING_RENEW_TARGET used to skip boost until TTL 600 and die.
+        if ((creep.ticksToLive || 0) <= FORMING_RENEW_TARGET && this.renewWave(creep)) return false;
+        if (creep.memory.needsRenewal) creep.memory.needsRenewal = undefined;
         return true;
     }
 
@@ -250,7 +261,7 @@ class RoleLongbowSquad {
         if (!formingAtHome && !lockingEntry && this.kiteFromMelee(creep)) return;
 
         // New waitFor waves stay in the colony until full, renewed, and boosted.
-        if (this.holdForWave(creep, squad)) return;
+        if (this.holdForWave(creep)) return;
 
         // Committed quad: don't walk out of the bunker until everyone is nearby.
         if (this.gatherBeforeDepart(creep, squad)) return;
@@ -357,16 +368,8 @@ class RoleLongbowSquad {
         if (!formingAtHome && !this.lockingDestEntry(leader) && !this.lockingDestEntry(this.creep)
             && !leader.memory.quadSnake && this.kiteFromMelee(this.creep)) return;
 
-        if (formingAtHome) {
-            if (this.tryHomeRenew(this.creep)) return;
-            if (this.creep.memory.boosts || leader.memory.boosts) {
-                if (!this.creep.pos.isNearTo(leader.pos)) {
-                    this.creep.shibMove(leader, {range: 1, forceSolo: true});
-                }
-                return;
-            }
-            this.goToMusterPad(this.creep);
-            return;
+        if (waitFor > 1 && !this.isSquadCommitted(this.creep)) {
+            if (this.holdForWave(this.creep)) return;
         }
 
         // Leader already issued the coordinated step (including a dest hop).
@@ -459,41 +462,9 @@ class RoleLongbowSquad {
         this.fireRangedAction(creep);
 
         if (waitFor > 1 && !committed) {
-            if (this.cancelledDestAtHome(creep)) {
-                creep.recycleCreep();
-                return;
-            }
-            // Incomplete waitFor squad — do not walk into dest alone.
-            if (creep.memory.destination && this.room.name === creep.memory.destination) {
-                if (this.destHasLongbowPartner(creep)) {
-                    if (!creep.handleMilitaryCreep()) creep.fleeHome();
-                    return;
-                }
-                // Sit on the strip and shoot the wall rather than bouncing on
-                // the exit (borderCheck vs moveToRoomExit).
-                if (creep.memory.quadWiden) {
-                    const t = Game.getObjectById(creep.memory.target);
-                    if (t && t.pos && t.pos.roomName === creep.room.name && creep.pos.getRangeTo(t) > 3) {
-                        creep.shibMove(t, {range: 3, forceSolo: true});
-                    }
-                    return;
-                }
-                const toward = creep.memory.colony;
-                creep.moveToRoomExit(toward);
-                return;
-            }
-            const colony = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
-            if (colony && this.room.name !== colony) {
-                creep.shibMove(new RoomPosition(25, 25, colony), {range: 22});
-                return;
-            }
-            if (this.formingWaveStalled(creep) || (creep.ticksToLive || Infinity) < FORMING_ABANDON_TTL) {
-                creep.recycleCreep();
-                return;
-            }
-            if (this.tryHomeRenew(creep)) return;
-            this.goToMusterPad(creep);
-            return;
+            if (this.holdForWave(creep)) return;
+            // Grouped/committed this tick — next tick runs leader/follower.
+            if (creep.memory.grouped || creep.memory.leader) return;
         }
         if (!creep.handleMilitaryCreep()) creep.fleeHome();
     }
@@ -963,32 +934,17 @@ class RoleLongbowSquad {
         return wave;
     }
 
-    waveAssembled(creep, squad) {
+    waveAssembled(creep) {
         const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
         if (!(waitFor > 1)) return true;
-        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
-        if (wave.length < waitFor) return false;
-        for (let i = 0; i < wave.length; i++) {
-            const c = wave[i];
-            if (!c || c.spawning) return false;
-            if (c.room.name !== creep.room.name) return false;
-        }
-        return true;
-    }
-
-    waveLiveAtHome(creep, squad) {
-        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
-        let live = 0;
-        for (let i = 0; i < wave.length; i++) {
-            const c = wave[i];
-            if (!c || c.spawning || c.room.name !== creep.room.name) continue;
-            live++;
-        }
-        return live;
+        return this.sameWaveLiveInRoom(creep).length >= waitFor;
     }
 
     waveMemberBoostSettled(c) {
         if (!c) return false;
+        const op = c.memory && c.memory.operation;
+        if ((op === 'roomDenial' || op === 'stronghold')
+            && c.hasRequiredSiegeBoosts && c.hasRequiredSiegeBoosts()) return true;
         if (c.memory.boosts) return false;
         if (c.memory.boostAttempt) return true;
         return !!(c.memory.hasBoosted && c.memory.hasBoosted.length);
@@ -1004,20 +960,66 @@ class RoleLongbowSquad {
     }
 
     memberHasRequiredSiegeBoosts(c) {
+        if (c && c.hasRequiredSiegeBoosts) return c.hasRequiredSiegeBoosts();
         if (!c || !c.memory) return false;
-        const nb = c.memory.neededBoosts;
-        if (!nb) return true;
-        const boosted = c.memory.hasBoosted || [];
-        const covered = (part, resource) => {
-            if (resource && boosted.includes(resource)) return true;
-            if (!part || !c.body) return !resource;
-            for (let i = 0; i < c.body.length; i++) {
-                if (c.body[i].type === part && c.body[i].boost) return true;
+        return !c.memory.neededBoosts;
+    }
+
+    sameWaveLiveInRoom(creep) {
+        const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
+        const dest = creep.memory.destination || '';
+        const op = creep.memory.operation || '';
+        const mates = [];
+        const creeps = creep.room.myCreeps || [];
+        for (let i = 0; i < creeps.length; i++) {
+            const c = creeps[i];
+            if (!c || !c.memory || c.spawning) continue;
+            if ((c.memory.destination || '') !== dest) continue;
+            if ((c.memory.operation || '') !== op) continue;
+            if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
+            if (((c.memory.misc && c.memory.misc.waitFor) || 0) !== waitFor) continue;
+            const role = c.memory.role || '';
+            const old = c.memory.oldRole || '';
+            if (role !== 'longbowSquad' && role !== 'longbow'
+                && old !== 'longbowSquad' && old !== 'longbow') continue;
+            mates.push(c);
+        }
+        return mates;
+    }
+
+    // Bind everyone in this room into one squad. Lowest name leads so every
+    // body picks the same winner this tick. Strays left in other rooms ungroup.
+    forceWaveGroup(mates) {
+        if (!mates || mates.length < 2) return false;
+        const keep = {};
+        for (let i = 0; i < mates.length; i++) keep[mates[i].id] = true;
+        for (let i = 0; i < mates.length; i++) {
+            const ids = (mates[i].memory.squadMembers || []).slice();
+            for (let j = 0; j < ids.length; j++) {
+                if (keep[ids[j]]) continue;
+                const stray = Game.getObjectById(ids[j]);
+                if (stray && stray.ungroupFromSquad) stray.ungroupFromSquad();
             }
-            return false;
-        };
-        if (nb.boost && !covered(nb.boostPart, nb.boost)) return false;
-        if (nb.toughBoost && !covered(TOUGH, nb.toughBoost)) return false;
+        }
+        const sorted = mates.slice().sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+        const leader = sorted[0];
+        if (!leader.memory.oldRole) leader.memory.oldRole = leader.memory.role;
+        leader.memory.role = 'longbowSquad';
+        leader.memory.leader = true;
+        leader.memory.grouped = true;
+        leader.memory.squadMembers = [];
+        for (let i = 1; i < sorted.length; i++) {
+            const c = sorted[i];
+            if (!c.memory.oldRole) c.memory.oldRole = c.memory.role;
+            c.memory.role = 'longbowSquad';
+            c.memory.grouped = true;
+            c.memory.leader = undefined;
+            c.memory.squadMembers = undefined;
+            c.memory.groupLeader = leader.id;
+            c.memory.squadListed = leader.id;
+            leader.memory.squadMembers.push(c.id);
+        }
+        this.squad = null;
         return true;
     }
 
@@ -1026,17 +1028,6 @@ class RoleLongbowSquad {
         if (!wave.length) return false;
         for (let i = 0; i < wave.length; i++) {
             if (!this.memberHasRequiredSiegeBoosts(wave[i])) return false;
-        }
-        return true;
-    }
-
-    waveReadyToCommit(creep, squad) {
-        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
-        if (!wave.length) return false;
-        for (let i = 0; i < wave.length; i++) {
-            const c = wave[i];
-            if (!this.waveMemberBoostSettled(c)) return false;
-            if (c.room.name !== creep.room.name) return false;
         }
         return true;
     }
@@ -1083,11 +1074,16 @@ class RoleLongbowSquad {
             if (creep.memory.needsRenewal) creep.memory.needsRenewal = undefined;
             return false;
         }
-        // Incomplete wave: only camp an idle spawn. Busy spawns are popping
-        // the rest of the quad; sitting on the apron blocks the next body.
+        // Only camp an idle spawn. Busy spawns are popping the rest of the
+        // quad, or the wave is assembled and needs to boost — sitting on the
+        // apron used to block both.
+        const slots = this.idleSpawnCount(creep.room);
+        if (!slots) {
+            if (creep.memory.needsRenewal) creep.memory.needsRenewal = undefined;
+            return false;
+        }
         if (!this.waveAssembled(creep)) {
-            const slots = this.idleSpawnCount(creep.room);
-            const allowed = slots > 0 ? need.slice(0, slots) : [];
+            const allowed = need.slice(0, slots);
             if (!allowed.some(c => c.id === creep.id)) {
                 if (creep.memory.needsRenewal) creep.memory.needsRenewal = undefined;
                 return false;
@@ -1256,18 +1252,6 @@ class RoleLongbowSquad {
         if (op === 'roomDenial' || op === 'stronghold') recordSiegeWave(creep.memory.destination);
     }
 
-    formingWaveMinTTL(creep, squad) {
-        const members = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
-        let min = Infinity;
-        for (let i = 0; i < members.length; i++) {
-            const c = members[i];
-            if (!c || c.spawning) continue;
-            const t = c.ticksToLive || Infinity;
-            if (t < min) min = t;
-        }
-        return min;
-    }
-
     markFormingLive(creep, live) {
         if (!creep.memory.misc) creep.memory.misc = {};
         const misc = creep.memory.misc;
@@ -1279,71 +1263,52 @@ class RoleLongbowSquad {
         }
     }
 
-    formingWaveStalled(creep, squad) {
+    formingGiveUp(creep) {
         const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
         if (!(waitFor > 1) || this.isSquadCommitted(creep)) return false;
-        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
-        let live = 0;
-        for (let i = 0; i < wave.length; i++) {
-            if (wave[i] && !wave[i].spawning) live++;
-        }
+        if ((creep.ticksToLive || Infinity) < FORMING_ABANDON_TTL) return true;
+        const live = this.sameWaveLiveInRoom(creep).length;
         if (live >= waitFor) return false;
+        const dest = creep.memory.destination;
+        const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+        const op = dest && (Memory.targetRooms[dest] || Memory.auxiliaryTargets[dest]);
+        // Assignment gone or moved: the rest of this wave will never spawn here.
+        if (live >= 2 && (!op || !op.assignedRoom
+            || (home && op.assignedRoom !== home && op.assignedRoom !== creep.room.name))) {
+            return true;
+        }
         this.markFormingLive(creep, live);
-        if (creep.waveStillIncoming && creep.waveStillIncoming()) return false;
-        const since = creep.memory.misc.formLiveTick || Game.time;
+        const since = (creep.memory.misc && creep.memory.misc.formLiveTick) || Game.time;
         return Game.time - since >= FORMING_STALL_TICKS;
     }
 
-    waveBoostStalled(creep, squad) {
-        if (!this.waveAssembled(creep, squad) || this.isSquadCommitted(creep)) return false;
+    waveBoostStalled(creep) {
+        if (!this.waveAssembled(creep) || this.isSquadCommitted(creep)) return false;
         if (!creep.memory.misc) creep.memory.misc = {};
         if (!creep.memory.misc.boostWaitTick) creep.memory.misc.boostWaitTick = Game.time;
         return Game.time - creep.memory.misc.boostWaitTick >= BOOST_WAIT_TICKS;
     }
 
-    // Seal without committedSize so a replacement waitFor wave can still spawn
-    // (same cap drop as adoptDuoIfQuadRemnant).
-    sealWaveAtSize(creep, wave, size) {
-        const members = wave && wave.length ? wave : this.squadForWave(creep);
-        for (let i = 0; i < members.length; i++) {
-            const c = members[i];
-            if (!c) continue;
-            if (c.clearBoostLabs) c.clearBoostLabs();
+    // Room-mates are the wave. Bind them, drop waitFor to who actually showed.
+    takeWaveHere(creep) {
+        const mates = this.sameWaveLiveInRoom(creep);
+        if (mates.length < 2) return mates;
+        this.forceWaveGroup(mates);
+        const size = mates.length;
+        let shrunk = false;
+        for (let i = 0; i < mates.length; i++) {
+            const c = mates[i];
             if (!c.memory.misc) c.memory.misc = {};
+            if (c.memory.misc.waitFor > size) shrunk = true;
             c.memory.misc.waitFor = size;
-            c.memory.misc.sealed = true;
-            c.memory.quadWiden = undefined;
-            c.memory.quadPathBlocked = undefined;
-            c.memory.quadSnake = undefined;
-            c.memory.quadSnakeDir = undefined;
-            c.memory._shibSquadMove = undefined;
         }
-        const op = creep.memory.operation;
-        if (op === 'roomDenial' || op === 'stronghold') recordSiegeWave(creep.memory.destination);
-    }
-
-    // TTL below FORMING_ABANDON_TTL after renew fails, or no new body and
-    // nothing incoming for FORMING_STALL_TICKS: leave as the current pair/triple,
-    // or recycle a leftover solo so it does not fill the cap.
-    abandonIncompleteWave(creep, squad) {
-        const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
-        if (!(waitFor > 1) || this.isSquadCommitted(creep)) return false;
-        const ttlFailed = this.formingWaveMinTTL(creep, squad) < FORMING_ABANDON_TTL;
-        if (!ttlFailed && !this.formingWaveStalled(creep, squad)) return false;
-
-        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
-        let live = 0;
-        for (let i = 0; i < wave.length; i++) {
-            if (wave[i] && !wave[i].spawning) live++;
+        // Queue is still waitFor-4 with remaining=4. Without this a 3-body
+        // close-out keeps popping a 4th that never joins.
+        if (shrunk && creep.memory.destination) {
+            clearOpQueueRole('longbowSquad', creep.memory.destination, creep.memory.operation);
+            clearOpQueueRole('longbow', creep.memory.destination, creep.memory.operation);
         }
-        if (live >= waitFor) return false;
-
-        if (live >= 2) {
-            this.sealWaveAtSize(creep, wave, live);
-            return 'sealed';
-        }
-        creep.recycleCreep();
-        return 'recycle';
+        return mates;
     }
 
     destOpLive(dest) {
@@ -1364,81 +1329,87 @@ class RoleLongbowSquad {
         return !!(home && creep.room.name === home);
     }
 
-    recycleWave(creep, squad) {
-        const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
+    recycleWave(creep) {
+        const mates = this.sameWaveLiveInRoom(creep);
+        const wave = mates.length ? mates : this.squadForWave(creep);
         for (let i = 0; i < wave.length; i++) {
             if (wave[i] && wave[i].recycleCreep) wave[i].recycleCreep();
         }
     }
 
-    // Stay in the spawn colony until waitFor bodies are live, topped off, and
-    // boosted. Incomplete waves wait off the apron (or renew on leftover
-    // spawns). Once assembled, renew then boost; gatherBeforeDepart then
-    // holds stragglers on the leader before leaving.
-    holdForWave(creep, squad) {
-        if (this.cancelledDestAtHome(creep)) {
-            this.recycleWave(creep, squad);
-            return true;
-        }
+    // One pipeline for uncommitted waitFor bodies (leader and ungrouped).
+    // Room-mates are the wave: group whoever is here, boost required siege
+    // parts, leave. Incomplete groups shrink waitFor to who showed up instead
+    // of a second seal/abandon path.
+    holdForWave(creep) {
         const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
         if (!(waitFor > 1) || this.isSquadCommitted(creep)) return false;
-
-        const colony = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
-        if (colony && creep.room.name !== colony) {
-            this.leaderTransit(new RoomPosition(25, 25, colony), {range: 22});
+        if (this.cancelledDestAtHome(creep)) {
+            this.recycleWave(creep);
             return true;
         }
 
-        if (!this.waveAssembled(creep, squad)) {
+        const colony = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+        const giveUp = this.formingGiveUp(creep);
+        const assembled = this.waveAssembled(creep);
+
+        if (colony && creep.room.name !== colony) {
+            if (giveUp) return this.finishFormingWave(creep);
+            if (creep.memory.leader) {
+                this.leaderTransit(new RoomPosition(25, 25, colony), {range: 22});
+            } else {
+                creep.shibMove(new RoomPosition(25, 25, colony), {range: 22});
+            }
+            return true;
+        }
+
+        if (!assembled && !giveUp) {
             if (creep.memory.misc && creep.memory.misc.boostWaitTick) {
                 creep.memory.misc.boostWaitTick = undefined;
             }
-            const abandoned = this.abandonIncompleteWave(creep, squad);
-            if (abandoned === 'recycle') return true;
-            if (abandoned === 'sealed') return false;
-            if (this.renewWave(creep, squad)) return true;
+            if (this.renewWave(creep)) return true;
             this.goToMusterPad(creep);
             return true;
         }
 
-        if (this.waveNeedsRenew(creep)) {
-            if (this.renewWave(creep, squad)) return true;
+        return this.finishFormingWave(creep);
+    }
+
+    finishFormingWave(creep) {
+        const mates = this.takeWaveHere(creep);
+        if (mates.length < 2) {
+            creep.recycleCreep();
             return true;
         }
+        // Followers only belong here so takeWaveHere can bind them. A low-TTL
+        // unboosted follower used to recycleWave() the whole boosted group.
+        if (!creep.memory.leader) return true;
 
         const siegeOp = creep.memory.operation === 'roomDenial' || creep.memory.operation === 'stronghold';
-        const boostReady = this.waveBoosted(creep, squad)
-            && (!siegeOp || this.waveHasRequiredSiegeBoosts(creep, squad));
+        const requiredReady = !siegeOp || this.waveHasRequiredSiegeBoosts(creep);
+        const ttlFailed = (creep.ticksToLive || Infinity) < FORMING_ABANDON_TTL;
 
-        if (!boostReady) {
-            if (this.waveBoostStalled(creep, squad)) {
-                const wave = (squad && creep.memory.leader) ? squad.concat(creep) : this.squadForWave(creep);
-                let anyBoosted = false;
-                for (let i = 0; i < wave.length; i++) {
-                    const c = wave[i];
-                    if (!c) continue;
-                    if (c.memory.hasBoosted && c.memory.hasBoosted.length) anyBoosted = true;
-                    if (c.clearBoostLabs) c.clearBoostLabs();
-                }
-                if (siegeOp || !anyBoosted) {
-                    this.recycleWave(creep, squad);
-                    return true;
-                }
-            } else {
-                // Already boosting or done: stay at the lab. Walking back to
-                // the pad after the last boost is a round-trip off the exit path.
+        if (!requiredReady) {
+            if (this.waveNeedsRenew(creep) && !ttlFailed && this.renewWave(creep)) return true;
+            if (!this.waveBoostStalled(creep) && !ttlFailed) {
                 if (!creep.memory.boosts && !creep.memory.boostAttempt && !creep.memory.hasBoosted) {
                     this.goToMusterPad(creep);
                 }
                 return true;
             }
+            this.recycleWave(creep);
+            return true;
         }
 
-        if (!this.waveReadyToCommit(creep, squad)) return true;
-        if (siegeOp && !this.waveHasRequiredSiegeBoosts(creep, squad)) return true;
-
-        this.commitSquad(creep, squad);
-        return false;
+        if (siegeOp || this.waveBoosted(creep) || this.waveBoostStalled(creep) || ttlFailed) {
+            this.commitSquad(creep);
+            return false;
+        }
+        if (this.waveNeedsRenew(creep) && !ttlFailed && this.renewWave(creep)) return true;
+        if (!creep.memory.boosts && !creep.memory.boostAttempt && !creep.memory.hasBoosted) {
+            this.goToMusterPad(creep);
+        }
+        return true;
     }
 
     // After boost/commit, wait in place until the whole live squad is in this

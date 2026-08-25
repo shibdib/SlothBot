@@ -398,8 +398,9 @@ function notifySiegeEvent(roomName, reason) {
         sendSiege(roomName, 'LAUNCH', snap, prev);
         prev.pendingLaunch = undefined;
         applySiegeSnapshot(prev, snap, true, 'LAUNCH');
-        // Launch mail already includes the new wave count.
-        if (reason === 'WAVE') return;
+        if (reason === 'LAUNCH') return;
+        // First WAVE used to be dropped because launch mail includes the
+        // count. That hid the only proof the squad actually left home.
     }
     sendSiege(roomName, reason, snap, prev);
     applySiegeSnapshot(prev, snap, true, reason);

@@ -1069,9 +1069,11 @@ function expectedBoostParts(creep) {
         if (part && !parts.includes(part)) parts.push(part);
     };
     const nb = creep.memory.neededBoosts;
-    if (nb && nb.boost && nb.boostPart) add(nb.boostPart);
+    if (nb && nb.boost && nb.boostPart && !isOptionalSiegeBoost(nb.boostPart)) add(nb.boostPart);
     if (nb && nb.toughBoost) add(TOUGH);
-    if (nb && nb.moveBoost) add(MOVE);
+    // MOVE is optional for sieges. Pinning it on neededBoosts used to make
+    // planCoversExpectedBoosts fail while HEAL/TOUGH were already in labs,
+    // so the wave never started boosting and recycled at home.
     const extra = creep.memory.misc && creep.memory.misc.boosts;
     if (extra) {
         for (let i = 0; i < extra.length; i++) {
@@ -1115,6 +1117,28 @@ function isSiegeBoostOp(creep) {
     const op = creep && creep.memory && creep.memory.operation;
     return op === 'roomDenial' || op === 'stronghold';
 }
+
+function creepHasRequiredSiegeBoosts(c) {
+    if (!c || !c.memory) return false;
+    const nb = c.memory.neededBoosts;
+    if (!nb) return true;
+    const boosted = c.memory.hasBoosted || [];
+    const covered = (part, resource) => {
+        if (resource && boosted.includes(resource)) return true;
+        if (!part || !c.body) return !resource;
+        for (let i = 0; i < c.body.length; i++) {
+            if (c.body[i].type === part && c.body[i].boost) return true;
+        }
+        return false;
+    };
+    if (nb.boost && !isOptionalSiegeBoost(nb.boostPart) && !covered(nb.boostPart, nb.boost)) return false;
+    if (nb.toughBoost && !covered(TOUGH, nb.toughBoost)) return false;
+    return true;
+}
+
+Creep.prototype.hasRequiredSiegeBoosts = function () {
+    return creepHasRequiredSiegeBoosts(this);
+};
 
 function labMineralCap(lab, resource) {
     if (lab && lab.store && lab.store.getCapacity) {
@@ -1636,10 +1660,11 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
             return false;
         }
         if (isWaitForWave(this) && !planCoversExpectedBoosts(this, plan)) {
-            // Required remaining boosts are not in room.store. Sieges must not
-            // finishBoosting on optional TOUGH/RA alone — holdForWave recycles
-            // at BOOST_WAIT_TICKS if HEAL never lands.
-            if (this.memory.hasBoosted && this.memory.hasBoosted.length && !isSiegeBoostOp(this)) {
+            // Remaining minerals are not in room.store. Leave with what landed
+            // if required siege HEAL/TOUGH (or any boosts on non-siege) are on
+            // the body; otherwise keep waiting so holdForWave can stall-recycle.
+            if (this.memory.hasBoosted && this.memory.hasBoosted.length
+                && (!isSiegeBoostOp(this) || creepHasRequiredSiegeBoosts(this))) {
                 finishBoosting(this);
                 return false;
             }
@@ -1665,7 +1690,11 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
 
     if (!_.size(this.memory.boosts.requestedBoosts)) {
         if (isWaitForWave(this) && !planCoversExpectedBoosts(this, {})) {
-            this.memory.boosts = undefined;
+            if (isSiegeBoostOp(this) && !creepHasRequiredSiegeBoosts(this)) {
+                this.memory.boosts = undefined;
+                return false;
+            }
+            finishBoosting(this);
             return false;
         }
         finishBoosting(this);
@@ -1762,6 +1791,13 @@ Creep.prototype.handleRenewing = function (targetTicks) {
         case ERR_NOT_IN_RANGE:
         case ERR_BUSY:
             this.shibMove(spawn, {range: 1, forceSolo: true});
+            break;
+        case ERR_NOT_ENOUGH_ENERGY:
+            this.memory.needsRenewal = undefined;
+            return false;
+        default:
+            this.memory.needsRenewal = undefined;
+            return false;
     }
     return true;
 };

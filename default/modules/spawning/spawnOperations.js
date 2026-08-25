@@ -105,7 +105,7 @@ function waveBodiesNeedingBoost(creepInfo, resource) {
         return waveBoostBodiesCache.results[cacheKey];
     }
 
-    let committed = 0;
+    let live = 0;
     for (const name in Game.creeps) {
         const c = Game.creeps[name];
         if (!c.my || !c.memory) continue;
@@ -116,19 +116,13 @@ function waveBodiesNeedingBoost(creepInfo, resource) {
         // Sealed bodies already left home. Counting them made a replacement
         // waitFor-4 look fully covered while the labs were empty.
         if (c.memory.misc && c.memory.misc.sealed) continue;
-        if (c.memory.boostAttempt) {
-            committed++;
-            continue;
-        }
-        const boosted = c.memory.hasBoosted;
-        if (resource) {
-            if (boosted && boosted.includes(resource)) committed++;
-        } else if (boosted && boosted.length) {
-            committed++;
-        }
+        // Live unboosted bodies already spawned. Requiring stock for the full
+        // waitFor (4x) to pop the last body failed "Missing required boosts"
+        // and unassigned the room with 3/4 sitting on the pad.
+        live++;
     }
 
-    const bodies = Math.max(0, waitFor - committed);
+    const bodies = Math.max(0, waitFor - live);
     waveBoostBodiesCache.results[cacheKey] = bodies;
     return bodies;
 }
@@ -348,7 +342,12 @@ function considerGlobalEntry(room, entry) {
     }
 
     const levelTarget = computeOpLevelTarget(target, opMemory, INTEL[target]);
-    if (room.level < levelTarget) return null;
+    if (room.level < levelTarget) {
+        // Intel can raise the floor (1-tower stronghold → 2 towers / RCL 8)
+        // after this room already started a waitFor-4. Rejecting the entry
+        // stranded 3 bodies on the pad with no 4th ever queued.
+        if (!hasUncommittedWaitForWave(target)) return null;
+    }
 
     return {...entry};
 }
@@ -422,6 +421,10 @@ function handleInvisibleAssignmentWait(target, opMemory) {
 
 function handleAssignmentReadinessWait(target, opMemory, reason, levelTarget, entry) {
     if (!opMemory.assignedRoom || !Game.rooms[opMemory.assignedRoom]) return opMemory.assignedRoom;
+    // A waitFor wave already on the pad must finish here. Spawning 3 siege
+    // bodies tanks flowSpare, looks "not combat ready", and used to unassign
+    // after 100 ticks with 3/4 idle.
+    if (hasUncommittedWaitForWave(target)) return opMemory.assignedRoom;
 
     const now = Game.time;
     if (opMemory.assignmentEnergyLastTick !== now) {
@@ -430,9 +433,6 @@ function handleAssignmentReadinessWait(target, opMemory, reason, levelTarget, en
         if (opMemory.assignmentEnergyCounter > 100) {
             const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, reason, {force: true});
             if (stolen) return stolen;
-            // Forming leftovers at a starved room must not pin the op. Steal
-            // already ran; unassign so a later tick can pick a ready colony.
-            // Traveling/sealed bodies keep going to destination on their own.
             unassignRoom(target, reason, {excludeRoom: true, cooldown: true});
             return null;
         }
@@ -440,19 +440,36 @@ function handleAssignmentReadinessWait(target, opMemory, reason, levelTarget, en
     return opMemory.assignedRoom;
 }
 
+function hasUncommittedWaitForWave(target) {
+    if (!target) return false;
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory) continue;
+        if (c.memory.destination !== target) continue;
+        if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
+        if (c.memory.misc && c.memory.misc.waitFor > 1) return true;
+    }
+    return false;
+}
+
 function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
     if (opMemory.assignedRoom) {
         const assigned = Game.rooms[opMemory.assignedRoom];
+        const formingWave = hasUncommittedWaitForWave(target);
         // Intel can raise levelTarget (1 tower → 2) while a low-RCL room is
         // sticky. considerGlobalEntry then rejects that room AND every other
         // room (not assigned) — nothing spawns. Inflight creeps do not keep
         // an under-level assignee; retargetFormingWaitForColony sends remnants.
-        if (assigned && assigned.level < levelTarget) {
+        // A live waitFor wave must finish where it spawned — steal mid-form
+        // dumps them in a room whose labs were never reserved.
+        if (assigned && assigned.level < levelTarget && !formingWave) {
             unassignRoom(target, 'Assigned room is below operation level.');
         } else if (!assigned) {
             if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
             if (handleInvisibleAssignmentWait(target, opMemory)) return opMemory.assignedRoom;
         } else {
+            if (formingWave) return opMemory.assignedRoom;
+
             if (Memory.targetRooms[target]) {
                 const tier = getOpTier(opMemory, entry);
                 if (!isRoomReadyForTier(assigned, tier)) {
@@ -507,6 +524,7 @@ function commitAssignment(target, opMemory, entry, roomName) {
 function tryStealAssignment(target, opMemory, levelTarget, entry, reason, options = {}) {
     const previous = opMemory.assignedRoom;
     if (!previous) return null;
+    if (hasUncommittedWaitForWave(target)) return null;
     const creepInfo = heaviestQueuedEntry(target, entry);
     const force = !!(options && options.force);
 
@@ -753,6 +771,7 @@ function releaseAssignmentIfStuck(room, destination, reason, creep) {
     const opMemory = Memory.targetRooms[destination] || Memory.auxiliaryTargets[destination];
     if (!opMemory || !room || opMemory.assignedRoom !== room.name) return;
     if (creep && HELPER_ROLES.has(creep.role)) return;
+    if (hasUncommittedWaitForWave(destination)) return;
 
     const levelTarget = computeOpLevelTarget(destination, opMemory, INTEL[destination]);
     if (tryStealAssignment(destination, opMemory, levelTarget, creep, reason, {force: true})) return;
