@@ -12,6 +12,7 @@
 const {getEffectiveSupply} = require('termNetwork');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
 const {getInboundPlannedAmount, getEmpireBuyCandidates} = require('termMarket');
+const {hasRoomOrder, recordCreatedOrder} = require('termCache');
 const {empireHasSpareBoostType} = require('termKeep');
 
 const TerminalControl = require('termClass');
@@ -212,7 +213,7 @@ Object.assign(TerminalControl.prototype, {
                 if (!activeBuyOrder) {
                     buyAmount = Math.min(buyAmount, REACTION_AMOUNT);
                     if (createBuyOrder(mineral, targetPrice, buyAmount)) break;
-                } else if (Math.abs(activeBuyOrder.price - targetPrice) > 0.02 * avgPrice) {
+                } else if (!activeBuyOrder.pending && Math.abs(activeBuyOrder.price - targetPrice) > 0.02 * avgPrice) {
                     Game.market.changeOrderPrice(activeBuyOrder.id, targetPrice);
                 }
             }
@@ -259,7 +260,7 @@ Object.assign(TerminalControl.prototype, {
 
             const stored = getResourceTotal(t1boost) || 0;
             if (stored >= REACTION_AMOUNT) continue;
-            if (_.some(myOrders, o => o.roomName === terminal.room.name && o.resourceType === t1boost && o.type === ORDER_BUY)) continue;
+            if (hasRoomOrder(myOrders, terminal.room.name, t1boost, ORDER_BUY)) continue;
 
             const t1Avg = latestMarketHistory(t1boost).avg;
             const rawCost = components.reduce((sum, c) => sum + (latestMarketHistory(c).avg || 0), 0);
@@ -298,7 +299,7 @@ Object.assign(TerminalControl.prototype, {
             const p90 = sortedBuyPrices.length ? sortedBuyPrices[Math.floor(sortedBuyPrices.length * 0.9)] : null;
             const refPrice = p90 ? Math.min(histAvg, p90) : histAvg;
             const isCritical = !terminal.room.energyState && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER * 2;
-            const existingOrder = _.find(myOrders, o => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name);
+            const existingOrder = _.find(myOrders, o => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name && o.type === ORDER_BUY);
             const orderAge = existingOrder ? Game.time - existingOrder.created : 0;
             const baseMult = isCritical ? 1 : 0.75;
             const escalationTicks = isCritical ? 25000 : 50000;
@@ -306,7 +307,7 @@ Object.assign(TerminalControl.prototype, {
             const targetPrice = refPrice * ageMult;
             if (!existingOrder) {
                 if (createBuyOrder(RESOURCE_ENERGY, targetPrice, isCritical ? 10000 : 5000)) return true;
-            } else if (Math.abs(existingOrder.price - targetPrice) > 0.02 * refPrice) {
+            } else if (!existingOrder.pending && Math.abs(existingOrder.price - targetPrice) > 0.02 * refPrice) {
                 Game.market.changeOrderPrice(existingOrder.id, targetPrice);
             }
         }
@@ -315,8 +316,7 @@ Object.assign(TerminalControl.prototype, {
             && (this.getCreditTrend() > 0 || Game.market.credits > BUY_ENERGY_CREDIT_BUFFER * 3);
         if (healthySurplus && BUY_THESE_BOOSTS && BUY_THESE_BOOSTS.length) {
             for (const mineral of shuffle(BUY_THESE_BOOSTS)) {
-                const activeBuyOrder = _.some(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY);
-                if (activeBuyOrder) continue;
+                if (hasRoomOrder(myOrders, terminal.room.name, mineral, ORDER_BUY)) continue;
                 const stored = getResourceTotal(mineral) || 0;
                 const upgraderDuty = terminal.room.memory.energyInfo && terminal.room.memory.energyInfo.upgraderDuty;
                 const dutyScale = Math.min(1, Math.max(0.5, upgraderDuty != null ? upgraderDuty : 1));
@@ -331,13 +331,16 @@ Object.assign(TerminalControl.prototype, {
 
         function createBuyOrder(resourceType, price, buyAmount) {
             if (buyAmount <= 0) return false;
-            if (Game.market.createOrder({
+            if (hasRoomOrder(myOrders, terminal.pos.roomName, resourceType, ORDER_BUY)) return false;
+            const spec = {
                 type: ORDER_BUY,
                 resourceType: resourceType,
                 price: price,
                 totalAmount: buyAmount,
                 roomName: terminal.pos.roomName
-            }) === OK) {
+            };
+            if (Game.market.createOrder(spec) === OK) {
+                recordCreatedOrder(spec);
                 log.w(`New Buy Order: ${resourceType} at/per ${price} in ${roomLink(terminal.room.name)}`, "Market: ");
                 return true;
             }

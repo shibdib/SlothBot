@@ -24,9 +24,45 @@ function getCachedGlobalOrders() {
 function getCachedMyOrders() {
     if (state.myOrdersCache.tick !== Game.time) {
         state.myOrdersCache.tick = Game.time;
-        state.myOrdersCache.orders = Game.market.orders;
+        // Copy so same-tick creates can be recorded without mutating Game.market.orders.
+        // createOrder does not appear in Game.market.orders until the following tick.
+        const orders = {};
+        const live = Game.market.orders;
+        for (const id in live) orders[id] = live[id];
+        state.myOrdersCache.orders = orders;
     }
     return state.myOrdersCache.orders;
+}
+
+function hasRoomOrder(myOrders, roomName, resourceType, type) {
+    const orders = myOrders || getCachedMyOrders();
+    if (!orders) return false;
+    for (const id in orders) {
+        const order = orders[id];
+        if (order && order.roomName === roomName && order.resourceType === resourceType && order.type === type) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function recordCreatedOrder(order) {
+    if (!order || !order.roomName || !order.resourceType || !order.type) return;
+    const orders = getCachedMyOrders();
+    const id = `pending_${order.roomName}_${order.type}_${order.resourceType}`;
+    orders[id] = {
+        id,
+        type: order.type,
+        resourceType: order.resourceType,
+        roomName: order.roomName,
+        price: order.price,
+        remainingAmount: order.totalAmount,
+        amount: order.totalAmount,
+        totalAmount: order.totalAmount,
+        active: true,
+        pending: true,
+        created: Game.time
+    };
 }
 
 function pruneTerminalCaches() {
@@ -67,6 +103,10 @@ module.exports = {
     getCachedGlobalOrders,
 
     getCachedMyOrders,
+
+    hasRoomOrder,
+
+    recordCreatedOrder,
 
     pruneTerminalCaches,
 

@@ -14,12 +14,51 @@ const {selectMarketHub} = require('termMarket');
 
 const TerminalControl = require('termClass');
 
+function isPendingOrder(order) {
+    return !!(order && (order.pending || (typeof order.id === 'string' && order.id.startsWith('pending_'))));
+}
+
+function pickDuplicateKeeper(group, orderType) {
+    let keeper = group[0];
+    for (let i = 1; i < group.length; i++) {
+        const order = group[i];
+        if (orderType === ORDER_SELL) {
+            if (order.price > keeper.price) {
+                keeper = order;
+                continue;
+            }
+            if (order.price < keeper.price) continue;
+        } else {
+            if (order.price < keeper.price) {
+                keeper = order;
+                continue;
+            }
+            if (order.price > keeper.price) continue;
+        }
+        const orderCreated = order.created || Infinity;
+        const keeperCreated = keeper.created || Infinity;
+        if (orderCreated < keeperCreated) {
+            keeper = order;
+            continue;
+        }
+        if (orderCreated > keeperCreated) continue;
+        if ((order.remainingAmount || 0) > (keeper.remainingAmount || 0)) {
+            keeper = order;
+            continue;
+        }
+        if ((order.remainingAmount || 0) < (keeper.remainingAmount || 0)) continue;
+        if (String(order.id) < String(keeper.id)) keeper = order;
+    }
+    return keeper;
+}
+
 
 Object.assign(TerminalControl.prototype, {
 
     pricingUpdate(globalOrders, myOrders) {
         for (let key in myOrders) {
             let order = myOrders[key];
+            if (!order || isPendingOrder(order)) continue;
 
             // Energy and base mineral buy orders are repriced by placeBuyOrders with tiered logic -- skip here
             if (order.type === ORDER_BUY && (order.resourceType === RESOURCE_ENERGY || BASE_MINERALS.includes(order.resourceType))) continue;
@@ -83,7 +122,7 @@ Object.assign(TerminalControl.prototype, {
         if (!marketHub) return;
         for (const orderId in myOrders) {
             const order = myOrders[orderId];
-            if (!order) continue;
+            if (!order || isPendingOrder(order)) continue;
             if (_.includes(MY_ROOMS, order.roomName) && order.roomName !== marketHub
                 && (order.type === ORDER_BUY || order.type === ORDER_SELL)) {
                 this.cancelOrder(order, 'Passive orders centralized on market hub');
@@ -100,13 +139,16 @@ Object.assign(TerminalControl.prototype, {
         this.pruneNonHubOrders(myOrders);
 
         const currentCredits = Game.market.credits;
+        const cancelled = new Set();
+        const seenGroups = new Set();
         for (let orderId in myOrders) {
             let order = myOrders[orderId];
 
-            if (!order) continue;
+            if (!order || isPendingOrder(order) || cancelled.has(order.id)) continue;
 
             // Check if room still exists
             if (!Game.rooms[order.roomName] && Game.market.cancelOrder(order.id) === OK) {
+                cancelled.add(order.id);
                 log.a(`Order Cancelled: ${order.id} - Room no longer exists.`, 'MARKET: ');
                 continue;
             }
@@ -114,48 +156,66 @@ Object.assign(TerminalControl.prototype, {
             // Cancel inactive orders
             if (!order.active) {
                 this.cancelOrder(order, 'Order no longer active');
+                cancelled.add(order.id);
                 continue;
             }
 
             // Sell vs buy on the same room/resource — lab procurement conflict
             if (order.type === ORDER_SELL && _.some(myOrders, o =>
-                o.id !== order.id && o.roomName === order.roomName
+                o && !isPendingOrder(o) && !cancelled.has(o.id) && o.active
+                && o.id !== order.id && o.roomName === order.roomName
                 && o.type === ORDER_BUY && o.resourceType === order.resourceType
             )) {
                 this.cancelOrder(order, 'Conflicting buy order active');
+                cancelled.add(order.id);
                 continue;
             }
 
             // Check if boosts and we shouldn't be selling them
             if (order.type === ORDER_SELL && ALL_BOOSTS.includes(order.resourceType) && (!SELL_BOOSTS || Game.rooms[order.roomName].controller.level < 8)) {
                 this.cancelOrder(order, 'Boost sales are disabled');
+                cancelled.add(order.id);
                 continue;
             }
 
             // Check credit balance for buying
             if (order.type === ORDER_BUY && currentCredits < CREDIT_BUFFER * 0.5) {
                 this.cancelOrder(order, 'Low credits');
+                cancelled.add(order.id);
                 continue;
             }
 
             // Check for buy orders of minerals we mine ourselves
             if (order.type === ORDER_BUY && MY_MINERALS[order.resourceType]) {
                 this.cancelOrder(order, 'We can mine this ourselves');
+                cancelled.add(order.id);
                 continue;
             }
 
-            // Cancel duplicate orders (keep best-priced)
-            let duplicates = Object.values(myOrders).filter(o =>
-                o.roomName === order.roomName && o.resourceType === order.resourceType && o.type === order.type && o.id !== order.id
-            );
-            if (duplicates.length) {
-                const group = [order, ...duplicates];
-                const keeper = order.type === ORDER_SELL ? _.max(group, 'price') : _.min(group, 'price');
-                for (const dup of group) {
-                    if (dup.id !== keeper.id) this.cancelOrder(dup, 'Duplicate order detected');
+            // Cancel duplicate orders. Keep best price, then oldest; never drop both
+            // when prices tie (lodash max/min is unstable on equal keys).
+            const dupKey = `${order.roomName}|${order.type}|${order.resourceType}`;
+            if (!seenGroups.has(dupKey)) {
+                seenGroups.add(dupKey);
+                const group = [];
+                for (const id in myOrders) {
+                    const other = myOrders[id];
+                    if (!other || isPendingOrder(other) || cancelled.has(other.id) || !other.active || !other.remainingAmount) continue;
+                    if (other.roomName === order.roomName && other.resourceType === order.resourceType && other.type === order.type) {
+                        group.push(other);
+                    }
                 }
-                continue;
+                if (group.length > 1) {
+                    const keeper = pickDuplicateKeeper(group, order.type);
+                    for (const dup of group) {
+                        if (dup.id !== keeper.id) {
+                            this.cancelOrder(dup, 'Duplicate order detected');
+                            cancelled.add(dup.id);
+                        }
+                    }
+                }
             }
+            if (cancelled.has(order.id)) continue;
 
             // Cancel energy orders if surplus detected
             if (order.resourceType === RESOURCE_ENERGY) {

@@ -6,6 +6,7 @@
 
 const {getEffectiveSupply} = require('termNetwork');
 const {isMarketHub} = require('termMarket');
+const {hasRoomOrder, recordCreatedOrder} = require('termCache');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
 const {recordTransferEnergyCost, markTerminalsUsed} = require('termTransfers');
 const {getRoomKeepAmount} = require('termKeep');
@@ -37,9 +38,7 @@ Object.assign(TerminalControl.prototype, {
             if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) continue;
             if ((resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY)
                 && !this.allowEnergySell(terminal)) continue;
-            if (_.some(myOrders, o =>
-                o.roomName === terminal.pos.roomName && o.resourceType === resource && o.type === ORDER_SELL
-            )) continue;
+            if (hasRoomOrder(myOrders, terminal.pos.roomName, resource, ORDER_SELL)) continue;
 
             let sellAmount = this.computePressureDumpAmount(terminal, resource);
             if (sellAmount < FIRE_SALE_MIN) continue;
@@ -51,13 +50,15 @@ Object.assign(TerminalControl.prototype, {
             }
             if (sellAmount < FIRE_SALE_MIN) continue;
 
-            if (Game.market.createOrder({
+            const spec = {
                 type: ORDER_SELL,
                 resourceType: resource,
                 price,
                 totalAmount: sellAmount,
                 roomName: terminal.pos.roomName
-            }) === OK) {
+            };
+            if (Game.market.createOrder(spec) === OK) {
+                recordCreatedOrder(spec);
                 log.w(`Pressure Sell Order: ${sellAmount} ${resource} at/per ${price} in ${roomLink(terminal.room.name)}`, "Market: ");
                 return true;
             }
@@ -85,10 +86,8 @@ Object.assign(TerminalControl.prototype, {
                     lab.memory?.itemNeeded === resource || lab.memory?.neededBoost === resource
                 );
             })) continue;
-            if (_.some(myOrders, o =>
-                o.roomName === terminal.pos.roomName && o.type === ORDER_BUY && o.resourceType === resource
-            )) continue;
-            if (hasExistingSellOrder(myOrders, terminal, resource)) continue;
+            if (hasRoomOrder(myOrders, terminal.pos.roomName, resource, ORDER_BUY)) continue;
+            if (hasRoomOrder(myOrders, terminal.pos.roomName, resource, ORDER_SELL)) continue;
             if ((!SELL_BOOSTS || terminal.room.level < 8) && ALL_BOOSTS.includes(resource)) continue;
 
             if (COMPRESSED_COMMODITIES.includes(resource) && !this.canEmpireSell(resource)) continue;
@@ -113,20 +112,17 @@ Object.assign(TerminalControl.prototype, {
             if (createSellOrder(terminal, resource, price, sellAmount)) return true;
         }
 
-        function hasExistingSellOrder(myOrders, terminal, resourceType) {
-            return _.some(myOrders, (order) =>
-                order.roomName === terminal.pos.roomName && order.resourceType === resourceType && order.type === ORDER_SELL
-            );
-        }
-
         function createSellOrder(terminal, resourceType, price, sellAmount) {
-            if (Game.market.createOrder({
+            if (hasRoomOrder(myOrders, terminal.pos.roomName, resourceType, ORDER_SELL)) return false;
+            const spec = {
                 type: ORDER_SELL,
                 resourceType: resourceType,
                 price: price,
                 totalAmount: sellAmount,
                 roomName: terminal.pos.roomName
-            }) === OK) {
+            };
+            if (Game.market.createOrder(spec) === OK) {
+                recordCreatedOrder(spec);
                 log.w(`New Sell Order: ${resourceType} at/per ${price} in ${roomLink(terminal.room.name)}`, "Market: ");
                 return true;
             }
