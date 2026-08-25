@@ -7,7 +7,6 @@
 const spawnState = require('spawnState');
 const {spawnEnergyState} = require('spawnFlow');
 const {getCreepCount} = require('spawnCounts');
-const {recordSiegeWave} = require('hcTargets');
 const {ownedSpawnCount} = require('bodyHelpers');
 const {
     getQueue, generateCreepName, queueCacheKey,
@@ -335,9 +334,6 @@ function spawnQueuedCreep(room, availableSpawn, queuedBuild, body) {
             preReserveBoostLab(availableSpawn.room, name, neededBoosts, body, role, misc);
         }
         spawnState.lastBuilt[availableSpawn.room.name] = Game.time;
-        if ((operation === 'roomDenial' || operation === 'stronghold') && !(misc && misc.waitFor > 1)) {
-            recordSiegeWave(destination);
-        }
         if (!queuedBuild.operation) log.d(`${availableSpawn.room.name} Spawning a ${role}`);
         return OK;
     }

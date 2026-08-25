@@ -70,6 +70,7 @@ const SIEGE_TERMINAL_REASONS = {
     UNSUSTAINABLE: true,
     'MAX WAVES': true,
     'NUKE HOLD': true,
+    'TOWERS DOWN': true,
 };
 const SIEGE_END_REASONS = {
     SUCCESS: true,
@@ -78,6 +79,7 @@ const SIEGE_END_REASONS = {
     UNSUSTAINABLE: true,
     'MAX WAVES': true,
     'NUKE HOLD': true,
+    'TOWERS DOWN': true,
 };
 const SIEGE_QUIET_END = {
     ENDED: true,

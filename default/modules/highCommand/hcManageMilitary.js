@@ -5,7 +5,7 @@
  */
 
 const state = require('hcState');
-const {intelOwner, checkForNap} = require('hcUtils');
+const {intelOwner, checkForNap, siegeFocusOwner, warPriorityMap} = require('hcUtils');
 const {stampOperationCooldown} = require('hcTargets');
 
 function manageMilitary() {
@@ -22,6 +22,10 @@ function manageMilitary() {
     }
 
     const operationLimit = state.OPERATION_LIMIT + 1;
+
+    if (activeSiege > state.SIEGE_LIMIT) {
+        activeSiege = trimNonFocusSieges(activeSiege);
+    }
 
     for (const key in Memory.targetRooms) {
         const target = Memory.targetRooms[key];
@@ -188,6 +192,25 @@ function manageMilitary() {
             }
         }
     }
+}
+
+function trimNonFocusSieges(activeSiege) {
+    const focus = siegeFocusOwner(warPriorityMap());
+    if (!focus) return activeSiege;
+    const keys = Object.keys(Memory.targetRooms);
+    for (let i = 0; i < keys.length; i++) {
+        if (activeSiege <= state.SIEGE_LIMIT) break;
+        const key = keys[i];
+        const target = Memory.targetRooms[key];
+        if (!target || target.manual || target.type !== 'roomDenial') continue;
+        const owner = INTEL[key] && INTEL[key].owner;
+        if (owner === focus) continue;
+        log.a(`Canceling roomDenial in ${roomLink(key)} — concentrating sieges on ${focus}.`, 'HIGH COMMAND: ');
+        stampOperationCooldown(key, target);
+        delete Memory.targetRooms[key];
+        activeSiege--;
+    }
+    return activeSiege;
 }
 
 module.exports = {

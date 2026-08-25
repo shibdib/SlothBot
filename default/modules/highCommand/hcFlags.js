@@ -11,6 +11,7 @@
 
 const {getLoadedNukers, pickLauncher, executeNukeLaunch} = require('hcNukes');
 const {notifySiegeLaunch, notifySiegeEnd} = require('module.notifications');
+const {unassignRoom} = require('spawnOperations');
 
 
 function manualAttacks() {
@@ -42,8 +43,7 @@ function manualAttacks() {
         }
 
         if (operation.includes('assign')) {
-            if (Memory.targetRooms[roomName]) Memory.targetRooms[roomName].assignedRoom = undefined;
-            if (Memory.auxiliaryTargets[roomName]) Memory.auxiliaryTargets[roomName].assignedRoom = undefined;
+            unassignRoom(roomName, 'Manual reassign flag.');
             removeFlagAndLog('Clearing room assignment for ' + roomLink(roomName));
             continue;
         }

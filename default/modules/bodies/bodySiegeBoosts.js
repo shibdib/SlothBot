@@ -82,10 +82,8 @@ function determineNeededHeals(damage) {
 function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedParts = false, toughCount = 0, moveFactor = 1) {
     const destination = gen.creepInfo.destination;
     const intel = INTEL[destination];
-    const targetMemory = Memory.targetRooms[destination];
     const damageToTank = getSiegeTowerDamage(intel);
     if (!damageToTank) {
-        if (targetMemory) targetMemory.boostTier = undefined;
         return false;
     }
 
@@ -130,11 +128,9 @@ function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedPa
     }
 
     if (!chosen) {
-        if (targetMemory) targetMemory.boostTier = undefined;
         return false;
     }
 
-    targetMemory.boostTier = chosen.tier;
     gen.creepInfo.neededBoosts = {
         boostPart: HEAL,
         boost: chosen.boost,
@@ -182,8 +178,6 @@ function pinAvailableHealBoost(gen, healCount) {
         nb.boost = boost;
         nb.boostTier = t;
         nb.amount = healCount;
-        const dest = gen.creepInfo.destination;
-        if (dest && Memory.targetRooms[dest]) Memory.targetRooms[dest].boostTier = t;
         return;
     }
 }

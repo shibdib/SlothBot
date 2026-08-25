@@ -3,15 +3,24 @@
  *
  * Military operation planning and target selection.
  *
- * One mission per war-target user, first matching rule:
- *   1. Siegeable towered room → roomDenial
- *   2. Naked owned room → occupy (guard)
- *   3. Else raid remotes → remoteDenial (skipped when harassment already covers remotes)
+ * Sieges concentrate on one war-target user (sticky existing auto roomDenial,
+ * else highest-priority user with a siegeable room) and fill SIEGE_LIMIT
+ * against that player. Occupy / remoteDenial stay one non-siege op per user
+ * and may share the focus player.
  * Strongholds stay on their own track (one at a time, never while invulnerable).
  */
 
 const state = require('hcState');
-const {siegeLevel, siegeOpLevel, strongholdSiegeLevel, siegeFeasibility, scoreTarget, checkForNap} = require('hcUtils');
+const {
+    siegeOpLevel,
+    strongholdSiegeLevel,
+    scoreTarget,
+    checkForNap,
+    roomDenialLaunchOk,
+    siegeFocusOwner,
+    countActiveSieges,
+    warPriorityMap,
+} = require('hcUtils');
 const {setTarget} = require('hcTargets');
 const {notifySiegeLaunch} = require('module.notifications');
 const {getOpsPauseReason} = require('hcReadiness');
@@ -87,7 +96,7 @@ function pickMissionForUser(rooms, opts) {
         const crushNew = NEW_SPAWN_DENIAL && (r.level || 0) <= 3 && !noDirect && safe;
         const siegeReady = crushNew || (safe && (r.lastSiege || 0) + siegeCooldown < ct);
 
-        if (r.towers && !noDirect && siegeReady && siegeLevel(r.towers) && siegeFeasibility(r) >= -1) {
+        if (allowSiege && roomDenialLaunchOk(r)) {
             let score = scoreTarget(r.name, 'roomDenial', warPriorityByUser);
             if (crushNew) score -= 200;
             if (score < bestSiegeScore) {
@@ -124,6 +133,42 @@ function pickMissionForUser(rooms, opts) {
     return null;
 }
 
+function removeCandidate(rooms, roomName) {
+    for (let i = 0; i < rooms.length; i++) {
+        if (rooms[i] && rooms[i].name === roomName) {
+            rooms.splice(i, 1);
+            return;
+        }
+    }
+}
+
+function resolveSiegeFocus(orderedUsers, candidates, warPriorityByUser, siegeCooldown) {
+    const sticky = siegeFocusOwner(warPriorityByUser);
+    if (sticky) return sticky;
+    for (let i = 0; i < orderedUsers.length; i++) {
+        const user = orderedUsers[i].user;
+        const rooms = candidates.byOwner[user];
+        if (!rooms) continue;
+        const pick = pickMissionForUser(rooms, {
+            warPriorityByUser,
+            siegeCooldown,
+            allowSiege: true,
+            allowOccupy: false,
+            allowDenial: false,
+        });
+        if (pick && pick.type === 'roomDenial') return user;
+    }
+    return null;
+}
+
+function canLaunchNewRoomDenial(intel) {
+    if (!roomDenialLaunchOk(intel)) return false;
+    if (countActiveSieges() >= (state.SIEGE_LIMIT || 0)) return false;
+    const focus = siegeFocusOwner(warPriorityMap());
+    if (focus && intel.owner !== focus) return false;
+    return true;
+}
+
 function militaryOperations() {
     if (MANUAL_OPERATIONS.length) {
         for (const op of MANUAL_OPERATIONS) {
@@ -148,15 +193,14 @@ function militaryOperations() {
 
     const idx = global.getIntelIndexes ? global.getIntelIndexes() : {byOwner: {}, strongholdActive: new Set()};
 
-    const warPriorityByUser = {};
-    for (const t of WAR_TARGETS) warPriorityByUser[t.user] = t.priority;
+    const warPriorityByUser = warPriorityMap();
     const warTargetUsers = new Set(Object.keys(warPriorityByUser));
 
     let activeStrongholds = 0;
     let activeNonSiege = 0;
     let activeSiege = 0;
     let activeRemoteDenials = 0;
-    const attackedOwners = new Set();
+    const ownersWithNonSiege = new Set();
 
     for (const key in Memory.targetRooms) {
         const op = Memory.targetRooms[key];
@@ -166,8 +210,8 @@ function militaryOperations() {
         else {
             activeNonSiege++;
             if (op.type === 'remoteDenial') activeRemoteDenials++;
+            if (INTEL[key] && INTEL[key].owner) ownersWithNonSiege.add(INTEL[key].owner);
         }
-        if (INTEL[key] && INTEL[key].owner) attackedOwners.add(INTEL[key].owner);
     }
 
     if (!state.ALLOW_NEW_OPS) {
@@ -243,37 +287,62 @@ function militaryOperations() {
 
     let planned = 0;
     let considered = 0;
-    for (let i = 0; i < orderedUsers.length; i++) {
-        const user = orderedUsers[i].user;
-        if (attackedOwners.has(user)) continue;
+    const focus = resolveSiegeFocus(orderedUsers, candidates, warPriorityByUser, siegeCooldown);
+
+    if (focus && activeSiege < state.SIEGE_LIMIT) {
+        const rooms = candidates.byOwner[focus];
+        if (rooms) {
+            considered++;
+            while (activeSiege < state.SIEGE_LIMIT) {
+                const pick = pickMissionForUser(rooms, {
+                    warPriorityByUser,
+                    siegeCooldown,
+                    allowSiege: true,
+                    allowOccupy: false,
+                    allowDenial: false,
+                });
+                if (!pick) break;
+                setTarget(pick.room, pick.type, pick.level);
+                removeCandidate(rooms, pick.room);
+                planned++;
+                activeSiege++;
+            }
+        }
+    }
+
+    const allowOccupy = () => activeNonSiege < state.OPERATION_LIMIT;
+    const allowDenial = () => !harassCoversRemotes
+        && activeRemoteDenials < maxRemoteDenial
+        && activeNonSiege < state.OPERATION_LIMIT;
+
+    const planNonSiegeForUser = (user) => {
+        if (ownersWithNonSiege.has(user)) return;
+        if (!allowOccupy() && !allowDenial()) return;
         const rooms = candidates.byOwner[user];
-        if (!rooms) continue;
+        if (!rooms) return;
         considered++;
-
-        const allowSiege = activeSiege < state.SIEGE_LIMIT;
-        const allowOccupy = activeNonSiege < state.OPERATION_LIMIT;
-        const allowDenial = !harassCoversRemotes
-            && activeRemoteDenials < maxRemoteDenial
-            && activeNonSiege < state.OPERATION_LIMIT;
-        if (!allowSiege && !allowOccupy && !allowDenial) break;
-
         const pick = pickMissionForUser(rooms, {
             warPriorityByUser,
             siegeCooldown,
-            allowSiege,
-            allowOccupy,
-            allowDenial,
+            allowSiege: false,
+            allowOccupy: allowOccupy(),
+            allowDenial: allowDenial(),
         });
-        if (!pick) continue;
-
+        if (!pick) return;
         setTarget(pick.room, pick.type, pick.level);
+        removeCandidate(rooms, pick.room);
         planned++;
-        attackedOwners.add(user);
-        if (pick.type === 'roomDenial') activeSiege++;
-        else {
-            activeNonSiege++;
-            if (pick.type === 'remoteDenial') activeRemoteDenials++;
-        }
+        ownersWithNonSiege.add(user);
+        activeNonSiege++;
+        if (pick.type === 'remoteDenial') activeRemoteDenials++;
+    };
+
+    if (focus) planNonSiegeForUser(focus);
+    for (let i = 0; i < orderedUsers.length; i++) {
+        if (!allowOccupy() && !allowDenial()) break;
+        const user = orderedUsers[i].user;
+        if (user === focus) continue;
+        planNonSiegeForUser(user);
     }
 
     if (planned) {
@@ -285,4 +354,5 @@ function militaryOperations() {
 
 module.exports = {
     militaryOperations,
+    canLaunchNewRoomDenial,
 };

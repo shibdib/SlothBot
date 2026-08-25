@@ -1030,6 +1030,8 @@ Creep.prototype.formSquad = function () {
         if (isCommittedSquad(creep)) return;
 
         const operation = creep.memory.operation;
+        const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
+        if (!(waitFor > 1) && (operation === 'roomDenial' || operation === 'stronghold')) return;
         const destination = creep.memory.destination;
 
         // Without a coordinating signal (shared op + dest) there's nothing to

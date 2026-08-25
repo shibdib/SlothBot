@@ -47,6 +47,24 @@ function bumpFormingWaitFor(role, destination, operation, waitFor) {
     return bumped;
 }
 
+function clearOpQueueRole(role, destination, operation) {
+    const drop = (cache) => {
+        if (!cache) return;
+        for (const key in cache) {
+            const e = cache[key];
+            if (!e || e.role !== role) continue;
+            if ((e.destination || '') !== (destination || '')) continue;
+            if ((e.operation || '') !== (operation || '')) continue;
+            delete cache[key];
+        }
+    };
+    drop(CREEP_QUEUES.global);
+    for (const roomName in CREEP_QUEUES) {
+        if (roomName === 'global') continue;
+        drop(CREEP_QUEUES[roomName]);
+    }
+}
+
 function clearSmallerWaitForWaves(role, destination, operation, waitFor) {
     if (!(waitFor > 1)) return;
     const drop = (cache) => {
@@ -85,6 +103,15 @@ function queueCreepIfNeeded(spawnInfo) {
         clearSmallerWaitForWaves(spawnInfo.role, spawnInfo.destination, spawnInfo.operation, waveWait);
     }
     const count = getCreepCount(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment, waveWait);
+    // Escalating waitFor 2 → 4 uses a different count key. A sealed duo still
+    // in the field must cover the slot until replacement lead time, or we
+    // spawn a full quad on top of them.
+    if (waveWait && count === 0 && spawnInfo.destination && spawnInfo.operation && !assignment) {
+        const anyWave = getCreepCount(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment);
+        if (anyWave > 0 && !creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment)) {
+            return false;
+        }
+    }
     const global = (!spawnInfo.room && spawnInfo.destination) || spawnInfo.global;
 
     if (count < spawnInfo.numberNeeded || (count <= spawnInfo.numberNeeded && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment, waveWait))) {
@@ -380,6 +407,7 @@ module.exports = {
     queueCacheKey,
     queueCreepIfNeeded,
     queueCreep,
+    clearOpQueueRole,
     getQueue,
     generateCreepName,
     pruneQueueCache,

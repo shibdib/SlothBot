@@ -1,4 +1,5 @@
 const highCommand = require('module.highCommand');
+const {recordSiegeWave} = require('hcTargets');
 
 function extraHopsCap() {
     return (typeof global.ATTACK_ROUTE_MAX_EXTRA_HOPS === 'number') ? global.ATTACK_ROUTE_MAX_EXTRA_HOPS : 2;
@@ -21,18 +22,55 @@ function attackRouteHops(from, to) {
     return Game.map.getRoomLinearDistance(from, to);
 }
 
+function isDestNeighbor(dest, roomName) {
+    if (!dest || !roomName || dest === roomName) return false;
+    const exits = Game.map.describeExits(dest);
+    if (!exits) return false;
+    const neighbors = Object.values(exits);
+    for (let i = 0; i < neighbors.length; i++) {
+        if (neighbors[i] === roomName) return true;
+    }
+    return false;
+}
+
+function isViableStaging(roomName, dest) {
+    if (!roomName || roomName === dest) return false;
+    if (dest && !isDestNeighbor(dest, roomName)) return false;
+    const intel = INTEL[roomName];
+    if (!intel) return true;
+    if (intel.owner && !isFriendlyOwner(intel.owner)) return false;
+    return true;
+}
+
+function posFacesDest(pos, dest) {
+    if (!pos || !dest) return false;
+    const exits = Game.map.describeExits(pos.roomName);
+    if (!exits) return false;
+    if (exits[TOP] === dest) return pos.y === 0;
+    if (exits[BOTTOM] === dest) return pos.y === 49;
+    if (exits[LEFT] === dest) return pos.x === 0;
+    if (exits[RIGHT] === dest) return pos.x === 49;
+    return false;
+}
+
 function resolveAttackRoom(dest) {
     if (!dest) return undefined;
     const attack = INTEL[dest] && INTEL[dest].attackDirection;
     if (!attack) return undefined;
     const exits = Game.map.describeExits(dest);
     if (!exits) return undefined;
-    if (exits[attack]) return exits[attack];
-    const neighbors = Object.values(exits);
-    for (let i = 0; i < neighbors.length; i++) {
-        if (neighbors[i] === attack) return attack;
+    let roomName = exits[attack] || undefined;
+    if (!roomName) {
+        const neighbors = Object.values(exits);
+        for (let i = 0; i < neighbors.length; i++) {
+            if (neighbors[i] === attack) {
+                roomName = attack;
+                break;
+            }
+        }
     }
-    return undefined;
+    if (!isViableStaging(roomName, dest)) return undefined;
+    return roomName;
 }
 
 function closestFriendlyNeighbor(dest, origin) {
@@ -55,11 +93,11 @@ function closestFriendlyNeighbor(dest, origin) {
 }
 
 function resolveDenialStaging(dest, origin) {
-    if (!dest) return dest;
+    if (!dest) return undefined;
     const destRoom = Game.rooms[dest];
     if (destRoom && destRoom.determineBestAttackRoute) {
         const picked = destRoom.determineBestAttackRoute(origin);
-        if (picked) return picked;
+        if (isViableStaging(picked, dest)) return picked;
     }
 
     const attackRoom = resolveAttackRoom(dest);
@@ -70,28 +108,32 @@ function resolveDenialStaging(dest, origin) {
         const attackHops = attackRouteHops(origin, attackRoom);
         const minHops = closest ? attackRouteHops(origin, closest) : attackHops;
         if (sameOrigin || attackHops <= minHops + extraHopsCap()) return attackRoom;
-        return closest || dest;
+        return closest;
     }
-    return attackRoom || closest || dest;
+    return attackRoom || closest;
 }
 
 Creep.prototype.ensureDenialStaging = function () {
     if (!this.memory.destination) return;
     if (!this.memory.misc) this.memory.misc = {};
+    const dest = this.memory.destination;
     const origin = this.memory.misc.formColony || this.memory.colony;
     if (this.memory.misc.stagingOrigin && origin && this.memory.misc.stagingOrigin !== origin) {
         this.memory.misc.staged = undefined;
         this.memory.misc.stagingRoom = undefined;
     }
     this.memory.misc.stagingOrigin = origin;
-    const resolved = resolveDenialStaging(this.memory.destination, origin);
+    const resolved = resolveDenialStaging(dest, origin);
     const current = this.memory.misc.stagingRoom;
-    if (!current || current === this.memory.destination) {
+    const currentOk = current && current !== dest && isViableStaging(current, dest);
+    if (!currentOk) {
         this.memory.misc.stagingRoom = resolved;
-    } else if (!this.memory.misc.staged && resolved !== this.memory.destination && resolved !== current) {
-        this.memory.misc.stagingRoom = resolved;
+        if (current && current !== resolved) this.memory.misc.staged = undefined;
     }
-    if (this.memory.misc.stagingRoom === this.room.name) this.memory.misc.staged = true;
+    const staging = this.memory.misc.stagingRoom;
+    if (staging && staging === this.room.name && dest && posFacesDest(this.pos, dest)) {
+        this.memory.misc.staged = true;
+    }
 };
 
 function destExitInward(pos) {
@@ -181,10 +223,23 @@ function engageDenialBreach(creep, barrier) {
     return true;
 }
 
+function recordSoloSiegeDeparture(creep) {
+    if (creep.memory.siegeWaveRecorded) return;
+    const op = creep.memory.operation;
+    if (op !== 'roomDenial' && op !== 'stronghold') return;
+    if (creep.memory.misc && creep.memory.misc.waitFor > 1) return;
+    const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
+    if (home && creep.room.name === home) return;
+    creep.memory.siegeWaveRecorded = true;
+    recordSiegeWave(creep.memory.destination);
+}
+
 Creep.prototype.denyRoom = function (options = {}) {
     // Make sure to display status to inform the user what's happening
     const sentence = ['Coming', 'For', 'That', 'Booty'];
     this.say(sentence[Game.time % sentence.length], true);
+
+    if (!options.squadMove) recordSoloSiegeDeparture(this);
 
     if (this.room.name === this.memory.destination) {
         if (!this.memory.activeTracked || this.memory.activeTracked + 50 < Game.time) {
@@ -235,8 +290,12 @@ Creep.prototype.denyRoom = function (options = {}) {
     if (options.squadMove) return;
 
     this.ensureDenialStaging();
-    const destination = this.memory.misc && this.memory.misc.stagingRoom && !this.memory.misc.staged
-        ? this.memory.misc.stagingRoom
+    const staging = this.memory.misc && this.memory.misc.stagingRoom;
+    if (staging && staging !== this.memory.destination && this.room.name === staging) {
+        return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 23});
+    }
+    const destination = staging && !this.memory.misc.staged
+        ? staging
         : this.memory.destination;
     if (this.room.name !== destination) {
         return this.shibMove(new RoomPosition(25, 25, destination), {range: 23});

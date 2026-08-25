@@ -4,8 +4,9 @@
  * Target room assignment for military and auxiliary ops.
  */
 
-const {getPriority, scoreOriginDistance} = require('hcUtils');
+const {getPriority, scoreOriginDistance, siegeOpLevel} = require('hcUtils');
 const {notifySiegeLaunch} = require('module.notifications');
+const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS} = require('bodySiegeBoosts');
 
 function setTarget(room, operation, level = 1, military = true) {
     let cache = Memory.targetRooms || {};
@@ -28,6 +29,32 @@ function setTarget(room, operation, level = 1, military = true) {
     return log.a(`${operation} operation planned for ${roomLink(room)} owned by ${INTEL[room].owner || 'N/A'} (Nearest capable room - ${scoreOriginDistance(room, operation)} rooms away)`, 'HIGH COMMAND: ');
 }
 
+/**
+ * Turn an existing op (usually scout) into a roomDenial without wiping
+ * assignedRoom / userList. Resets tick so siege stale uses a full lifetime.
+ */
+function promoteToRoomDenial(roomName) {
+    const intel = INTEL[roomName] || {};
+    const existing = Memory.targetRooms && Memory.targetRooms[roomName];
+    if (!existing) {
+        setTarget(roomName, 'roomDenial', siegeOpLevel(intel.towers));
+        return;
+    }
+    existing.type = 'roomDenial';
+    existing.level = siegeOpLevel(intel.towers);
+    existing.waveLimit = 8;
+    existing.priority = getPriority(roomName, 'roomDenial');
+    existing.tick = Game.time;
+    if (intel.towers) {
+        existing.boosts = SIEGE_REQUIRED_BOOSTS.slice();
+        existing.optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();
+    } else {
+        existing.boosts = undefined;
+        existing.optionalBoosts = undefined;
+    }
+    notifySiegeLaunch(roomName);
+}
+
 function recordSiegeWave(destination) {
     if (!destination) return;
     const op = Memory.targetRooms[destination];
@@ -46,6 +73,10 @@ function operationRan(target) {
     if (!target) return false;
     if (target.waves || target.lastEnemyKilled) return true;
     if ((target.friendlyDead || 0) > 0 || (target.enemyDead || 0) > 0) return true;
+    const siege = target.type === 'roomDenial' || !!target.dDay;
+    // Sieges must actually wave or fight before lastSiege locks the room.
+    // Assignment-only (labs empty, never spawned) used to stamp a 3000-tick lock.
+    if (siege) return false;
     if (target.assignedAt && target.assignedAt + 200 < Game.time) return true;
     return false;
 }
@@ -70,6 +101,7 @@ function stampOperationCooldown(roomName, target, force) {
 
 module.exports = {
     setTarget,
+    promoteToRoomDenial,
     recordSiegeWave,
     operationRan,
     stampOperationCooldown,

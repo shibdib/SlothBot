@@ -9,7 +9,7 @@ const state = require('hcState');
 const {getEmpireReadiness} = require('hcReadiness');
 const {collectThreatRemotes} = require('harassUtils');
 const {getCreepCount} = require('spawnCounts');
-const {queueCreepIfNeeded, pruneQueueCache} = require('spawnQueue');
+const {queueCreepIfNeeded, pruneQueueCache, clearOpQueueRole} = require('spawnQueue');
 const {buildOperationsSignature, pruneEmptyOperations, getPriority, resolvePendingAssignments} = require('spawnOperations');
 const {getSiegeTowerDamage} = require('module.bodyGenerator');
 const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS, siegeLabBoosts} = require('bodySiegeBoosts');
@@ -76,7 +76,7 @@ function globalCreepQueue() {
             if (!Memory.targetRooms[key] && !Memory.auxiliaryTargets[key]) continue;
         }
 
-        const opLevel = Memory.targetRooms[key] ? operation.level : operation.level || 1;
+        const opLevel = operation.level != null ? operation.level : 1;
         let priority = INTEL[key] ? getPriority(key) : PRIORITIES.secondary;
         if (Memory.auxiliaryTargets[key] && operation.priority != null) {
             priority = Math.min(priority, operation.priority);
@@ -90,7 +90,7 @@ function globalCreepQueue() {
         }
 
         const intel = INTEL[key];
-        if (!intel || intel.cached == null || !opLevel) {
+        if (!intel || intel.cached == null) {
             queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
             continue;
         }
@@ -196,7 +196,19 @@ function globalCreepQueue() {
                         || (rdIntel.armedHostile && Game.time - rdIntel.armedHostile < CREEP_LIFE_TIME));
                     const useSolo = siegeDamage <= 960 && destSeen && !defenders && rdWaves < 2;
                     const labBoosts = siegeLabBoosts();
+                    // RCL7 has no observers. A scout in dest is how we see
+                    // ramparts on the landing tiles before/during the 2×2 hop.
+                    if (!Game.rooms[key]) {
+                        queueCreepIfNeeded({
+                            role: 'scout',
+                            priority: 1,
+                            numberNeeded: 1,
+                            destination: key,
+                            closestRoom: true
+                        });
+                    }
                     if (useSolo) {
+                        clearOpQueueRole('longbowSquad', key, 'roomDenial');
                         queueCreepIfNeeded({
                             role: 'longbow',
                             priority,
@@ -208,6 +220,7 @@ function globalCreepQueue() {
                         });
                     } else {
                         const waitFor = (rdWaves >= 2 || siegeDamage > 960) ? 4 : 2;
+                        clearOpQueueRole('longbow', key, 'roomDenial');
                         queueCreepIfNeeded({
                             role: 'longbowSquad', priority, numberNeeded: waitFor, destination: key,
                             misc: {waitFor: waitFor, boosts: labBoosts},
@@ -216,15 +229,18 @@ function globalCreepQueue() {
                         });
                     }
                 } else {
+                    // Intel says no towers. Do not send a naked longbow into a
+                    // possible bunker — scout until vision converts to guard.
                     operation.boosts = undefined;
                     operation.optionalBoosts = undefined;
+                    clearOpQueueRole('longbow', key, 'roomDenial');
+                    clearOpQueueRole('longbowSquad', key, 'roomDenial');
                     queueCreepIfNeeded({
-                        role: 'longbow',
-                        priority,
+                        role: 'scout',
+                        priority: 1,
                         numberNeeded: 1,
                         destination: key,
-                        closestRoom: true,
-                        operation: 'roomDenial'
+                        closestRoom: true
                     });
                 }
                 if (operation.claimAttacker) {
@@ -259,7 +275,7 @@ function globalCreepQueue() {
                 });
                 break;
             case 'guard':
-                if (opLevel === 1) {
+                if (opLevel <= 1) {
                     queueCreepIfNeeded({
                         role: 'longbow',
                         priority,

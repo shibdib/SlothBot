@@ -990,6 +990,7 @@ const BOOST_AMOUNT_PER_PART = LAB_BOOST_MINERAL;
 const BOOST_TTL_FLOOR = CREEP_LIFE_TIME * 0.6;
 const BOOST_RENEW_INITIAL = CREEP_LIFE_TIME * 0.85;
 const BOOST_RENEW_WAITING = CREEP_LIFE_TIME * 0.95;
+const SOLO_BOOST_WAIT_TICKS = 300;
 
 // Shared with module.creepSpawning.preReserveBoostLab.
 global.WORK_BOOST_BY_ROLE = {
@@ -1108,6 +1109,11 @@ function planCoversExpectedBoosts(creep, plan) {
 
 function isWaitForWave(creep) {
     return !!(creep.memory.misc && creep.memory.misc.waitFor > 1);
+}
+
+function isSiegeBoostOp(creep) {
+    const op = creep && creep.memory && creep.memory.operation;
+    return op === 'roomDenial' || op === 'stronghold';
 }
 
 function labMineralCap(lab, resource) {
@@ -1533,23 +1539,30 @@ function ensureWaveBoostLab(creep, boostNeeded, amountNeeded, names, excludeIds)
     return bindBoostLab(lab, boostNeeded, amountNeeded, names);
 }
 
-// True when another same-wave body is spawning or still queued, so we should
-// keep waiting / pre-reserving for the full waitFor rather than sealing.
+// True when another same-wave body is spawning, still queued, or walking in
+// to formColony (assignment steal). Do not seal a 3-body pad while the 4th
+// is on the highway.
 Creep.prototype.waveStillIncoming = function () {
     const waitFor = this.memory.misc && this.memory.misc.waitFor;
     if (!(waitFor > 1)) return false;
     const dest = this.memory.destination || '';
     const op = this.memory.operation || '';
+    const home = (this.memory.misc && this.memory.misc.formColony) || this.memory.colony;
 
     for (const name in Game.creeps) {
         const c = Game.creeps[name];
         if (!c.my || !c.memory || c.id === this.id) continue;
-        if (!c.spawning) continue;
         if ((c.memory.destination || '') !== dest) continue;
         if ((c.memory.operation || '') !== op) continue;
         if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
         if (((c.memory.misc && c.memory.misc.waitFor) || 0) !== waitFor) continue;
-        return true;
+        const role = c.memory.role || '';
+        const old = c.memory.oldRole || '';
+        if (role !== 'longbowSquad' && role !== 'longbow'
+            && old !== 'longbowSquad' && old !== 'longbow') continue;
+        if (c.spawning) return true;
+        const theirHome = (c.memory.misc && c.memory.misc.formColony) || c.memory.colony;
+        if (home && theirHome === home && c.room.name !== home) return true;
     }
 
     if (typeof CREEP_QUEUES === 'undefined' || !CREEP_QUEUES) return false;
@@ -1609,16 +1622,24 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
         const plan = buildBoostPlan(this, bodyPart);
         if (!_.size(plan)) {
             if (this.memory.neededBoosts && !this.memory.hasBoosted) {
-                return !isWaitForWave(this);
+                if (isWaitForWave(this)) return false;
+                if (!this.memory.boostWaitTick) this.memory.boostWaitTick = Game.time;
+                if (Game.time - this.memory.boostWaitTick < SOLO_BOOST_WAIT_TICKS) return true;
+                if (isSiegeBoostOp(this)) {
+                    this.recycleCreep();
+                    return true;
+                }
+                finishBoosting(this);
+                return false;
             }
             finishBoosting(this);
             return false;
         }
         if (isWaitForWave(this) && !planCoversExpectedBoosts(this, plan)) {
-            // Required remaining boosts are not in room.store. LabTech cannot
-            // invent them — finish with what landed so the wave can commit
-            // instead of camping the pad until BOOST_WAIT_TICKS.
-            if (this.memory.hasBoosted && this.memory.hasBoosted.length) {
+            // Required remaining boosts are not in room.store. Sieges must not
+            // finishBoosting on optional TOUGH/RA alone — holdForWave recycles
+            // at BOOST_WAIT_TICKS if HEAL never lands.
+            if (this.memory.hasBoosted && this.memory.hasBoosted.length && !isSiegeBoostOp(this)) {
                 finishBoosting(this);
                 return false;
             }

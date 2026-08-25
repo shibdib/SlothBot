@@ -1,9 +1,11 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
-const {siegeLevel} = require('hcUtils');
-const {notifySiegeLaunch, notifySiegeEnd} = require('module.notifications');
+const {getMilitaryCreeps} = require('hcUtils');
+const {notifySiegeEnd} = require('module.notifications');
 const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS} = require('bodySiegeBoosts');
+const {canLaunchNewRoomDenial} = require('hcMilitaryOps');
+const {promoteToRoomDenial} = require('hcTargets');
 
 Creep.prototype.scoutRoom = function () {
     if (this.room.name !== this.memory.destination) {
@@ -109,11 +111,36 @@ function handleRoomDenialOperation(room) {
         return;
     }
 
-    const towers = room.towers[0];
+    const towerCount = (room.towers || []).length;
+    if (!towerCount) {
+        convertRoomDenialToGuard(room);
+        return;
+    }
+
     const armedHostiles = room.hostileCreeps.find((c) => c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK));
-    Memory.targetRooms[room.name].camping = !towers && !armedHostiles;
+    if (Memory.targetRooms[room.name].camping) Memory.targetRooms[room.name].camping = undefined;
     if (INTEL[room.name]) INTEL[room.name].activeDefenders = !!armedHostiles;
 
+    updateRoomLevel(room);
+    handleCleanerAndClaimAttacker(room);
+}
+
+function convertRoomDenialToGuard(room) {
+    const op = Memory.targetRooms[room.name];
+    if (!op) return;
+    notifySiegeEnd(room.name, 'TOWERS DOWN', op);
+    op.type = 'guard';
+    op.boosts = undefined;
+    op.optionalBoosts = undefined;
+    op.camping = true;
+    op.tick = Game.time;
+    const creeps = getMilitaryCreeps();
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c || !c.memory || c.memory.destination !== room.name) continue;
+        if (c.memory.operation === 'roomDenial') c.memory.operation = 'guard';
+    }
+    log.a(`Room denial in ${roomLink(room.name)} converted to guard — towers down.`, 'HIGH COMMAND: ');
     updateRoomLevel(room);
     handleCleanerAndClaimAttacker(room);
 }
@@ -130,14 +157,9 @@ function handleScoutOperation(room) {
         Memory.targetRooms[room.name].type = 'stronghold';
         Memory.targetRooms[room.name].boosts = SIEGE_REQUIRED_BOOSTS.slice();
         Memory.targetRooms[room.name].optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();
-    } else if (isHostile && siegeLevel(towers.length || intel.towers || 0)) {
-        Memory.targetRooms[room.name].type = 'roomDenial';
-        if (towers.length) {
-            Memory.targetRooms[room.name].boosts = SIEGE_REQUIRED_BOOSTS.slice();
-            Memory.targetRooms[room.name].optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();
-        }
+    } else if (isHostile && canLaunchNewRoomDenial(intel)) {
+        promoteToRoomDenial(room.name);
         log.a(`Room ${roomLink(room.name)} converted to room denial operation.`, 'HIGH COMMAND: ');
-        notifySiegeLaunch(room.name);
     } else if (isHostile && (towers.length || intel.towers)) {
         Memory.targetRooms[room.name].type = 'remoteDenial';
         log.a(`Room ${roomLink(room.name)} converted to remote denial operation.`, 'HIGH COMMAND: ');
