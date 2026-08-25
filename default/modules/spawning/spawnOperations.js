@@ -16,7 +16,7 @@ const {
 } = require('hcReadiness');
 const {spawnEnergyState} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
-const {scoreOriginMinLevel, empireLinearDistance} = require('hcUtils');
+const {scoreOriginMinLevel, empireLinearDistance, empirePriority} = require('hcUtils');
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
 const HELPER_ROLES = new Set(['cleaner', 'claimAttacker', 'remoteHauler']);
@@ -270,11 +270,21 @@ function entryTarget(entry) {
     return (entry.other && entry.other.assignment) || entry.destination;
 }
 
+function destAssignRank(target) {
+    if (Memory.targetRooms && Memory.targetRooms[target]) {
+        const d = empireLinearDistance(target);
+        return Number.isFinite(d) ? d : 99;
+    }
+    const d = findClosestOwnedRoom(target, true);
+    return 1000 + (d == null ? 99 : d);
+}
+
 function resolvePendingAssignments(force) {
     if (!force && assignmentResolvedTick === Game.time) return;
     assignmentResolvedTick = Game.time;
 
     const seen = {};
+    const pending = [];
     const consider = (target, fallbackEntry) => {
         if (!target || seen[target]) return;
         const opMemory = Memory.targetRooms[target] || Memory.auxiliaryTargets[target];
@@ -283,7 +293,7 @@ function resolvePendingAssignments(force) {
         const intel = INTEL[target];
         const levelTarget = computeOpLevelTarget(target, opMemory, intel);
         const entry = heaviestQueuedEntry(target, fallbackEntry || {role: 'longbow', destination: target});
-        resolveAssignment(target, opMemory, levelTarget, entry, intel);
+        pending.push({target, opMemory, levelTarget, entry, intel});
     };
 
     const globalQueue = CREEP_QUEUES['global'] || {};
@@ -298,6 +308,12 @@ function resolvePendingAssignments(force) {
     }
     for (const target in Memory.auxiliaryTargets || {}) {
         if (Memory.auxiliaryTargets[target] && Memory.auxiliaryTargets[target].assignedRoom) consider(target);
+    }
+
+    pending.sort((a, b) => destAssignRank(a.target) - destAssignRank(b.target));
+    for (let i = 0; i < pending.length; i++) {
+        const d = pending[i];
+        resolveAssignment(d.target, d.opMemory, d.levelTarget, d.entry, d.intel);
     }
 }
 
@@ -780,11 +796,7 @@ function getPriority(operationRoom) {
     const colonyName = (op && op.assignedRoom) || findClosestOwnedRoom(operationRoom, false, 1);
     const colony = colonyName && Game.rooms[colonyName];
     const energyMulti = colony && spawnEnergyState(colony) < 2 ? 1.5 : 1;
-    if (range <= 3) return (PRIORITIES.priority * typeMulti) * energyMulti;
-    else if (range <= 5) return (PRIORITIES.urgent * typeMulti) * energyMulti;
-    else if (range <= 7) return (PRIORITIES.high * typeMulti) * energyMulti;
-    else if (range <= 10) return (PRIORITIES.medium * typeMulti) * energyMulti;
-    else return (PRIORITIES.secondary * typeMulti) * energyMulti;
+    return Math.round(empirePriority(range) * typeMulti * energyMulti * 10) / 10;
 }
 
 module.exports = {

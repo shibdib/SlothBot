@@ -5,7 +5,15 @@
  */
 
 const state = require('hcState');
-const {intelOwner, checkForNap, siegeFocusOwner, warPriorityMap, empireLinearDistance} = require('hcUtils');
+const {
+    intelOwner,
+    checkForNap,
+    siegeFocusOwner,
+    warPriorityMap,
+    empireLinearDistance,
+    SIEGE_RING,
+    ownerMinEmpireDist
+} = require('hcUtils');
 const {stampOperationCooldown} = require('hcTargets');
 
 function manageMilitary() {
@@ -26,6 +34,7 @@ function manageMilitary() {
     if (activeSiege > state.SIEGE_LIMIT) {
         activeSiege = trimNonFocusSieges(activeSiege);
     }
+    activeSiege = trimOutsideSiegeRing(activeSiege);
 
     for (const key in Memory.targetRooms) {
         const target = Memory.targetRooms[key];
@@ -139,12 +148,6 @@ function manageMilitary() {
         }
 
         const owner = intelOwner(INTEL[key]);
-        if (!target.manual && owner && userStrength(owner) > (global.MY_STRENGTH || MAX_LEVEL) + 2) {
-            log.a(`Canceling operation in ${roomLink(key)} — ${owner} too strong.`, 'HIGH COMMAND: ');
-            stampOperationCooldown(key, target, true);
-            delete Memory.targetRooms[key];
-            continue;
-        }
 
         const staleWindow = CREEP_LIFE_TIME * staleMulti;
         const lastKill = target.lastEnemyKilled;
@@ -194,6 +197,35 @@ function manageMilitary() {
             }
         }
     }
+}
+
+function trimOutsideSiegeRing(activeSiege) {
+    const focus = siegeFocusOwner(warPriorityMap());
+    if (!focus) return activeSiege;
+    const dMin = ownerMinEmpireDist(focus);
+    if (!Number.isFinite(dMin)) return activeSiege;
+    const cap = dMin + SIEGE_RING;
+    const inRing = [];
+    const outRing = [];
+    for (const key in Memory.targetRooms) {
+        const op = Memory.targetRooms[key];
+        if (!op || op.manual || op.type !== 'roomDenial') continue;
+        const owner = INTEL[key] && INTEL[key].owner;
+        if (owner !== focus) continue;
+        const dist = empireLinearDistance(key);
+        if (dist <= cap) inRing.push({key, op, dist});
+        else outRing.push({key, op, dist});
+    }
+    outRing.sort((a, b) => a.dist - b.dist);
+    const keepStretch = inRing.length ? 0 : 1;
+    for (let i = keepStretch; i < outRing.length; i++) {
+        const s = outRing[i];
+        log.a(`Canceling roomDenial in ${roomLink(s.key)} — outside siege ring.`, 'HIGH COMMAND: ');
+        stampOperationCooldown(s.key, s.op);
+        delete Memory.targetRooms[s.key];
+        activeSiege--;
+    }
+    return activeSiege;
 }
 
 function trimNonFocusSieges(activeSiege) {

@@ -4,7 +4,7 @@
 
  *
 
- * Scoring, diplomacy, and siege feasibility helpers.
+ * Scoring, diplomacy, and siege launch helpers.
 
  */
 
@@ -14,19 +14,6 @@ function intelOwner(intel) {
     return intel.owner || intel.user;
 }
 
-
-function rampartLevelEquivalent(intel) {
-    if (!intel || !intel.rampartMedHP) return 0;
-    // 50M ≈ 1.0 strength. Same-RCL 100M bunkers must fail the >= -1 launch gate.
-    return Math.min(intel.rampartMedHP / 50000000, 2.5);
-}
-
-// Positive = we should be able to siege, negative = outmatched. Compares relative composite
-// strength and bakes in rampart depth so a strong-RCL-but-naked target stays feasible.
-function siegeFeasibility(r) {
-    const myStrength = global.MY_STRENGTH || MAX_LEVEL;
-    return myStrength - userStrength(r.owner) - rampartLevelEquivalent(r);
-}
 
 function warPriorityMap() {
     const map = {};
@@ -86,10 +73,114 @@ function roomDenialLaunchOk(intel) {
     if (NO_DIRECT_ATTACKS.includes(intel.owner)) return false;
     if (intel.safemode > Game.time) return false;
     if (!siegeLevel(intel.towers)) return false;
-    if (siegeFeasibility(intel) < -1) return false;
     const crushNew = NEW_SPAWN_DENIAL && (intel.level || 0) <= 3;
     if (!crushNew && (intel.lastSiege || 0) + ATTACK_COOLDOWN >= Game.time) return false;
     return true;
+}
+
+const SIEGE_RING = 3;
+
+function roomSiegeLaunchable(intel) {
+    if (!roomDenialLaunchOk(intel)) return false;
+    const crushNew = NEW_SPAWN_DENIAL && (intel.level || 0) <= 3;
+    if (!crushNew && (intel.lastOperation || 0) + ATTACK_COOLDOWN >= Game.time) return false;
+    return true;
+}
+
+function ownerMinEmpireDist(owner) {
+    if (!owner || typeof INTEL === 'undefined') return Infinity;
+    let min = Infinity;
+    for (const name in INTEL) {
+        const r = INTEL[name];
+        if (!r || r.owner !== owner) continue;
+        const d = empireLinearDistance(name);
+        if (Number.isFinite(d) && d < min) min = d;
+    }
+    return min;
+}
+
+function inSiegeRing(roomName, dMin) {
+    if (!Number.isFinite(dMin)) return true;
+    const d = empireLinearDistance(roomName);
+    return Number.isFinite(d) && d <= dMin + SIEGE_RING;
+}
+
+function listAutoSieges(owner) {
+    const out = [];
+    const targets = Memory.targetRooms;
+    if (!targets) return out;
+    for (const key in targets) {
+        const op = targets[key];
+        if (!op || op.manual || op.type !== 'roomDenial') continue;
+        const intel = typeof INTEL !== 'undefined' ? INTEL[key] : null;
+        if (owner && (!intel || intel.owner !== owner)) continue;
+        out.push({key, op, dist: empireLinearDistance(key)});
+    }
+    return out;
+}
+
+function ringHasActiveSiege(owner, dMin) {
+    const cap = dMin + SIEGE_RING;
+    const sieges = listAutoSieges(owner);
+    for (let i = 0; i < sieges.length; i++) {
+        if (sieges[i].dist <= cap) return true;
+    }
+    return false;
+}
+
+function ringHasLaunchable(owner, dMin) {
+    if (typeof INTEL === 'undefined') return false;
+    const cap = dMin + SIEGE_RING;
+    for (const name in INTEL) {
+        const r = INTEL[name];
+        if (!r || r.owner !== owner || !r.name) continue;
+        if (Memory.targetRooms && Memory.targetRooms[r.name]) continue;
+        const d = empireLinearDistance(r.name);
+        if (!(d <= cap)) continue;
+        if (roomSiegeLaunchable(r)) return true;
+    }
+    return false;
+}
+
+function countStretchSieges(owner, dMin) {
+    const cap = dMin + SIEGE_RING;
+    const sieges = listAutoSieges(owner);
+    let n = 0;
+    for (let i = 0; i < sieges.length; i++) {
+        if (sieges[i].dist > cap) n++;
+    }
+    return n;
+}
+
+function allowSiegeStretch(owner, dMin) {
+    if (!owner || !Number.isFinite(dMin)) return false;
+    if (ringHasActiveSiege(owner, dMin) || ringHasLaunchable(owner, dMin)) return false;
+    return countStretchSieges(owner, dMin) < 1;
+}
+
+function isClosestStretchDest(intel, dMin) {
+    if (!intel || !intel.name || !intel.owner) return false;
+    const cap = dMin + SIEGE_RING;
+    const d = empireLinearDistance(intel.name);
+    if (!(d > cap)) return false;
+    for (const name in INTEL) {
+        const r = INTEL[name];
+        if (!r || r.owner !== intel.owner || !r.name || r.name === intel.name) continue;
+        if (Memory.targetRooms && Memory.targetRooms[r.name]) continue;
+        const rd = empireLinearDistance(r.name);
+        if (!(rd > cap) || rd >= d) continue;
+        if (roomSiegeLaunchable(r)) return false;
+    }
+    return true;
+}
+
+function siegeLaunchAllowed(intel) {
+    if (!roomDenialLaunchOk(intel) || !intel.name) return false;
+    const focus = siegeFocusOwner(warPriorityMap());
+    if (focus && intel.owner !== focus) return false;
+    const dMin = ownerMinEmpireDist(intel.owner);
+    if (!Number.isFinite(dMin) || inSiegeRing(intel.name, dMin)) return true;
+    return allowSiegeStretch(intel.owner, dMin) && isClosestStretchDest(intel, dMin);
 }
 
 function scoreOriginMinLevel(type, intel) {
@@ -118,7 +209,7 @@ function scoreTarget(roomName, type, warPriorityByUser = null) {
     // the nearest capable room; this is which dest we open.
     const distance = scoreOriginDistance(roomName, type);
 
-    score += distance * 100;
+    score += distance * 200;
 
     if (THREATS.includes(r.owner)) score -= 200;
     if (type === 'roomDenial') {
@@ -178,13 +269,15 @@ function checkForNap(user) {
     return false;
 }
 
+function empirePriority(range) {
+    const dist = Number.isFinite(range) ? range : 20;
+    let p = PRIORITIES.priority + dist * 0.75;
+    if (p > PRIORITIES.secondary) p = PRIORITIES.secondary;
+    return Math.round(p * 10) / 10;
+}
+
 function getPriority(room, type) {
-    const range = scoreOriginDistance(room, type);
-    if (range <= 1) return PRIORITIES.priority;
-    if (range <= 3) return PRIORITIES.urgent;
-    if (range <= 5) return PRIORITIES.high;
-    if (range <= 10) return PRIORITIES.medium;
-    return PRIORITIES.secondary;
+    return empirePriority(scoreOriginDistance(room, type));
 }
 
 
@@ -376,10 +469,6 @@ module.exports = {
 
     getMilitaryCreeps,
 
-    rampartLevelEquivalent,
-
-    siegeFeasibility,
-
     roomDenialLaunchOk,
 
     siegeFocusOwner,
@@ -402,6 +491,8 @@ module.exports = {
 
     scoreOriginDistance,
 
+    empirePriority,
+
     strongholdSiegeLevel,
 
     roomNameToWorld,
@@ -411,5 +502,17 @@ module.exports = {
     getEmpireCenter,
 
     empireLinearDistance,
+
+    SIEGE_RING,
+
+    ownerMinEmpireDist,
+
+    inSiegeRing,
+
+    allowSiegeStretch,
+
+    siegeLaunchAllowed,
+
+    listAutoSieges,
 
 };

@@ -222,16 +222,21 @@ function computeSortPriority(item, room) {
         && sortPriority < PRIORITIES.hauler) {
         sortPriority = PRIORITIES.hauler;
     }
+    const waitForWave = isWaitForLongbowWave(item);
     if (item.destination && (Memory.targetRooms[item.destination] || Memory.auxiliaryTargets[item.destination])) {
         const milInfo = room.memory.energyInfo;
         const milTrend = (milInfo && milInfo.trend) || 0;
         const milSpare = (milInfo && milInfo.spareIncome) || 0;
         const flowReady = spawnEnergyState(room) >= 2 && milTrend >= 0 && milSpare >= 8;
         if (flowReady && room.storage) sortPriority *= 0.5;
-        else if (item.military) sortPriority *= 6;
+        else if (item.military && !waitForWave) sortPriority *= 6;
     }
-    if (isWaitForLongbowWave(item)) {
-        sortPriority = Math.min(sortPriority, PRIORITIES.hauler + 0.5);
+    if (waitForWave) {
+        // Pull waves toward hauler without collapsing every dest to the same
+        // slot. Offset is from queued priority so closer dests stay first.
+        const floor = PRIORITIES.hauler + 0.5;
+        const offset = Math.max(0, (item.priority || 0) - PRIORITIES.priority);
+        sortPriority = Math.min(sortPriority, floor + offset * 0.5);
     }
     return Math.max(1, Math.round(sortPriority * 10) / 10);
 }
