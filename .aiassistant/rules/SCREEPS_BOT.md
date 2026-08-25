@@ -18,7 +18,7 @@ apply: always
 4. Achieve **excellent CPU efficiency** and bucket management.
 5. Field **effective duo and quad combat units** for both offense and defense.
 
-The bot should be mostly autonomous while supporting optional flag-based guidance. It favors efficient small-unit
+The bot should be entirely autonomous while supporting optional flag-based guidance. It favors efficient small-unit
 tactics (especially duos and quads) over large zerg-style armies.
 
 ## How to Use This Document with AI
@@ -26,6 +26,7 @@ tactics (especially duos and quads) over large zerg-style armies.
 When helping with this codebase:
 
 - **CPU impact is the top priority.** Evaluate cost of every suggestion, especially in combat and hot paths.
+- **Avoid overcomplicated systems** Overcomplication leads too difficult to diagnose edge case failures.
 - **Prefer duo and quad compositions** for combat tasks unless the situation clearly requires larger forces.
 - Reference existing patterns from the `roles/`, `modules/`, `operations/`, and `prototypes/` folders before inventing
   new systems.
