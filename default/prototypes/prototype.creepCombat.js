@@ -936,8 +936,9 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     }
 };
 
-// Hold on the exit toward `towardRoom` (or the nearest exit). Used when a duo
-// leader is in a threatened dest without the partner — 25,25 is the bunker.
+// Sit ON the exit toward `towardRoom` (or the nearest exit). Range 1 is still
+// interior — a dest/staging 2×2 only packs through matching edge tiles.
+// Used when a duo/quad is in dest without the rest of the blob; 25,25 is the bunker.
 Creep.prototype.moveToRoomExit = function (towardRoom) {
     let tile;
     if (towardRoom && towardRoom !== this.pos.roomName) {
@@ -946,7 +947,7 @@ Creep.prototype.moveToRoomExit = function (towardRoom) {
     }
     if (!tile) tile = this.pos.findClosestByRange(FIND_EXIT);
     if (!tile) return false;
-    if (this.pos.getRangeTo(tile) <= 1) return true;
+    if (this.pos.isEqualTo(tile)) return true;
     this.shibMove(tile, {range: 0, forceSolo: true});
     return true;
 };

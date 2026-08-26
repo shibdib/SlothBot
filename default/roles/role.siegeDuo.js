@@ -4,6 +4,7 @@
 
 const profiler = require("tools.profiler");
 const {creepBodyHas} = require("bodyHelpers");
+const {exitDirectionTo, posAfterMove, formationRange} = require("module.pathFinder");
 
 // How long a creep can sit unpaired before we give up and recycle. Squad
 // formation legitimately takes 100-200 ticks (spawn + walk), so the floor
@@ -116,6 +117,15 @@ class RoleSiegeDuo {
         }
         if (this.duoRenewal(partner)) return;
 
+        // Dest-adjacent: pad and hop together. denyRoom / dest 25,25 from here
+        // is 1-at-a-time entry — shibMove dest hops are blocked for paired duos.
+        if (this.enterDestTogether(partner)) {
+            const ready = this.hasFullSquad(partner) && this.isPartnerNearby(partner, this.creep);
+            this.creep.memory.waitingToAssemble = ready ? undefined : true;
+            if (ready && !this.creep.memory.initialFormUp) this.creep.memory.initialFormUp = true;
+            return;
+        }
+
         const isReady = this.hasFullSquad(partner) && this.isPartnerNearby(partner, this.creep);
 
         if (isReady) {
@@ -142,6 +152,20 @@ class RoleSiegeDuo {
         }
         if (partner.memory.waitingToAssemble) this.creep.memory.waitingToAssemble = true;
         else this.creep.memory.waitingToAssemble = undefined;
+        // Leader already issued the dest-ward step for both of us.
+        if (partner.memory.duoHopTick === Game.time) return;
+        const dest = this.creep.memory.destination || partner.memory.destination;
+        // Dest-facing exit: stay on the pad (or hop if the leader is already in
+        // dest and the landing is free). Chasing the leader is 1-at-a-time entry.
+        if (dest && this.creep.room.name !== dest && this.onDestFacingExit(this.creep, dest)) {
+            if (partner.room.name === dest) this.hopIntoDest(this.creep, dest);
+            else if (!this.creep.pos.isNearTo(partner.pos)) this.creep.shibMove(partner, {range: 1});
+            return;
+        }
+        if (dest && partner.room.name === dest && this.creep.room.name !== dest) {
+            this.walkToDestFacingExit(dest);
+            return;
+        }
         const lp = partner.memory.lastPos;
         if (this.creep.pos.isNearTo(partner) && lp && lp.roomName === this.creep.pos.roomName) {
             if (this.creep.pos.x !== lp.x || this.creep.pos.y !== lp.y) {
@@ -206,7 +230,12 @@ class RoleSiegeDuo {
             return;
         }
         if (this.room.name !== this.creep.memory.destination) {
-            return this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
+            if (this.creep.ensureDenialStaging) this.creep.ensureDenialStaging();
+            const staging = this.creep.memory.misc && this.creep.memory.misc.stagingRoom;
+            const target = (staging && staging !== this.creep.memory.destination
+                && !(this.creep.memory.misc && this.creep.memory.misc.staged))
+                ? staging : this.creep.memory.destination;
+            return this.creep.shibMove(new RoomPosition(25, 25, target), {range: 22});
         } else {
             // If we can't get to the controller or sources, clear a path
             if (!this.creep.scorchedEarth()) {
@@ -263,6 +292,9 @@ class RoleSiegeDuo {
 
     isPartnerNearby(partner, leader) {
         if (!partner) return false;
+        // Matching dest/staging exit tiles are adjacent through the edge.
+        // isNearTo is Infinity across rooms, which parked a split duo.
+        if (formationRange(partner.pos, leader.pos) <= 1) return true;
         if (partner.pos.roomName !== leader.pos.roomName) {
             const safeTransit = !leader.room.hostileCreeps.length && !leader.room.hostileStructures.length &&
                 !partner.room.hostileCreeps.length && !partner.room.hostileStructures.length &&
@@ -271,7 +303,7 @@ class RoleSiegeDuo {
         }
         // Safe territory and not yet near the target — don't force adjacency.
         if (!partner.room.hostileCreeps.length && !partner.room.hostileStructures.length && !this.nearDestination(leader)) return true;
-        return partner.pos.isNearTo(leader.pos);
+        return false;
     }
 
     // In the dest (or any threatened room) sit on the exit until the partner
@@ -292,6 +324,122 @@ class RoleSiegeDuo {
     nearDestination(leader) {
         if (!leader.memory.destination) return false;
         return Game.map.getRoomLinearDistance(leader.room.name, leader.memory.destination) <= 1;
+    }
+
+    onDestFacingExit(creep, dest) {
+        const dir = exitDirectionTo(creep.room.name, dest);
+        if (!dir) return false;
+        if (dir === TOP) return creep.pos.y === 0;
+        if (dir === BOTTOM) return creep.pos.y === 49;
+        if (dir === LEFT) return creep.pos.x === 0;
+        if (dir === RIGHT) return creep.pos.x === 49;
+        return false;
+    }
+
+    destLandingOpen(pos, dir, dest) {
+        const next = posAfterMove(pos, dir);
+        if (!next || next.roomName !== dest) return false;
+        const terrain = Game.map.getRoomTerrain(dest);
+        if (terrain.get(next.x, next.y) === TERRAIN_MASK_WALL) return false;
+        const destRoom = Game.rooms[dest];
+        if (destRoom && next.checkForImpassible(false, false)) return false;
+        return true;
+    }
+
+    hopIntoDest(creep, dest) {
+        const dir = exitDirectionTo(creep.room.name, dest);
+        if (!dir || !this.destLandingOpen(creep.pos, dir, dest)) return false;
+        if (creep.fatigue) return false;
+        return creep.move(dir) === OK;
+    }
+
+    walkToDestFacingExit(dest) {
+        const dir = this.creep.room.findExitTo(dest);
+        if (!(dir > 0)) return false;
+        const tile = this.creep.pos.findClosestByRange(dir);
+        if (!tile) return false;
+        if (this.creep.pos.isEqualTo(tile)) return true;
+        this.creep.shibMove(tile, {range: 0});
+        return true;
+    }
+
+    destExitInwardDir(pos) {
+        if (pos.x === 0) return RIGHT;
+        if (pos.x === 49) return LEFT;
+        if (pos.y === 0) return BOTTOM;
+        if (pos.y === 49) return TOP;
+        return 0;
+    }
+
+    // Dest-adjacent: walk the dest-facing pad, then both step dest-ward.
+    // In dest with the partner still outside: slide inland so they can hop.
+    enterDestTogether(partner) {
+        const creep = this.creep;
+        const dest = creep.memory.destination;
+        if (!dest) return false;
+        if (creep.ensureDenialStaging) creep.ensureDenialStaging();
+        const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
+
+        if (creep.room.name === dest) {
+            if (!partner || partner.room.name === dest) return false;
+            this.pullPartnerIntoDest(partner, dest);
+            // Pull may fail (inward blocked). Still hold dest-exit — denyRoom
+            // from here walks dest while the partner is on staging.
+            return true;
+        }
+
+        // Intel picked a staging neighbor. Don't hop dest from a different face.
+        if (staging && staging !== dest && creep.room.name !== staging
+            && !exitDirectionTo(creep.room.name, dest)) {
+            creep.shibMove(new RoomPosition(25, 25, staging), {range: 22});
+            return true;
+        }
+
+        const dir = exitDirectionTo(creep.room.name, dest);
+        if (!dir) return false;
+
+        if (!this.onDestFacingExit(creep, dest)) {
+            this.walkToDestFacingExit(dest);
+            return true;
+        }
+
+        if (creep.fatigue || (partner && partner.fatigue)) return true;
+        if (!partner || partner.room.name !== creep.room.name || !partner.pos.isNearTo(creep.pos)) {
+            return true;
+        }
+        if (!this.destLandingOpen(creep.pos, dir, dest)) return true;
+
+        if (creep.move(dir) !== OK) return true;
+        // Partner on the pad hops if their dest landing is open; partner one
+        // tile inland steps onto the exit (same-room dest-ward).
+        if (this.onDestFacingExit(partner, dest)) {
+            if (this.destLandingOpen(partner.pos, dir, dest)) partner.move(dir);
+        } else {
+            partner.move(dir);
+        }
+        creep.memory.duoHopTick = Game.time;
+        return true;
+    }
+
+    pullPartnerIntoDest(partner, dest) {
+        const creep = this.creep;
+        const pdir = exitDirectionTo(partner.room.name, dest);
+        if (!pdir || !this.onDestFacingExit(partner, dest)) return false;
+        const landing = posAfterMove(partner.pos, pdir);
+        const weBlock = landing && landing.roomName === dest
+            && landing.x === creep.pos.x && landing.y === creep.pos.y;
+        if (weBlock) {
+            const inward = this.destExitInwardDir(creep.pos);
+            const next = inward && posAfterMove(creep.pos, inward);
+            if (!next || next.roomName !== dest || next.checkForImpassible(false, false)) return false;
+            creep.move(inward);
+        } else if (!this.destLandingOpen(partner.pos, pdir, dest)) {
+            return false;
+        }
+        if (partner.fatigue) return true;
+        partner.move(pdir);
+        creep.memory.duoHopTick = Game.time;
+        return true;
     }
 }
 

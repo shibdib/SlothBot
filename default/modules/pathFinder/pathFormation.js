@@ -246,6 +246,10 @@ function isQuadCreep(creep) {
 function isSquadCreep(creep) {
     if (!creep || !creep.memory) return false;
     if ((creep.memory.squadMembers || []).length >= 1) return true;
+    // Paired siege duos hop dest via role move(), not shibMove — same 1-at-a-time leak.
+    if (creep.memory.role === 'siegeDuo' && creep.memory.partner) return true;
+    // waitFor waves (including a remnant whose partners died) never shibMove dest.
+    if (creep.memory.misc && creep.memory.misc.waitFor > 1) return true;
     if (!creep.memory.groupLeader) return false;
     const leader = Game.getObjectById(creep.memory.groupLeader);
     return !!(leader && (leader.memory.squadMembers || []).length >= 1);
