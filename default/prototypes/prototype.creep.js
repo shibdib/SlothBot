@@ -21,7 +21,6 @@
 
 'use strict';
 
-const {empireOpsPaused} = require('hcReadiness');
 const {runTowTruck} = require('pathTow');
 const {clearShibMove, getShibMove} = require('pathUtils');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
@@ -691,17 +690,23 @@ Creep.prototype.haulerDelivery = function () {
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 200) targets.push(controllerContainer);
     }
 
-    if (this.room.nuker && !empireOpsPaused() && this.room.energyState >= 3 &&
-        this.room.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
-        targets.push(this.room.nuker);
-    }
-
     if (this.room.terminal && this.room.terminal.store.getFreeCapacity() > this.store[RESOURCE_ENERGY] && this.room.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < terminalEnergyTarget()) targets.push(this.room.terminal);
-    if (this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.memory.lastWithdraw !== this.room.storage.id) targets.push(this.room.storage);
 
     let target = this.pos.findClosestByRange(targets);
     if (target) {
         this.memory.storageDestination = target.id;
+        return true;
+    }
+
+    // Fill nuker from spare energy before dumping to storage.
+    if (this.room.nuker && this.room.energyState &&
+        this.room.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
+        this.memory.storageDestination = this.room.nuker.id;
+        return true;
+    }
+
+    if (this.room.storage && this.room.storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.memory.lastWithdraw !== this.room.storage.id) {
+        this.memory.storageDestination = this.room.storage.id;
         return true;
     }
 

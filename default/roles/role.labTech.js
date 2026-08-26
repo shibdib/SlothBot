@@ -250,13 +250,30 @@ class RoleLabTech {
         let balancingTask = this.findBalancingTask(storage, terminal, 1000);
         if (balancingTask) return balancingTask;
 
-        // 12. Factory battery feed (unpack)
+        // 12. Nuker energy from spare stock. Beats factory unpack and power spawn
+        // (continuous sinks) so a half-full nuker actually completes.
+        if (nuker) {
+            const nukerEnergyNeed = nuker.store.getFreeCapacity(RESOURCE_ENERGY);
+            if (nukerEnergyNeed > 0 && (this.room.energyState || this.room.rawEnergy >= nukerEnergyNeed + 10000)) {
+                const energySupplier = [storage, terminal].find(s => s && (s.store[RESOURCE_ENERGY] || 0) > 10000);
+                if (energySupplier) {
+                    return {
+                        withdrawTarget: energySupplier.id,
+                        deliveryTarget: nuker.id,
+                        resource: RESOURCE_ENERGY,
+                        amount: nukerEnergyNeed
+                    };
+                }
+            }
+        }
+
+        // 13. Factory battery feed (unpack)
         if (factory && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
             const batteryTask = this.findFactoryBatterySupply(factory, storage, terminal);
             if (batteryTask) return batteryTask;
         }
 
-        // 13. Factory supply — recipe inputs
+        // 14. Factory supply — recipe inputs
         if (factory && factory.memory.producing) {
             const commodity = COMMODITIES[factory.memory.producing];
             if (commodity) {
@@ -282,7 +299,7 @@ class RoleLabTech {
             }
         }
 
-        // 14. Mineral container cleanup (has minerals, not necessarily full)
+        // 15. Mineral container cleanup (has minerals, not necessarily full)
         if (storeTarget) {
             const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY));
             if (resourceContainer) {
@@ -291,7 +308,7 @@ class RoleLabTech {
             }
         }
 
-        // 15. Power spawn energy / power
+        // 16. Power spawn energy / power
         if (powerSpawn && this.room.energyState) {
             if (powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000 && storage && storage.store[RESOURCE_ENERGY] > 10000) {
                 return {
@@ -311,11 +328,11 @@ class RoleLabTech {
             }
         }
 
-        // 16. Routine storage/terminal balance
+        // 17. Routine storage/terminal balance
         balancingTask = this.findBalancingTask(storage, terminal);
         if (balancingTask) return balancingTask;
 
-        // 17. Lab energy refill for reaction labs (boost labs are filled in #2).
+        // 18. Lab energy refill for reaction labs (boost labs are filled in #2).
         // Labs hold 2000 energy (5 per reaction = 400 reactions of headroom).
         for (const lab of labs) {
             const mem = labStructMem && labStructMem[lab.id];
