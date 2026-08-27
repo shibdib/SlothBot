@@ -126,12 +126,17 @@ Creep.prototype.ensureDenialStaging = function () {
     const resolved = resolveDenialStaging(dest, origin);
     const current = this.memory.misc.stagingRoom;
     const currentOk = current && current !== dest && isViableStaging(current, dest);
-    if (!currentOk) {
+    // Already dest-adjacent: this face is staging. Walking to a different
+    // dest-neighbor from here parks the 2×2 on the shared exit (path-through-dest
+    // is blocked; the neighbor's entry often cannot fit a packed hop).
+    if (this.room.name !== dest && isViableStaging(this.room.name, dest)) {
+        this.memory.misc.stagingRoom = this.room.name;
+    } else if (!currentOk) {
         this.memory.misc.stagingRoom = resolved;
         if (current && current !== resolved) this.memory.misc.staged = undefined;
     }
-    const staging = this.memory.misc.stagingRoom;
-    if (staging && staging === this.room.name && dest && posFacesDest(this.pos, dest)) {
+    // Dest-facing of any dest-adjacent room is staged — not only the intel pick.
+    if (dest && this.room.name !== dest && posFacesDest(this.pos, dest)) {
         this.memory.misc.staged = true;
     }
 };

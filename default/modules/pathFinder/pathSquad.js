@@ -11,13 +11,26 @@
 
 const {DEFAULT_MAXOPS, FLEE_RANGE} = require('pathState');
 
-const {normalizePos, getPosKey, getMoveWeight, endpointInRange, gatherThreats} = require('pathUtils');
+const {
+    normalizePos,
+    getPosKey,
+    getMoveWeight,
+    endpointInRange,
+    gatherThreats,
+    isImmobileBlocker
+} = require('pathUtils');
 
 const {findRoute, attachStagingAvoid, filterAvoidedRooms} = require('pathRoute');
 
 const {serializePath} = require('pathPathCache');
 
-const {getSquadMatrix, getFormationVectors, posAfterMove, formationRange} = require('pathFormation');
+const {getSquadMatrix, getFormationVectors, posAfterMove, formationRange, exitDirectionTo} = require('pathFormation');
+const {
+    findOccupyingCreep,
+    yieldOccupant,
+    isBumperCandidate,
+    isHomeRoomYieldingSquad,
+} = require('pathTraffic');
 
 function resolveAllowedRooms(originRoom, targetRoom, options) {
     const route = findRoute(originRoom, targetRoom, options);
@@ -67,9 +80,12 @@ function squadMove(creep, path) {
     const leaderEnteringDest = !!(dest && newLeaderPos && newLeaderPos.roomName === dest
         && creep.pos.roomName !== dest);
     const misc = creep.memory.misc;
+    const destAdjacent = !!(dest && exitDirectionTo(creep.pos.roomName, dest));
     const stagingBypass = !!(dest && misc && misc.stagingRoom && misc.stagingRoom !== dest
-        && !misc.staged && creep.pos.roomName !== dest);
+        && !misc.staged && creep.pos.roomName !== dest && !destAdjacent);
     // Don't walk through dest to reach the dest-adjacent staging room.
+    // Dest-adjacent hops ARE the dest entry — blocking them parked the 2×2
+    // on the neighbor's dest-facing exit.
     if (leaderEnteringDest && stagingBypass) {
         creep.memory._shibSquadMove = undefined;
         return false;
@@ -89,6 +105,8 @@ function squadMove(creep, path) {
             }
         }
     }
+
+    if (!clearSquadFootprint(creep, members, move)) return false;
 
     creep.move(move);
     for (const member of members) {
@@ -115,6 +133,70 @@ function squadMove(creep, path) {
     creep.memory.squadMoveTick = Game.time;
 
     if (creep.memory._shibSquadMove) creep.memory._shibSquadMove.path = path.slice(1);
+    return true;
+}
+
+function squadIdSet(leader, members) {
+    const ids = new Set([leader.id]);
+    for (let i = 0; i < members.length; i++) ids.add(members[i].id);
+    return ids;
+}
+
+function occupantOn(pos, squadIds, leaderId) {
+    if (!pos) return null;
+    const room = Game.rooms[pos.roomName];
+    if (!room) return null;
+    const creep = pos.checkForCreep();
+    if (creep && !squadIds.has(creep.id)) return creep;
+    const mine = findOccupyingCreep(room, pos, leaderId);
+    return mine && !squadIds.has(mine.id) ? mine : null;
+}
+
+function isPermanentSquadBlocker(blocker) {
+    if (!blocker || !blocker.my) return true;
+    if (blocker.memory && blocker.memory.other && blocker.memory.other.stationary) return true;
+    if (isImmobileBlocker(blocker)) return true;
+    return !!(blocker.memory && blocker.memory.grouped && !isHomeRoomYieldingSquad(blocker));
+}
+
+// Shove civilians off the next 2×2. Squad-mates on those tiles are moving
+// the same direction (vacate). Permanent blockers (stationary, other squads,
+// enemies) abort and drop the path so we repath around. Fatigue / no yield
+// tile keeps the path and retries next tick.
+function clearSquadFootprint(leader, members, direction) {
+    const squadIds = squadIdSet(leader, members);
+    const consider = [leader];
+    for (let i = 0; i < members.length; i++) consider.push(members[i]);
+
+    const footprint = new Set();
+    const occupied = [];
+    for (let i = 0; i < consider.length; i++) {
+        const c = consider[i];
+        if (c.id !== leader.id && formationRange(c.pos, leader.pos) > 1) continue;
+        const next = posAfterMove(c.pos, direction);
+        if (!next) continue;
+        footprint.add(`${next.x},${next.y},${next.roomName}`);
+        const occupant = occupantOn(next, squadIds, leader.id);
+        if (occupant) occupied.push({occupant, pos: next});
+    }
+    if (!occupied.length) return true;
+
+    const seen = new Set();
+    const claimed = new Set();
+    const ignoreIds = new Set(squadIds);
+    for (let i = 0; i < occupied.length; i++) {
+        const blocker = occupied[i].occupant;
+        if (seen.has(blocker.id)) continue;
+        seen.add(blocker.id);
+        if (isPermanentSquadBlocker(blocker)) {
+            leader.memory._shibSquadMove = undefined;
+            return false;
+        }
+        if (!isBumperCandidate(blocker)) return false;
+        if (!yieldOccupant(blocker, occupied[i].pos, {ignoreIds, forbidden: footprint, claimed})) {
+            return false;
+        }
+    }
     return true;
 }
 
