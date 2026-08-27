@@ -33,6 +33,7 @@ const {clearOpQueueRole} = require('spawnQueue');
 const stagingCache = {}; // creepId → {x, y, tick, roomName}
 const musterCache = {}; // roomName → {x, y, tick}
 const formupAssignCache = {tick: 0, claimed: {}}; // leaderId → {creepId → "x,y"} this tick
+const formupSlideCache = {tick: 0, byLeader: {}}; // leaderId → slide plan this tick
 const destHopClaim = {tick: 0, claimed: {}}; // dest:x:y this tick so two bodies don't hop the same 1-wide tile
 const STAGING_CACHE_TTL = 20;
 const MUSTER_CACHE_TTL = 50;
@@ -44,6 +45,22 @@ function formupClaims(leaderId) {
     }
     if (!formupAssignCache.claimed[leaderId]) formupAssignCache.claimed[leaderId] = {};
     return formupAssignCache.claimed[leaderId];
+}
+
+function formupSlideFor(leaderId) {
+    if (formupSlideCache.tick !== Game.time) {
+        formupSlideCache.tick = Game.time;
+        formupSlideCache.byLeader = {};
+    }
+    return formupSlideCache.byLeader[leaderId];
+}
+
+function setFormupSlide(leaderId, slide) {
+    if (formupSlideCache.tick !== Game.time) {
+        formupSlideCache.tick = Game.time;
+        formupSlideCache.byLeader = {};
+    }
+    formupSlideCache.byLeader[leaderId] = slide;
 }
 
 function claimDestLanding(dest, x, y) {
@@ -186,8 +203,8 @@ class RoleLongbowSquad {
         // start boosting only once the wave is live so early bodies can top
         // off on leftover spawns instead of leaving 150+ ticks short.
         if (!this.waveAssembled(creep)) return false;
-        const siegeOp = creep.memory.operation === 'roomDenial' || creep.memory.operation === 'stronghold';
-        if (siegeOp && this.waveHasRequiredSiegeBoosts(creep)) return false;
+        // HEAL/TOUGH must not abort RA/MOVE. The 4th body is often still on
+        // those labs when the other three already have the required set.
         if (creep.memory.hasBoosted) return true;
         // Renew first when a spawn can actually do it. Camping a busy spawn
         // for FORMING_RENEW_TARGET used to skip boost until TTL 600 and die.
@@ -554,6 +571,9 @@ class RoleLongbowSquad {
     // F1 → F2's slot and F2 → F1's slot (a 2-creep position swap), each just
     // keeps whatever valid slot it's on. New followers arriving fill the
     // remaining gaps.
+    // Exception: a follower boxed in by the blob + terrain cannot reach the
+    // empty slot. An on-slot mate adjacent to both slides into the empty, and
+    // the boxed creep takes the vacated tile.
     getInPosition(creep, leader) {
         if (!leader || !creep) return false;
         if (leader.room.name !== creep.room.name) {
@@ -639,6 +659,13 @@ class RoleLongbowSquad {
             if (id !== creep.id) occupied.add(claimed[id]);
         }
 
+        const staleSlide = leader.memory.formupSlide;
+        if (staleSlide && staleSlide.tick < Game.time - 1) leader.memory.formupSlide = undefined;
+
+        // Honor a slide before the on-slot stay, otherwise the mate already in
+        // formation never leaves the tile the boxed-in follower needs.
+        if (this.executeFormupSlide(creep, leader, claimed)) return false;
+
         // Already on a valid slot? Stay and bind it so later followers skip it.
         for (let i = 0; i < slots.length; i++) {
             if (creep.pos.isEqualTo(slots[i])) {
@@ -666,12 +693,19 @@ class RoleLongbowSquad {
             return false;
         }
 
+        // Boxed behind the blob: an on-slot mate slides into the empty slot
+        // and this creep takes the vacated tile. Do this before claiming the
+        // far empty so the swap isn't fighting shibMove around the 2×2.
+        const range = creep.pos.getRangeTo(bestSlot);
+        if (range > 1 && this.requestFormupSlide(creep, leader, slots, claimed, bestSlot)) {
+            return false;
+        }
+
         claimed[creep.id] = `${bestSlot.x},${bestSlot.y}`;
 
         // Range 1–2: one greedy step. shibMove costs squad-mates at 100 and
         // routes around the blob; a direct intent also lets the swap rule
         // resolve two followers exchanging tiles.
-        const range = creep.pos.getRangeTo(bestSlot);
         if (range <= 2) {
             const dir = creep.pos.getDirectionTo(bestSlot);
             if (dir) {
@@ -696,6 +730,115 @@ class RoleLongbowSquad {
 
         creep.shibMove(bestSlot, {range: 0, forceSolo: true});
         return false;
+    }
+
+    // On-slot mate adjacent to both the boxed-in follower and the empty slot.
+    // Sliding that mate into the empty (and this creep into the vacated tile)
+    // packs the 2×2 when walls block walking around the blob. Leader stays put
+    // — moving them translates every slot.
+    findFormupSlider(creep, leader, slots, emptySlot) {
+        for (const id of leader.memory.squadMembers || []) {
+            if (id === creep.id) continue;
+            const mate = Game.getObjectById(id);
+            if (!mate || mate.spawning || mate.fatigue) continue;
+            if (mate.pos.roomName !== creep.pos.roomName) continue;
+            if (creep.pos.getRangeTo(mate) !== 1) continue;
+            if (mate.pos.getRangeTo(emptySlot) !== 1) continue;
+            if (mate.pos.isEqualTo(emptySlot)) continue;
+            let onSlot = false;
+            for (let i = 0; i < slots.length; i++) {
+                if (mate.pos.isEqualTo(slots[i])) {
+                    onSlot = true;
+                    break;
+                }
+            }
+            if (onSlot) return mate;
+        }
+        return null;
+    }
+
+    requestFormupSlide(creep, leader, slots, claimed, emptySlot) {
+        const existing = formupSlideFor(leader.id) || leader.memory.formupSlide;
+        if (existing && existing.tick >= Game.time - 1 && existing.stuckId !== creep.id) {
+            return false;
+        }
+        if (existing && existing.stuckId === creep.id && existing.tick >= Game.time - 1) {
+            return this.executeFormupSlide(creep, leader, claimed);
+        }
+
+        const slider = this.findFormupSlider(creep, leader, slots, emptySlot);
+        if (!slider) return false;
+
+        const slideDir = slider.pos.getDirectionTo(emptySlot);
+        const takeDir = creep.pos.getDirectionTo(slider.pos);
+        if (!slideDir || !takeDir) return false;
+
+        const dest = leader.memory.destination;
+        if (dest && (wouldEnterDest(slider.pos, slideDir, dest) || wouldEnterDest(creep.pos, takeDir, dest))) {
+            return false;
+        }
+
+        const slide = {
+            sliderId: slider.id,
+            stuckId: creep.id,
+            emptyX: emptySlot.x,
+            emptyY: emptySlot.y,
+            vacateX: slider.pos.x,
+            vacateY: slider.pos.y,
+            roomName: slider.pos.roomName,
+            tick: Game.time
+        };
+        setFormupSlide(leader.id, slide);
+        leader.memory.formupSlide = slide;
+        slider.move(slideDir);
+        creep.move(takeDir);
+        claimed[creep.id] = `${slide.vacateX},${slide.vacateY}`;
+        claimed[slider.id] = `${slide.emptyX},${slide.emptyY}`;
+        return true;
+    }
+
+    executeFormupSlide(creep, leader, claimed) {
+        let slide = formupSlideFor(leader.id);
+        if (!slide && leader.memory.formupSlide && leader.memory.formupSlide.tick >= Game.time - 1) {
+            slide = leader.memory.formupSlide;
+            setFormupSlide(leader.id, slide);
+        }
+        if (!slide) return false;
+        if (slide.sliderId !== creep.id && slide.stuckId !== creep.id) return false;
+
+        const dest = leader.memory.destination;
+        const roomName = slide.roomName || creep.pos.roomName;
+        if (creep.id === slide.sliderId) {
+            if (creep.pos.roomName !== roomName
+                || creep.pos.x !== slide.vacateX || creep.pos.y !== slide.vacateY) {
+                if (slide.tick < Game.time) leader.memory.formupSlide = undefined;
+                return false;
+            }
+            const empty = new RoomPosition(slide.emptyX, slide.emptyY, roomName);
+            if (empty.checkForImpassible(false, true)) {
+                leader.memory.formupSlide = undefined;
+                return false;
+            }
+            const occupant = empty.checkForCreep();
+            if (occupant && occupant.id !== creep.id && occupant.id !== slide.stuckId) {
+                leader.memory.formupSlide = undefined;
+                return false;
+            }
+            const dir = creep.pos.getDirectionTo(empty);
+            if (!dir || (dest && wouldEnterDest(creep.pos, dir, dest))) return false;
+            creep.move(dir);
+            claimed[creep.id] = `${slide.emptyX},${slide.emptyY}`;
+            return true;
+        }
+
+        if (creep.pos.roomName !== roomName) return false;
+        const vacate = new RoomPosition(slide.vacateX, slide.vacateY, roomName);
+        if (creep.pos.getRangeTo(vacate) !== 1) return false;
+        const dir = creep.pos.getDirectionTo(vacate);
+        if (!dir || (dest && wouldEnterDest(creep.pos, dir, dest))) return false;
+        creep.move(dir);
+        claimed[creep.id] = `${slide.vacateX},${slide.vacateY}`;
+        return true;
     }
 
     isCurrentPosViable(creep) {
@@ -975,11 +1118,15 @@ class RoleLongbowSquad {
 
     waveMemberBoostSettled(c) {
         if (!c) return false;
-        const op = c.memory && c.memory.operation;
-        if ((op === 'roomDenial' || op === 'stronghold')
-            && c.hasRequiredSiegeBoosts && c.hasRequiredSiegeBoosts()) return true;
-        if (c.memory.boosts) return false;
+        const pending = c.memory.boosts && c.memory.boosts.requestedBoosts;
+        if (pending && Object.keys(pending).length) return false;
         if (c.memory.boostAttempt) return true;
+        const op = c.memory && c.memory.operation;
+        // Siege: HEAL/TOUGH on the body is not done. The last creep often still
+        // has RA/MOVE to apply, and leftover mineral is re-planned in tryToBoost
+        // only after requestedBoosts is empty.
+        if (op === 'roomDenial' || op === 'stronghold') return false;
+        if (c.memory.boosts) return false;
         return !!(c.memory.hasBoosted && c.memory.hasBoosted.length);
     }
 
@@ -1372,8 +1519,9 @@ class RoleLongbowSquad {
 
     // One pipeline for uncommitted waitFor bodies (leader and ungrouped).
     // Room-mates are the wave: group whoever is here, boost required siege
-    // parts, leave. Incomplete groups shrink waitFor to who showed up instead
-    // of a second seal/abandon path.
+    // parts, keep applying RA/MOVE until they land or labs stall, then leave.
+    // Incomplete groups shrink waitFor to who showed up instead of a second
+    // seal/abandon path.
     holdForWave(creep) {
         const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
         if (!(waitFor > 1) || this.isSquadCommitted(creep)) return false;
@@ -1399,6 +1547,9 @@ class RoleLongbowSquad {
         if (!assembled && !giveUp) {
             if (creep.memory.misc && creep.memory.misc.boostWaitTick) {
                 creep.memory.misc.boostWaitTick = undefined;
+            }
+            if (creep.memory.misc && creep.memory.misc.optionalBoostPhase) {
+                creep.memory.misc.optionalBoostPhase = undefined;
             }
             if (this.renewWave(creep)) return true;
             this.goToMusterPad(creep);
@@ -1434,7 +1585,15 @@ class RoleLongbowSquad {
             return true;
         }
 
-        if (siegeOp || this.waveBoosted(creep) || this.waveBoostStalled(creep) || ttlFailed) {
+        // HEAL/TOUGH are on every body. Give RA/MOVE a fresh stall window so
+        // a long required fill does not immediately seal the last creep still
+        // walking the optional labs. Commit when everyone is done, labs stall,
+        // or TTL is gone — never the same tick required first lands.
+        if (!creep.memory.misc.optionalBoostPhase) {
+            creep.memory.misc.optionalBoostPhase = true;
+            creep.memory.misc.boostWaitTick = Game.time;
+        }
+        if (this.waveBoosted(creep) || this.waveBoostStalled(creep) || ttlFailed) {
             this.commitSquad(creep);
             return false;
         }
@@ -1899,9 +2058,11 @@ class RoleLongbowSquad {
 
         // Intel picked a staging neighbor. Do not hop in from a different
         // adjacent room just because the shortest path brushed dest's other face.
+        // Already dest-adjacent: hop this face. Going to the other neighbor
+        // parks the 2×2 on that exit and never enters dest.
         const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
         const stagingShares = !!(staging && staging !== dest && exitDirectionTo(staging, dest));
-        if (!inDest && !split && stagingShares && creep.room.name !== staging) {
+        if (!inDest && !split && stagingShares && creep.room.name !== staging && !sharesExit) {
             this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
             return true;
         }
@@ -1969,7 +2130,10 @@ class RoleLongbowSquad {
                     return true;
                 }
             }
-            if (this.isQuad(creep) && creep.memory.quadSnake && this.snakeIntoDest(creep)) return true;
+            // 1-wide dest face: a 2×2 cannot pack. Snake the leader through
+            // once on the dest-facing tile; waiting forever was the stuck case.
+            if (this.isQuad(creep) && (creep.memory.quadSnake || this.onDestFacingExit(creep, dest))
+                && this.snakeIntoDest(creep)) return true;
             goToExit();
             return true;
         }
@@ -3276,20 +3440,25 @@ class RoleLongbowSquad {
         const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
         // In staging: walk the dest-facing pad. Do not wander 25,25 because
         // staged is only set on that exit, not on room entry.
+        const destAdjacent = !!exitDirectionTo(creep.room.name, dest);
         if (staging && staging !== dest && creep.room.name === staging) {
             if (this.onDestFacingExit(creep, dest)) {
                 if (this.stepFormationIntoDest(creep)) return true;
+                if (this.isQuad(creep) && this.snakeIntoDest(creep)) return true;
                 return true;
             }
             const pad = this.findStaging(creep);
             if (pad) return this.leaderTransit(pad, {range: 0});
             return this.leaderTransit(new RoomPosition(25, 25, dest), {range: 22});
         }
-        const transitTarget = (staging && !creep.memory.misc.staged) ? staging : dest;
+        // Dest-adjacent is already the neighbor — pathing to a different
+        // staging room is the exit-stuck walk around dest.
+        const transitTarget = (!destAdjacent && staging && !creep.memory.misc.staged) ? staging : dest;
         const destDir = exitDirectionTo(creep.room.name, transitTarget);
         if (transitTarget === dest && destDir && creep.room.name !== dest) {
             if (this.onDestFacingExit(creep, dest)) {
                 if (this.stepFormationIntoDest(creep)) return true;
+                if (this.isQuad(creep) && this.snakeIntoDest(creep)) return true;
                 return true;
             }
             const pad = this.findStaging(creep);

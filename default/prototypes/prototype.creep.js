@@ -1067,6 +1067,54 @@ function buildBoostPlan(creep, requestedBodyParts) {
         const resource = findAvailableBoostTier(creep.room, boostType, amount);
         if (resource) plan[resource] = {boost: resource, amount, type: boostType};
     }
+    return addAvailableOptionalBoosts(creep, plan);
+}
+
+function planHasBoostPart(plan, part) {
+    for (const key in plan) {
+        if (plan[key] && plan[key].type === part) return true;
+    }
+    return false;
+}
+
+function optionalSiegePartsWanted(creep) {
+    const wanted = [];
+    const extra = creep.memory.misc && creep.memory.misc.boosts;
+    if (extra) {
+        for (let i = 0; i < extra.length; i++) {
+            const part = extra[i];
+            if (isOptionalSiegeBoost(part) && !wanted.includes(part)) wanted.push(part);
+        }
+    }
+    const nb = creep.memory.neededBoosts;
+    if (nb && nb.moveBoost && !wanted.includes(MOVE)) wanted.push(MOVE);
+    return wanted;
+}
+
+// RA/MOVE are not required to start boosting, but if they are still unboosted
+// and the mineral is in the room, keep them on the plan so the last body of a
+// wave does not finish after HEAL/TOUGH and walk off the labs.
+function addAvailableOptionalBoosts(creep, plan) {
+    if (!isSiegeBoostOp(creep) || !plan) return plan;
+    const wanted = optionalSiegePartsWanted(creep);
+    const nb = creep.memory.neededBoosts;
+    for (let i = 0; i < wanted.length; i++) {
+        const part = wanted[i];
+        if (planHasBoostPart(plan, part)) continue;
+        let unboosted = 0;
+        for (let b = 0; b < creep.body.length; b++) {
+            if (creep.body[b].type === part && !creep.body[b].boost) unboosted++;
+        }
+        if (!unboosted) continue;
+        const amount = unboosted * BOOST_AMOUNT_PER_PART;
+        let resource;
+        if (part === MOVE && nb && nb.moveBoost && creep.room.store(nb.moveBoost) >= amount) {
+            resource = nb.moveBoost;
+        } else {
+            resource = findAvailableBoostTier(creep.room, part, amount);
+        }
+        if (resource) plan[resource] = {boost: resource, amount, type: part};
+    }
     return plan;
 }
 
@@ -1696,16 +1744,31 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
     }
 
     if (!_.size(this.memory.boosts.requestedBoosts)) {
-        if (isWaitForWave(this) && !planCoversExpectedBoosts(this, {})) {
-            if (isSiegeBoostOp(this) && !creepHasRequiredSiegeBoosts(this)) {
-                this.memory.boosts = undefined;
+        const leftover = addAvailableOptionalBoosts(this, {});
+        if (_.size(leftover)) {
+            const labs = this.memory.boosts.labs || {};
+            const reserved = new Set(Object.values(labs));
+            for (const resource of Object.keys(leftover)) {
+                const lab = claimBoostLab(this, resource, leftover[resource].amount, reserved);
+                if (lab) {
+                    labs[resource] = lab.id;
+                    reserved.add(lab.id);
+                }
+            }
+            this.memory.boosts.requestedBoosts = leftover;
+            this.memory.boosts.labs = labs;
+        } else {
+            if (isWaitForWave(this) && !planCoversExpectedBoosts(this, {})) {
+                if (isSiegeBoostOp(this) && !creepHasRequiredSiegeBoosts(this)) {
+                    this.memory.boosts = undefined;
+                    return false;
+                }
+                finishBoosting(this);
                 return false;
             }
             finishBoosting(this);
             return false;
         }
-        finishBoosting(this);
-        return false;
     }
 
     const waitFor = this.memory.misc && this.memory.misc.waitFor;
