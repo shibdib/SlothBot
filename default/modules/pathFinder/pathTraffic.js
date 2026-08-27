@@ -82,14 +82,15 @@ function findOccupyingCreep(room, pos, excludeId) {
 
 /**
  * Yield tiles must be free of walls, obstacle structures, exits, and any creep.
+ * `ignoreIds` treats those occupants as already leaving (squad tiles being vacated).
  */
-function isTileWalkable(pos, ignoreCreepId) {
+function isTileWalkable(pos, ignoreCreepId, ignoreIds) {
     if (!pos || pos.isExit() || pos.checkForWall()) return false;
     if (pos.checkForObstacleStructure()) return false;
     if (pos.checkIfOutOfBounds && pos.checkIfOutOfBounds()) return false;
 
     const occupant = pos.checkForCreep();
-    if (occupant && occupant.id !== ignoreCreepId) return false;
+    if (occupant && occupant.id !== ignoreCreepId && !(ignoreIds && ignoreIds.has(occupant.id))) return false;
     return true;
 }
 
@@ -108,25 +109,51 @@ function scoreYieldTile(pos, contestedPos, yielder) {
 /**
  * Pick a free adjacent direction for `creep` to step off `contestedPos` (or away from it).
  * Returns a direction constant or null if no safe tile exists.
+ * options.ignoreIds — occupants that are vacating this tick
+ * options.forbidden — "x,y,roomName" tiles the 2×2 is about to occupy
+ * options.claimed — same-tick yield tiles already taken; mutated on pick
  */
-function findYieldDirection(creep, contestedPos) {
+function findYieldDirection(creep, contestedPos, options = {}) {
     const blockedDir = contestedPos && !creep.pos.isEqualTo(contestedPos)
         ? creep.pos.getDirectionTo(contestedPos)
         : 0;
+    const ignoreIds = options.ignoreIds;
+    const forbidden = options.forbidden;
+    const claimed = options.claimed;
     let bestDir = null;
     let bestScore = -Infinity;
 
     for (let dir = 1; dir <= 8; dir++) {
         if (dir === blockedDir) continue;
         const pos = creep.pos.getAdjacentPosition(dir);
-        if (!pos || !isTileWalkable(pos, creep.id)) continue;
+        if (!pos) continue;
+        const key = `${pos.x},${pos.y},${pos.roomName}`;
+        if (forbidden && forbidden.has(key)) continue;
+        if (claimed && claimed.has(key)) continue;
+        if (!isTileWalkable(pos, creep.id, ignoreIds)) continue;
         const score = scoreYieldTile(pos, contestedPos, creep);
         if (score > bestScore) {
             bestScore = score;
             bestDir = dir;
         }
     }
+    if (bestDir && claimed) {
+        const pos = creep.pos.getAdjacentPosition(bestDir);
+        if (pos) claimed.add(`${pos.x},${pos.y},${pos.roomName}`);
+    }
     return bestDir;
+}
+
+/** Issue a yield move so `blocker` leaves `contestedPos`. False if they cannot. */
+function yieldOccupant(blocker, contestedPos, options = {}) {
+    if (!blocker || !isBumperCandidate(blocker)) return false;
+    const dir = findYieldDirection(blocker, contestedPos, options);
+    if (!dir) return false;
+    blocker.move(dir);
+    markMoveBlocked(blocker);
+    if (typeof ICONS !== 'undefined' && ICONS && ICONS.traffic) blocker.say(ICONS.traffic, true);
+    if (options.ignoreIds) options.ignoreIds.add(blocker.id);
+    return true;
 }
 
 /** Mark a creep so later role logic cannot overwrite this tick's yield/bump move. */
@@ -140,6 +167,7 @@ module.exports = {
     sortCreepsForMovement,
     findOccupyingCreep,
     findYieldDirection,
+    yieldOccupant,
     isBumperCandidate,
     isHomeRoomYieldingSquad,
     isTileWalkable,

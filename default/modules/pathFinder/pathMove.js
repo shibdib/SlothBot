@@ -156,6 +156,7 @@ const {
     creepWinsTraffic,
     findOccupyingCreep,
     findYieldDirection,
+    yieldOccupant,
     isBumperCandidate,
     isHomeRoomYieldingSquad,
     markMoveBlocked,
@@ -613,8 +614,6 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
  * Returns false so the caller can repath — never "succeed" while standing still.
  */
 function creepBumping(creep, pathInfo, options) {
-    // Squad members are positioned by squadMove; do not yank them out of formation.
-    if (creep.memory?.grouped) return false;
     if (!pathInfo?.path?.length) return false;
 
     const nextDirection = parseInt(pathInfo.path[0], 10);
@@ -646,20 +645,19 @@ function creepBumping(creep, pathInfo, options) {
         return false;
     }
 
-    // 3) Higher priority (lower PRIORITIES number): ask them to yield onto a free tile.
-    if (creepWinsTraffic(creep, bumpCreep)) {
-        const yieldDir = findYieldDirection(bumpCreep, nextPosition);
-        if (!yieldDir) {
-            return false;
-        }
-        bumpCreep.move(yieldDir);
-        if (ICONS?.traffic) bumpCreep.say(ICONS.traffic, true);
-        markMoveBlocked(bumpCreep);
+    const groupedMover = !!creep.memory?.grouped;
+    // Packed/packing squads always shove civilians. longbowSquad is not in
+    // PRIORITIES so they default to 10 and would lose to haulers.
+    if (groupedMover || creepWinsTraffic(creep, bumpCreep)) {
+        if (!yieldOccupant(bumpCreep, nextPosition)) return false;
         const bumpMove = getShibMove(bumpCreep);
         if (bumpMove) bumpMove.pathPosTime = 0;
         creep.move(nextDirection);
         return true;
     }
+
+    // Committed squads stay in formation — never self-yield off the 2×2.
+    if (groupedMover && !isHomeRoomYieldingSquad(creep)) return false;
 
     // 4) We lose priority: only step aside onto a free tile (no forced dance / random).
     // Clear path so the next move builds a route that accounts for the higher-priority creep.

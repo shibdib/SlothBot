@@ -28,6 +28,7 @@ const {
     posAfterMove,
     wouldEnterDest
 } = require("module.pathFinder");
+const {isBumperCandidate, yieldOccupant} = require("pathTraffic");
 const {recordSiegeWave} = require('hcTargets');
 const {clearOpQueueRole} = require('spawnQueue');
 const stagingCache = {}; // creepId → {x, y, tick, roomName}
@@ -652,7 +653,12 @@ class RoleLongbowSquad {
         for (let i = 0; i < slots.length; i++) {
             const s = slots[i];
             const occupant = s.checkForCreep();
-            if (occupant && occupant.id !== creep.id) occupied.add(`${s.x},${s.y}`);
+            if (occupant && occupant.id !== creep.id) {
+                const mate = occupant.id === leader.id
+                    || occupant.memory.groupLeader === leader.id
+                    || (leader.memory.squadMembers || []).includes(occupant.id);
+                if (mate || !isBumperCandidate(occupant)) occupied.add(`${s.x},${s.y}`);
+            }
         }
         const claimed = formupClaims(leader.id);
         for (const id in claimed) {
@@ -712,6 +718,10 @@ class RoleLongbowSquad {
                 if (range === 1) {
                     const dest = leader.memory.destination;
                     if (dest && wouldEnterDest(creep.pos, dir, dest)) return false;
+                    const occupant = bestSlot.checkForCreep();
+                    if (occupant && occupant.id !== creep.id && occupant.id !== leader.id) {
+                        if (!yieldOccupant(occupant, bestSlot)) return false;
+                    }
                     creep.move(dir);
                     return false;
                 }
