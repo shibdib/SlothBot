@@ -59,15 +59,26 @@ function squadMove(creep, path) {
     const orientation = creep.memory.squadOrientation || 0;
     const squadSize = members.length + 1;
     const newLeaderPos = posAfterMove(creep.pos, move);
+    const dest = creep.memory.destination;
+    const leaderEnteringDest = !!(dest && newLeaderPos && newLeaderPos.roomName === dest
+        && creep.pos.roomName !== dest);
+    const destEdgeSlide = isDestEdgeSlide(creep, dest, members);
 
     if (newLeaderPos) {
-        if (newLeaderPos.checkForImpassible(false, true) || !isFootprintWalkable(newLeaderPos, orientation, squadSize)) {
+        if (newLeaderPos.checkForImpassible(false, true)) {
+            creep.memory._shibSquadMove = undefined;
+            return false;
+        }
+        // Full 2×2 inland often hits the bunker wall 1 tile off dest-exit.
+        // Aborting here left the front row on dest-exit and the back row
+        // parked in staging. Dest-edge slides still move whoever can.
+        if (!isFootprintWalkable(newLeaderPos, orientation, squadSize) && !destEdgeSlide) {
             creep.memory._shibSquadMove = undefined;
             return false;
         }
     }
 
-    if (!canSquadMove(creep, members, move)) {
+    if (!canSquadMove(creep, members, move, destEdgeSlide)) {
         creep.memory._shibSquadMove = undefined;
         return false;
     }
@@ -76,9 +87,6 @@ function squadMove(creep, path) {
     // dest-side column, back row occupies the exit. Abort if anyone would
     // enter dest while the leader is still stepping onto the exit — that is
     // the "front row leaks in, re-form under towers" case.
-    const dest = creep.memory.destination;
-    const leaderEnteringDest = !!(dest && newLeaderPos && newLeaderPos.roomName === dest
-        && creep.pos.roomName !== dest);
     const misc = creep.memory.misc;
     const destAdjacent = !!(dest && exitDirectionTo(creep.pos.roomName, dest));
     const stagingBypass = !!(dest && misc && misc.stagingRoom && misc.stagingRoom !== dest
@@ -119,10 +127,12 @@ function squadMove(creep, path) {
             member.move(move);
         } else if (nextPos.roomName !== member.pos.roomName) {
             // In-formation dest landings were already gated in canSquadMove.
-            // A blocked tile here means the hop should not have started.
+            // A blocked tile here means this body stays; others still step.
             if (roomCrossBlocked(nextPos)) continue;
             member.move(move);
         } else if (nextPos.checkForImpassible(false, true)) {
+            // Dest-exit inward: stay rather than peeling off to path around.
+            if (destEdgeSlide) continue;
             member.shibMove(creep, {range: 0, forceSolo: true});
         } else {
             member.move(move);
@@ -207,18 +217,42 @@ function roomCrossBlocked(nextPos) {
     return !!(Game.rooms[nextPos.roomName] && nextPos.checkForImpassible(false, true));
 }
 
-function canSquadMove(leader, members, direction) {
+function onDestExitTile(pos) {
+    return !!(pos && (pos.x === 0 || pos.x === 49 || pos.y === 0 || pos.y === 49));
+}
+
+function isDestEdgeSlide(leader, dest, members) {
+    if (!dest) return false;
+    // First hop (nobody in dest yet) still needs the dest-exit footprint so
+    // we don't leak a single body in. Relax only once the 2×2 straddles dest
+    // or is clearing dest-exit inland.
+    if (leader.pos.roomName !== dest) {
+        return !!(members && members.some(m => m && m.pos.roomName === dest
+            && formationRange(m.pos, leader.pos) <= 1));
+    }
+    const p = leader.pos;
+    if (onDestExitTile(p)) return true;
+    if (members && members.some(m => m && m.pos.roomName === dest && onDestExitTile(m.pos))) return true;
+    return !!(members && members.some(m => m && m.pos.roomName !== p.roomName
+        && formationRange(m.pos, p) <= 1));
+}
+
+function canSquadMove(leader, members, direction, destEdgeSlide) {
     const hostiles = !!leader.room.hostileCreeps.length;
     for (const member of members) {
         if (formationRange(member.pos, leader.pos) > 1) continue;
         const nextPos = posAfterMove(member.pos, direction);
         if (!nextPos) continue;
         if (nextPos.roomName !== member.pos.roomName) {
-            if (roomCrossBlocked(nextPos)) return false;
+            // Dest-edge: a blocked landing parks that body; others still step.
+            if (roomCrossBlocked(nextPos) && !destEdgeSlide) return false;
             continue;
         }
         if (!hostiles) continue;
-        if (nextPos.checkForImpassible(false, true) || isOccupiedByEnemy(leader, nextPos)) return false;
+        if (nextPos.checkForImpassible(false, true) || isOccupiedByEnemy(leader, nextPos)) {
+            if (destEdgeSlide) continue;
+            return false;
+        }
     }
     return true;
 }
