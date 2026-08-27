@@ -20,8 +20,10 @@ function operationSustainability(room, operationRoom = room.name) {
     if (!operation) return;
 
     if (room.controller?.safeMode) {
-        markAsPending(operationRoom, room);
-        return 'remoteDenial';
+        if (!(operation.type === 'guard' && operation.camping)) {
+            markAsPending(operationRoom, room);
+            return 'remoteDenial';
+        }
     }
 
     if (operation.sustainabilityCheck === Game.time) return;
@@ -61,12 +63,18 @@ function operationSustainability(room, operationRoom = room.name) {
     }
 
     if (isAtRisk && Memory.targetRooms[operationRoom]) {
+        const live = Memory.targetRooms[operationRoom];
+        // Post-denial occupy holds until the controller is unowned.
+        if (live.type === 'guard' && live.camping) {
+            saveOperation(operationRoom, operation);
+            return;
+        }
         const ratio = friendlyDead / (enemyDead || 100);
-        const opType = Memory.targetRooms[operationRoom].type;
+        const opType = live.type;
         log.a(`Canceling operation in ${roomLink(operationRoom)} — unsustainable casualties (${ratio.toFixed(2)}).`, 'HIGH COMMAND: ');
         if (opType === 'roomDenial' || opType === 'stronghold') recordSiegeCancellation();
-        stampOperationCooldown(operationRoom, Memory.targetRooms[operationRoom], true);
-        if (opType === 'roomDenial') notifySiegeEnd(operationRoom, 'UNSUSTAINABLE', Memory.targetRooms[operationRoom]);
+        stampOperationCooldown(operationRoom, live, true);
+        if (opType === 'roomDenial') notifySiegeEnd(operationRoom, 'UNSUSTAINABLE', live);
         delete Memory.targetRooms[operationRoom];
         return (typeof HARASSMENT_OPERATIONS !== 'undefined' && HARASSMENT_OPERATIONS) ? 'harass' : 'borderPatrol';
     }

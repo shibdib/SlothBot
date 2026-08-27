@@ -11,6 +11,10 @@
 
 const DEFAULT_MAXOPS = 1500;
 
+// Hostile / obstacle rooms often have a winding terrain tunnel. 1500 ops
+// returns incomplete and the creep walks into the nearest wall instead.
+const MAZE_MAXOPS = 12000;
+
 const STATE_STUCK = 2;
 
 const FLEE_RANGE = 4;
@@ -30,6 +34,8 @@ let routeSafetyCache = {};
 module.exports = {
 
     DEFAULT_MAXOPS,
+
+    MAZE_MAXOPS,
 
     STATE_STUCK,
 

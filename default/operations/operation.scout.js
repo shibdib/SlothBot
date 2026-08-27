@@ -53,8 +53,11 @@ function forwardObserver(room) {
     if (!targetRoom) return false;
 
     if (room.controller && room.controller.safeMode && room.controller.owner && !FRIENDLIES.includes(room.controller.owner.username)) {
-        updateRoomSafemode(room);
-        return;
+        // Post-denial occupy stays on the controller through safemode.
+        if (!(targetRoom.type === 'guard' && targetRoom.camping)) {
+            updateRoomSafemode(room);
+            return;
+        }
     }
 
     updateHostileUsers(room);
@@ -68,6 +71,9 @@ function forwardObserver(room) {
             break;
         case 'remoteDenial':
             handleRemoteDenialOperation(room);
+            break;
+        case 'guard':
+            handleGuardOperation(room);
             break;
         case 'stronghold':
             updateRoomLevel(room);
@@ -134,6 +140,11 @@ function convertRoomDenialToGuard(room) {
     op.optionalBoosts = undefined;
     op.camping = true;
     op.tick = Game.time;
+    // Wave/casualty counters are siege-era. Occupying until unowned
+    // must not inherit a max-waves or unsustainable cancel.
+    op.waves = undefined;
+    op.lastWave = undefined;
+    op.waveLimit = undefined;
     const creeps = getMilitaryCreeps();
     for (let i = 0; i < creeps.length; i++) {
         const c = creeps[i];
@@ -141,6 +152,25 @@ function convertRoomDenialToGuard(room) {
         if (c.memory.operation === 'roomDenial') c.memory.operation = 'guard';
     }
     log.a(`Room denial in ${roomLink(room.name)} converted to guard — towers down.`, 'HIGH COMMAND: ');
+    updateRoomLevel(room);
+    handleCleanerAndClaimAttacker(room);
+}
+
+function handleGuardOperation(room) {
+    const targetRoom = Memory.targetRooms[room.name];
+    if (!targetRoom) return;
+
+    if (targetRoom.camping) {
+        const owner = room.controller && room.controller.owner && room.controller.owner.username;
+        if (!owner || FRIENDLIES.includes(owner)) {
+            log.a(`Canceling guard in ${roomLink(room.name)} as it is no longer owned.`, 'HIGH COMMAND: ');
+            notifySiegeEnd(room.name, 'SUCCESS', targetRoom);
+            delete Memory.targetRooms[room.name];
+            return;
+        }
+        targetRoom.tick = Game.time;
+    }
+
     updateRoomLevel(room);
     handleCleanerAndClaimAttacker(room);
 }
@@ -193,8 +223,12 @@ function handleCleanerAndClaimAttacker(room) {
     }
 
     targetRoom.cleaner = room.hostileStructures.length ? true : undefined;
-    if (room.controller && (!room.controller.upgradeBlocked || room.controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME) &&
-        room.controller.pos.countOpenTerrainAround()) {
+    const controller = room.controller;
+    const owner = controller && controller.owner && controller.owner.username;
+    const ownedHostile = owner && !FRIENDLIES.includes(owner);
+    const reachable = controller && (!controller.upgradeBlocked || controller.upgradeBlocked < CREEP_CLAIM_LIFE_TIME)
+        && controller.pos.countOpenTerrainAround();
+    if (ownedHostile && !controller.safeMode && reachable) {
         targetRoom.claimAttacker = true;
     } else {
         targetRoom.claimAttacker = undefined;

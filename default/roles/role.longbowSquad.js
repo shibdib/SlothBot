@@ -2133,7 +2133,8 @@ class RoleLongbowSquad {
         // parks the 2×2 on that exit and never enters dest.
         const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
         const stagingShares = !!(staging && staging !== dest && exitDirectionTo(staging, dest));
-        if (!inDest && !split && stagingShares && creep.room.name !== staging && !sharesExit) {
+        if (!inDest && !split && stagingShares && creep.room.name !== staging
+            && !this.onDestFacingExit(creep, dest)) {
             this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
             return true;
         }
@@ -3534,6 +3535,12 @@ class RoleLongbowSquad {
         // In staging: walk the dest-facing pad. Do not wander 25,25 because
         // staged is only set on that exit, not on room entry.
         const destAdjacent = !!exitDirectionTo(creep.room.name, dest);
+        // Dest-adjacent on the wrong face: walk around to the tunnel staging
+        // unless we are already committed on dest-facing tiles.
+        if (staging && staging !== dest && destAdjacent && creep.room.name !== staging
+            && !this.onDestFacingExit(creep, dest)) {
+            return this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
+        }
         if (staging && staging !== dest && creep.room.name === staging) {
             if (this.onDestFacingExit(creep, dest)) {
                 if (this.stepFormationIntoDest(creep)) return true;

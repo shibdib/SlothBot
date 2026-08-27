@@ -10,12 +10,13 @@
 
 
 const profiler = require('tools.profiler');
-const {DEFAULT_MAXOPS, STATE_STUCK} = require('pathState');
+const {DEFAULT_MAXOPS, MAZE_MAXOPS, STATE_STUCK} = require('pathState');
 
 const {
     normalizePos, clearTrailerTowState,
     tryPullSwapThrough, isPullSwapBlocker, isImmobileBlocker,
     getShibMove, setShibMove, ensureShibMove, clearShibMove,
+    roomNeedsMazeOps,
 } = require('pathUtils');
 
 const {requestTow, needsTow} = require('pathTow');
@@ -144,7 +145,8 @@ function applyLongDistanceHop(creep, origin, target, options) {
     options.range = 0;
     options.hopGoals = hop.goals;
     options.hopExitDir = hop.exitDir;
-    if (options.maxOps == null || options.maxOps > 2000) options.maxOps = 2000;
+    const hopCap = roomNeedsMazeOps(origin.roomName) ? MAZE_MAXOPS : 2000;
+    if (options.maxOps == null || options.maxOps > hopCap) options.maxOps = hopCap;
     return hop.pos;
 }
 
@@ -315,6 +317,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         prevRange !== (options.range ?? 1);
     if (!pathState || targetChanged) {
         pathState = setShibMove(creep, {});
+        if (creep.memory) delete creep.memory._mazeOpsRetry;
     }
 
     // Stuck detection
@@ -482,9 +485,13 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     // Single scale by distance. Previous code did (distance+4)*distance which pushed
     // multi-room CLAIM searches into 40k–60k maxOps and multi-CPU repaths.
     if (roomDistance) {
-        options.maxOps = Math.min(12000, DEFAULT_MAXOPS * (roomDistance + 2));
+        const scaled = Math.min(12000, DEFAULT_MAXOPS * (roomDistance + 2));
+        options.maxOps = Math.max(options.maxOps || 0, scaled);
     } else {
         options.maxOps = options.maxOps || DEFAULT_MAXOPS;
+    }
+    if (roomNeedsMazeOps(origin.roomName) || roomNeedsMazeOps(target.roomName)) {
+        options.maxOps = Math.max(options.maxOps, MAZE_MAXOPS);
     }
 
     // Prefer precomputed / in-progress route. Always re-calling findRoute ignored
@@ -545,8 +552,16 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         // Success - clear failure state
         delete creep.memory.repathAttempt;
         delete creep.memory.badPathing;
+        delete creep.memory._mazeOpsRetry;
 
         return executePath(creep, pathInfo, options, origin, heading);
+    }
+
+    // Incomplete often means the tunnel was not explored. Retry once with maze ops.
+    if (!creep.memory._mazeOpsRetry && (options.maxOps || 0) < MAZE_MAXOPS) {
+        creep.memory._mazeOpsRetry = Game.time;
+        options.maxOps = MAZE_MAXOPS;
+        return shibPath(creep, heading, pathInfo, origin, target, options);
     }
 
     // Pathfinding failed

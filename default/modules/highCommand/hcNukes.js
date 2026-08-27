@@ -11,7 +11,7 @@
 
 const state = require('hcState');
 
-const {checkForNap, scoreTarget, empireLinearDistance} = require('hcUtils');
+const {checkForNap, scoreTarget, empireDistance} = require('hcUtils');
 
 const {getEmpireReadiness} = require('hcReadiness');
 const {notify, notifySiegeEvent} = require('module.notifications');
@@ -213,7 +213,7 @@ function autoNuke() {
         }
     }
 
-    const MADTarget = _.min(madCandidates, r => empireLinearDistance(r.name));
+    const MADTarget = _.min(madCandidates, r => empireDistance(r.name));
 
     if (!MADTarget?.name) return false;
 
@@ -253,8 +253,6 @@ function offensiveNuke() {
     if (availableLaunchers.length <= reserve) return false;
 
     const warUsers = new Set(_.pluck(WAR_TARGETS, 'user'));
-    const warPriorityByUser = {};
-    for (const t of WAR_TARGETS) warPriorityByUser[t.user] = t.priority;
 
     let bestIntel = null;
     let bestScore = Infinity;
@@ -265,7 +263,7 @@ function offensiveNuke() {
         if (!isEscalationCandidate(op, intel)) continue;
         if (!isValidOffensiveTarget(intel, availableLaunchers, warUsers)) continue;
 
-        let score = scoreTarget(roomName, 'roomDenial', warPriorityByUser);
+        let score = scoreTarget(roomName, 'roomDenial');
         if (op.isAtRisk) score -= 500;
         if (intel.towers >= 4) score -= 100;
 

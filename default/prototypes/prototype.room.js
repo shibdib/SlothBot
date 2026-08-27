@@ -1241,16 +1241,28 @@ function scoreExitEdge(room, dir, towers) {
     };
 
     let best = null;
+    const consider = (scored) => {
+        if (!best) {
+            best = scored;
+            return;
+        }
+        // Open tunnel (0 inland barriers) beats a walled 2-wide pair. A 1-wide
+        // hole used to be hidden inside a pair with a walled neighbor.
+        if (scored.barrierHits !== best.barrierHits) {
+            if (scored.barrierHits < best.barrierHits) best = scored;
+            return;
+        }
+        if (scored.towerDmg !== best.towerDmg) {
+            if (scored.towerDmg < best.towerDmg) best = scored;
+            return;
+        }
+        if (scored.quadWidth > best.quadWidth) best = scored;
+    };
     for (let i = 0; i < open.length - 1; i++) {
         if (along(open[i + 1]) - along(open[i]) !== 1) continue;
-        const scored = scorePair(open[i], open[i + 1]);
-        if (!best
-            || scored.towerDmg < best.towerDmg
-            || (scored.towerDmg === best.towerDmg && scored.barrierHits < best.barrierHits)) {
-            best = scored;
-        }
+        consider(scorePair(open[i], open[i + 1]));
     }
-    if (!best) best = scorePair(open[0], null);
+    for (let i = 0; i < open.length; i++) consider(scorePair(open[i], null));
     return best;
 }
 
@@ -1297,10 +1309,12 @@ function determineBestAttackRoute(room, origin) {
         const c = candidates[i];
         const extra = (c.hops < Infinity && minHops < Infinity) ? c.hops - minHops : 0;
         if (extra > global.ATTACK_ROUTE_MAX_EXTRA_HOPS) continue;
+        // 1-wide open tunnel used to lose to a 2-wide walled face: quadWidth
+        // added 2000 while 5M walls only added 100 (hits/50000).
         const score = c.towerDmg
-            + c.barrierHits / 50000
+            + (c.barrierHits > 0 ? 10000 + c.barrierHits / 50000 : 0)
             + extra * 400
-            + (c.quadWidth >= 2 ? 0 : 2000)
+            + (c.quadWidth >= 2 ? 0 : 50)
             + c.stagingCost;
         if (score < bestScore) {
             bestScore = score;

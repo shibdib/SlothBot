@@ -172,19 +172,74 @@ function onExitToward(pos, exitDir) {
  * Look-ahead picks the side we'll leave nextRoom from so we don't
  * enter south and immediately have to cross north.
  */
+function clusterExitTiles(tiles, along) {
+    const sorted = tiles.slice().sort((a, b) => along(a) - along(b));
+    const clusters = [];
+    let cluster = [];
+    for (let i = 0; i < sorted.length; i++) {
+        const t = sorted[i];
+        if (!cluster.length || along(t) - along(cluster[cluster.length - 1]) <= 1) {
+            cluster.push(t);
+        } else {
+            clusters.push(cluster);
+            cluster = [t];
+        }
+    }
+    if (cluster.length) clusters.push(cluster);
+    return clusters;
+}
+
+function pickHopGoals(tiles, exitDir, preferred) {
+    const along = (exitDir === TOP || exitDir === BOTTOM) ? (t) => t.x : (t) => t.y;
+    const clusters = clusterExitTiles(tiles, along);
+    const bestInCluster = (c) => {
+        let best = c[0];
+        let bestD = Math.abs(along(best) - preferred);
+        for (let i = 1; i < c.length; i++) {
+            const d = Math.abs(along(c[i]) - preferred);
+            if (d < bestD) {
+                best = c[i];
+                bestD = d;
+            }
+        }
+        return best;
+    };
+    const picked = [];
+    const seen = new Set();
+    const add = (t) => {
+        const k = t.x + ',' + t.y;
+        if (seen.has(k)) return;
+        seen.add(k);
+        picked.push(t);
+    };
+    // Isolated clusters first (a 1-wide tunnel far from x=25 used to be dropped).
+    const byAlign = clusters.slice().sort((a, b) =>
+        Math.abs(along(bestInCluster(a)) - preferred) - Math.abs(along(bestInCluster(b)) - preferred));
+    for (let i = 0; i < byAlign.length; i++) add(bestInCluster(byAlign[i]));
+    // One wide open edge: also keep the ends so a side tunnel is a goal.
+    if (clusters.length === 1 && tiles.length > HOP_GOAL_COUNT) {
+        const c = clusters[0];
+        add(c[0]);
+        add(c[c.length - 1]);
+    }
+    const scored = tiles.slice().sort((a, b) => {
+        const sa = Math.abs(along(a) - preferred) * 10 + Math.abs(along(a) - 25);
+        const sb = Math.abs(along(b) - preferred) * 10 + Math.abs(along(b) - 25);
+        return sa - sb;
+    });
+    const cap = Math.max(HOP_GOAL_COUNT, picked.length);
+    for (let i = 0; i < scored.length && picked.length < cap; i++) add(scored[i]);
+    return picked;
+}
+
 function exitHopTarget(fromRoom, nextRoom, fromPos, lookAheadRoom) {
     const exitDir = Game.map.findExit(fromRoom, nextRoom);
     if (!(exitDir > 0)) return null;
     const tiles = getWalkableExits(fromRoom, exitDir);
     if (!tiles.length) return null;
     const preferred = preferredExitAlong(exitDir, nextRoom, lookAheadRoom);
-    const along = (exitDir === TOP || exitDir === BOTTOM) ? (t) => t.x : (t) => t.y;
-    const scored = tiles.slice().sort((a, b) => {
-        const sa = Math.abs(along(a) - preferred) * 10 + Math.abs(along(a) - 25);
-        const sb = Math.abs(along(b) - preferred) * 10 + Math.abs(along(b) - 25);
-        return sa - sb;
-    });
-    const goals = scored.slice(0, HOP_GOAL_COUNT).map((t) => ({
+    const chosen = pickHopGoals(tiles, exitDir, preferred);
+    const goals = chosen.map((t) => ({
         pos: new RoomPosition(t.x, t.y, fromRoom),
         range: 0,
     }));

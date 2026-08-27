@@ -16,11 +16,11 @@ const {hashStructures, applyLookObstaclesToMatrix, lookObstacleHash} = require('
 const {isHomeRoomYieldingSquad} = require('pathTraffic');
 
 function getBaseMatrix(roomName, creep, options) {
-    const type = options.offRoad || options.tunnel ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
     const room = Game.rooms[roomName];
     const noWallWrecker = creep instanceof Creep
         ? ((INTEL[roomName]?.owner && FRIENDLIES.includes(INTEL[roomName].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)))
         : true;
+    const type = options.offRoad || options.tunnel || !noWallWrecker ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
     const ignoreKeeper = !!options.ignoreKeeper;
 
     let plainCost, swampCost, roadCost;
@@ -48,12 +48,15 @@ function getBaseMatrix(roomName, creep, options) {
     const structuresHash = room
         ? (lookHash ? `${impassibleHash}|L:${lookHash}` : impassibleHash) || 'no-obstacles'
         : 'no-room';
-    const baseKey = `${roomName}_base_${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${structuresHash}`;
+    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}`;
+    const baseKey = `${roomName}_base_${cacheStamp}_${structuresHash}`;
 
-    // Per-tick reuse (biggest CPU win)
+    // Per-tick reuse (biggest CPU win). Stamp includes type/wrecker so a
+    // civilian matrix is not reused for a combat search in the same tick.
     if (ROOM_BASE_MATRIX_CACHE[roomName] &&
         ROOM_BASE_MATRIX_CACHE[roomName].tick === Game.time &&
-        ROOM_BASE_MATRIX_CACHE[roomName].hash === structuresHash) {
+        ROOM_BASE_MATRIX_CACHE[roomName].hash === structuresHash &&
+        ROOM_BASE_MATRIX_CACHE[roomName].stamp === cacheStamp) {
         return ROOM_BASE_MATRIX_CACHE[roomName].matrix.clone();
     }
 
@@ -63,7 +66,8 @@ function getBaseMatrix(roomName, creep, options) {
         ROOM_BASE_MATRIX_CACHE[roomName] = {
             matrix: MATRIX_CACHE[baseKey].matrix,
             tick: Game.time,
-            hash: structuresHash
+            hash: structuresHash,
+            stamp: cacheStamp
         };
         return MATRIX_CACHE[baseKey].matrix.clone();
     }
@@ -93,7 +97,13 @@ function getBaseMatrix(roomName, creep, options) {
             const pos = structure.pos;
 
             if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-                matrix.set(pos.x, pos.y, 256);
+                // Combat wreckers: constructed walls are last-resort (254),
+                // never terrain-blocked. Open tunnels stay cost 1 and win.
+                if (structure.structureType === STRUCTURE_WALL && !noWallWrecker) {
+                    matrix.set(pos.x, pos.y, 254);
+                } else {
+                    matrix.set(pos.x, pos.y, 256);
+                }
                 continue;
             }
 
@@ -125,7 +135,9 @@ function getBaseMatrix(roomName, creep, options) {
                 } else if (noWallWrecker) {
                     matrix.set(pos.x, pos.y, 256);
                 } else {
-                    matrix.set(pos.x, pos.y, 150);
+                    // Enemy private ramparts are obstacles. Cost 150 made a
+                    // 2-tile smash look cheaper than walking the open tunnel.
+                    matrix.set(pos.x, pos.y, 254);
                 }
                 continue;
             }
@@ -167,7 +179,7 @@ function getBaseMatrix(roomName, creep, options) {
 
     const finalMatrix = addSksToMatrix(roomName, matrix, options);
     MATRIX_CACHE[baseKey] = {matrix: finalMatrix, tick: Game.time};
-    ROOM_BASE_MATRIX_CACHE[roomName] = {matrix: finalMatrix, tick: Game.time, hash: structuresHash};
+    ROOM_BASE_MATRIX_CACHE[roomName] = {matrix: finalMatrix, tick: Game.time, hash: structuresHash, stamp: cacheStamp};
 
     return finalMatrix;
 }

@@ -36,37 +36,7 @@ function countActiveSieges() {
     return n;
 }
 
-/**
- * Auto roomDenial owner we are already punching. Highest WAR_TARGETS
- * priority wins; siege count breaks ties. Manual flag sieges do not pin focus.
- */
-function siegeFocusOwner(warPriorityByUser) {
-    const targets = Memory.targetRooms;
-    if (!targets) return null;
-    const counts = {};
-    for (const key in targets) {
-        const op = targets[key];
-        if (!op || op.manual || op.type !== 'roomDenial') continue;
-        const owner = INTEL[key] && INTEL[key].owner;
-        if (!owner) continue;
-        counts[owner] = (counts[owner] || 0) + 1;
-    }
-    let best = null;
-    let bestPri = -Infinity;
-    let bestCount = 0;
-    for (const owner in counts) {
-        const pri = (warPriorityByUser && warPriorityByUser[owner]) || 0;
-        const n = counts[owner];
-        if (pri > bestPri || (pri === bestPri && n > bestCount)) {
-            bestPri = pri;
-            bestCount = n;
-            best = owner;
-        }
-    }
-    return best;
-}
-
-/** Room-level gates for opening a roomDenial. Capacity and focus are planner-side. */
+/** Room-level gates for opening a roomDenial. Capacity and ring are planner-side. */
 function roomDenialLaunchOk(intel) {
     if (!intel || !intel.owner || !intel.towers) return false;
     if (FRIENDLIES.includes(intel.owner)) return false;
@@ -87,64 +57,91 @@ function roomSiegeLaunchable(intel) {
     return true;
 }
 
-function ownerMinEmpireDist(owner) {
-    if (!owner || typeof INTEL === 'undefined') return Infinity;
+function ownerSet(owners) {
+    if (!owners) return null;
+    if (typeof owners === 'string') return new Set([owners]);
+    if (owners instanceof Set) return owners;
+    if (Array.isArray(owners)) return new Set(owners);
+    return null;
+}
+
+function warTargetUserSet() {
+    const set = new Set();
+    if (typeof WAR_TARGETS === 'undefined' || !WAR_TARGETS) return set;
+    for (let i = 0; i < WAR_TARGETS.length; i++) {
+        const t = WAR_TARGETS[i];
+        if (t && t.user) set.add(t.user);
+    }
+    return set;
+}
+
+function minEmpireDist(owners) {
+    if (typeof INTEL === 'undefined') return Infinity;
+    const set = ownerSet(owners);
     let min = Infinity;
     for (const name in INTEL) {
         const r = INTEL[name];
-        if (!r || r.owner !== owner) continue;
-        const d = empireLinearDistance(name);
+        if (!r || !r.owner) continue;
+        if (set && !set.has(r.owner)) continue;
+        const d = empireDistance(name);
         if (Number.isFinite(d) && d < min) min = d;
     }
     return min;
 }
 
+function ownerMinEmpireDist(owner) {
+    return minEmpireDist(owner);
+}
+
 function inSiegeRing(roomName, dMin) {
     if (!Number.isFinite(dMin)) return true;
-    const d = empireLinearDistance(roomName);
+    const d = empireDistance(roomName);
     return Number.isFinite(d) && d <= dMin + SIEGE_RING;
 }
 
-function listAutoSieges(owner) {
+function listAutoSieges(owners) {
     const out = [];
     const targets = Memory.targetRooms;
     if (!targets) return out;
+    const set = ownerSet(owners);
     for (const key in targets) {
         const op = targets[key];
         if (!op || op.manual || op.type !== 'roomDenial') continue;
         const intel = typeof INTEL !== 'undefined' ? INTEL[key] : null;
-        if (owner && (!intel || intel.owner !== owner)) continue;
-        out.push({key, op, dist: empireLinearDistance(key)});
+        if (set && (!intel || !set.has(intel.owner))) continue;
+        out.push({key, op, dist: empireDistance(key)});
     }
     return out;
 }
 
-function ringHasActiveSiege(owner, dMin) {
+function ringHasActiveSiege(owners, dMin) {
     const cap = dMin + SIEGE_RING;
-    const sieges = listAutoSieges(owner);
+    const sieges = listAutoSieges(owners);
     for (let i = 0; i < sieges.length; i++) {
         if (sieges[i].dist <= cap) return true;
     }
     return false;
 }
 
-function ringHasLaunchable(owner, dMin) {
+function ringHasLaunchable(owners, dMin) {
     if (typeof INTEL === 'undefined') return false;
     const cap = dMin + SIEGE_RING;
+    const set = ownerSet(owners);
     for (const name in INTEL) {
         const r = INTEL[name];
-        if (!r || r.owner !== owner || !r.name) continue;
+        if (!r || !r.owner || !r.name) continue;
+        if (set && !set.has(r.owner)) continue;
         if (Memory.targetRooms && Memory.targetRooms[r.name]) continue;
-        const d = empireLinearDistance(r.name);
+        const d = empireDistance(r.name);
         if (!(d <= cap)) continue;
         if (roomSiegeLaunchable(r)) return true;
     }
     return false;
 }
 
-function countStretchSieges(owner, dMin) {
+function countStretchSieges(owners, dMin) {
     const cap = dMin + SIEGE_RING;
-    const sieges = listAutoSieges(owner);
+    const sieges = listAutoSieges(owners);
     let n = 0;
     for (let i = 0; i < sieges.length; i++) {
         if (sieges[i].dist > cap) n++;
@@ -152,22 +149,26 @@ function countStretchSieges(owner, dMin) {
     return n;
 }
 
-function allowSiegeStretch(owner, dMin) {
-    if (!owner || !Number.isFinite(dMin)) return false;
-    if (ringHasActiveSiege(owner, dMin) || ringHasLaunchable(owner, dMin)) return false;
-    return countStretchSieges(owner, dMin) < 1;
+function allowSiegeStretch(owners, dMin) {
+    if (!Number.isFinite(dMin)) return false;
+    const set = ownerSet(owners);
+    if (!set || !set.size) return false;
+    if (ringHasActiveSiege(set, dMin) || ringHasLaunchable(set, dMin)) return false;
+    return countStretchSieges(set, dMin) < 1;
 }
 
-function isClosestStretchDest(intel, dMin) {
+function isClosestStretchDest(intel, dMin, owners) {
     if (!intel || !intel.name || !intel.owner) return false;
     const cap = dMin + SIEGE_RING;
-    const d = empireLinearDistance(intel.name);
+    const d = empireDistance(intel.name);
     if (!(d > cap)) return false;
+    const set = ownerSet(owners);
     for (const name in INTEL) {
         const r = INTEL[name];
-        if (!r || r.owner !== intel.owner || !r.name || r.name === intel.name) continue;
+        if (!r || !r.owner || !r.name || r.name === intel.name) continue;
+        if (set && !set.has(r.owner)) continue;
         if (Memory.targetRooms && Memory.targetRooms[r.name]) continue;
-        const rd = empireLinearDistance(r.name);
+        const rd = empireDistance(r.name);
         if (!(rd > cap) || rd >= d) continue;
         if (roomSiegeLaunchable(r)) return false;
     }
@@ -176,11 +177,11 @@ function isClosestStretchDest(intel, dMin) {
 
 function siegeLaunchAllowed(intel) {
     if (!roomDenialLaunchOk(intel) || !intel.name) return false;
-    const focus = siegeFocusOwner(warPriorityMap());
-    if (focus && intel.owner !== focus) return false;
-    const dMin = ownerMinEmpireDist(intel.owner);
+    const warUsers = warTargetUserSet();
+    if (intel.owner && !warUsers.has(intel.owner)) return false;
+    const dMin = minEmpireDist(warUsers);
     if (!Number.isFinite(dMin) || inSiegeRing(intel.name, dMin)) return true;
-    return allowSiegeStretch(intel.owner, dMin) && isClosestStretchDest(intel, dMin);
+    return allowSiegeStretch(warUsers, dMin) && isClosestStretchDest(intel, dMin, warUsers);
 }
 
 function scoreOriginMinLevel(type, intel) {
@@ -197,16 +198,16 @@ function scoreOriginMinLevel(type, intel) {
 }
 
 function scoreOriginDistance(roomName, type) {
-    return empireLinearDistance(roomName);
+    return empireDistance(roomName);
 }
 
-function scoreTarget(roomName, type, warPriorityByUser = null) {
+function scoreTarget(roomName, type) {
     const r = INTEL[roomName];
     if (!r) return Infinity;
 
     let score = 0;
-    // Rank by distance to the empire centroid. Spawn assignment still uses
-    // the nearest capable room; this is which dest we open.
+    // Rank by Manhattan hops to the empire centroid. Rooms only connect
+    // N/E/S/W, so Chebyshev (linear) distance skipped cardinally-closer dests.
     const distance = scoreOriginDistance(roomName, type);
 
     score += distance * 200;
@@ -230,11 +231,6 @@ function scoreTarget(roomName, type, warPriorityByUser = null) {
 
     if (HOLD_SECTOR && myRoomInSectorCheck(roomName)) score -= 150;
     score += Math.max(0, (Game.time - (r.cached || 0)) / 100);
-
-    // WAR_TARGETS gradient — subtract this room owner's priority so higher-priority targets win.
-    if (warPriorityByUser && r.owner) {
-        score -= warPriorityByUser[r.owner] || 0;
-    }
 
     return score;
 }
@@ -413,7 +409,7 @@ function refreshEmpireCenter(force) {
     let nearestD = Infinity;
     for (let i = 0; i < coords.length; i++) {
         const c = coords[i];
-        const d = Math.max(Math.abs(c.xy.x - x), Math.abs(c.xy.y - y));
+        const d = Math.abs(c.xy.x - x) + Math.abs(c.xy.y - y);
         if (d < nearestD) {
             nearestD = d;
             nearest = c.name;
@@ -441,14 +437,32 @@ function getEmpireCenter() {
     return refreshEmpireCenter(true);
 }
 
-function empireLinearDistance(roomName) {
+function closestOwnedManhattan(roomName) {
+    const xy = roomNameToWorld(roomName);
+    const names = (typeof MY_ROOMS !== 'undefined' && MY_ROOMS) || [];
+    if (!xy || !names.length) return Infinity;
+    let min = Infinity;
+    for (let i = 0; i < names.length; i++) {
+        const o = roomNameToWorld(names[i]);
+        if (!o) continue;
+        const d = Math.abs(xy.x - o.x) + Math.abs(xy.y - o.y);
+        if (d < min) min = d;
+    }
+    return min;
+}
+
+// Rooms only connect via N/E/S/W exits, so hops from the centroid are
+// Manhattan (|dx|+|dy|). Chebyshev (linear) treated a (3,3) diagonal as
+// closer than a (4,0) cardinal even though the cardinal is 2 hops nearer.
+function empireDistance(roomName) {
     const center = getEmpireCenter();
     const xy = roomNameToWorld(roomName);
-    if (!center || !xy || !center.weight) {
-        const dist = findClosestOwnedRoom(roomName, true, 1, false, true);
-        return dist == null ? Infinity : dist;
-    }
-    return Math.max(Math.abs(xy.x - center.x), Math.abs(xy.y - center.y));
+    if (!center || !xy || !center.weight) return closestOwnedManhattan(roomName);
+    return Math.abs(xy.x - center.x) + Math.abs(xy.y - center.y);
+}
+
+function empireLinearDistance(roomName) {
+    return empireDistance(roomName);
 }
 
 if (typeof global !== 'undefined') {
@@ -470,8 +484,6 @@ module.exports = {
     getMilitaryCreeps,
 
     roomDenialLaunchOk,
-
-    siegeFocusOwner,
 
     countActiveSieges,
 
@@ -501,9 +513,13 @@ module.exports = {
 
     getEmpireCenter,
 
+    empireDistance,
+
     empireLinearDistance,
 
     SIEGE_RING,
+
+    minEmpireDist,
 
     ownerMinEmpireDist,
 
@@ -514,5 +530,7 @@ module.exports = {
     siegeLaunchAllowed,
 
     listAutoSieges,
+
+    warTargetUserSet,
 
 };

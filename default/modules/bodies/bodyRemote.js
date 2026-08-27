@@ -17,7 +17,11 @@ const builders = {
             !routeWithinClaimTTL(gen.room.name, gen.creepInfo.destination, CREEP_CLAIM_LIFE_TIME - 10)) {
             return false;
         }
-        let claim = Math.floor(gen.energyAmount / (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])) || 1;
+        // One attackController per life (600 TTL vs 1000 upgradeBlocked).
+        // Max CLAIM pairs; auto-move adds 1 MOVE each for plains 1/tick.
+        const pairCost = BODYPART_COST[CLAIM] + BODYPART_COST[MOVE];
+        let claim = Math.floor(gen.energyAmount / pairCost);
+        if (claim < 1) return false;
         claim = Math.min(claim, 25);
         return {claim};
     },

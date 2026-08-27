@@ -3,12 +3,11 @@
  *
  * Military operation planning and target selection.
  *
- * Sieges concentrate on one war-target user (sticky existing auto roomDenial,
- * else highest-priority user with a siegeable room). Only rooms in a 3-room
- * ring around that player's closest owned dests are opened. Unused SIEGE_LIMIT
- * stays idle. If the ring is on cooldown, one stretch dest is allowed.
- * Occupy / remoteDenial stay one non-siege op per user and may share the focus
- * player. Strongholds stay on their own track (one at a time, never while
+ * Sieges open rooms in a 3-hop Manhattan ring around the closest war-target
+ * dest to the empire center, regardless of owner. Unused SIEGE_LIMIT stays
+ * idle. If the ring is on cooldown, one stretch dest is allowed.
+ * Occupy / remoteDenial stay one non-siege op per user, nearest users first.
+ * Strongholds stay on their own track (one at a time, never while
  * invulnerable).
  */
 
@@ -19,12 +18,10 @@ const {
     scoreTarget,
     checkForNap,
     roomDenialLaunchOk,
-    siegeFocusOwner,
     countActiveSieges,
-    warPriorityMap,
-    empireLinearDistance,
+    empireDistance,
     SIEGE_RING,
-    ownerMinEmpireDist,
+    minEmpireDist,
     allowSiegeStretch,
     siegeLaunchAllowed,
 } = require('hcUtils');
@@ -85,7 +82,7 @@ function roomHasRemote(roomName, owner) {
 }
 
 function pickMissionForUser(rooms, opts) {
-    const {warPriorityByUser, siegeCooldown, allowSiege, allowOccupy, allowDenial} = opts;
+    const {siegeCooldown, allowSiege, allowOccupy, allowDenial} = opts;
     const ct = Game.time;
 
     let bestSiege = null;
@@ -97,7 +94,7 @@ function pickMissionForUser(rooms, opts) {
 
     for (let i = 0; i < rooms.length; i++) {
         const r = rooms[i];
-        const dist = empireLinearDistance(r.name);
+        const dist = empireDistance(r.name);
         if (opts.maxDist != null && dist > opts.maxDist) continue;
         if (opts.minDist != null && dist <= opts.minDist) continue;
         const noDirect = NO_DIRECT_ATTACKS.includes(r.owner);
@@ -106,14 +103,14 @@ function pickMissionForUser(rooms, opts) {
         const siegeReady = crushNew || (safe && (r.lastSiege || 0) + siegeCooldown < ct);
 
         if (allowSiege && roomDenialLaunchOk(r)) {
-            let score = scoreTarget(r.name, 'roomDenial', warPriorityByUser);
+            let score = scoreTarget(r.name, 'roomDenial');
             if (crushNew) score -= 200;
             if (score < bestSiegeScore) {
                 bestSiegeScore = score;
                 bestSiege = r;
             }
         } else if (!r.towers && !noDirect && siegeReady) {
-            let score = scoreTarget(r.name, 'guard', warPriorityByUser);
+            let score = scoreTarget(r.name, 'guard');
             if (crushNew) score -= 200;
             if (score < bestNakedScore) {
                 bestNakedScore = score;
@@ -122,7 +119,7 @@ function pickMissionForUser(rooms, opts) {
         }
 
         if (allowDenial && roomHasRemote(r.name, r.owner)) {
-            const score = scoreTarget(r.name, 'remoteDenial', warPriorityByUser);
+            const score = scoreTarget(r.name, 'remoteDenial');
             if (score < bestDenialScore) {
                 bestDenialScore = score;
                 bestDenial = r;
@@ -151,23 +148,20 @@ function removeCandidate(rooms, roomName) {
     }
 }
 
-function resolveSiegeFocus(orderedUsers, candidates, warPriorityByUser, siegeCooldown) {
-    const sticky = siegeFocusOwner(warPriorityByUser);
-    if (sticky) return sticky;
-    for (let i = 0; i < orderedUsers.length; i++) {
-        const user = orderedUsers[i].user;
-        const rooms = candidates.byOwner[user];
-        if (!rooms) continue;
-        const pick = pickMissionForUser(rooms, {
-            warPriorityByUser,
-            siegeCooldown,
-            allowSiege: true,
-            allowOccupy: false,
-            allowDenial: false,
-        });
-        if (pick && pick.type === 'roomDenial') return user;
+function flattenCandidates(candidates) {
+    const rooms = [];
+    for (const user in candidates.byOwner) {
+        const list = candidates.byOwner[user];
+        for (let i = 0; i < list.length; i++) rooms.push(list[i]);
     }
-    return null;
+    return rooms;
+}
+
+function removeCandidateEverywhere(candidates, rooms, roomName) {
+    removeCandidate(rooms, roomName);
+    for (const user in candidates.byOwner) {
+        removeCandidate(candidates.byOwner[user], roomName);
+    }
 }
 
 function canLaunchNewRoomDenial(intel) {
@@ -199,8 +193,11 @@ function militaryOperations() {
 
     const idx = global.getIntelIndexes ? global.getIntelIndexes() : {byOwner: {}, strongholdActive: new Set()};
 
-    const warPriorityByUser = warPriorityMap();
-    const warTargetUsers = new Set(Object.keys(warPriorityByUser));
+    const warTargetUsers = new Set();
+    for (let i = 0; i < WAR_TARGETS.length; i++) {
+        const t = WAR_TARGETS[i];
+        if (t && t.user) warTargetUsers.add(t.user);
+    }
 
     let activeStrongholds = 0;
     let activeNonSiege = 0;
@@ -240,7 +237,7 @@ function militaryOperations() {
             if (!strongholdSiegeLevel(r.towers) || !myRoomInSectorCheck(r.name)) continue;
             if ((r.lastOperation || 0) + ATTACK_COOLDOWN >= Game.time) continue;
 
-            const score = scoreTarget(r.name, 'stronghold', warPriorityByUser);
+            const score = scoreTarget(r.name, 'stronghold');
             if (score < bestScore) {
                 bestScore = score;
                 best = r;
@@ -284,25 +281,26 @@ function militaryOperations() {
     const siegeCooldown = ATTACK_COOLDOWN;
 
     const orderedUsers = [];
+    const distByUser = {};
     for (let i = 0; i < WAR_TARGETS.length; i++) {
         const t = WAR_TARGETS[i];
-        if (t && t.user) orderedUsers.push(t);
+        if (!t || !t.user) continue;
+        orderedUsers.push(t);
+        distByUser[t.user] = minEmpireDist(t.user);
     }
-    orderedUsers.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    orderedUsers.sort((a, b) => (distByUser[a.user] || Infinity) - (distByUser[b.user] || Infinity));
 
     let planned = 0;
     let considered = 0;
-    const focus = resolveSiegeFocus(orderedUsers, candidates, warPriorityByUser, siegeCooldown);
 
-    if (focus && activeSiege < state.SIEGE_LIMIT) {
-        const rooms = candidates.byOwner[focus];
-        if (rooms) {
+    if (activeSiege < state.SIEGE_LIMIT) {
+        const rooms = flattenCandidates(candidates);
+        if (rooms.length) {
             considered++;
-            const dMin = ownerMinEmpireDist(focus);
+            const dMin = minEmpireDist(warTargetUsers);
             const ringMax = Number.isFinite(dMin) ? dMin + SIEGE_RING : undefined;
             while (activeSiege < state.SIEGE_LIMIT) {
                 const pick = pickMissionForUser(rooms, {
-                    warPriorityByUser,
                     siegeCooldown,
                     allowSiege: true,
                     allowOccupy: false,
@@ -311,14 +309,13 @@ function militaryOperations() {
                 });
                 if (pick) {
                     setTarget(pick.room, pick.type, pick.level);
-                    removeCandidate(rooms, pick.room);
+                    removeCandidateEverywhere(candidates, rooms, pick.room);
                     planned++;
                     activeSiege++;
                     continue;
                 }
-                if (!allowSiegeStretch(focus, dMin)) break;
+                if (!allowSiegeStretch(warTargetUsers, dMin)) break;
                 const stretch = pickMissionForUser(rooms, {
-                    warPriorityByUser,
                     siegeCooldown,
                     allowSiege: true,
                     allowOccupy: false,
@@ -327,7 +324,7 @@ function militaryOperations() {
                 });
                 if (!stretch) break;
                 setTarget(stretch.room, stretch.type, stretch.level);
-                removeCandidate(rooms, stretch.room);
+                removeCandidateEverywhere(candidates, rooms, stretch.room);
                 planned++;
                 activeSiege++;
                 break;
@@ -347,7 +344,6 @@ function militaryOperations() {
         if (!rooms) return;
         considered++;
         const pick = pickMissionForUser(rooms, {
-            warPriorityByUser,
             siegeCooldown,
             allowSiege: false,
             allowOccupy: allowOccupy(),
@@ -362,12 +358,9 @@ function militaryOperations() {
         if (pick.type === 'remoteDenial') activeRemoteDenials++;
     };
 
-    if (focus) planNonSiegeForUser(focus);
     for (let i = 0; i < orderedUsers.length; i++) {
         if (!allowOccupy() && !allowDenial()) break;
-        const user = orderedUsers[i].user;
-        if (user === focus) continue;
-        planNonSiegeForUser(user);
+        planNonSiegeForUser(orderedUsers[i].user);
     }
 
     if (planned) {

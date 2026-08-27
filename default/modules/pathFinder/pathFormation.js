@@ -36,7 +36,8 @@ function getCachedMatrix(roomName, type, tickTTL, computeFn) {
 }
 
 function buildSquadMatrix(roomName, orientation, squadSize = 4) {
-    const PLAIN = 1, SWAMP = 35, EDGE = 10, HOSTILE = 20, SOFT = 200, INFLATE = 250, IMPASSIBLE = 256;
+    const PLAIN = 1, SWAMP = squadSize < 3 ? 1 : 35, EDGE = 10, HOSTILE = 20, SOFT = 200, INFLATE = 250,
+        IMPASSIBLE = 256;
     // PathFinder treats >= 255 as unwalkable. Inflating obstacles to 250 let a
     // quad path through a 1-tile wall hole; squadMove then rejected the step.
     const FOOTPRINT_BLOCK = 255;
@@ -71,8 +72,15 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
     if (room) {
         for (const structure of room.structures) {
             if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-                matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);
-                inflate(structure.pos.x, structure.pos.y, FOOTPRINT_BLOCK);
+                // Duos path 1-wide. A constructed wall at 254 is last-resort
+                // smash; an open tunnel stays PLAIN and wins. Quads still
+                // treat walls as footprint-blocked so they don't pack a 1-hole.
+                if (structure.structureType === STRUCTURE_WALL && squadSize < 3) {
+                    matrix.set(structure.pos.x, structure.pos.y, 254);
+                } else {
+                    matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);
+                    inflate(structure.pos.x, structure.pos.y, FOOTPRINT_BLOCK);
+                }
             } else if (structure instanceof StructureRampart) {
                 let friendlyRampart = false;
                 try {
@@ -84,8 +92,12 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
                     raise(structure.pos.x, structure.pos.y, SOFT);
                     inflate(structure.pos.x, structure.pos.y, INFLATE);
                 } else if (!structure.isPublic) {
-                    matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);
-                    inflate(structure.pos.x, structure.pos.y, FOOTPRINT_BLOCK);
+                    if (squadSize < 3) {
+                        matrix.set(structure.pos.x, structure.pos.y, 254);
+                    } else {
+                        matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);
+                        inflate(structure.pos.x, structure.pos.y, FOOTPRINT_BLOCK);
+                    }
                 }
             } else if (structure instanceof StructurePortal) {
                 matrix.set(structure.pos.x, structure.pos.y, IMPASSIBLE);

@@ -13,52 +13,81 @@ class RoleClaimAttacker {
 
     performRoleActions() {
         if (this.houseKeeping()) return;
-        if (this.creep.room.controller && (!INTEL[this.room.name] || INTEL[this.room.name].user !== MY_USERNAME) &&
-            (this.creep.room.controller.owner || this.creep.room.controller.reservation)) {
-            this.attackController(this.creep);
-        } else if (this.creep.room.controller) {
-            this.reserveController(this.creep);
+        const controller = this.creep.room.controller;
+        if (controller.my) {
+            this.creep.recycleCreep();
+            return;
+        }
+        const reservation = controller.reservation && controller.reservation.username;
+        if (controller.owner || (reservation && reservation !== MY_USERNAME)) {
+            this.attackController(controller);
+        } else {
+            this.reserveController(controller);
         }
     }
 
     houseKeeping() {
-        if (!Memory.targetRooms[this.creep.memory.destination] || (Memory.targetRooms[this.creep.memory.destination] &&
-            !Memory.targetRooms[this.creep.memory.destination].claimAttacker)) {
-            this.creep.recycleCreep();
+        const creep = this.creep;
+        if (!creep.hasActiveBodyparts(CLAIM)) {
+            creep.suicide();
             return true;
-        } else if (this.creep.room.name !== this.creep.memory.destination) {
-            this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 22});
+        }
+        const dest = creep.memory.destination;
+        if (!dest || creep.memory._claimAbort === dest) {
+            creep.recycleCreep();
             return true;
-        } else if (this.creep.room.controller && this.creep.room.controller.upgradeBlocked > this.creep.ticksToLive) {
-            this.creep.recycleCreep();
+        }
+        const op = Memory.targetRooms[dest];
+        if (!op) {
+            creep.recycleCreep();
             return true;
+        }
+        if (creep.room.name !== dest) {
+            if (!op.claimAttacker) {
+                creep.recycleCreep();
+                return true;
+            }
+            creep.shibMove(new RoomPosition(25, 25, dest), {range: 23});
+            return true;
+        }
+        const controller = creep.room.controller;
+        if (!controller || controller.safeMode || controller.upgradeBlocked > creep.ticksToLive) {
+            creep.recycleCreep();
+            return true;
+        }
+        return false;
+    }
+
+    attackController(controller) {
+        const creep = this.creep;
+        switch (creep.attackController(controller)) {
+            case OK:
+                break;
+            case ERR_NOT_IN_RANGE:
+            case ERR_TIRED:
+                if (!creep.pos.isNearTo(controller)) creep.shibMove(controller, {range: 1});
+                break;
+            case ERR_INVALID_TARGET:
+                creep.recycleCreep();
+                break;
         }
     }
 
-    attackController(creep) {
-        switch (creep.attackController(creep.room.controller)) {
-            case OK:
-                if (!creep.memory.signed) {
-                    creep.signController(creep.room.controller, _.sample(ATTACK_ROOM_SIGNS));
+    reserveController(controller) {
+        const creep = this.creep;
+        if (!creep.memory.signed) {
+            switch (creep.signController(controller, _.sample(ATTACK_ROOM_SIGNS))) {
+                case ERR_NOT_IN_RANGE:
+                    creep.shibMove(controller, {range: 1});
+                    return;
+                case OK:
                     creep.memory.signed = true;
-                }
-                break;
-            case ERR_NOT_IN_RANGE:
-                creep.shibMove(creep.room.controller, {range: 1});
-                break;
+                    return;
+            }
         }
-    }
-
-    reserveController(creep) {
-        switch (creep.reserveController(creep.room.controller)) {
-            case OK:
-                if (!creep.memory.signed) {
-                    creep.signController(creep.room.controller, _.sample(ATTACK_ROOM_SIGNS));
-                    creep.memory.signed = true;
-                }
-                break;
+        switch (creep.reserveController(controller)) {
             case ERR_NOT_IN_RANGE:
-                creep.shibMove(creep.room.controller, {range: 1});
+                creep.shibMove(controller, {range: 1});
                 break;
         }
     }

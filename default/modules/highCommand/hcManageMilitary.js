@@ -8,18 +8,18 @@ const state = require('hcState');
 const {
     intelOwner,
     checkForNap,
-    siegeFocusOwner,
-    warPriorityMap,
-    empireLinearDistance,
+    empireDistance,
     SIEGE_RING,
-    ownerMinEmpireDist
+    minEmpireDist,
+    warTargetUserSet,
 } = require('hcUtils');
 const {stampOperationCooldown} = require('hcTargets');
+const {notifySiegeEnd} = require('module.notifications');
 
 function manageMilitary() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
 
-    const warTargetUsers = new Set(WAR_TARGETS.map(t => t.user));
+    const warTargetUsers = warTargetUserSet();
 
     let activeNonSiege = 0, activeSiege = 0;
     for (const key in Memory.targetRooms) {
@@ -32,9 +32,9 @@ function manageMilitary() {
     const operationLimit = state.OPERATION_LIMIT + 1;
 
     if (activeSiege > state.SIEGE_LIMIT) {
-        activeSiege = trimNonFocusSieges(activeSiege);
+        activeSiege = trimExcessSieges(activeSiege);
     }
-    activeSiege = trimOutsideSiegeRing(activeSiege);
+    activeSiege = trimOutsideSiegeRing(activeSiege, warTargetUsers);
 
     for (const key in Memory.targetRooms) {
         const target = Memory.targetRooms[key];
@@ -59,7 +59,7 @@ function manageMilitary() {
                 if (target.camping) staleMulti = 9999;
                 else staleMulti = 8;
 
-                if (activeSiege > state.SIEGE_LIMIT || !INTEL[key] || FRIENDLIES.includes(INTEL[key].owner) || !warTargetUsers.has(INTEL[key].owner)) {
+                if (!INTEL[key] || FRIENDLIES.includes(INTEL[key].owner) || !warTargetUsers.has(INTEL[key].owner)) {
                     log.a(`Canceling roomDenial in ${roomLink(key)} — too many sieges or non-hostile.`, 'HIGH COMMAND: ');
                     stampOperationCooldown(key, target);
                     delete Memory.targetRooms[key];
@@ -88,6 +88,18 @@ function manageMilitary() {
 
             case 'guard':
                 staleMulti *= (target.level + 1);
+                if (target.camping) {
+                    staleMulti = 9999;
+                    const campIntel = INTEL[key];
+                    if (campIntel && (!campIntel.owner || FRIENDLIES.includes(campIntel.owner))) {
+                        log.a(`Canceling guard in ${roomLink(key)} — room is no longer owned.`, 'HIGH COMMAND: ');
+                        notifySiegeEnd(key, 'SUCCESS', target);
+                        delete Memory.targetRooms[key];
+                        activeNonSiege--;
+                        continue;
+                    }
+                    break;
+                }
                 if (activeNonSiege > operationLimit) {
                     log.a(`Canceling guard in ${roomLink(key)} — too many operations.`, 'HIGH COMMAND: ');
                     stampOperationCooldown(key, target);
@@ -138,9 +150,11 @@ function manageMilitary() {
             continue;
         }
 
+        const occupyHold = type === 'guard' && target.camping;
+
         if (!INTEL[key]) {
             if (Game.rooms[key]) Game.rooms[key].cacheRoomIntel();
-            else if (type !== 'scout') {
+            else if (type !== 'scout' && !occupyHold) {
                 log.a(`Canceling operation in ${roomLink(key)} — no intel.`, 'HIGH COMMAND: ');
                 delete Memory.targetRooms[key];
                 continue;
@@ -153,7 +167,7 @@ function manageMilitary() {
         const lastKill = target.lastEnemyKilled;
         const lastKillTime = lastKill && lastKill.deathTime;
         const lastActivity = Math.max(target.tick || 0, lastKillTime || 0, target.lastWave || 0);
-        if (lastActivity + staleWindow < Game.time) {
+        if (!occupyHold && lastActivity + staleWindow < Game.time) {
             log.a(`Canceling operation in ${roomLink(key)} — stale.`, 'HIGH COMMAND: ');
             stampOperationCooldown(key, target);
             delete Memory.targetRooms[key];
@@ -173,21 +187,21 @@ function manageMilitary() {
         }
 
         if (type !== 'scout' && type !== 'guard' && type !== 'roomDenial' && owner &&
-            !THREATS.includes(owner) && empireLinearDistance(key) > DEFENSIVE_BUBBLE &&
+            !THREATS.includes(owner) && empireDistance(key) > DEFENSIVE_BUBBLE &&
             !_.pluck(WAR_TARGETS, 'user').includes(owner)) {
             log.a(`Canceling operation in ${roomLink(key)} — ${owner} no longer a threat.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;
         }
 
-        if (target.waves && target.waves >= (target.waveLimit || (type === 'roomDenial' ? 12 : 8))) {
+        if (!occupyHold && target.waves && target.waves >= (target.waveLimit || (type === 'roomDenial' ? 12 : 8))) {
             log.a(`Canceling operation in ${roomLink(key)} — max waves reached.`, 'HIGH COMMAND: ');
             stampOperationCooldown(key, target);
             delete Memory.targetRooms[key];
             continue;
         }
 
-        if (target.friendlyDead && target.tick + CREEP_LIFE_TIME < Game.time) {
+        if (!occupyHold && target.friendlyDead && target.tick + CREEP_LIFE_TIME < Game.time) {
             const ratio = target.friendlyDead / (target.enemyDead || 100);
             if (ratio > 2 && target.friendlyDead > 5000) {
                 log.a(`Canceling operation in ${roomLink(key)} — unsustainable casualties (${ratio.toFixed(2)}).`, 'HIGH COMMAND: ');
@@ -199,10 +213,9 @@ function manageMilitary() {
     }
 }
 
-function trimOutsideSiegeRing(activeSiege) {
-    const focus = siegeFocusOwner(warPriorityMap());
-    if (!focus) return activeSiege;
-    const dMin = ownerMinEmpireDist(focus);
+function trimOutsideSiegeRing(activeSiege, warTargetUsers) {
+    if (!warTargetUsers || !warTargetUsers.size) return activeSiege;
+    const dMin = minEmpireDist(warTargetUsers);
     if (!Number.isFinite(dMin)) return activeSiege;
     const cap = dMin + SIEGE_RING;
     const inRing = [];
@@ -210,9 +223,7 @@ function trimOutsideSiegeRing(activeSiege) {
     for (const key in Memory.targetRooms) {
         const op = Memory.targetRooms[key];
         if (!op || op.manual || op.type !== 'roomDenial') continue;
-        const owner = INTEL[key] && INTEL[key].owner;
-        if (owner !== focus) continue;
-        const dist = empireLinearDistance(key);
+        const dist = empireDistance(key);
         if (dist <= cap) inRing.push({key, op, dist});
         else outRing.push({key, op, dist});
     }
@@ -228,20 +239,20 @@ function trimOutsideSiegeRing(activeSiege) {
     return activeSiege;
 }
 
-function trimNonFocusSieges(activeSiege) {
-    const focus = siegeFocusOwner(warPriorityMap());
-    if (!focus) return activeSiege;
-    const keys = Object.keys(Memory.targetRooms);
-    for (let i = 0; i < keys.length; i++) {
-        if (activeSiege <= state.SIEGE_LIMIT) break;
-        const key = keys[i];
-        const target = Memory.targetRooms[key];
-        if (!target || target.manual || target.type !== 'roomDenial') continue;
-        const owner = INTEL[key] && INTEL[key].owner;
-        if (owner === focus) continue;
-        log.a(`Canceling roomDenial in ${roomLink(key)} — concentrating sieges on ${focus}.`, 'HIGH COMMAND: ');
-        stampOperationCooldown(key, target);
-        delete Memory.targetRooms[key];
+function trimExcessSieges(activeSiege) {
+    if (activeSiege <= state.SIEGE_LIMIT) return activeSiege;
+    const sieges = [];
+    for (const key in Memory.targetRooms) {
+        const op = Memory.targetRooms[key];
+        if (!op || op.manual || op.type !== 'roomDenial') continue;
+        sieges.push({key, op, dist: empireDistance(key)});
+    }
+    sieges.sort((a, b) => b.dist - a.dist);
+    for (let i = 0; i < sieges.length && activeSiege > state.SIEGE_LIMIT; i++) {
+        const s = sieges[i];
+        log.a(`Canceling roomDenial in ${roomLink(s.key)} — over siege limit.`, 'HIGH COMMAND: ');
+        stampOperationCooldown(s.key, s.op);
+        delete Memory.targetRooms[s.key];
         activeSiege--;
     }
     return activeSiege;

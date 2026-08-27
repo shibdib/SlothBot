@@ -255,6 +255,8 @@ function globalCreepQueue() {
                 });
                 break;
             case 'guard':
+                clearOpQueueRole('longbow', key, 'roomDenial');
+                clearOpQueueRole('longbowSquad', key, 'roomDenial');
                 if (opLevel <= 1) {
                     queueCreepIfNeeded({
                         role: 'longbow',
@@ -270,6 +272,16 @@ function globalCreepQueue() {
                     queueCreepIfNeeded({
                         role: 'longbowSquad', priority, numberNeeded: 2, destination: key,
                         misc: {waitFor: 2, boosts: [RANGED_ATTACK, HEAL, MOVE]}, closestRoom: true, operation: 'guard'
+                    });
+                }
+                if (operation.claimAttacker) {
+                    queueCreepIfNeeded({
+                        role: 'claimAttacker',
+                        priority,
+                        numberNeeded: 1,
+                        destination: key,
+                        closestRoom: true,
+                        operation: 'guard'
                     });
                 }
                 break;

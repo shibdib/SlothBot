@@ -9,7 +9,7 @@
  */
 
 
-const {DEFAULT_MAXOPS, FLEE_RANGE} = require('pathState');
+const {DEFAULT_MAXOPS, MAZE_MAXOPS, FLEE_RANGE} = require('pathState');
 
 const {
     normalizePos,
@@ -17,7 +17,8 @@ const {
     getMoveWeight,
     endpointInRange,
     gatherThreats,
-    isImmobileBlocker
+    isImmobileBlocker,
+    roomNeedsMazeOps
 } = require('pathUtils');
 
 const {findRoute, attachStagingAvoid, filterAvoidedRooms} = require('pathRoute');
@@ -309,16 +310,32 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     const allowedRooms = resolveAllowedRooms(origin.roomName, target.roomName, options);
     options = getMoveWeight(this, options);
 
-    const result = PathFinder.search(origin, {pos: target, range: options.range}, {
-        maxOps: DEFAULT_MAXOPS * allowedRooms.length,
-        maxRooms: allowedRooms.length * 1.5,
+    const maze = roomNeedsMazeOps(origin.roomName) || roomNeedsMazeOps(target.roomName);
+    let maxOps = Math.max(DEFAULT_MAXOPS * Math.max(1, allowedRooms.length), maze ? MAZE_MAXOPS : DEFAULT_MAXOPS);
+    const searchOpts = {
+        maxRooms: Math.max(1, Math.ceil(allowedRooms.length * 1.5)),
+        heuristicWeight: 1,
         roomCallback: roomName => allowedRooms.includes(roomName) ? getSquadMatrix(roomName, orientation, squadSize) : false,
-    });
+    };
+    let result = PathFinder.search(origin, {pos: target, range: options.range}, Object.assign({maxOps}, searchOpts));
+    if (result.incomplete && maxOps < MAZE_MAXOPS) {
+        maxOps = MAZE_MAXOPS;
+        result = PathFinder.search(origin, {pos: target, range: options.range}, Object.assign({maxOps}, searchOpts));
+    }
 
     if (!result.path.length) {
         cache.path = undefined;
         cache.endpoint = undefined;
         return false;
+    }
+    // Incomplete walks into the nearest wall and never explores the tunnel.
+    if (result.incomplete) {
+        const end = result.path[result.path.length - 1];
+        if (!end || end.getRangeTo(target) > (options.range || 1)) {
+            cache.path = undefined;
+            cache.endpoint = undefined;
+            return false;
+        }
     }
 
     cache.target = targetKey;

@@ -403,6 +403,14 @@ function endpointInRange(endpointKey, target, range) {
     return Math.max(Math.abs(parsed.x - target.x), Math.abs(parsed.y - target.y)) <= range;
 }
 
+function roomNeedsMazeOps(roomName) {
+    const intel = typeof INTEL !== 'undefined' && INTEL[roomName];
+    if (!intel) return false;
+    if (intel.obstacles) return true;
+    if (intel.owner && typeof FRIENDLIES !== 'undefined' && !FRIENDLIES.includes(intel.owner)) return true;
+    return false;
+}
+
 module.exports = {
     getShibMove,
     setShibMove,
@@ -434,5 +442,6 @@ module.exports = {
     getPosKey,
     parsePosKey,
     endpointInRange,
+    roomNeedsMazeOps,
     gatherThreats,
 };
