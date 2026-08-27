@@ -1,37 +1,83 @@
 /*
-
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
-
  *
-
  * Automated MAD and offensive escalation nuke launches.
-
  */
 
-
 const state = require('hcState');
-
-const {checkForNap, scoreTarget, empireDistance} = require('hcUtils');
-
+const {checkForNap, empireDistance, warPriorityMap} = require('hcUtils');
 const {getEmpireReadiness} = require('hcReadiness');
 const {notify, notifySiegeEvent} = require('module.notifications');
+
+const NUKE_FOLLOWUP_LEAD = CREEP_LIFE_TIME;
+const NUKER_RANGE = 10;
 
 function empireReadiness() {
     return state.EMPIRE_READINESS || getEmpireReadiness();
 }
 
+function minOffensiveNukeWaves(op) {
+    const configured = typeof OFFENSIVE_NUKE_MIN_WAVES === 'number' ? OFFENSIVE_NUKE_MIN_WAVES : 12;
+    const limit = (op && op.waveLimit) || 12;
+    return Math.max(configured, limit);
+}
+
+function liveTowerCount(roomName, intel) {
+    const room = Game.rooms[roomName];
+    if (room && room.towers) return room.towers.length;
+    return (intel && intel.towers) || 0;
+}
+
+function isInSafemode(intel) {
+    if (!intel || !intel.name) return false;
+    const room = Game.rooms[intel.name];
+    if (room && room.controller) return !!room.controller.safeMode;
+    return !!(intel.safemode && intel.safemode > Game.time);
+}
+
+function inNukerRange(fromRoom, toRoom) {
+    return Game.map.getRoomLinearDistance(fromRoom, toRoom) <= NUKER_RANGE;
+}
+
+function hasPendingNuke(op) {
+    return !!(op && op.nukeLaunched && op.dDay && op.dDay > Game.time);
+}
+
+function isNukeHold(op) {
+    return !!(op && op.nukeLaunched && op.dDay && op.dDay - NUKE_FOLLOWUP_LEAD > Game.time);
+}
+
+function beginNukeFollowUp(op) {
+    if (!op || op.nukeFollowUp) return false;
+    op.nukeFollowUp = Game.time;
+    op.waves = 0;
+    op.lastWave = undefined;
+    op.waveLimit = op.waveLimit || 12;
+    op.tick = Game.time;
+    op.friendlyDead = 0;
+    op.enemyDead = 0;
+    op.trackedFriendly = [];
+    op.trackedEnemy = [];
+    op.isAtRisk = false;
+    return true;
+}
 
 function sanitizeMadList() {
     if (!Memory.MAD) return;
     Memory.MAD = _.compact(_.uniq(Memory.MAD));
+    const idx = global.getIntelIndexes ? global.getIntelIndexes() : {byOwner: {}};
+    Memory.MAD = Memory.MAD.filter(owner => {
+        if (!owner || FRIENDLIES.includes(owner) || checkForNap(owner)) return false;
+        const rooms = idx.byOwner && idx.byOwner[owner];
+        return rooms && rooms.length;
+    });
+    if (!Memory.MAD.length) Memory.MAD = undefined;
 }
-
 
 function addToMad(owner) {
     if (!owner || FRIENDLIES.includes(owner) || checkForNap(owner)) return;
     Memory.MAD = _.compact(_.uniq((Memory.MAD || []).concat(owner)));
 }
-
 
 function getLoadedNukers() {
     const launchers = [];
@@ -46,23 +92,21 @@ function getLoadedNukers() {
     return launchers;
 }
 
-
 function isNukeInbound(intel) {
-    return intel?.lastNuke && intel.lastNuke + NUKE_LAND_TIME >= Game.time;
+    if (!intel || !intel.name) return false;
+    const room = Game.rooms[intel.name];
+    if (room && room.nukes && room.nukes.length) return true;
+    return !!(intel.lastNuke && intel.lastNuke + NUKE_LAND_TIME >= Game.time);
 }
-
 
 function isValidMadTarget(intel, launchers) {
     if (!intel?.name || !intel.owner) return false;
-    if (!Memory.MAD.includes(intel.owner)) return false;
+    if (!Memory.MAD || !Memory.MAD.includes(intel.owner)) return false;
     if (FRIENDLIES.includes(intel.owner) || checkForNap(intel.owner)) return false;
     if (Memory.nonCombatRooms && Memory.nonCombatRooms.includes(intel.name)) return false;
-    if (Memory.targetRooms[intel.name]) return false;
     if (isNukeInbound(intel)) return false;
-    if (intel.safemode && intel.safemode > Game.time) return false;
-    return launchers.some(n => Game.map.getRoomLinearDistance(n.room.name, intel.name) <= 10);
+    return launchers.some(n => inNukerRange(n.room.name, intel.name));
 }
-
 
 function isValidOffensiveTarget(intel, launchers, warUsers) {
     if (!intel?.name || !intel.owner) return false;
@@ -71,32 +115,15 @@ function isValidOffensiveTarget(intel, launchers, warUsers) {
     if (NO_DIRECT_ATTACKS.includes(intel.owner)) return false;
     if (Memory.nonCombatRooms && Memory.nonCombatRooms.includes(intel.name)) return false;
     if (isNukeInbound(intel)) return false;
-    if (intel.safemode && intel.safemode > Game.time) return false;
-    return launchers.some(n => Game.map.getRoomLinearDistance(n.room.name, intel.name) <= 10);
+    return launchers.some(n => inNukerRange(n.room.name, intel.name));
 }
-
-
-function minOffensiveNukeWaves() {
-    return typeof OFFENSIVE_NUKE_MIN_WAVES === 'number' ? OFFENSIVE_NUKE_MIN_WAVES : 3;
-}
-
-
-function isTowerStalemate(op, intel) {
-    if (!intel?.towers || op.camping) return false;
-    return op.tick + CREEP_LIFE_TIME < Game.time;
-}
-
 
 function isEscalationCandidate(op, intel) {
     if (!op || op.type !== 'roomDenial' || op.manual || op.nukeLaunched) return false;
-    if (op.tick + CREEP_LIFE_TIME >= Game.time) return false;
-    if (op.isAtRisk) return true;
-    if ((op.waves || 0) < minOffensiveNukeWaves()) return false;
-    if (isTowerStalemate(op, intel)) return true;
-    const ratio = (op.friendlyDead || 0) / (op.enemyDead || 100);
-    return ratio > 1.5 && intel?.towers > 0;
+    if (op.camping) return false;
+    if (!intel || liveTowerCount(intel.name, intel) < 1) return false;
+    return (op.waves || 0) >= minOffensiveNukeWaves(op);
 }
-
 
 function parseStoredNukeTarget(stored, roomName) {
     if (!stored || !roomName) return null;
@@ -130,18 +157,11 @@ function resolveNukeTarget(intel) {
     return parseStoredNukeTarget(intel.nukeTarget, intel.name);
 }
 
-
 function pickLauncher(launchers, targetRoom) {
-    const inRange = launchers.filter(n => Game.map.getRoomLinearDistance(n.room.name, targetRoom) <= 10);
+    const inRange = launchers.filter(n => inNukerRange(n.room.name, targetRoom));
     if (!inRange.length) return null;
-    return _.min(inRange, n => {
-        const room = Game.rooms[n.room.name];
-        const distance = Game.map.getRoomLinearDistance(n.room.name, targetRoom);
-        const energyPenalty = room && room.energyState >= 3 ? 0 : 100;
-        return distance + energyPenalty;
-    });
+    return _.min(inRange, n => Game.map.getRoomLinearDistance(n.room.name, targetRoom));
 }
-
 
 function executeNukeLaunch(launcher, intel, options = {}) {
     const roomName = intel.name;
@@ -151,7 +171,6 @@ function executeNukeLaunch(launcher, intel, options = {}) {
         log.w(`Nuke launch aborted for ${roomLink(roomName)} — no useful impact tile (refusing room-center fallback).`, 'HIGH COMMAND: ');
         return false;
     }
-    // Record before launch as launch consumes the loaded energy/ghodium.
     const nukeEnergySunk = launcher.store[RESOURCE_ENERGY] || 0;
     const result = launcher.launchNuke(target);
     if (result !== OK) {
@@ -170,7 +189,7 @@ function executeNukeLaunch(launcher, intel, options = {}) {
     if (global.updateIntelIndex) global.updateIntelIndex(roomName, null, intel);
 
     if (options.removeMadOwner && intel.owner) {
-        Memory.MAD = _.filter(Memory.MAD, u => u !== intel.owner);
+        Memory.MAD = _.filter(Memory.MAD || [], u => u !== intel.owner);
         sanitizeMadList();
     }
 
@@ -189,7 +208,6 @@ function executeNukeLaunch(launcher, intel, options = {}) {
     }
     return true;
 }
-
 
 function autoNuke() {
     sanitizeMadList();
@@ -214,7 +232,6 @@ function autoNuke() {
     }
 
     const MADTarget = _.min(madCandidates, r => empireDistance(r.name));
-
     if (!MADTarget?.name) return false;
 
     const launcher = pickLauncher(availableLaunchers, MADTarget.name);
@@ -227,8 +244,9 @@ function autoNuke() {
         logPrefix: roomLink(MADTarget.name),
     });
 
+    const existing = Memory.targetRooms[MADTarget.name];
     if (!executeNukeLaunch(launcher, MADTarget, {
-        followUpType: 'remoteDenial',
+        followUpType: (existing && existing.type) || 'remoteDenial',
         logLabel: 'MAD nuke',
         removeMadOwner: true,
     })) return false;
@@ -236,76 +254,88 @@ function autoNuke() {
     return true;
 }
 
-
-function offensiveNuke() {
-    if (!OFFENSIVE_NUKES || !OFFENSIVE_OPERATIONS || !state.OFFENSIVE_ALLOWED) return false;
-
+function offensiveNukeGates() {
+    if (!OFFENSIVE_NUKES || !OFFENSIVE_OPERATIONS || !state.OFFENSIVE_ALLOWED) return null;
     const readiness = empireReadiness();
-    if (readiness.empireCritical || readiness.empireStressed) return false;
-
-    if (Memory.MAD?.length) return false;
-
-    const reserve = OFFENSIVE_NUKE_RESERVE ?? 1;
+    if (readiness.empireCritical || readiness.empireStressed) return null;
     const cooldown = OFFENSIVE_NUKE_COOLDOWN ?? NUKE_LAND_TIME;
-    if (Memory._lastOffensiveNuke && Memory._lastOffensiveNuke + cooldown >= Game.time) return false;
-
+    if (Memory._lastOffensiveNuke && Memory._lastOffensiveNuke + cooldown >= Game.time) return null;
     const availableLaunchers = getLoadedNukers();
-    if (availableLaunchers.length <= reserve) return false;
+    const reserve = (Memory.MAD && Memory.MAD.length) ? (OFFENSIVE_NUKE_RESERVE ?? 1) : 0;
+    if (availableLaunchers.length <= reserve) return null;
+    return {
+        availableLaunchers,
+        warUsers: new Set(_.pluck(WAR_TARGETS, 'user')),
+        warPriorityByUser: warPriorityMap(),
+    };
+}
 
-    const warUsers = new Set(_.pluck(WAR_TARGETS, 'user'));
+function scoreOffensiveNuke(roomName, op, intel, warPriorityByUser) {
+    let score = empireDistance(roomName) * 200;
+    const prio = warPriorityByUser && intel.owner ? warPriorityByUser[intel.owner] : 0;
+    if (prio) score -= prio;
+    score -= liveTowerCount(roomName, intel) * 100;
+    if (intel.rampartMedHP) score -= Math.min(intel.rampartMedHP / 10000000, 30) * 3;
+    if (op.isAtRisk) score -= 500;
+    if (isInSafemode(intel)) score -= 300;
+    return score;
+}
 
-    let bestIntel = null;
-    let bestScore = Infinity;
-
-    for (const roomName in Memory.targetRooms) {
-        const op = Memory.targetRooms[roomName];
-        const intel = INTEL[roomName];
-        if (!isEscalationCandidate(op, intel)) continue;
-        if (!isValidOffensiveTarget(intel, availableLaunchers, warUsers)) continue;
-
-        let score = scoreTarget(roomName, 'roomDenial');
-        if (op.isAtRisk) score -= 500;
-        if (intel.towers >= 4) score -= 100;
-
-        if (score < bestScore) {
-            bestScore = score;
-            bestIntel = intel;
-        }
-    }
-
-    if (!bestIntel?.name) return false;
-
-    const launcher = pickLauncher(availableLaunchers, bestIntel.name);
+function tryOffensiveNuke(roomName, ctx) {
+    ctx = ctx || offensiveNukeGates();
+    if (!ctx) return false;
+    const op = Memory.targetRooms[roomName];
+    const intel = INTEL[roomName];
+    if (!isEscalationCandidate(op, intel)) return false;
+    if (!isValidOffensiveTarget(intel, ctx.availableLaunchers, ctx.warUsers)) return false;
+    const launcher = pickLauncher(ctx.availableLaunchers, roomName);
     if (!launcher) return false;
-
-    log.a('Siege escalation — nuke requested for ' + roomLink(bestIntel.name), 'HIGH COMMAND: ');
-
-    if (!executeNukeLaunch(launcher, bestIntel, {
+    if (!resolveNukeTarget(intel)) {
+        Memory.observeRoom = roomName;
+        log.w(`Siege escalation — observing ${roomLink(roomName)} for a nuke impact tile.`, 'HIGH COMMAND: ');
+        return 'pending';
+    }
+    log.a('Siege escalation — nuke requested for ' + roomLink(intel.name), 'HIGH COMMAND: ');
+    if (!executeNukeLaunch(launcher, intel, {
         followUpType: 'roomDenial',
         logLabel: 'Offensive escalation nuke',
     })) return false;
-
     Memory._lastOffensiveNuke = Game.time;
     return true;
 }
 
+function offensiveNuke() {
+    const ctx = offensiveNukeGates();
+    if (!ctx) return false;
+
+    let bestName = null;
+    let bestScore = Infinity;
+    for (const roomName in Memory.targetRooms) {
+        const op = Memory.targetRooms[roomName];
+        const intel = INTEL[roomName];
+        if (!isEscalationCandidate(op, intel)) continue;
+        if (!isValidOffensiveTarget(intel, ctx.availableLaunchers, ctx.warUsers)) continue;
+        const score = scoreOffensiveNuke(roomName, op, intel, ctx.warPriorityByUser);
+        if (score < bestScore) {
+            bestScore = score;
+            bestName = roomName;
+        }
+    }
+    if (!bestName) return false;
+    return tryOffensiveNuke(bestName, ctx) === true;
+}
 
 module.exports = {
-
     autoNuke,
-
     offensiveNuke,
-
+    tryOffensiveNuke,
     addToMad,
-
     sanitizeMadList,
-
     getLoadedNukers,
-
     pickLauncher,
-
     resolveNukeTarget,
-
     executeNukeLaunch,
-
+    isNukeHold,
+    hasPendingNuke,
+    beginNukeFollowUp,
 };

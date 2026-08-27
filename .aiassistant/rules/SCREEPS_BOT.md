@@ -164,6 +164,113 @@ expensive operations in frequently called code.
 - Configuration is handled via `config.default.js` (copy and customize).
 - Local development uses Docker + Steamless client setup.
 
+## Seasonal Specific information
+
+Active season for upcoming seasonal-shard work: **Season 11**. Treat this section as the source of truth when adding or
+gating season-only code. Persistent-world / MMO assumptions (market, portals, GCL-scaled CPU) do **not** apply on this
+shard.
+
+### Season 11 — Thorium Reactors (Season 5 rules + uneven map)
+
+Season 11 reuses **Season 5** mechanics with one map change: Thorium is **not** evenly distributed. Density increases
+toward the **upper (north) part of the world**. Deposits also contain **less material than Season 5**.
+
+**Win condition:** deliver Thorium to sector-center Reactors and keep them claimed and continuously fed. Highest score
+wins.
+
+#### Environment (all seasons, including 11)
+
+| Constraint                               | Effect on the bot                                                    |
+|------------------------------------------|----------------------------------------------------------------------|
+| Constant **100 CPU**                     | No GCL CPU scaling. Bucket still matters; do not assume "unlimited." |
+| **Market disabled**                      | No NPC/player orders. Energy and minerals must be produced or taken. |
+| Terminals send **only to own terminals** | Own-network logistics still work; no trading with others.            |
+| **No portals** (Season 11)               | Single shard. No intershard movement or portal scouting.             |
+
+#### Thorium (`RESOURCE_THORIUM`)
+
+- Finite mineral. **Does not regenerate.** Once a room's deposit is mined out, it is gone.
+- Present in controller rooms (Season 5 layout); Season 11 amounts are lower and **skewed north**.
+- Harvest like a mineral (extractor + WORK). Do not assume mineral regen timers apply.
+
+**Tile hazard — accelerated decay / aging**
+
+Anything on the same tile as Thorium ages/decays faster. Thorium counts whether it is in a **creep carry**, a
+**structure store**, or **dropped**. Multiplier:
+
+```
+decayBonus = Math.floor(Math.log10(totalThoriumOnTile))
+```
+
+Applies to **creep TTL** and decay of **roads** and **containers** on that tile.
+
+| Thorium on tile | Extra decay/aging per tick |
+|----------------:|---------------------------:|
+|             0–9 |                          0 |
+|           10–99 |                         +1 |
+|         100–999 |                         +2 |
+|     1,000–9,999 |                         +3 |
+|   10,000–99,999 |                         +4 |
+
+Do not park loaded Thorium haulers on roads/containers. Avoid storing large Thorium piles in containers. Prefer
+storage/terminal/reactor, then keep the carry moving.
+
+#### Reactors (sector center)
+
+- One Reactor in the **center room of each game sector**.
+- Claim with any creep that has a **CLAIM** body part. Ownership can flip at any time.
+- A claimed Reactor consumes **1 Thorium per tick** and scores for its owner.
+- Score per tick while operating:
+
+```
+points = 1 + Math.floor(Math.log10(ticksOfContinuousOperation))
+```
+
+| Continuous ticks | Points / tick | Thorium → points efficiency |
+|-----------------:|--------------:|----------------------------:|
+|              1–9 |             1 |                           1 |
+|            10–99 |             2 |                           2 |
+|          100–999 |             3 |                           3 |
+|      1,000–9,999 |             4 |                           4 |
+|    10,000–99,999 |             5 |                           5 |
+|  100,000–999,999 |             6 |                           6 |
+
+- If the Reactor **runs out of Thorium**, the continuous-operation bonus **resets to 0**. Uptime is worth more than
+  burst dumps.
+- API shape from Season 5 (confirm against `https://docs-season.screeps.com/api/#Reactor` when the shard is live):
+  - `FIND_REACTORS` / `STRUCTURE_REACTOR`
+  - `reactor.store` — Thorium cargo (`REACTOR_THORIUM_CAPACITY` exists in Season 5 constants)
+  - `reactor.continuousWork` — ticks of uninterrupted operation
+  - `reactor.my` / `reactor.owner`
+  - Transfer Thorium in; CLAIM to take ownership
+
+#### Season 11 vs Season 5
+
+- Same scoring, claiming, decay, CPU, and terminal rules.
+- **Uneven Thorium:** richer toward the **upper/north** map. Where and when to expand is a season-defining choice.
+- **Smaller deposits:** less Thorium per room → logistics and room-cycling matter more; do not treat every claimed room
+  as a long-term mine.
+- **No portals.**
+
+#### Bot implications (use when implementing)
+
+1. **Expansion:** scout and prefer northern rooms for Thorium yield; do not expand only by distance-from-spawn.
+2. **Economy:** Thorium mining + haul-to-reactor is a first-class pipeline, not a mineral side job. Terminals are for
+   **own-empire** Thorium (and energy) routing only.
+3. **Reactor ops:** keep a claimed Reactor continuously stocked. Track `continuousWork` and treat empty-store as a score
+   emergency. Defend / re-claim sector centers; CLAIM creeps are offensive tools.
+4. **Pathing / structures:** Thorium on a tile taxes roads, containers, and the carrying creep. Minimize dwell time;
+   skip container-mining patterns for Thorium.
+5. **Combat:** reactors are contestable objectives. Duo/quad work around sector-center rooms is more valuable than
+   random room fights.
+6. **Do not assume:** market buys, portal travel, regenerating Thorium, or GCL CPU. Gate season code so MMO shards are
+   unaffected.
+
+#### Unknowns until shard / docs-season are live
+
+Exact deposit amounts, density-by-latitude formula, reactor store capacity this season, and whether Thorium still
+appears in **every** controller room. Verify on `docs-season.screeps.com` before hard-coding numbers.
+
 ## Current Implementation Status
 
 **To be filled as we map the current codebase:**
@@ -196,7 +303,9 @@ expensive operations in frequently called code.
   and aligned all sections with user goals.
 - **2026-07-14** — Added simplicity / change-discipline guidance: smallest fix first, extend before extract, complexity
   needs concrete payoff.
+- **2026-08-27** — Documented Season 11 (Thorium Reactors, Season 5 rules + northern density skew, no portals) under
+  Seasonal Specific information.
 
 ---
 
-**Last updated:** 2026-07-14
+**Last updated:** 2026-08-27

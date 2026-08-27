@@ -13,6 +13,7 @@ const {queueCreepIfNeeded, pruneQueueCache, clearOpQueueRole} = require('spawnQu
 const {buildOperationsSignature, pruneEmptyOperations, getPriority, resolvePendingAssignments} = require('spawnOperations');
 const {getSiegeTowerDamage} = require('module.bodyGenerator');
 const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS, siegeLabBoosts} = require('bodySiegeBoosts');
+const {isNukeHold} = require('hcNukes');
 
 function queueHarassmentCreeps() {
     // Harassment is independent of OFFENSIVE_OPERATIONS so live shards can raid
@@ -159,9 +160,42 @@ function globalCreepQueue() {
                 });
                 break;
             case 'roomDenial':
+                if (isNukeHold(operation)) {
+                    operation.boosts = undefined;
+                    operation.optionalBoosts = undefined;
+                    clearOpQueueRole('longbow', key, 'roomDenial');
+                    clearOpQueueRole('longbowSquad', key, 'roomDenial');
+                    if (!Game.rooms[key]) {
+                        queueCreepIfNeeded({
+                            role: 'scout',
+                            priority: 1,
+                            numberNeeded: 1,
+                            destination: key,
+                            closestRoom: true
+                        });
+                    }
+                    break;
+                }
                 const rdIntel = INTEL[key];
                 const rdTowers = rdIntel && rdIntel.towers || 0;
                 const rdWaves = operation.waves || 0;
+                const rdLimit = operation.waveLimit || 12;
+                if (rdWaves >= rdLimit) {
+                    operation.boosts = undefined;
+                    operation.optionalBoosts = undefined;
+                    clearOpQueueRole('longbow', key, 'roomDenial');
+                    clearOpQueueRole('longbowSquad', key, 'roomDenial');
+                    if (!Game.rooms[key]) {
+                        queueCreepIfNeeded({
+                            role: 'scout',
+                            priority: 1,
+                            numberNeeded: 1,
+                            destination: key,
+                            closestRoom: true
+                        });
+                    }
+                    break;
+                }
                 if (rdTowers) {
                     operation.boosts = SIEGE_REQUIRED_BOOSTS.slice();
                     operation.optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();

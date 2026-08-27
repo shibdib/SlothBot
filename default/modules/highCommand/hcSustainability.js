@@ -20,6 +20,10 @@ function operationSustainability(room, operationRoom = room.name) {
     if (!operation) return;
 
     if (room.controller?.safeMode) {
+        if (operation.nukeLaunched || (operation.dDay && operation.dDay > Game.time)) {
+            saveOperation(operationRoom, operation);
+            return;
+        }
         if (!(operation.type === 'guard' && operation.camping)) {
             markAsPending(operationRoom, room);
             return 'remoteDenial';
@@ -66,6 +70,15 @@ function operationSustainability(room, operationRoom = room.name) {
         const live = Memory.targetRooms[operationRoom];
         // Post-denial occupy holds until the controller is unowned.
         if (live.type === 'guard' && live.camping) {
+            saveOperation(operationRoom, operation);
+            return;
+        }
+        if (live.nukeLaunched || (live.dDay && live.dDay > Game.time)) {
+            saveOperation(operationRoom, operation);
+            return;
+        }
+        // Towered roomDenial runs to the wave cutoff so offensive nukes can escalate.
+        if (live.type === 'roomDenial' && !live.manual && !live.camping && OFFENSIVE_NUKES) {
             saveOperation(operationRoom, operation);
             return;
         }

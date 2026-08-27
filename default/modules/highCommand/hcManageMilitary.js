@@ -15,6 +15,7 @@ const {
 } = require('hcUtils');
 const {stampOperationCooldown} = require('hcTargets');
 const {notifySiegeEnd} = require('module.notifications');
+const {tryOffensiveNuke, beginNukeFollowUp, hasPendingNuke} = require('hcNukes');
 
 function manageMilitary() {
     if (!Memory.targetRooms || !_.size(Memory.targetRooms)) return;
@@ -42,8 +43,24 @@ function manageMilitary() {
 
         let type = target.type;
         let staleMulti = 1;
+        const nukePending = hasPendingNuke(target);
 
-        if (target.dDay && target.dDay - 50 <= Game.time) {
+        if (target.nukeLaunched && type === 'roomDenial' && target.dDay &&
+            target.dDay - CREEP_LIFE_TIME <= Game.time) {
+            if (beginNukeFollowUp(target)) {
+                log.a(`${roomLink(key)} nuke follow-up — forming for impact in ${target.dDay - Game.time} ticks.`, 'HIGH COMMAND: ');
+            }
+        }
+
+        if (target.dDay && target.dDay <= Game.time) {
+            target.dDay = undefined;
+            if (target.nukeLaunched && type !== 'roomDenial') {
+                target.type = 'scout';
+                target.tick = Game.time;
+                log.a(`${roomLink(key)} nuke landed — switching to scout.`, 'HIGH COMMAND: ');
+                continue;
+            }
+        } else if (target.dDay && !target.nukeLaunched && target.dDay - 50 <= Game.time) {
             target.type = 'scout';
             target.tick = Game.time;
             target.dDay = undefined;
@@ -59,7 +76,14 @@ function manageMilitary() {
                 if (target.camping) staleMulti = 9999;
                 else staleMulti = 8;
 
-                if (!INTEL[key] || FRIENDLIES.includes(INTEL[key].owner) || !warTargetUsers.has(INTEL[key].owner)) {
+                if (INTEL[key] && FRIENDLIES.includes(INTEL[key].owner)) {
+                    log.a(`Canceling roomDenial in ${roomLink(key)} — too many sieges or non-hostile.`, 'HIGH COMMAND: ');
+                    stampOperationCooldown(key, target);
+                    delete Memory.targetRooms[key];
+                    activeSiege--;
+                    continue;
+                }
+                if (!nukePending && (!INTEL[key] || !warTargetUsers.has(INTEL[key].owner))) {
                     log.a(`Canceling roomDenial in ${roomLink(key)} — too many sieges or non-hostile.`, 'HIGH COMMAND: ');
                     stampOperationCooldown(key, target);
                     delete Memory.targetRooms[key];
@@ -71,14 +95,20 @@ function manageMilitary() {
             case 'harass':
             case 'remoteDenial':
                 if (target.dDay) staleMulti = SAFE_MODE_DURATION;
-                if (activeNonSiege > operationLimit) {
+                if (!nukePending && activeNonSiege > operationLimit) {
                     log.a(`Canceling ${type} in ${roomLink(key)} — too many operations.`, 'HIGH COMMAND: ');
                     stampOperationCooldown(key, target);
                     delete Memory.targetRooms[key];
                     activeNonSiege--;
                     continue;
                 }
-                if (!INTEL[key] || FRIENDLIES.includes(INTEL[key].owner) || !warTargetUsers.has(INTEL[key].owner)) {
+                if (INTEL[key] && FRIENDLIES.includes(INTEL[key].owner)) {
+                    log.a(`Canceling ${type} in ${roomLink(key)} — not a war target.`, 'HIGH COMMAND: ');
+                    delete Memory.targetRooms[key];
+                    activeNonSiege--;
+                    continue;
+                }
+                if (!nukePending && (!INTEL[key] || !warTargetUsers.has(INTEL[key].owner))) {
                     log.a(`Canceling ${type} in ${roomLink(key)} — not a war target.`, 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     activeNonSiege--;
@@ -154,7 +184,7 @@ function manageMilitary() {
 
         if (!INTEL[key]) {
             if (Game.rooms[key]) Game.rooms[key].cacheRoomIntel();
-            else if (type !== 'scout' && !occupyHold) {
+            else if (type !== 'scout' && !occupyHold && !nukePending) {
                 log.a(`Canceling operation in ${roomLink(key)} — no intel.`, 'HIGH COMMAND: ');
                 delete Memory.targetRooms[key];
                 continue;
@@ -167,7 +197,7 @@ function manageMilitary() {
         const lastKill = target.lastEnemyKilled;
         const lastKillTime = lastKill && lastKill.deathTime;
         const lastActivity = Math.max(target.tick || 0, lastKillTime || 0, target.lastWave || 0);
-        if (!occupyHold && lastActivity + staleWindow < Game.time) {
+        if (!occupyHold && !nukePending && lastActivity + staleWindow < Game.time) {
             log.a(`Canceling operation in ${roomLink(key)} — stale.`, 'HIGH COMMAND: ');
             stampOperationCooldown(key, target);
             delete Memory.targetRooms[key];
@@ -194,16 +224,18 @@ function manageMilitary() {
             continue;
         }
 
-        if (!occupyHold && target.waves && target.waves >= (target.waveLimit || (type === 'roomDenial' ? 12 : 8))) {
+        if (!occupyHold && !nukePending && target.waves && target.waves >= (target.waveLimit || (type === 'roomDenial' ? 12 : 8))) {
+            if (type === 'roomDenial' && tryOffensiveNuke(key)) continue;
             log.a(`Canceling operation in ${roomLink(key)} — max waves reached.`, 'HIGH COMMAND: ');
             stampOperationCooldown(key, target);
             delete Memory.targetRooms[key];
             continue;
         }
 
-        if (!occupyHold && target.friendlyDead && target.tick + CREEP_LIFE_TIME < Game.time) {
+        if (!occupyHold && !nukePending && target.friendlyDead && target.tick + CREEP_LIFE_TIME < Game.time) {
             const ratio = target.friendlyDead / (target.enemyDead || 100);
             if (ratio > 2 && target.friendlyDead > 5000) {
+                if (type === 'roomDenial' && OFFENSIVE_NUKES && !target.camping) continue;
                 log.a(`Canceling operation in ${roomLink(key)} — unsustainable casualties (${ratio.toFixed(2)}).`, 'HIGH COMMAND: ');
                 stampOperationCooldown(key, target);
                 delete Memory.targetRooms[key];
@@ -223,6 +255,7 @@ function trimOutsideSiegeRing(activeSiege, warTargetUsers) {
     for (const key in Memory.targetRooms) {
         const op = Memory.targetRooms[key];
         if (!op || op.manual || op.type !== 'roomDenial') continue;
+        if (hasPendingNuke(op)) continue;
         const dist = empireDistance(key);
         if (dist <= cap) inRing.push({key, op, dist});
         else outRing.push({key, op, dist});
@@ -245,6 +278,7 @@ function trimExcessSieges(activeSiege) {
     for (const key in Memory.targetRooms) {
         const op = Memory.targetRooms[key];
         if (!op || op.manual || op.type !== 'roomDenial') continue;
+        if (hasPendingNuke(op)) continue;
         sieges.push({key, op, dist: empireDistance(key)});
     }
     sieges.sort((a, b) => b.dist - a.dist);
