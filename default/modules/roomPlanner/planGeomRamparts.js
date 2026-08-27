@@ -13,9 +13,9 @@
  *  - inner walkway ramparts on interior tiles 8-adjacent to the contour
  *  - constructed walls live on outer quad-trap teeth; combat faces get full HP
  *
- * Protect targets: hub + primary hub structures + towers, including built,
- * construction sites, and planned stamps/anchors so a recompute does not
- * shrink past work already in progress.
+ * Protect targets: hub + primary hub structures + towers, and (dynamic rooms)
+ * planned/built extension tiles. Includes built, sites, and planned
+ * stamps/anchors so a recompute does not shrink past work already in progress.
  */
 
 const {extensionPositionCache, quadTraps, walkwayCache} = require('planState');
@@ -80,7 +80,7 @@ function resolveLabHubXY(room) {
  * Bump when the perimeter algorithm changes so owned rooms wipe old
  * min-cut rings and rebuild from the hub floodfill.
  */
-const PERIMETER_PLAN_REV = 8;
+const PERIMETER_PLAN_REV = 9;
 
 function chebyDistance(ax, ay, bx, by) {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -198,9 +198,90 @@ function addSeed(seeds, seen, x, y) {
     seeds.push({x, y});
 }
 
+function unpackPackedXY(packed) {
+    if (!packed || !packed.length) return [];
+    const tiles = [];
+    for (let i = 0; i < packed.length; i++) {
+        const n = packed[i];
+        tiles.push({x: n % 50, y: Math.floor(n / 50)});
+    }
+    return tiles;
+}
+
+/**
+ * Planned dynamic-extension tiles (packed plan, unfiltered).
+ * getExtensionPositions drops occupied tiles, so the packed layer is the
+ * authority for "where extensions belong" — including already-built ones.
+ */
+function getDynamicExtensionProtectTiles(room) {
+    if (!room || !room.memory || !room.memory.dynamicLayout) return [];
+    if (room._dynExtProtectTick === Game.time && room._dynExtProtectTiles) {
+        return room._dynExtProtectTiles;
+    }
+    let tiles = [];
+    try {
+        const packed = require('planDoc').getLayerPacked(room, 'extensions');
+        if (packed && packed.length) tiles = unpackPackedXY(packed);
+    } catch (e) { /* ignore */
+    }
+    if (!tiles.length) {
+        const cached = extensionPositionCache[room.name];
+        if (cached && cached.length) tiles = cached;
+    }
+    if (!tiles.length) {
+        try {
+            tiles = require('planGeomExtensions').getExtensionPositions(room) || [];
+        } catch (e) {
+            tiles = [];
+        }
+    }
+    room._dynExtProtectTiles = tiles;
+    room._dynExtProtectTick = Game.time;
+    return tiles;
+}
+
+function getDynamicExtensionKeySet(room) {
+    if (!room || !room.memory || !room.memory.dynamicLayout) return null;
+    if (room._dynExtKeySetTick === Game.time && room._dynExtKeySet) return room._dynExtKeySet;
+    const set = new Set();
+    const tiles = getDynamicExtensionProtectTiles(room);
+    for (let i = 0; i < tiles.length; i++) set.add(xyKey(tiles[i].x, tiles[i].y));
+    const exts = room.extensions || [];
+    for (let i = 0; i < exts.length; i++) {
+        const e = exts[i];
+        if (e && e.pos) set.add(xyKey(e.pos.x, e.pos.y));
+    }
+    room._dynExtKeySet = set;
+    room._dynExtKeySetTick = Game.time;
+    return set;
+}
+
+function addDynamicExtensionSeeds(room, seeds, seen) {
+    if (!room.memory || !room.memory.dynamicLayout) return;
+    const planned = getDynamicExtensionProtectTiles(room);
+    for (let i = 0; i < planned.length; i++) {
+        addSeed(seeds, seen, planned[i].x, planned[i].y);
+    }
+    const exts = room.extensions || [];
+    for (let i = 0; i < exts.length; i++) {
+        const e = exts[i];
+        if (e && e.pos) addSeed(seeds, seen, e.pos.x, e.pos.y);
+    }
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const s = sites[i];
+        if (s && s.pos && s.structureType === STRUCTURE_EXTENSION) {
+            addSeed(seeds, seen, s.pos.x, s.pos.y);
+        }
+    }
+}
+
 /**
  * Tiles the seal must enclose. Includes built, sites, and planned positions
  * so recomputing cannot ignore work already placed or queued.
+ * Dynamic rooms have no extension stamps on coreTemplate — seed the packed
+ * extension plan (and live extensions/sites) the way bunkerTemplate already
+ * seeds its stamp.
  */
 function collectProtectSeeds(room, layout) {
     const seeds = [];
@@ -220,6 +301,8 @@ function collectProtectSeeds(room, layout) {
             }
         }
     }
+
+    addDynamicExtensionSeeds(room, seeds, seen);
 
     const labHub = resolveLabHubXY(room);
     if (labHub && labTemplate) {
@@ -660,6 +743,8 @@ function getBorderRampartTiles(room, layout) {
         tiles.push({x, y});
     };
 
+    const plannedExt = getDynamicExtensionProtectTiles(room);
+    for (let i = 0; i < plannedExt.length; i++) add(plannedExt[i].x, plannedExt[i].y);
     if (extensionPositionCache[room.name]) {
         for (const {x, y} of extensionPositionCache[room.name]) add(x, y);
     }
@@ -1163,6 +1248,8 @@ function choosePerimeterBarrierType(pos, corridors, room) {
     if (!isWallTile) return STRUCTURE_RAMPART;
     if (pos.checkForRoad()) return STRUCTURE_RAMPART;
     if (corridors && corridors.has(pos.x + ',' + pos.y)) return STRUCTURE_RAMPART;
+    const extKeys = getDynamicExtensionKeySet(rm);
+    if (extKeys && extKeys.has(xyKey(pos.x, pos.y))) return STRUCTURE_RAMPART;
     if (isSingletonChoke(pos)) return STRUCTURE_RAMPART;
     if (!canPlaceConstructedWall(pos)) return STRUCTURE_RAMPART;
     return STRUCTURE_WALL;
