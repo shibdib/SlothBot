@@ -14,6 +14,7 @@ const {
     isLiveCombatReady,
     getCombatReadyFailReason,
 } = require('hcReadiness');
+const {getColonyRole} = require('module.colonyProfile');
 
 const VALID_ROOM_NAME = /^[WE]\d+[NS]\d+$/;
 let _MapVisuals;
@@ -343,7 +344,9 @@ class HUD {
         const stockLabel = room.level >= 8
             ? `${this.formatCompactEnergy(diag.stockEnergy)} / ${this.formatCompactEnergy(diag.stockTarget)}`
             : `${stockPct}%`;
-        const roomStatus = `${crFlag}  ${stockLabel}`;
+        const role = (diag && diag.colonyRole) || getColonyRole(room);
+        const roleTag = {launch: 'LNCH', frontier: 'FRNT', core: 'CORE', outpost: 'OUTP'}[role] || '';
+        const roomStatus = `${roleTag}  ${crFlag}  ${stockLabel}`;
 
         room.visual.text(roomStatus, x + width - pad, y + 0.11, {
             color: crColor, align: 'right', font: '0.34 Tahoma'

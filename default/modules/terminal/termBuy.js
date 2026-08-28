@@ -9,11 +9,11 @@
  */
 
 
-const {getEffectiveSupply} = require('termNetwork');
+const {getEffectiveSupply, getEmpireDemand} = require('termNetwork');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
 const {getInboundPlannedAmount, getEmpireBuyCandidates} = require('termMarket');
 const {hasRoomOrder, recordCreatedOrder} = require('termCache');
-const {empireHasSpareBoostType} = require('termKeep');
+const {empireHasSpareBoostType, getRoomKeepAmount} = require('termKeep');
 
 const TerminalControl = require('termClass');
 
@@ -320,7 +320,16 @@ Object.assign(TerminalControl.prototype, {
                 const stored = getResourceTotal(mineral) || 0;
                 const upgraderDuty = terminal.room.memory.energyInfo && terminal.room.memory.energyInfo.upgraderDuty;
                 const dutyScale = Math.min(1, Math.max(0.5, upgraderDuty != null ? upgraderDuty : 1));
-                const boostTarget = BOOST_AMOUNT(terminal.room, mineral) * MY_ROOMS.length * dutyScale;
+                const boostType = getBoostUseType(mineral);
+                const scale = boostType === 'upgrade' ? dutyScale : 1;
+                let keepNeed = getEmpireDemand(mineral) || 0;
+                if (!keepNeed) {
+                    for (const name of MY_ROOMS) {
+                        const room = Game.rooms[name];
+                        if (room) keepNeed += getRoomKeepAmount(room, mineral);
+                    }
+                }
+                const boostTarget = Math.floor(keepNeed * scale);
                 if (stored < boostTarget) {
                     const buyAmount = Math.min(boostTarget - stored, REACTION_AMOUNT);
                     const price = this.calculatePrice(ORDER_BUY, mineral);

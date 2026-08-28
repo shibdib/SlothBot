@@ -5,6 +5,7 @@
 const profiler = require("tools.profiler");
 const energyTracker = require("module.energyTracker");
 const {isLiveCombatReady, isLiveAuxReady, isRoomStruggling} = require('hcReadiness');
+const {energyTarget, getColonyRole} = require('module.colonyProfile');
 const LAST_UPDATE = {};
 const ENERGY_TRACKER = {};
 
@@ -205,11 +206,7 @@ class StateManager {
 
         const batteryEquiv = Math.floor((room.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
         const stockEnergy = room.rawEnergy + batteryEquiv;
-        const upgradeCost = room.level === 8 ? 500000
-            : constructionCost(room.controller.level + 1) - constructionCost(room.controller.level);
-        const progressFraction = room.controller.progress / room.controller.progressTotal;
-        const stockTarget = room.level === 8 ? 500000
-            : Math.max(room.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));
+        const stockTarget = energyTarget(room);
 
         Object.assign(room.memory.energyDiag, {
             stockEnergy,
@@ -218,6 +215,7 @@ class StateManager {
             liveCombatReady: combatReady,
             auxReady,
             struggling: isRoomStruggling(room),
+            colonyRole: getColonyRole(room),
         });
     }
 

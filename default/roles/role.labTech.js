@@ -15,8 +15,9 @@ const TERMINAL_ENERGY_HIGH = TERMINAL_ENERGY_TARGET + 10000;
 const BATTERY_TERMINAL_SOFT_CAP = 2000;
 const BATTERY_TRANSFER_MAX = 5000;
 const ENERGY_TRANSFER_MAX = 15000;
-const STRUCTURE_MAX_FILL_RATIO = 0.9;
 const TERMINAL_EXPORT_CEILING = 5000;
+const STORAGE_HEADROOM = 100000;
+const TERMINAL_HEADROOM = 40000;
 const BALANCE_DIRECTION_COOLDOWN = 50;
 // Hub labs hold 3000. Urgent refill below LOW; keep topping until TARGET so
 // one 1000-carry trip does not stop the feed at a single load.
@@ -98,12 +99,9 @@ class RoleLabTech {
         const terminal = this.room.terminal;
         const powerSpawn = this.room.powerSpawn;
         const nuker = this.room.nuker;
-        // Prefer whichever of storage/terminal has free space; nullable when both
-        // are full or missing. Every branch below that uses storeTarget.id must
-        // guard for null — letting it through crashes the role mid-tick.
-        let storeTarget = null;
-        if (storage && storage.store.getFreeCapacity() >= BALANCE_MIN_TRANSFER) storeTarget = storage;
-        else if (terminal && terminal.store.getFreeCapacity() >= BALANCE_MIN_TRANSFER && !this.isStructureNearFull(terminal)) storeTarget = terminal;
+        // Prefer the warehouse with working headroom. Nullable when both are
+        // packed. Every branch that uses storeTarget.id must guard for null.
+        const storeTarget = this.pickStoreTarget(storage, terminal);
 
         // Priority order below is the real dispatch order (1 = highest).
 
@@ -144,6 +142,13 @@ class RoleLabTech {
         // 2c. Stage boosts other rooms need into the terminal so the network can send.
         const networkBoost = this.findNetworkBoostExport(storage, terminal);
         if (networkBoost) return networkBoost;
+
+        // 2d. Either store under headroom — drain/overflow before nuker/factory/labs
+        // pack the last free slot. Dual-zero swap stays at 1b.
+        if (storage && terminal && this.needsBalanceSpace(storage, terminal)) {
+            const spaceTask = this.findBalancingTask(storage, terminal);
+            if (spaceTask) return spaceTask;
+        }
 
         // 3. Ground cleanup — non-energy drops and tombstones
         if (storeTarget) {
@@ -246,10 +251,6 @@ class RoleLabTech {
             };
         }
 
-        // 11. Urgent storage/terminal balance (tight free space)
-        let balancingTask = this.findBalancingTask(storage, terminal, 1000);
-        if (balancingTask) return balancingTask;
-
         // 12. Nuker energy from spare stock. Beats factory unpack and power spawn
         // (continuous sinks) so a half-full nuker actually completes.
         if (nuker) {
@@ -328,8 +329,8 @@ class RoleLabTech {
             }
         }
 
-        // 17. Routine storage/terminal balance
-        balancingTask = this.findBalancingTask(storage, terminal);
+        // 17. Routine storage/terminal balance (keep split, energy, export slices)
+        const balancingTask = this.findBalancingTask(storage, terminal);
         if (balancingTask) return balancingTask;
 
         // 18. Lab energy refill for reaction labs (boost labs are filled in #2).
@@ -742,18 +743,18 @@ class RoleLabTech {
         return target;
     }
 
-    getTerminalRetainFloor(resource) {
+    getTerminalExportSlice(resource) {
+        if (!resource || resource === RESOURCE_ENERGY) return 0;
         const keep = this.getKeepAmount(resource);
+        if (resource === RESOURCE_BATTERY) return Math.max(keep, BATTERY_TERMINAL_SOFT_CAP);
+        return Math.min(keep || 0, TERMINAL_EXPORT_CEILING);
+    }
+
+    getTerminalRetainFloor(resource) {
         const sell = this.getSellOrderTerminalTarget(resource);
-        if (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource)) {
-            // Storage holds the bulk stockpile. Terminal only needs an export
-            // slice plus whatever this room's own labs/upgraders require.
-            const localOp = getOperationalProtectAmount(this.room, resource);
-            const buffer = Math.min(keep || TERMINAL_EXPORT_CEILING, TERMINAL_EXPORT_CEILING);
-            return Math.max(localOp, buffer, sell);
-        }
-        if (!keep) return 0;
-        return Math.max(keep + BALANCE_KEEP_HYSTERESIS, sell);
+        const localOp = getOperationalProtectAmount(this.room, resource);
+        const slice = this.getTerminalExportSlice(resource);
+        return Math.max(slice, localOp || 0, sell);
     }
 
     getStructureCapacity(structure) {
@@ -763,24 +764,57 @@ class RoleLabTech {
         return structure.store.getCapacity();
     }
 
+    getHeadroom(structure) {
+        if (!structure) return 0;
+        if (structure.structureType === STRUCTURE_TERMINAL) return TERMINAL_HEADROOM;
+        if (structure.structureType === STRUCTURE_STORAGE) return STORAGE_HEADROOM;
+        return 0;
+    }
+
+    usableFree(structure, resource) {
+        if (!structure || !structure.store) return 0;
+        const free = resource ? structure.store.getFreeCapacity(resource) : structure.store.getFreeCapacity();
+        return Math.max(0, free - this.getHeadroom(structure));
+    }
+
     isStructureNearFull(structure) {
         if (!structure) return false;
-        const cap = this.getStructureCapacity(structure);
-        return cap > 0 && structure.store.getFreeCapacity() <= cap * (1 - STRUCTURE_MAX_FILL_RATIO);
+        const headroom = this.getHeadroom(structure);
+        if (!headroom) {
+            const cap = this.getStructureCapacity(structure);
+            return cap > 0 && structure.store.getFreeCapacity() < BALANCE_MIN_TRANSFER;
+        }
+        return structure.store.getFreeCapacity() <= headroom;
+    }
+
+    needsBalanceSpace(storage, terminal) {
+        return this.isStructureNearFull(storage) || this.isStructureNearFull(terminal);
+    }
+
+    pickStoreTarget(storage, terminal) {
+        const sFree = storage ? storage.store.getFreeCapacity() : 0;
+        const tFree = terminal ? terminal.store.getFreeCapacity() : 0;
+        if (storage && sFree > STORAGE_HEADROOM) return storage;
+        if (terminal && tFree > TERMINAL_HEADROOM) return terminal;
+        if (storage && sFree >= tFree && sFree >= BALANCE_MIN_TRANSFER) return storage;
+        if (terminal && tFree >= BALANCE_MIN_TRANSFER) return terminal;
+        return null;
     }
 
     getStorageRetainTarget(resource) {
         const keep = this.getKeepAmount(resource);
         const feedTarget = this.getStorageFeedTarget(resource);
-        return Math.max(keep, feedTarget, keep ? keep * 1.5 : 0);
+        const warehouse = Math.max(0, keep - this.getTerminalExportSlice(resource));
+        return Math.max(warehouse, feedTarget);
     }
 
     getTerminalDrainSurplus(terminal, resource, emergency = false) {
         const amount = terminal.store[resource] || 0;
         if (!amount) return 0;
         if (emergency) {
-            const keep = this.getKeepAmount(resource);
-            return keep ? Math.max(0, amount - keep) : amount;
+            const sell = this.getSellOrderTerminalTarget(resource);
+            const op = getOperationalProtectAmount(this.room, resource) || 0;
+            return Math.max(0, amount - Math.max(op, sell));
         }
         return this.getTerminalSurplus(terminal, resource);
     }
@@ -802,20 +836,15 @@ class RoleLabTech {
     getTerminalShortfall(structure, resource) {
         const sellTarget = this.getSellOrderTerminalTarget(resource);
         if (sellTarget) return 0;
-        if (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource)) {
-            const floor = this.getTerminalRetainFloor(resource);
-            if (!floor) return 0;
-            return floor - BALANCE_KEEP_HYSTERESIS - (structure.store[resource] || 0);
-        }
-        const keep = this.getKeepAmount(resource);
-        if (!keep) return 0;
-        return keep - BALANCE_KEEP_HYSTERESIS - (structure.store[resource] || 0);
+        const floor = this.getTerminalRetainFloor(resource);
+        if (!floor) return 0;
+        return floor - BALANCE_KEEP_HYSTERESIS - (structure.store[resource] || 0);
     }
 
     findNetworkBoostExport(storage, terminal) {
         if (!storage || !terminal) return null;
         if (this.isStructureNearFull(terminal)) return null;
-        const terminalFree = terminal.store.getFreeCapacity();
+        const terminalFree = this.usableFree(terminal);
         if (terminalFree < BALANCE_MIN_TRANSFER) return null;
         if (typeof ALL_BOOSTS === 'undefined' || !ALL_BOOSTS.length) return null;
 
@@ -871,12 +900,12 @@ class RoleLabTech {
     }
 
     pickFactoryClogTarget(resource, storage, terminal) {
-        if (storage && storage.store.getFreeCapacity() >= BALANCE_MIN_TRANSFER) return storage;
-        if (this.isStructureNearFull(terminal)) return storage || null;
-        if (resource !== RESOURCE_BATTERY) return terminal || storage;
+        const preferred = this.pickStoreTarget(storage, terminal);
+        if (preferred) return preferred;
+        if (resource !== RESOURCE_BATTERY) return storage || terminal;
         const terminalBats = terminal?.store[RESOURCE_BATTERY] || 0;
         const cap = Math.max(this.getKeepAmount(RESOURCE_BATTERY) * 2, BATTERY_TERMINAL_SOFT_CAP);
-        if (terminal && terminal.store.getFreeCapacity(RESOURCE_BATTERY) > 0 && terminalBats < cap) return terminal;
+        if (terminal && this.usableFree(terminal) > 0 && terminalBats < cap) return terminal;
         return storage || terminal;
     }
 
@@ -919,11 +948,14 @@ class RoleLabTech {
         if (!withdrawTarget || !deliveryTarget || amount < BALANCE_MIN_TRANSFER) return null;
         if (this.blocksLabProductionBalance(resource, withdrawTarget)) return null;
         const available = withdrawTarget.store[resource] || 0;
-        const free = deliveryTarget.store.getFreeCapacity(resource);
+        const rawFree = deliveryTarget.store.getFreeCapacity(resource);
         if (!available) return null;
         // Swap pickups free the destination before delivery; dest can start full.
-        if (free <= 0 && !options.swap) return null;
-        amount = Math.min(amount, available, options.swap ? amount : free);
+        if (rawFree <= 0 && !options.swap) return null;
+        const respectHeadroom = !options.swap && !options.allowCongestedTerminal && !options.emergency;
+        const free = options.swap ? amount
+            : respectHeadroom ? Math.max(0, rawFree - this.getHeadroom(deliveryTarget)) : rawFree;
+        amount = Math.min(amount, available, free);
         if (amount < BALANCE_MIN_TRANSFER) return null;
 
         if (this.isStorageTerminalShuffle(withdrawTarget, deliveryTarget)) {
@@ -988,8 +1020,12 @@ class RoleLabTech {
         // pulls into storage whenever storage has room — do not leave energy stranded
         // in the terminal so pressure/network dumps fire incorrectly.
         if (storageFree >= BALANCE_MIN_TRANSFER && terminalEnergy > TERMINAL_ENERGY_TARGET) {
-            return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
-                Math.min(terminalEnergy - TERMINAL_ENERGY_TARGET, storageFree, ENERGY_TRANSFER_MAX));
+            const storageTight = this.usableFree(storage) < BALANCE_MIN_TRANSFER;
+            if (!(storageTight && !this.isStructureNearFull(terminal))) {
+                const energyOpts = storageTight ? {emergency: true} : undefined;
+                return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
+                    Math.min(terminalEnergy - TERMINAL_ENERGY_TARGET, storageFree, ENERGY_TRANSFER_MAX), energyOpts);
+            }
         }
 
         // Congestion relief: drain terminal toward storage, keeping export buffer.
@@ -997,7 +1033,8 @@ class RoleLabTech {
             && terminalEnergy > TERMINAL_ENERGY_BUFFER + BALANCE_MIN_TRANSFER) {
             if (storageFree > BALANCE_MIN_TRANSFER) {
                 return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
-                    Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER, storageFree, ENERGY_TRANSFER_MAX));
+                    Math.min(terminalEnergy - TERMINAL_ENERGY_BUFFER, storageFree, ENERGY_TRANSFER_MAX),
+                    {emergency: true});
             }
         }
 
@@ -1113,17 +1150,19 @@ class RoleLabTech {
         const storageFree = storage.store.getFreeCapacity();
         const terminalUrgent = this.isStructureNearFull(terminal);
         const urgent = emergency || terminalUrgent;
-        if (!urgent && storageFree < 1000) return null;
+        if (!urgent && this.usableFree(storage) < BALANCE_MIN_TRANSFER) return null;
         if (urgent && storageFree < BALANCE_MIN_TRANSFER) return null;
 
         const resources = Object.keys(terminal.store)
             .filter(r => r !== RESOURCE_ENERGY)
             .sort((a, b) => (terminal.store[b] || 0) - (terminal.store[a] || 0));
 
+        const destCap = urgent ? storageFree : this.usableFree(storage);
         for (const resource of resources) {
             const excess = this.getTerminalDrainSurplus(terminal, resource, urgent);
             if (excess < BALANCE_MIN_TRANSFER) continue;
-            const task = this.makeBalanceTask(terminal, storage, resource, Math.min(excess, 5000, storageFree));
+            const task = this.makeBalanceTask(terminal, storage, resource, Math.min(excess, 5000, destCap),
+                urgent ? {emergency: true} : undefined);
             if (task) return task;
         }
         return null;
@@ -1135,7 +1174,7 @@ class RoleLabTech {
             .sort((a, b) => (storage.store[b] || 0) - (storage.store[a] || 0));
         for (const resource of resources) {
             const inStorage = storage.store[resource] || 0;
-            const retain = this.getKeepAmount(resource) || 0;
+            const retain = this.getStorageRetainTarget(resource) || 0;
             const excess = Math.max(0, inStorage - retain);
             if (excess >= BALANCE_MIN_TRANSFER) return {resource, excess};
         }
@@ -1266,10 +1305,8 @@ class RoleLabTech {
             // Normal: only move above storage retain target, capped by terminal export ceiling.
             // Storage full: ignore export ceiling so bulk piles (e.g. 776k K) can enter the
             // terminal for pressure sends / fire sales. Keep only the local keep floor in storage.
-            const retain = storageCongested
-                ? (this.getKeepAmount(resource) || 0)
-                : this.getStorageRetainTarget(resource);
-            if (!storageCongested && !retain) continue;
+            const retain = this.getStorageRetainTarget(resource);
+            if (!storageCongested && !retain && !this.getKeepAmount(resource)) continue;
 
             const excess = Math.max(0, inStorage - retain);
             if (excess < BALANCE_MIN_TRANSFER) continue;
@@ -1277,7 +1314,7 @@ class RoleLabTech {
             const inTerminal = terminal.store[resource] || 0;
             let maxToTerminal = terminalFree;
             if (!storageCongested) {
-                const exportCeiling = this.getTerminalRetainFloor(resource) + TERMINAL_EXPORT_CEILING;
+                const exportCeiling = Math.max(this.getTerminalRetainFloor(resource), TERMINAL_EXPORT_CEILING);
                 if (inTerminal >= exportCeiling) continue;
                 maxToTerminal = Math.min(maxToTerminal, exportCeiling - inTerminal);
             }
@@ -1355,8 +1392,8 @@ class RoleLabTech {
     }
 
     findDeficitStorageToTerminal(storage, terminal) {
-        const terminalFree = terminal.store.getFreeCapacity();
-        if (terminalFree < 1000 || this.isStructureNearFull(terminal) || this.isStructureNearFull(storage)) return null;
+        const terminalFree = this.usableFree(terminal);
+        if (terminalFree < 1000 || this.isStructureNearFull(storage)) return null;
 
         const candidates = [];
         for (const resource of Object.keys(storage.store)) {
@@ -1377,7 +1414,7 @@ class RoleLabTech {
         return null;
     }
 
-    findBalancingTask(storage, terminal, congestionTrigger = Infinity) {
+    findBalancingTask(storage, terminal) {
         if (!storage || !terminal) return null;
 
         const overflowTask = this.findOverflowRelief(storage, terminal);
@@ -1387,18 +1424,10 @@ class RoleLabTech {
         if (factoryTask) return factoryTask;
 
         const terminalUrgent = this.isStructureNearFull(terminal);
-        const needsRoutineBalance = congestionTrigger >= Infinity
-            || this.isStructureNearFull(storage)
-            || this.isStructureNearFull(terminal)
-            || terminalUrgent
-            || (storage.store.getFreeCapacity() <= congestionTrigger
-                && terminal.store.getFreeCapacity() <= congestionTrigger);
 
         // Drain export overflow before topping terminal for sells or keep targets.
-        if (needsRoutineBalance || terminalUrgent) {
-            const drainTask = this.findExcessTerminalToStorage(storage, terminal, terminalUrgent);
-            if (drainTask) return drainTask;
-        }
+        const drainTask = this.findExcessTerminalToStorage(storage, terminal, terminalUrgent);
+        if (drainTask) return drainTask;
 
         const energyTask = this.findEnergyStorageBalance(storage, terminal);
         if (energyTask) return energyTask;
@@ -1408,8 +1437,6 @@ class RoleLabTech {
 
         const sellTask = this.findSellOrderBalance(storage, terminal);
         if (sellTask) return sellTask;
-
-        if (!needsRoutineBalance) return null;
 
         const networkBoost = this.findNetworkBoostExport(storage, terminal);
         if (networkBoost) return networkBoost;

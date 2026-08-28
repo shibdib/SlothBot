@@ -4,14 +4,26 @@
  * Per-room terminal keep amounts.
  */
 
+const {isLaunchRoom} = require('module.colonyProfile');
+
 // One lab load. Enough to pre-reserve upgrader WORK boosts so spawn/claim can start.
 const UPGRADE_BOOST_WORKING_STOCK = 3000;
+const COMBAT_BOOST_TYPES = ['attack', 'ranged_attack', 'heal', 'tough', 'dismantle', 'move'];
 
 let upgradePrefTick = -1;
 let upgradePref = null;
 
 function isHubRoom(room) {
     return !!(room && Memory._banker && Memory._banker.marketHub === room.name);
+}
+
+function isCombatT3Boost(resource) {
+    if (!resource || typeof BOOST_USE === 'undefined' || !BOOST_USE) return false;
+    for (let i = 0; i < COMBAT_BOOST_TYPES.length; i++) {
+        const tiers = BOOST_USE[COMBAT_BOOST_TYPES[i]];
+        if (tiers && tiers[0] === resource) return true;
+    }
+    return false;
 }
 
 function isUpgradeBoost(resource) {
@@ -124,9 +136,10 @@ function getRoomKeepAmount(room, resource) {
         return 0;
     }
     if (ALL_BOOSTS.includes(resource)) {
-        // Hub holds the empire stockpile. Satellites keep only operational
-        // amounts (labs / upgrader working stock) so leftover can ship.
-        if (isHubRoom(room)) return BOOST_AMOUNT(room, resource);
+        // Combat T3 lives on launch rooms so waves spawn where the minerals are.
+        // Hub still warehouses non-combat boosts (upgrade/build/harvest).
+        if (isCombatT3Boost(resource) && isLaunchRoom(room)) return BOOST_AMOUNT(room, resource);
+        if (isHubRoom(room) && !isCombatT3Boost(resource)) return BOOST_AMOUNT(room, resource);
         return getRoomOperationalNeed(room, resource);
     }
     if (resource === RESOURCE_BATTERY) return 1000;
@@ -201,5 +214,6 @@ module.exports = {
     empireHasSpareBoostType,
     isStorageCapacityCritical,
     isHubRoom,
+    isCombatT3Boost,
     roomUsesResource,
 };

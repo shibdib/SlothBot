@@ -17,6 +17,7 @@ const profiler = require('tools.profiler');
 const {sortCreepsForMovement} = require('pathTraffic');
 const {needsTow, stripLegacyShibMemory} = require('pathUtils');
 const planner = require('module.roomPlanner');
+const {refreshColonyProfiles} = require('module.colonyProfile');
 let tickTracker = {};
 let errorCount = {};
 
@@ -85,6 +86,9 @@ class World {
         if (Game.time % 25 === 0 && Game.shard.name === 'shardSeason') {
             seasonalScoreFinder();
         }
+
+        // Owned-room roles (core / frontier / launch) before energy and terminals.
+        refreshColonyProfiles();
 
         // Manage room states
         this.stateManager();

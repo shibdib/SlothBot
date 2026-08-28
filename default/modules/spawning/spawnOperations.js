@@ -17,6 +17,7 @@ const {
 const {spawnEnergyState} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 const {scoreOriginMinLevel, empireDistance, empirePriority} = require('hcUtils');
+const {getColonyRole} = require('module.colonyProfile');
 
 const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
 const HELPER_ROLES = new Set(['cleaner', 'claimAttacker', 'remoteHauler']);
@@ -40,6 +41,12 @@ const ROLE_ASSIGN_WEIGHT = {
     claimAttacker: 40,
     cleaner: 20,
     scout: 10
+};
+const COLONY_ASSIGN_PENALTY = {
+    launch: 0,
+    frontier: 1,
+    core: 3,
+    outpost: 4,
 };
 const assignmentCooldown = {};
 const assignmentExcludeUntil = {};
@@ -699,7 +706,7 @@ function isBetterAssignmentCandidate(score, distance, load, key, best) {
 }
 
 function computeAssignmentScore(myRoom, routeDistance, load, isAuxiliary) {
-    let score = routeDistance;
+    let score = routeDistance + (COLONY_ASSIGN_PENALTY[getColonyRole(myRoom)] || 0);
 
     const energyState = spawnEnergyState(myRoom) || 0;
     const ei = myRoom.memory.energyInfo;

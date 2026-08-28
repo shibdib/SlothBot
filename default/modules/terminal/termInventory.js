@@ -43,7 +43,7 @@ Object.assign(TerminalControl.prototype, {
             let total = 0;
             for (const name of MY_ROOMS) {
                 const room = Game.rooms[name];
-                if (room) total += BOOST_AMOUNT(room, resource);
+                if (room) total += getRoomKeepAmount(room, resource);
             }
             return total;
         }

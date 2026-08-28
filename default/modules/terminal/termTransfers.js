@@ -14,6 +14,7 @@ const {
 } = require('termKeep');
 const {getDerivedCommodityAmount} = require('termCache');
 const FactoryControl = require('module.factoryController');
+const {getColonyRole} = require('module.colonyProfile');
 const profiler = require('tools.profiler');
 
 const RESOURCE_SEND_MAX = 5000;
@@ -55,11 +56,8 @@ function getRoomLabNeeds(room) {
 }
 
 function getRoomResourceDemand(room, resource) {
-    // Boost stockpile keep lives at the hub for buy/sell. Network fills only
-    // operational need (labs, reserved boosts, upgrader working stock).
-    let need = (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource))
-        ? getRoomOperationalNeed(room, resource)
-        : getRoomKeepAmount(room, resource);
+    // Keep includes launch combat T3 stockpiles and hub non-combat warehouses.
+    let need = getRoomKeepAmount(room, resource);
     if (getRoomLabNeeds(room).has(resource)) need = Math.max(need, REACTION_AMOUNT);
     if (resource === RESOURCE_BATTERY) {
         need = Math.max(need, FactoryControl.factoryBatteryInboundNeed(room));
@@ -78,10 +76,10 @@ function getExportFloor(room, resource, pressureRelief = false) {
         const protect = getPressureProtectAmount(room, resource);
         return isFinite(protect) ? protect : Infinity;
     }
-    // Boosts: export down to operational protect, not hub BOOST_AMOUNT keep,
-    // so rooms that already have stock can fill labs/upgraders elsewhere.
+    // Never strip a real stockpile (launch combat T3 / hub warehouse). Rooms
+    // whose keep is only operational still donate surplus to labs elsewhere.
     if (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource)) {
-        return getOperationalProtectAmount(room, resource);
+        return Math.max(getRoomKeepAmount(room, resource) || 0, getOperationalProtectAmount(room, resource) || 0);
     }
     return getRoomResourceDemand(room, resource) || 0;
 }
@@ -219,11 +217,12 @@ function planResourceTransfers(transfers, resource, profiles, options = {}) {
         if (destFree < RESOURCE_SEND_MIN) continue;
         if (isRoomCapacityPressured(destRoom)) continue;
         // Don't park keep-fills into an already busy satellite terminal.
-        // Operational boost/lab need still accepts — those rooms asked for it.
+        // Operational lab need, hub warehouse, and launch combat stockpiles still accept.
         if (destTerminalBusy(destRoom)
             && !getRoomLabNeeds(destRoom).has(resource)
             && !getRoomOperationalNeed(destRoom, resource)
-            && !isHubRoom(destRoom)) continue;
+            && !isHubRoom(destRoom)
+            && getRoomKeepAmount(destRoom, resource) <= (getRoomOperationalNeed(destRoom, resource) || 0)) continue;
 
         const remaining = Math.min(dest.need, destFree, RESOURCE_SEND_MAX);
         const candidates = [];
@@ -341,6 +340,18 @@ function planBatteryTransfers(transfers, profiles) {
     }
 }
 
+function energyRoleBonus(srcRoom, destRoom) {
+    const destRole = getColonyRole(destRoom);
+    const srcRole = getColonyRole(srcRoom);
+    let bonus = 0;
+    if (destRole === 'launch') bonus += 1.5;
+    else if (destRole === 'frontier') bonus += 0.75;
+    else if (destRole === 'outpost') bonus += 0.5;
+    if (srcRole === 'launch') bonus -= 1;
+    else if (srcRole === 'core') bonus += 0.5;
+    return bonus;
+}
+
 function planEnergyTransfers(transfers, profiles) {
     for (const profile of profiles) {
         const destRoom = Game.rooms[profile.name];
@@ -390,7 +401,7 @@ function planEnergyTransfers(transfers, profiles) {
                 resource: RESOURCE_ENERGY,
                 amount,
                 kind: 'energy',
-                score: (amount - cost) / (1 + cost) + (destRoom.energyState < 1 ? 2 : 0),
+                score: (amount - cost) / (1 + cost) + (destRoom.energyState < 1 ? 2 : 0) + energyRoleBonus(srcRoom, destRoom),
             });
         }
 
