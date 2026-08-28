@@ -9,33 +9,39 @@ const {getRoomKeepAmount} = require('termKeep');
 const FactoryControl = require('module.factoryController');
 const profiler = require('tools.profiler');
 
-const FACTORY_ENERGY_BATCH = 50000;
 const LEDGER_TTL = 25;
 
 let equivalenceCache = null;
 
 function buildEquivalenceMap() {
     // COMMODITIES is static — build once per global, not every tick.
+    // Only compressed → base (and battery → energy). Reverse recipes and
+    // higher-tier commodities must not inflate mineral supply.
     if (equivalenceCache) return equivalenceCache;
 
     const map = {};
-    for (const product of Object.keys(COMMODITIES)) {
+
+    const energyDef = COMMODITIES[RESOURCE_ENERGY];
+    const batteryIn = energyDef && energyDef.components && energyDef.components[RESOURCE_BATTERY];
+    if (batteryIn && energyDef.amount) {
+        map[RESOURCE_BATTERY] = [{
+            base: RESOURCE_ENERGY,
+            ratio: energyDef.amount / batteryIn,
+        }];
+    }
+
+    const compressed = COMPRESSED_COMMODITIES || [];
+    for (let i = 0; i < compressed.length; i++) {
+        const product = compressed[i];
+        if (product === RESOURCE_BATTERY) continue;
         const def = COMMODITIES[product];
-        if (!def || !def.components) continue;
-
-        if (product === RESOURCE_ENERGY && def.components[RESOURCE_BATTERY]) {
-            const batteryIn = def.components[RESOURCE_BATTERY];
-            map[RESOURCE_BATTERY] = [{
-                base: RESOURCE_ENERGY,
-                ratio: FACTORY_ENERGY_BATCH / batteryIn,
-            }];
-            continue;
-        }
-
+        if (!def || !def.components || !def.amount) continue;
         const entries = [];
         for (const component of Object.keys(def.components)) {
             if (component === RESOURCE_ENERGY) continue;
-            entries.push({base: component, ratio: def.components[component]});
+            const input = def.components[component];
+            if (!input) continue;
+            entries.push({base: component, ratio: input / def.amount});
         }
         if (entries.length) map[product] = entries;
     }

@@ -12,6 +12,35 @@ const BATTERY_FEED_STOCK = 300;
 const FACTORY_BATTERY_MAX = 2500;
 const TERMINAL_BATTERY_SEND_MAX = 2000;
 
+function isUnpackMineral(resource) {
+    return resource === RESOURCE_GHODIUM || BASE_MINERALS.includes(resource);
+}
+
+function unpackMinerals() {
+    return [...BASE_MINERALS, RESOURCE_GHODIUM];
+}
+
+function productionCap(resource) {
+    return isUnpackMineral(resource) ? REACTION_AMOUNT : DUMP_AMOUNT * 0.9;
+}
+
+function compressInputStart() {
+    return REACTION_AMOUNT * 1.1;
+}
+
+function warehouseMineral(room, resource) {
+    let n = 0;
+    if (room.storage) n += room.storage.store[resource] || 0;
+    if (room.terminal) n += room.terminal.store[resource] || 0;
+    return n;
+}
+
+function compressionInputStock(room, resource) {
+    let n = warehouseMineral(room, resource);
+    if (room.factory) n += room.factory.store[resource] || 0;
+    return n;
+}
+
 class FactoryControl {
     constructor() {
     }
@@ -186,12 +215,10 @@ class FactoryControl {
             return;
         }
 
-        // Re-evaluate stop/invalid targets every tick so labTech and terminal logic stay aligned
+        // Continue uses shouldStop only. isValidProductionTarget is the start gate;
+        // applying its stockpile cap here would abort unpack at 25% of keep.
         if (factory.memory.producing) {
             if (this.shouldStopProduction(room, factory)) {
-                this.clearProduction(factory);
-            } else if (!this.isValidProductionTarget(factory.memory.producing, room, factoryLevel)) {
-                log.i(`${roomLink(room.name)} clearing invalid production target ${factory.memory.producing}.`, 'FACTORY CONTROL:');
                 this.clearProduction(factory);
             }
         }
@@ -212,32 +239,32 @@ class FactoryControl {
             this.decideProduction(room, factory, factoryLevel);
         }
 
-        // Attempt production only if we have a valid target
-        if (factory.memory.producing && this.isValidProductionTarget(factory.memory.producing, room, factoryLevel)) {
+        // Produce if still selected. Do not re-apply isValid start caps here.
+        if (factory.memory.producing) {
             const commodity = COMMODITIES[factory.memory.producing];
-            // Confirm inputs are actually loaded into the factory store before calling produce
-            if (!Object.keys(commodity.components).every(c => (factory.store[c] || 0) >= commodity.components[c])) {
-                cooldownTracker[room.name] = 3;
-                return;
-            }
-            if (!this._factoryHasOutputSpace(factory, factory.memory.producing)) {
-                cooldownTracker[room.name] = 3;
-                return;
-            }
-            const result = factory.produce(factory.memory.producing);
-            if (result === OK) {
-                cooldownTracker[room.name] = commodity.cooldown + 1;
-                // Record if this production consumed ENERGY component (a sink, similar to terminal exports).
-                if (commodity.components && commodity.components[RESOURCE_ENERGY]) {
-                    const amt = commodity.components[RESOURCE_ENERGY];
-                    Memory.factoryEnergyExpense = Memory.factoryEnergyExpense || {};
-                    const rn = room.name;
-                    Memory.factoryEnergyExpense[rn] = (Memory.factoryEnergyExpense[rn] || 0) + amt;
-                }
-            } else {
-                log.w(`${roomLink(room.name)} factory produce() failed for ${factory.memory.producing} (${result}), re-evaluating.`, 'FACTORY CONTROL:');
+            if (!commodity) {
                 this.clearProduction(factory);
-                cooldownTracker[room.name] = 10;
+            } else if (!Object.keys(commodity.components).every(c => (factory.store[c] || 0) >= commodity.components[c])) {
+                cooldownTracker[room.name] = 3;
+                return;
+            } else if (!this._factoryHasOutputSpace(factory, factory.memory.producing)) {
+                cooldownTracker[room.name] = 3;
+                return;
+            } else {
+                const result = factory.produce(factory.memory.producing);
+                if (result === OK) {
+                    cooldownTracker[room.name] = commodity.cooldown + 1;
+                    if (commodity.components && commodity.components[RESOURCE_ENERGY]) {
+                        const amt = commodity.components[RESOURCE_ENERGY];
+                        Memory.factoryEnergyExpense = Memory.factoryEnergyExpense || {};
+                        const rn = room.name;
+                        Memory.factoryEnergyExpense[rn] = (Memory.factoryEnergyExpense[rn] || 0) + amt;
+                    }
+                } else {
+                    log.w(`${roomLink(room.name)} factory produce() failed for ${factory.memory.producing} (${result}), re-evaluating.`, 'FACTORY CONTROL:');
+                    this.clearProduction(factory);
+                    cooldownTracker[room.name] = 10;
+                }
             }
         }
 
@@ -291,6 +318,11 @@ class FactoryControl {
         const batteryStored = room.store(RESOURCE_BATTERY);
         const batteryCost = commodity.components[RESOURCE_BATTERY] || 0;
 
+        if (commodity.level && commodity.level !== (factory.level || 0)) {
+            log.i(`${roomLink(room.name)} stopping ${producing} — factory level mismatch.`, 'FACTORY CONTROL:');
+            return true;
+        }
+
         if (producing === RESOURCE_BATTERY && !FactoryControl.shouldPackBatteries(room)) {
             log.i(`${roomLink(room.name)} stopping battery production — pack no longer needed.`, 'FACTORY CONTROL:');
             return true;
@@ -306,25 +338,26 @@ class FactoryControl {
             }
             return false;
         }
-        if (!COMPRESSED_COMMODITIES.includes(producing)) {
-            const threshold = BASE_MINERALS.includes(producing) ? REACTION_AMOUNT : DUMP_AMOUNT * 0.9;
-            if (room.store(producing) >= threshold) {
-                log.i(`${roomLink(room.name)} stopping ${producing} — cap reached.`, 'FACTORY CONTROL:');
-                return true;
-            }
-            if (Object.keys(commodity.components).some(r => r !== RESOURCE_ENERGY && room.store(r) < REACTION_AMOUNT * 0.1)) {
-                log.i(`${roomLink(room.name)} stopping ${producing} — input running low.`, 'FACTORY CONTROL:');
-                return true;
-            }
-            return false;
-        }
-        // Compressed commodity: stop if any non-energy input is running low
-        if (Object.keys(commodity.components).some(r => r !== RESOURCE_ENERGY && room.store(r) < REACTION_AMOUNT * 0.5)) {
-            log.i(`${roomLink(room.name)} stopping ${producing} — input running low.`, 'FACTORY CONTROL:');
+
+        if (room.store(producing) >= productionCap(producing)) {
+            log.i(`${roomLink(room.name)} stopping ${producing} — cap reached.`, 'FACTORY CONTROL:');
             return true;
         }
         if (commodity.components[RESOURCE_ENERGY] && !room.energyState) {
             log.i(`${roomLink(room.name)} stopping ${producing} — no energy.`, 'FACTORY CONTROL:');
+            return true;
+        }
+
+        const compressing = COMPRESSED_COMMODITIES.includes(producing);
+        const inputFloor = compressing ? REACTION_AMOUNT : 0;
+        if (Object.keys(commodity.components).some(r => {
+            if (r === RESOURCE_ENERGY) return false;
+            const have = compressing ? compressionInputStock(room, r) : (room.store(r) || 0);
+            const recipe = commodity.components[r] || 0;
+            if (have < recipe) return true;
+            return inputFloor && have < inputFloor + recipe;
+        })) {
+            log.i(`${roomLink(room.name)} stopping ${producing} — input running low.`, 'FACTORY CONTROL:');
             return true;
         }
         return false;
@@ -347,21 +380,24 @@ class FactoryControl {
 
         if (opsPaused) return;
 
-        // Space guard — don't manufacture if output has nowhere to go
         const totalFree = (room.storage ? room.storage.store.getFreeCapacity() : 0) +
             (room.terminal ? room.terminal.store.getFreeCapacity() : 0);
-        if (totalFree < FACTORY_MIN_FREE_SPACE) return;
+        const spaceTight = totalFree < FACTORY_MIN_FREE_SPACE;
 
-        // Sort by deficit so the most urgently needed resource is always chosen first.
-        // This is deterministic and stable — the same resource wins every re-decision
-        // until its cap is reached, preventing oscillation between commodities.
+        // Highest deficit first. Unpack uses keep (REACTION_AMOUNT); bars use dump cap.
         const deficitSort = (a, b) => {
-            const threshA = BASE_MINERALS.includes(a) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
-            const threshB = BASE_MINERALS.includes(b) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
-            return (threshB - room.store(b)) - (threshA - room.store(a));
+            return (productionCap(b) - room.store(b)) - (productionCap(a) - room.store(a));
         };
 
-        // Try compression — highest deficit first
+        // Unpack needed minerals even when warehouses are tight — labs need the mineral.
+        for (const resource of unpackMinerals().sort(deficitSort)) {
+            if (this.isValidProductionTarget(resource, room, factoryLevel)) {
+                this.setProduction(factory, resource, 'decompressing');
+                return;
+            }
+        }
+
+        // Compression frees space; still run it when storage is tight.
         for (const resource of [...COMPRESSED_COMMODITIES].filter(r => r !== RESOURCE_BATTERY).sort(deficitSort)) {
             if (this.isValidProductionTarget(resource, room, factoryLevel)) {
                 this.setProduction(factory, resource, 'compressing');
@@ -369,13 +405,7 @@ class FactoryControl {
             }
         }
 
-        // Try manufactured commodities — highest deficit first
-        for (const resource of [...BASE_MINERALS].sort(deficitSort)) {
-            if (this.isValidProductionTarget(resource, room, factoryLevel)) {
-                this.setProduction(factory, resource, 'surplus inputs');
-                return;
-            }
-        }
+        if (spaceTight) return;
 
         // Try assigned commodity
         if (room.energyState && room.memory.commodityProduction) {
@@ -433,17 +463,18 @@ class FactoryControl {
             return FactoryControl.shouldPackBatteries(room) && room.rawEnergy >= needed;
         }
 
-        const threshold = BASE_MINERALS.includes(resource) ? REACTION_AMOUNT * 0.25 : DUMP_AMOUNT * 0.9;
-        if (room.store(resource) >= threshold) return false;
+        if (room.store(resource) >= productionCap(resource)) return false;
 
         // Skip energy-consuming commodities when energy is critically low
         if (!room.energyState && commodity.components[RESOURCE_ENERGY]) return false;
 
         return Object.keys(commodity.components).every(component => {
             const required = commodity.components[component];
-            const requiredAmount = REACTION_AMOUNT * 1.1;
-            return room.store(component) >= required &&
-                (!COMPRESSED_COMMODITIES.includes(resource) || room.store(component) >= requiredAmount);
+            const compressing = COMPRESSED_COMMODITIES.includes(resource) && component !== RESOURCE_ENERGY;
+            const stock = compressing ? compressionInputStock(room, component) : (room.store(component) || 0);
+            if (stock < required) return false;
+            if (!compressing) return true;
+            return stock >= compressInputStart();
         });
     }
 
@@ -460,4 +491,8 @@ profiler.registerClass(FactoryControl, 'FactoryControl');
 FactoryControl.BATTERY_FEED_STOCK = BATTERY_FEED_STOCK;
 FactoryControl.FACTORY_BATTERY_MAX = FACTORY_BATTERY_MAX;
 FactoryControl.TERMINAL_BATTERY_SEND_MAX = TERMINAL_BATTERY_SEND_MAX;
+FactoryControl.warehouseMineral = warehouseMineral;
+FactoryControl.compressionWarehouseSpare = function (room, resource) {
+    return Math.max(0, warehouseMineral(room, resource) - REACTION_AMOUNT);
+};
 module.exports = FactoryControl;

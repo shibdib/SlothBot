@@ -67,7 +67,9 @@ function getRoomResourceDemand(room, resource) {
 
 function getRoomEffective(room, resource) {
     let amount = room.store(resource) || 0;
-    if (BASE_MINERALS.includes(resource)) amount += getDerivedCommodityAmount(room, resource);
+    if (BASE_MINERALS.includes(resource) || resource === RESOURCE_GHODIUM) {
+        amount += getDerivedCommodityAmount(room, resource);
+    }
     return amount;
 }
 

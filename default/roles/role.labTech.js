@@ -726,7 +726,12 @@ class RoleLabTech {
         const inFactory = factory.store[resource] || 0;
         const target = required * 10;
         if (inFactory >= target) return 0;
-        return Math.min(target - inFactory, available, creepFree, factory.store.getFreeCapacity());
+        let amount = Math.min(target - inFactory, available, creepFree, factory.store.getFreeCapacity());
+        if (COMPRESSED_COMMODITIES.includes(factory.memory.producing)
+            && resource !== RESOURCE_ENERGY && resource !== RESOURCE_BATTERY) {
+            amount = Math.min(amount, FactoryControl.compressionWarehouseSpare(this.room, resource));
+        }
+        return amount;
     }
 
     getKeepAmount(resource) {
@@ -914,7 +919,12 @@ class RoleLabTech {
         if (factory && factory.memory.producing) {
             const commodity = COMMODITIES[factory.memory.producing];
             if (commodity && commodity.components[resource]) {
-                return commodity.components[resource] * 10;
+                let target = commodity.components[resource] * 10;
+                if (COMPRESSED_COMMODITIES.includes(factory.memory.producing)
+                    && resource !== RESOURCE_ENERGY && resource !== RESOURCE_BATTERY) {
+                    target = Math.min(target, FactoryControl.compressionWarehouseSpare(this.room, resource));
+                }
+                return target;
             }
         }
         if (resource === RESOURCE_BATTERY && factory && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
