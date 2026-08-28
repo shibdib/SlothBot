@@ -725,7 +725,7 @@ function planPressureTransfers(transfers, profiles) {
                 // for a nearby dump if we don't insist on a 25k send.
                 if (!energyStarved && cost > sendAmount * 0.35) continue;
 
-                const bonus = underKeep ? 3 : hub ? 2 : 0;
+                const bonus = underKeep ? 3 : warehouse ? 2 : 0;
                 candidates.push({
                     from: srcName,
                     to: profile.name,
