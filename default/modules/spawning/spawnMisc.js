@@ -72,11 +72,14 @@ function miscCreepQueue(room) {
 
     if (room.storage && room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount
         && room.storage.store.getFreeCapacity() >= STORAGE_CAPACITY * 0.1) {
-        queueCreepIfNeeded({
-            room, role: 'mineralHarvester', priority: PRIORITIES.mineralHarvester,
-            numberNeeded: 1, misc: {boosts: [WORK]},
-            other: {assignedMineral: room.mineral.id}
-        });
+        const {flowStressed} = getFlowContext(room);
+        if (energyState >= 1 && !flowStressed) {
+            queueCreepIfNeeded({
+                room, role: 'mineralHarvester', priority: PRIORITIES.mineralHarvester,
+                numberNeeded: 1, misc: {boosts: [WORK]},
+                other: {assignedMineral: room.mineral.id}
+            });
+        }
     }
 
     const ap = getBodyAbilityPower(room, 'longbow');

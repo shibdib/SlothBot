@@ -12,6 +12,7 @@
 const profiler = require('tools.profiler');
 const {STATE_STUCK} = require('pathState');
 const {getPathKey, hashRoomStructures, reverseDirection, getShibMove} = require('pathUtils');
+const {directionBetween} = require('pathFormation');
 
 const PATH_CACHE_TTL = 25;
 const PATH_CACHE_MAX = 300;
@@ -31,25 +32,17 @@ function serializePath(startPos, path) {
     let serialized = '';
 
     for (const position of path) {
-        if (position.roomName === startPos.roomName) {
-            if (PATHING_DEBUG) {
-                const colors = ["orange", "blue", "green", "red", "yellow", "black", "gray", "purple"];
-                const hash = (startPos.x * 50 + startPos.y) % colors.length;
-                const color = colors[hash];
-                new RoomVisual(position.roomName).line(position, startPos, {
-                    color: color,
-                    lineStyle: 'dashed'
-                });
-            }
-            serialized += startPos.getDirectionTo(position);
-        } else {
-            let exitDir;
-            if (startPos.x === 49) exitDir = RIGHT;
-            else if (startPos.x === 0) exitDir = LEFT;
-            else if (startPos.y === 0) exitDir = TOP;
-            else if (startPos.y === 49) exitDir = BOTTOM;
-            if (exitDir !== undefined) serialized += exitDir;
+        if (PATHING_DEBUG && position.roomName === startPos.roomName) {
+            const colors = ["orange", "blue", "green", "red", "yellow", "black", "gray", "purple"];
+            const hash = (startPos.x * 50 + startPos.y) % colors.length;
+            const color = colors[hash];
+            new RoomVisual(position.roomName).line(position, startPos, {
+                color: color,
+                lineStyle: 'dashed'
+            });
         }
+        const dir = directionBetween(startPos, position);
+        if (dir) serialized += dir;
         startPos = position;
     }
     return serialized;

@@ -26,6 +26,7 @@ const {
     formationRange,
     exitDirectionTo,
     posAfterMove,
+    offsetPos,
     wouldEnterDest
 } = require("module.pathFinder");
 const {isBumperCandidate, yieldOccupant} = require("pathTraffic");
@@ -238,6 +239,11 @@ class RoleLongbowSquad {
         const squad = this.getSquad();
         const fullSquad = squad.concat(creep);
         this.adoptDuoIfQuadRemnant(creep);
+        if (creep.memory.quadSnake && this.isFormationPacked(fullSquad, creep)
+            && this.isCurrentPosViable(creep)
+            && !this.squadSplitAcrossDest(creep) && !this.squadOnDestExit(creep)) {
+            this.clearQuadSnake(creep);
+        }
 
         // Committed waitFor wave with no living members: dest 25,25 is a solo hop.
         const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
@@ -2446,10 +2452,13 @@ class RoleLongbowSquad {
     // through; followers trail like a duo. Starts on the dest strip or a
     // puncture; continues until a 2×2 fits so a long choke is not a freeze.
     snakeTerrainChoke(creep, squad) {
-        if (!this.isQuad(creep) || creep.room.name !== creep.memory.destination) {
+        if (!this.isQuad(creep)) {
             this.clearQuadSnake(creep);
             return false;
         }
+        // Intermediate 1-wide exits also set quadSnake. Clearing it here
+        // dropped the trail the moment the leader left dest.
+        if (creep.room.name !== creep.memory.destination) return false;
         const full = (squad || this.getSquad()).concat(creep);
         // isCurrentPosViable is true mid dest-exit hop so we don't flip facing.
         // Treating that as "done snaking" parked the leader on a 1-wide dest-exit.
@@ -2917,27 +2926,8 @@ class RoleLongbowSquad {
     }
 
     matchesFormationOffset(pos, leaderPos, dx, dy) {
-        let x = leaderPos.x + dx;
-        let y = leaderPos.y + dy;
-        if (pos.roomName === leaderPos.roomName) return pos.x === x && pos.y === y;
-        const exits = Game.map.describeExits(leaderPos.roomName);
-        if (!exits) return false;
-        let roomName;
-        if (x < 0) {
-            roomName = exits[LEFT];
-            x = 49;
-        } else if (x > 49) {
-            roomName = exits[RIGHT];
-            x = 0;
-        }
-        if (y < 0) {
-            roomName = exits[TOP];
-            y = 49;
-        } else if (y > 49) {
-            roomName = exits[BOTTOM];
-            y = 0;
-        }
-        return roomName === pos.roomName && pos.x === x && pos.y === y;
+        const slot = offsetPos(leaderPos, dx, dy);
+        return !!(slot && pos.roomName === slot.roomName && pos.x === slot.x && pos.y === slot.y);
     }
 
     findStaging(creep) {

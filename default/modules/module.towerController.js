@@ -78,7 +78,10 @@ module.exports.towerController = function (room) {
     const cache = towerCache[cacheKey];
     const energyInfo = room.memory.energyInfo;
     const trend = (energyInfo && energyInfo.trend) || 0;
-    const repairAllowed = room.energyState >= 2 || (room.energyState === 1 && trend >= 0);
+    const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
+    const repairAllowed = room.energyState >= 3
+        || (room.energyState >= 2 && spareIncome > 0 && trend >= 0)
+        || (room.energyState === 1 && trend >= 0 && spareIncome > 0);
     if (cache.hasHostiles || cache.injuredFriendlies.length) {
         if (!drainState[cacheKey]) drainState[cacheKey] = {};
         const roomDrain = drainState[cacheKey];
@@ -109,14 +112,17 @@ module.exports.towerController = function (room) {
             }
         }
         if (currentTime % 200 === 0) cleanupDrainState(roomDrain, currentTime);
-    } else if (repairAllowed) {
+    } else {
         const damagedCriticalStructures = cache.criticalStructures.filter(s => s.hits < s.hitsMax);
-        const repairCandidates = cache.combatBarriers.length
+        let repairCandidates = cache.combatBarriers.length
             ? cache.combatBarriers.slice().sort((a, b) => a.hits - b.hits)
-            : damagedCriticalStructures.length ? damagedCriticalStructures.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax))
-                : room.structures.filter((s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5).sort(
-                    (a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax)
-                );
+            : damagedCriticalStructures.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
+        // Road repair is a discretionary 10-energy/tower sink — only when overflowing.
+        if (!repairCandidates.length && repairAllowed) {
+            repairCandidates = room.structures.filter((s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5).sort(
+                (a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax)
+            );
+        }
 
         if (repairCandidates.length) {
             // Round-robin to spread repairs — focus-firing 6 towers on one rampart wastes

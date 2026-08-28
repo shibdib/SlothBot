@@ -24,15 +24,19 @@ function maxRemoteHarvesters(room) {
         return room.level < 7 ? 5 : 1;
     }
     if (room.level < 7) return 10;
-    const {spareIncome} = getFlowContext(room);
+    const {spareIncome, flowStressed} = getFlowContext(room);
     const assigned = (ROOM_REMOTE_TARGETS[room.name] || []).length;
-    const fromSpare = Math.floor(spareIncome / 15);
+    const fromSpare = Math.max(0, Math.floor(spareIncome / 15));
     const hasCenter = (ROOM_REMOTE_TARGETS[room.name] || []).some(s => remoteMining.isSectorCenterRoomName(s.room));
     // Cover assigned sources up to 4 before spare income alone would allow it.
     // SK + sector-center is 6 keeper-yield sources; raise the floor/cap so they get staffed.
     const assignedFloor = hasCenter ? Math.min(assigned, 7) : Math.min(assigned, 4);
     const cap = hasCenter ? 8 : 5;
-    return Math.max(1, Math.min(cap, Math.max(fromSpare, assignedFloor)));
+    const energyState = spawnEnergyState(room) || 0;
+    // Below surplus (or already bleeding) staff every assigned source so harvest can recover.
+    const needIncome = energyState < 3 || flowStressed || spareIncome < 0;
+    const incomeFloor = needIncome ? Math.min(assigned, cap) : assignedFloor;
+    return Math.max(1, Math.min(cap, Math.max(fromSpare, incomeFloor)));
 }
 
 function shouldDeprioritizeRemotes(room) {

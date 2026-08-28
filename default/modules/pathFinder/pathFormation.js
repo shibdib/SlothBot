@@ -191,35 +191,64 @@ function exitDirectionTo(fromRoom, toRoom) {
     return 0;
 }
 
+// One-axis OOB uses that exit. Both OOB (corner diagonal) prefers east/west,
+// then north/south — the driver classifies a corner by x when the step has an
+// x component. Clamping the other axis instead of wrapping it a second time
+// avoids sending the blob to the wrong neighbor.
+function wrapRoomPos(roomName, x, y) {
+    if (x >= 0 && x <= 49 && y >= 0 && y <= 49) return {x, y, roomName};
+    const exits = Game.map.describeExits(roomName);
+    if (!exits) return undefined;
+    const xOob = x < 0 || x > 49;
+    const yOob = y < 0 || y > 49;
+    if (xOob) {
+        const nextRoom = x < 0 ? exits[LEFT] : exits[RIGHT];
+        if (nextRoom) {
+            let ny = y;
+            if (ny < 0) ny = 0;
+            else if (ny > 49) ny = 49;
+            return {x: x < 0 ? 49 : 0, y: ny, roomName: nextRoom};
+        }
+        if (!yOob) return undefined;
+    }
+    if (yOob) {
+        const nextRoom = y < 0 ? exits[TOP] : exits[BOTTOM];
+        if (!nextRoom) return undefined;
+        let nx = x;
+        if (nx < 0) nx = 0;
+        else if (nx > 49) nx = 49;
+        return {x: nx, y: y < 0 ? 49 : 0, roomName: nextRoom};
+    }
+    return undefined;
+}
+
+function offsetPos(leaderPos, dx, dy) {
+    if (!leaderPos) return undefined;
+    const wrapped = wrapRoomPos(leaderPos.roomName, leaderPos.x + dx, leaderPos.y + dy);
+    if (!wrapped) return undefined;
+    return new RoomPosition(wrapped.x, wrapped.y, wrapped.roomName);
+}
+
 // Next tile after a move, including the matching exit tile in the next room.
 function posAfterMove(pos, direction) {
     if (!pos || !(direction >= TOP && direction <= TOP_LEFT)) return undefined;
-    const next = pos.positionAtDirection(direction);
-    if (next) return next;
-    const exits = Game.map.describeExits(pos.roomName);
-    if (!exits) return undefined;
-    let nx = pos.x + MOVE_DX[direction];
-    let ny = pos.y + MOVE_DY[direction];
-    let roomName;
-    if (ny < 0) {
-        roomName = exits[TOP];
-        ny = 49;
-    } else if (ny > 49) {
-        roomName = exits[BOTTOM];
-        ny = 0;
-    } else if (nx < 0) {
-        roomName = exits[LEFT];
-        nx = 49;
-    } else if (nx > 49) {
-        roomName = exits[RIGHT];
-        nx = 0;
+    return offsetPos(pos, MOVE_DX[direction], MOVE_DY[direction]);
+}
+
+// PathFinder emits diagonal exit steps ((49,25) → (0,24) next room). Encoding
+// only the edge cardinal walked the 2×2 one tile off the rest of the path.
+function directionBetween(from, to) {
+    if (!from || !to) return 0;
+    if (from.roomName === to.roomName) return from.getDirectionTo(to) || 0;
+    for (let d = TOP; d <= TOP_LEFT; d++) {
+        const n = posAfterMove(from, d);
+        if (n && n.x === to.x && n.y === to.y && n.roomName === to.roomName) return d;
     }
-    if (!roomName) return undefined;
-    if (nx < 0) nx = 0;
-    else if (nx > 49) nx = 49;
-    if (ny < 0) ny = 0;
-    else if (ny > 49) ny = 49;
-    return new RoomPosition(nx, ny, roomName);
+    if (from.x === 49 && to.x === 0) return RIGHT;
+    if (from.x === 0 && to.x === 49) return LEFT;
+    if (from.y === 0 && to.y === 49) return TOP;
+    if (from.y === 49 && to.y === 0) return BOTTOM;
+    return 0;
 }
 
 // Chebyshev range that treats matching exit tiles in neighboring rooms as adjacent.
@@ -290,6 +319,12 @@ module.exports = {
     exitDirectionTo,
 
     posAfterMove,
+
+    wrapRoomPos,
+
+    offsetPos,
+
+    directionBetween,
 
     formationRange,
 

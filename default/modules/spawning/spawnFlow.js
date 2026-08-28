@@ -31,7 +31,22 @@ function getFlowContext(room) {
     };
 }
 
+/** Discretionary sinks (power, nuker, factory recipes, optional tower repair). */
+function roomCanBurnSurplus(room) {
+    const energyState = spawnEnergyState(room) || 0;
+    if (energyState < 3) return false;
+    const {spareIncome, flowStressed, trend} = getFlowContext(room);
+    return !flowStressed && spareIncome >= 0 && trend >= 0;
+}
+
+function roomHasPositiveFlow(room) {
+    const {spareIncome, flowStressed} = getFlowContext(room);
+    return !flowStressed && spareIncome > 0;
+}
+
 module.exports = {
     spawnEnergyState,
     getFlowContext,
+    roomCanBurnSurplus,
+    roomHasPositiveFlow,
 };

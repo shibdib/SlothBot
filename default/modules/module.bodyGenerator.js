@@ -43,6 +43,9 @@ class ModuleBodyGenerator {
     flowScale(minScale = 0.3, budget = 15) {
         const projected = this.spareIncome + this.trend * 50;
         const effective = Math.min(this.spareIncome, projected);
+        // Negative/zero spare must shrink consumers below the healthy minScale.
+        // A 0.5–0.75 floor is why rooms stay net-negative for a full creep life.
+        if (!(effective > 0)) return Math.max(0.1, minScale * 0.33);
         return Math.max(minScale, Math.min(1.0, effective / budget));
     }
 

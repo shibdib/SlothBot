@@ -187,26 +187,12 @@ class Colony {
     }
 
     handleNoRemote() {
-        const energyInfo = this.room.memory.energyInfo;
-        const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
-        const trend = (energyInfo && energyInfo.trend) || 0;
-        const flowStressed = spareIncome < 0 || trend < -2;
-
         if (this.room.memory.noRemote && this.room.memory.noRemote <= Game.time) {
-            if (flowStressed) {
-                log.a(`${roomLink(this.room.name)} is remaining No Remote — flow stressed.`, 'ROOM MANAGER:');
-                this.room.memory.noRemote = Game.time + CREEP_LIFE_TIME;
-            } else {
-                log.a(`${roomLink(this.room.name)} has re-enabled remote spawning.`, 'ROOM MANAGER:');
-                this.room.memory.noRemote = undefined;
-            }
+            log.a(`${roomLink(this.room.name)} has re-enabled remote spawning.`, 'ROOM MANAGER:');
+            this.room.memory.noRemote = undefined;
         }
         if (this.room.memory.remotePenalty && this.room.memory.remotePenalty <= Game.time) {
-            if (flowStressed) {
-                this.room.memory.remotePenalty = Game.time + 500;
-            } else {
-                this.room.memory.remotePenalty = undefined;
-            }
+            this.room.memory.remotePenalty = undefined;
         }
     }
 

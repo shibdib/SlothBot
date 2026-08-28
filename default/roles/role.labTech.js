@@ -6,6 +6,7 @@ const profiler = require("tools.profiler");
 const FactoryControl = require('module.factoryController');
 const {getRoomKeepAmount, getOperationalProtectAmount, getRoomOperationalNeed} = require('termKeep');
 const {isCoreRoom} = require('module.colonyProfile');
+const {roomCanBurnSurplus} = require('spawnFlow');
 
 const BALANCE_MIN_TRANSFER = 100;
 const STORAGE_ENERGY_RESERVE = 25000;
@@ -251,11 +252,11 @@ class RoleLabTech {
             }
         }
 
-        // 12. Nuker energy from spare stock. Beats factory unpack and power spawn
-        // (continuous sinks) so a half-full nuker actually completes.
-        if (nuker) {
+        // 12. Nuker energy from overflow only. Filling at energyState 1–2 dumps
+        // stockpile into a sink that rawEnergy does not count, so rooms never accrue.
+        if (nuker && roomCanBurnSurplus(this.room)) {
             const nukerEnergyNeed = nuker.store.getFreeCapacity(RESOURCE_ENERGY);
-            if (nukerEnergyNeed > 0 && (this.room.energyState || this.room.rawEnergy >= nukerEnergyNeed + 10000)) {
+            if (nukerEnergyNeed > 0 && this.room.rawEnergy >= nukerEnergyNeed + 10000) {
                 const energySupplier = [storage, terminal].find(s => s && (s.store[RESOURCE_ENERGY] || 0) > 10000);
                 if (energySupplier) {
                     return {
@@ -309,8 +310,8 @@ class RoleLabTech {
             }
         }
 
-        // 16. Power spawn energy / power
-        if (powerSpawn && this.room.energyState) {
+        // 16. Power spawn energy / power — 50 e/tick, only from overflow.
+        if (powerSpawn && roomCanBurnSurplus(this.room)) {
             if (powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000 && storage && storage.store[RESOURCE_ENERGY] > 10000) {
                 return {
                     withdrawTarget: storage.id,

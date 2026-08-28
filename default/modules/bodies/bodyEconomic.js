@@ -39,7 +39,7 @@ function buildRoadDroneWaller(gen) {
         const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.3, 15);
         work *= scale;
         carry *= scale;
-    } else if (leanColony && (gen.room.energyState < 2 || gen.trend < 0)) {
+    } else if (leanColony && (gen.room.energyState < 2 || gen.trend < 0 || gen.spareIncome < 0)) {
         const scale = gen.flowScale(0.5, 15);
         work *= scale;
         carry *= scale;
@@ -87,7 +87,8 @@ function buildUpgrader(gen) {
             }
             if (gen.room.level === 8 && gen.room.energyState >= 2) {
                 const stockpileCap = gen.room.energyState >= 3 ? 5 : 10;
-                const spareCap = Math.max(3, Math.floor(gen.spareIncome / 3));
+                // Floor of 3 WORK used to keep RCL8 rooms net-negative while "OK".
+                const spareCap = gen.spareIncome > 0 ? Math.max(1, Math.floor(gen.spareIncome / 3)) : 1;
                 work = Math.min(work, stockpileCap, spareCap);
             }
             work = gen.room.level === 8 ? Math.min(work, 15) : Math.min(affordableWork, work);
@@ -180,12 +181,10 @@ function buildHauler(gen) {
         ? maxBodyNonMoveParts(roadsBuilt)
         : (gen.room.level >= 6 ? gen.room.level * 2 : gen.room.level * 4);
     carry = Math.min(carry, maxHaulerCarry);
-    if (!roomInSpawnRecovery(gen.room, gen.creepInfo)) {
-        if (!gen.room.energyState) {
-            carry = Math.max(1, Math.floor(carry * 0.25));
-        } else if (gen.room.energyState < 3 || gen.trend < 0) {
-            carry = Math.max(1, Math.floor(carry * gen.flowScale(0.5, 10)));
-        }
+    // Income logistics: never shrink haulers for flow stress. Undersized haulers
+    // leave energy in containers/drops and the room cannot recover.
+    if (!roomInSpawnRecovery(gen.room, gen.creepInfo) && !gen.room.energyState) {
+        carry = Math.max(1, Math.floor(carry * 0.25));
     }
     return {carry, halfMove: roadsBuilt || undefined};
 }
@@ -218,17 +217,12 @@ function buildShuttle(gen) {
 
     const criticalBootstrap = haulUrgent || roomHasCriticalBuildSites(gen.room);
 
-    if (!recovery && !haulUrgent) {
-        if (!gen.room.energyState) {
-            carry = Math.max(minCarry, Math.floor(carry * (criticalBootstrap ? 0.65 : 0.25)));
-        } else if (gen.room.energyState < 3 || gen.trend < 0) {
-            const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.5, 10);
-            carry = Math.max(minCarry, Math.floor(carry * scale));
-        }
+    // Same as haulers: only shrink on a barren reboot so the body can spawn.
+    // Haul backlog / harvest throughput stay at saturation otherwise.
+    if (!recovery && !gen.room.energyState && !haulUrgent) {
+        carry = Math.max(minCarry, Math.floor(carry * (criticalBootstrap ? 0.65 : 0.25)));
     } else if (!recovery && !gen.room.energyState) {
         carry = Math.max(minCarry, Math.floor(carry * 0.65));
-    } else if (!recovery && gen.room.energyState < 3 && gen.trend < -3) {
-        carry = Math.max(minCarry, Math.floor(carry * gen.flowScale(0.75, 12)));
     }
 
     carry = Math.min(affordable, Math.max(minCarry, carry));

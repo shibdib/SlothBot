@@ -32,6 +32,11 @@ function buildLinkPolicy(room, hubLink, controllerLink) {
     const isStockpiling = room.level >= 8 && room.energyState >= 3;
     const buildingStock = room.level >= 8 && room.energyState === 2;
     const needsControllerDrip = !!controllerLink && controllerEnergy < controllerMin;
+    const downgradeTicks = room.controller && room.controller.ticksToDowngrade;
+    const downgradeRisk = room.level === 8 && downgradeTicks
+        && typeof CONTROLLER_DOWNGRADE !== 'undefined'
+        && downgradeTicks < CONTROLLER_DOWNGRADE[8] * 0.25;
+    const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
 
     return {
         upgraderDuty,
@@ -45,10 +50,9 @@ function buildLinkPolicy(room, hubLink, controllerLink) {
         hubSaturated: hubFill >= HUB_OVERFLOW_RATIO,
         needsControllerDrip,
         allowHubToController: room.level < 8 ||
-            room.energyState < 2 ||
-            upgraderStarved ||
-            (buildingStock && needsControllerDrip) ||
-            (isStockpiling && upgraderDuty < 0.75 && needsControllerDrip),
+            downgradeRisk ||
+            (buildingStock && needsControllerDrip && spareIncome > 0) ||
+            (isStockpiling && upgraderDuty < 0.75 && needsControllerDrip && spareIncome > 0),
         allowControllerOverflow: isStockpiling && hubFill >= HUB_OVERFLOW_RATIO && upgraderStarved,
         recycleControllerSurplus: isStockpiling && controllerEnergy > controllerTarget,
     };
@@ -121,8 +125,9 @@ class LinkControl {
             }
         }
 
-        if (controllerLink && !controllerLink.cooldown && hubLink && !room.energyState &&
-            controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+        if (controllerLink && !controllerLink.cooldown && hubLink &&
+            controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
+            (!room.energyState || (room.level >= 8 && room.energyState < 2 && !policy.allowHubToController))) {
             controllerLink.transferEnergy(hubLink);
         }
     }

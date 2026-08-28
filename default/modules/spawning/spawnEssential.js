@@ -29,6 +29,7 @@ function resolveDroneCount(room, ctx) {
     let count;
     if (room.level >= 7) {
         if (heavyRoadRepair && energyState >= 1 && flowHealthy) return 2;
+        if (!hasWork && (energyState < 2 || spareIncome < 0)) return 0;
         return 1;
     } else if (earlyRush) {
         count = hasWork ? (hasCriticalBuilds ? 3 : 2) : 2;
@@ -140,7 +141,10 @@ function essentialCreepQueue(room) {
     }
 
     for (const source of room.sources) {
-        if (source.memory.link && room.memory.hubLink) continue;
+        const sourceLink = source.memory.link && Game.getObjectById(source.memory.link);
+        if (!sourceLink && source.memory.link) source.memory.link = undefined;
+        // Source link + any receiver (hub or controller) is cheaper than a shuttle.
+        if (sourceLink && (room.memory.hubLink || room.memory.controllerLink)) continue;
         const plan = planShuttleForSource(room, source, {trend, spareIncome});
         const hasShuttle = getCreepCount(room, 'shuttle', undefined, undefined, undefined, source.id);
         const shuttlePriority = spawnReboot

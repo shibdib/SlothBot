@@ -21,7 +21,7 @@ const {
     roomNeedsMazeOps
 } = require('pathUtils');
 
-const {findRoute, attachStagingAvoid, filterAvoidedRooms} = require('pathRoute');
+const {findRoute, attachStagingAvoid, filterAvoidedRooms, exitHopTarget, onExitToward} = require('pathRoute');
 
 const {serializePath} = require('pathPathCache');
 
@@ -34,14 +34,80 @@ const {
 } = require('pathTraffic');
 
 function resolveAllowedRooms(originRoom, targetRoom, options) {
-    const route = findRoute(originRoom, targetRoom, options);
     let rooms;
-    if (route?.length) {
-        rooms = route.includes(originRoom) ? route.slice() : [originRoom].concat(route);
+    if (options.route && options.route.length) {
+        rooms = options.route.includes(originRoom) ? options.route.slice() : [originRoom].concat(options.route);
     } else {
-        rooms = [originRoom].concat(Object.values(Game.map.describeExits(originRoom)));
+        const route = findRoute(originRoom, targetRoom, options);
+        if (route?.length) {
+            rooms = route.includes(originRoom) ? route.slice() : [originRoom].concat(route);
+        } else {
+            rooms = [originRoom].concat(Object.values(Game.map.describeExits(originRoom)));
+        }
     }
     return filterAvoidedRooms(rooms, options, [originRoom, targetRoom]);
+}
+
+// Same window as shibMove: PathFinder cannot finish a 2×2 search 3+ rooms out.
+const HOP_WINDOW = 2;
+const HOP_AFTER = 2;
+
+function applySquadHop(origin, target, options) {
+    if (origin.roomName === target.roomName) return null;
+    if (options.noHop) return null;
+
+    let route = options.fullRoute || options.route;
+    if (!route || !route.length || !route.includes(target.roomName)) {
+        route = findRoute(origin.roomName, target.roomName, options);
+    }
+    if (!route || !route.length) return null;
+
+    if (!route.includes(origin.roomName)) {
+        const fresh = findRoute(origin.roomName, target.roomName, options);
+        if (fresh && fresh.length) {
+            route = fresh.includes(origin.roomName) ? fresh : [origin.roomName].concat(fresh);
+        } else {
+            route = [origin.roomName].concat(route);
+        }
+    }
+
+    const idx = route.indexOf(origin.roomName);
+    if (idx < 0 || idx >= route.length - 1) return null;
+
+    options.fullRoute = route;
+    const remaining = route.length - idx;
+    const nextRoom = route[idx + 1];
+    if (nextRoom === target.roomName || remaining <= HOP_AFTER) {
+        options.route = route.slice(idx);
+        return null;
+    }
+
+    // 2-room search to the next room's landings so the serialized path includes
+    // the cross (diagonal or cardinal). Stopping on this room's exit and then
+    // forcing hopExitDir skipped the PathFinder step.
+    const lookAhead = route[idx + 2] || target.roomName;
+    const hop = exitHopTarget(origin.roomName, nextRoom, origin, lookAhead,
+        {squadSize: options.squadSize});
+    options.route = route.slice(idx, idx + HOP_WINDOW);
+    options.maxRooms = HOP_WINDOW;
+    if (hop && hop.landingGoals && hop.landingGoals.length) {
+        options.hopGoals = hop.landingGoals;
+        options.range = 0;
+        return hop.landingGoals[0].pos;
+    }
+    options.range = 23;
+    return new RoomPosition(25, 25, nextRoom);
+}
+
+// getRangeTo is Infinity across rooms, so an incomplete path that reached the
+// exit toward the target used to be discarded and the 2×2 stalled.
+function squadEndpointUsable(end, target, range) {
+    if (!end || !target) return false;
+    if (end.roomName === target.roomName) {
+        return Math.max(Math.abs(end.x - target.x), Math.abs(end.y - target.y)) <= (range || 1);
+    }
+    const toward = exitDirectionTo(end.roomName, target.roomName);
+    return !!(toward && onExitToward(end, toward));
 }
 
 
@@ -61,9 +127,18 @@ function squadMove(creep, path) {
     const squadSize = members.length + 1;
     const newLeaderPos = posAfterMove(creep.pos, move);
     const dest = creep.memory.destination;
-    const leaderEnteringDest = !!(dest && newLeaderPos && newLeaderPos.roomName === dest
-        && creep.pos.roomName !== dest);
+    const leaderLeaving = !!(newLeaderPos && newLeaderPos.roomName !== creep.pos.roomName);
+    const leaderEnteringDest = !!(dest && leaderLeaving && newLeaderPos.roomName === dest);
     const destEdgeSlide = isDestEdgeSlide(creep, dest, members);
+    // 1-wide exit: the hole is still this room's exit tile, so leaderLeaving
+    // is false until the following tick. Slide onto it the same way we slide
+    // across. First dest hop into dest still needs the dest-exit 2×2.
+    const ontoExit = !!(newLeaderPos && newLeaderPos.roomName === creep.pos.roomName
+        && onDestExitTile(newLeaderPos));
+    const roomEdgeSlide = destEdgeSlide || !!(newLeaderPos && !leaderEnteringDest
+        && (leaderLeaving || ontoExit)
+        && !roomCrossBlocked(newLeaderPos)
+        && !isFootprintWalkable(newLeaderPos, orientation, squadSize, true));
 
     if (newLeaderPos) {
         if (newLeaderPos.checkForImpassible(false, true)) {
@@ -73,13 +148,14 @@ function squadMove(creep, path) {
         // Full 2×2 inland often hits the bunker wall 1 tile off dest-exit.
         // Aborting here left the front row on dest-exit and the back row
         // parked in staging. Dest-edge slides still move whoever can.
-        if (!isFootprintWalkable(newLeaderPos, orientation, squadSize) && !destEdgeSlide) {
+        if (!isFootprintWalkable(newLeaderPos, orientation, squadSize, leaderLeaving || destEdgeSlide)
+            && !roomEdgeSlide) {
             creep.memory._shibSquadMove = undefined;
             return false;
         }
     }
 
-    if (!canSquadMove(creep, members, move, destEdgeSlide)) {
+    if (!canSquadMove(creep, members, move, roomEdgeSlide)) {
         creep.memory._shibSquadMove = undefined;
         return false;
     }
@@ -99,23 +175,23 @@ function squadMove(creep, path) {
         creep.memory._shibSquadMove = undefined;
         return false;
     }
-    if (leaderEnteringDest && members.some(m => formationRange(m.pos, creep.pos) > 1)) {
+    if (leaderLeaving && members.some(m => formationRange(m.pos, creep.pos) > 1)) {
         creep.memory._shibSquadMove = undefined;
         return false;
     }
-    if (dest && creep.pos.roomName !== dest) {
-        for (const member of members) {
-            if (formationRange(member.pos, creep.pos) > 1) continue;
-            const memberNext = posAfterMove(member.pos, move);
-            if (memberNext && memberNext.roomName === dest && member.pos.roomName !== dest
-                && !leaderEnteringDest) {
-                creep.memory._shibSquadMove = undefined;
-                return false;
-            }
+    for (const member of members) {
+        if (formationRange(member.pos, creep.pos) > 1) continue;
+        const memberNext = posAfterMove(member.pos, move);
+        if (memberNext && memberNext.roomName !== member.pos.roomName
+            && (!leaderLeaving || memberNext.roomName !== newLeaderPos.roomName)) {
+            creep.memory._shibSquadMove = undefined;
+            return false;
         }
     }
 
     if (!clearSquadFootprint(creep, members, move)) return false;
+
+    if (roomEdgeSlide && !destEdgeSlide) creep.memory.quadSnake = true;
 
     creep.move(move);
     for (const member of members) {
@@ -132,8 +208,9 @@ function squadMove(creep, path) {
             if (roomCrossBlocked(nextPos)) continue;
             member.move(move);
         } else if (nextPos.checkForImpassible(false, true)) {
-            // Dest-exit inward: stay rather than peeling off to path around.
-            if (destEdgeSlide) continue;
+            // Stay on the square. forceSolo peels off the 2×2 and will cross a
+            // room edge if this body is already on an exit tile.
+            if (roomEdgeSlide || leaderLeaving || onDestExitTile(member.pos)) continue;
             member.shibMove(creep, {range: 0, forceSolo: true});
         } else {
             member.move(move);
@@ -249,8 +326,7 @@ function canSquadMove(leader, members, direction, destEdgeSlide) {
             if (roomCrossBlocked(nextPos) && !destEdgeSlide) return false;
             continue;
         }
-        if (!hostiles) continue;
-        if (nextPos.checkForImpassible(false, true) || isOccupiedByEnemy(leader, nextPos)) {
+        if (nextPos.checkForImpassible(false, true) || (hostiles && isOccupiedByEnemy(leader, nextPos))) {
             if (destEdgeSlide) continue;
             return false;
         }
@@ -265,16 +341,16 @@ function isOccupiedByEnemy(leader, pos) {
     return occupant && !occupant.my;
 }
 
-function isFootprintWalkable(leaderPos, orientation, squadSize = 4) {
+function isFootprintWalkable(leaderPos, orientation, squadSize = 4, straddle = false) {
     const vectors = getFormationVectors(orientation, squadSize);
     const terrain = Game.map.getRoomTerrain(leaderPos.roomName);
-    const onEdge = leaderPos.x === 0 || leaderPos.x === 49 || leaderPos.y === 0 || leaderPos.y === 49;
     for (const v of vectors) {
         const mx = leaderPos.x - v.x;
         const my = leaderPos.y - v.y;
         if (mx < 0 || mx > 49 || my < 0 || my > 49) {
             // Rest of the 2×2 is still in the previous room during an exit hop.
-            if (onEdge) continue;
+            // Walking along an edge is not a hop — a hanging 2×2 must fail.
+            if (straddle) continue;
             return false;
         }
         if (terrain.get(mx, my) === TERRAIN_MASK_WALL) return false;
@@ -307,20 +383,26 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     }
 
     const origin = this.pos;
-    const allowedRooms = resolveAllowedRooms(origin.roomName, target.roomName, options);
+    options.squadSize = squadSize;
+    const searchTarget = applySquadHop(origin, target, options) || target;
+
+    const allowedRooms = resolveAllowedRooms(origin.roomName, searchTarget.roomName, options);
     options = getMoveWeight(this, options);
 
-    const maze = roomNeedsMazeOps(origin.roomName) || roomNeedsMazeOps(target.roomName);
+    const maze = roomNeedsMazeOps(origin.roomName) || roomNeedsMazeOps(searchTarget.roomName);
     let maxOps = Math.max(DEFAULT_MAXOPS * Math.max(1, allowedRooms.length), maze ? MAZE_MAXOPS : DEFAULT_MAXOPS);
     const searchOpts = {
-        maxRooms: Math.max(1, Math.ceil(allowedRooms.length * 1.5)),
+        maxRooms: options.maxRooms || Math.max(1, Math.ceil(allowedRooms.length * 1.5)),
         heuristicWeight: 1,
         roomCallback: roomName => allowedRooms.includes(roomName) ? getSquadMatrix(roomName, orientation, squadSize) : false,
     };
-    let result = PathFinder.search(origin, {pos: target, range: options.range}, Object.assign({maxOps}, searchOpts));
+    const goals = options.hopGoals && options.hopGoals.length
+        ? options.hopGoals
+        : {pos: searchTarget, range: options.range};
+    let result = PathFinder.search(origin, goals, Object.assign({maxOps}, searchOpts));
     if (result.incomplete && maxOps < MAZE_MAXOPS) {
         maxOps = MAZE_MAXOPS;
-        result = PathFinder.search(origin, {pos: target, range: options.range}, Object.assign({maxOps}, searchOpts));
+        result = PathFinder.search(origin, goals, Object.assign({maxOps}, searchOpts));
     }
 
     if (!result.path.length) {
@@ -329,13 +411,10 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
         return false;
     }
     // Incomplete walks into the nearest wall and never explores the tunnel.
-    if (result.incomplete) {
-        const end = result.path[result.path.length - 1];
-        if (!end || end.getRangeTo(target) > (options.range || 1)) {
-            cache.path = undefined;
-            cache.endpoint = undefined;
-            return false;
-        }
+    if (result.incomplete && !squadEndpointUsable(result.path[result.path.length - 1], searchTarget, options.range)) {
+        cache.path = undefined;
+        cache.endpoint = undefined;
+        return false;
     }
 
     cache.target = targetKey;

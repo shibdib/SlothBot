@@ -96,10 +96,6 @@ const builders = {
         const fullRouteHasRoads = routeHasBuiltRoads(gen.room.name, gen.creepInfo.destination);
         const halfMove = fullRouteHasRoads || undefined;
 
-        if (gen.room.energyState < 3 || gen.trend < 0) {
-            work = Math.max(1, Math.floor(work * gen.flowScale(0.5, 10)));
-        }
-
         const moveRatio = halfMove ? 0.5 : 1;
         const maxWork = Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY]) / (BODYPART_COST[WORK] + BODYPART_COST[MOVE] * moveRatio)));
         work = Math.min(Math.max(baseSaturation, work), maxWork);
@@ -137,10 +133,6 @@ const builders = {
         }
 
         carry = Math.min(carry, desiredCarry);
-
-        if (gen.room.energyState < 3 || gen.trend < 0) {
-            carry = Math.max(minCarryParts, Math.floor(carry * gen.flowScale(0.5, 10)));
-        }
 
         const maxNonMove = maxBodyNonMoveParts(!!halfMove);
         const maxCarry = gen.room.level >= 7

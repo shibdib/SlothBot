@@ -686,8 +686,10 @@ function remoteIntelEligible(colonyRoom, remoteName) {
 
 function shouldProbeNewRemotes(room) {
     const ei = room.memory.energyInfo;
-    if (ei && ei.flowStressed) return false;
-    if (ei && (ei.trend || 0) < -3) return false;
+    const energyState = room.energyState || 0;
+    // Overflow + healthy flow: no new remotes. Otherwise keep probing — harvest is
+    // how a room stops being net-negative, and blocking it is a death spiral.
+    if (energyState >= 3 && ei && !ei.flowStressed && (ei.spareIncome || 0) >= 8) return false;
     return true;
 }
 

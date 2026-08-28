@@ -17,6 +17,7 @@ module.exports = {
     getFormationVectors: pathFormation.getFormationVectors,
     formationRange: pathFormation.formationRange,
     posAfterMove: pathFormation.posAfterMove,
+    offsetPos: pathFormation.offsetPos,
     exitDirectionTo: pathFormation.exitDirectionTo,
     isQuadCreep: pathFormation.isQuadCreep,
     isSquadCreep: pathFormation.isSquadCreep,

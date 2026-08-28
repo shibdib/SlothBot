@@ -6,6 +6,8 @@
  * Created by rober on 5/16/2017.
  */
 
+const {roomCanBurnSurplus} = require('spawnFlow');
+
 function getSparePowerLevels() {
     if (!Game.gpl || !Game.gpl.level) return 0;
     return Game.gpl.level - (_.size(Game.powerCreeps) + _.sum(Game.powerCreeps, 'level'));
@@ -75,7 +77,8 @@ module.exports.powerControl = function () {
         const room = Game.rooms[r];
         if (!room) continue;
         const spawn = getRoomPowerSpawn(room);
-        if (spawn && spawn.store[RESOURCE_POWER] > 0 && spawn.store[RESOURCE_ENERGY] >= 50) {
+        if (spawn && spawn.store[RESOURCE_POWER] > 0 && spawn.store[RESOURCE_ENERGY] >= 50
+            && roomCanBurnSurplus(room)) {
             powerSpawns.push(spawn);
         }
     }

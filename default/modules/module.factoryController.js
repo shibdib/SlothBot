@@ -4,6 +4,7 @@
 const profiler = require("tools.profiler");
 const {empireOpsPaused} = require('hcReadiness');
 const {energyTarget: colonyEnergyTarget} = require('module.colonyProfile');
+const {roomCanBurnSurplus} = require('spawnFlow');
 let tickTracker = {};
 let cooldownTracker = {};
 
@@ -57,16 +58,27 @@ class FactoryControl {
         return COMMODITIES[RESOURCE_BATTERY]?.components[RESOURCE_ENERGY] || 600;
     }
 
+    static roomSpareIncome(room) {
+        const ei = room && room.memory && room.memory.energyInfo;
+        return (ei && ei.spareIncome) || 0;
+    }
+
     static needsBatteryUnpack(room) {
         const batteryCost = FactoryControl.batteryBatchCost();
         if (room.store(RESOURCE_BATTERY) < batteryCost) return false;
-        const target = FactoryControl.energyTarget(room);
-        const unpackThreshold = Math.min(10000, target * 0.1);
-        return room.rawEnergy < unpackThreshold;
+        const energyState = room.energyState || 0;
+        if (energyState >= 2) return false;
+        if (energyState === 0) return true;
+        return FactoryControl.roomSpareIncome(room) < 0;
     }
 
     static batteryUnpackRecovered(room) {
-        return room.rawEnergy >= FactoryControl.energyTarget(room) * 0.25;
+        const energyState = room.energyState || 0;
+        if (energyState >= 2) return true;
+        if (energyState === 0) return false;
+        const ei = room.memory && room.memory.energyInfo;
+        const spare = (ei && ei.spareIncome) || 0;
+        return spare > 0 && !(ei && ei.flowStressed);
     }
 
     static shouldContinueBatteryUnpack(room) {
@@ -350,9 +362,11 @@ class FactoryControl {
             log.i(`${roomLink(room.name)} stopping ${producing} — cap reached.`, 'FACTORY CONTROL:');
             return true;
         }
-        if (commodity.components[RESOURCE_ENERGY] && !room.energyState) {
-            log.i(`${roomLink(room.name)} stopping ${producing} — no energy.`, 'FACTORY CONTROL:');
-            return true;
+        if (commodity.components[RESOURCE_ENERGY] && producing !== RESOURCE_ENERGY && producing !== RESOURCE_BATTERY) {
+            if (!roomCanBurnSurplus(room)) {
+                log.i(`${roomLink(room.name)} stopping ${producing} — no energy surplus.`, 'FACTORY CONTROL:');
+                return true;
+            }
         }
 
         const compressing = COMPRESSED_COMMODITIES.includes(producing);
@@ -373,7 +387,7 @@ class FactoryControl {
     decideProduction(room, factory, factoryLevel) {
         const opsPaused = empireOpsPaused();
 
-        // Unpack until usable energy recovers (25% target); start threshold is 10% via shouldContinue
+        // Unpack while CRIT, or LOW with negative spare. Stop once OK or LOW+positive flow.
         if (FactoryControl.shouldContinueBatteryUnpack(room)) {
             this.setProduction(factory, RESOURCE_ENERGY, 'low usable energy');
             return;
@@ -480,8 +494,10 @@ class FactoryControl {
 
         if (room.store(resource) >= productionCap(resource)) return false;
 
-        // Skip energy-consuming commodities when energy is critically low
-        if (!room.energyState && commodity.components[RESOURCE_ENERGY]) return false;
+        // Skip energy-consuming commodities unless the room has overflow flow
+        if (commodity.components[RESOURCE_ENERGY] && resource !== RESOURCE_ENERGY && resource !== RESOURCE_BATTERY) {
+            if (!roomCanBurnSurplus(room)) return false;
+        }
 
         return Object.keys(commodity.components).every(component => {
             const required = commodity.components[component];

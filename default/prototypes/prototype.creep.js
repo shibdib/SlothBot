@@ -23,6 +23,7 @@
 
 const {runTowTruck} = require('pathTow');
 const {clearShibMove, getShibMove} = require('pathUtils');
+const {roomCanBurnSurplus} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 
 const exitTileCache = {};
@@ -685,7 +686,8 @@ Creep.prototype.haulerDelivery = function () {
         }));
     }
 
-    if (!this.room.memory.controllerLink && this.room.energyState > 0) {
+    if (!this.room.memory.controllerLink &&
+        (this.room.level < 8 ? this.room.energyState > 0 : this.room.energyState >= 3)) {
         const controllerContainer = global.resolveControllerContainer(this.room);
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 200) targets.push(controllerContainer);
     }
@@ -698,8 +700,8 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
 
-    // Fill nuker from spare energy before dumping to storage.
-    if (this.room.nuker && this.room.energyState &&
+    // Fill nuker from overflow only — nuker energy is not counted in rawEnergy.
+    if (this.room.nuker && roomCanBurnSurplus(this.room) &&
         this.room.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
         this.memory.storageDestination = this.room.nuker.id;
         return true;
@@ -710,8 +712,8 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
 
-    // Fill controller container if the room has energy to spare and the container is empty
-    if (this.room.energyState) {
+    // Fill controller container from spare energy. RCL8 stockpiles unless overflowing.
+    if (this.room.energyState >= 3 || (this.room.level < 8 && this.room.energyState > 0)) {
         const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer)
         if (controllerContainer && !controllerContainer.store.getUsedCapacity(RESOURCE_ENERGY)) {
             this.memory.storageDestination = controllerContainer.id;
@@ -808,7 +810,9 @@ Creep.prototype.constructionWork = function (scope) {
         }
 
         const trend = (room.memory.energyInfo && room.memory.energyInfo.trend) || 0;
-        if (room.energyState >= 2 || (room.energyState === 1 && trend >= 0)) {
+        const spareIncome = (room.memory.energyInfo && room.memory.energyInfo.spareIncome) || 0;
+        if (room.energyState >= 3 || (room.energyState >= 2 && spareIncome > 0 && trend >= 0)
+            || (room.energyState === 1 && trend >= 0 && spareIncome > 0)) {
             const walls = wallBarrierSites();
             if (walls.length) return buildClosest(walls);
             const repairPool = available(damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS)));
@@ -845,7 +849,9 @@ Creep.prototype.constructionWork = function (scope) {
     site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.5));
     if (site) return repair(site, site.hitsMax * 0.8);
 
-    if (room.energyState >= 1) {
+    const trend = (room.memory.energyInfo && room.memory.energyInfo.trend) || 0;
+    const spareIncome = (room.memory.energyInfo && room.memory.energyInfo.spareIncome) || 0;
+    if (room.energyState >= 3 || (room.energyState >= 1 && spareIncome > 0 && trend >= 0)) {
         if (sites.misc.length) return buildClosest(sites.misc);
         if (sites.roads.length) return buildClosest(sites.roads);
         site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.75));

@@ -189,6 +189,65 @@ function clusterExitTiles(tiles, along) {
     return clusters;
 }
 
+function hopLanding(exitDir, x, y) {
+    if (exitDir === RIGHT) return {x: 0, y};
+    if (exitDir === LEFT) return {x: 49, y};
+    if (exitDir === TOP) return {x, y: 49};
+    return {x, y: 0};
+}
+
+function hopLandingOpen(nextRoom, x, y) {
+    const terrain = Game.map.getRoomTerrain(nextRoom);
+    if (terrain.get(x, y) === TERRAIN_MASK_WALL) return false;
+    const room = Game.rooms[nextRoom];
+    if (room && new RoomPosition(x, y, nextRoom).checkForObstacleStructure()) return false;
+    return true;
+}
+
+function squadExitPairOpen(t, exitDir, delta, tileSet, nextRoom) {
+    const alongX = exitDir === TOP || exitDir === BOTTOM;
+    const x2 = alongX ? t.x + delta : t.x;
+    const y2 = alongX ? t.y : t.y + delta;
+    if (!tileSet.has(x2 + ',' + y2)) return false;
+    const a = hopLanding(exitDir, t.x, t.y);
+    const b = hopLanding(exitDir, x2, y2);
+    return hopLandingOpen(nextRoom, a.x, a.y) && hopLandingOpen(nextRoom, b.x, b.y);
+}
+
+// Packed 2×2 needs two consecutive exit tiles (and matching landings). Solo
+// pickHopGoals aims at a single tile the squad matrix then marks unwalkable.
+function pickSquadHopGoals(tiles, exitDir, preferred, nextRoom) {
+    const along = (exitDir === TOP || exitDir === BOTTOM) ? (t) => t.x : (t) => t.y;
+    const tileSet = new Set();
+    for (let i = 0; i < tiles.length; i++) tileSet.add(tiles[i].x + ',' + tiles[i].y);
+    const wide = [];
+    const narrow = [];
+    for (let i = 0; i < tiles.length; i++) {
+        const t = tiles[i];
+        if (squadExitPairOpen(t, exitDir, 1, tileSet, nextRoom)
+            || squadExitPairOpen(t, exitDir, -1, tileSet, nextRoom)) {
+            wide.push(t);
+        } else {
+            narrow.push(t);
+        }
+    }
+    const score = (t) => Math.abs(along(t) - preferred) * 10 + Math.abs(along(t) - 25);
+    wide.sort((a, b) => score(a) - score(b));
+    narrow.sort((a, b) => score(a) - score(b));
+    const picked = [];
+    const seen = new Set();
+    const add = (t) => {
+        const k = t.x + ',' + t.y;
+        if (seen.has(k)) return;
+        seen.add(k);
+        picked.push(t);
+    };
+    for (let i = 0; i < wide.length && picked.length < 8; i++) add(wide[i]);
+    const cap = Math.max(HOP_GOAL_COUNT, picked.length);
+    for (let i = 0; i < narrow.length && picked.length < cap; i++) add(narrow[i]);
+    return picked.length ? picked : tiles.slice();
+}
+
 function pickHopGoals(tiles, exitDir, preferred) {
     const along = (exitDir === TOP || exitDir === BOTTOM) ? (t) => t.x : (t) => t.y;
     const clusters = clusterExitTiles(tiles, along);
@@ -232,23 +291,35 @@ function pickHopGoals(tiles, exitDir, preferred) {
     return picked;
 }
 
-function exitHopTarget(fromRoom, nextRoom, fromPos, lookAheadRoom) {
+function exitHopTarget(fromRoom, nextRoom, fromPos, lookAheadRoom, options) {
     const exitDir = Game.map.findExit(fromRoom, nextRoom);
     if (!(exitDir > 0)) return null;
     const tiles = getWalkableExits(fromRoom, exitDir);
     if (!tiles.length) return null;
     const preferred = preferredExitAlong(exitDir, nextRoom, lookAheadRoom);
-    const chosen = pickHopGoals(tiles, exitDir, preferred);
+    const squadSize = options && options.squadSize;
+    const chosen = squadSize >= 3
+        ? pickSquadHopGoals(tiles, exitDir, preferred, nextRoom)
+        : pickHopGoals(tiles, exitDir, preferred);
+    if (!chosen.length) return null;
     const goals = chosen.map((t) => ({
         pos: new RoomPosition(t.x, t.y, fromRoom),
         range: 0,
     }));
-    return {
+    const result = {
         pos: goals[0].pos,
         exitDir,
         goals,
         onExit: fromPos ? onExitToward(fromPos, exitDir) : false,
     };
+    if (squadSize >= 3) {
+        result.landingGoals = chosen.map((t) => {
+            const land = hopLanding(exitDir, t.x, t.y);
+            return {pos: new RoomPosition(land.x, land.y, nextRoom), range: 0};
+        });
+        result.pos = result.landingGoals[0].pos;
+    }
+    return result;
 }
 
 /**
