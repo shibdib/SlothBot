@@ -158,8 +158,7 @@ class RoleLabTech {
         const resourceNeededLabs = labs.filter(s => {
             const mem = labStructMem && labStructMem[s.id];
             return mem && mem.itemNeeded
-                && this.hubLabNeedsFill(s, mem.itemNeeded)
-                && s.room.store(mem.itemNeeded, true);
+                && this.hubLabNeedsFill(s, mem.itemNeeded);
         });
         const resourceNeededLab = _.min(resourceNeededLabs, s => s.store.getUsedCapacity(labStructMem[s.id].itemNeeded))
         if (resourceNeededLab && resourceNeededLab.id) {
@@ -397,11 +396,19 @@ class RoleLabTech {
             const s = labs[i];
             if (s.id === excludeId) continue;
             const mem = labStructMem && labStructMem[s.id];
-            if (!mem || (mem.neededBoost !== resource && mem.itemNeeded !== resource)) extras.push(s);
+            if (mem && mem.neededBoost) continue;
+            if (mem && mem.itemNeeded === resource) continue;
+            extras.push(s);
         }
         const containers = this.room.containers;
         if (containers && containers.length) {
             for (let i = 0; i < containers.length; i++) extras.push(containers[i]);
+        }
+        const factory = this.room.factory;
+        if (factory && factory.store && factory.store[resource] > 0) {
+            const producing = factory.memory && factory.memory.producing;
+            const commodity = producing && COMMODITIES[producing];
+            if (!commodity || !commodity.components[resource]) extras.push(factory);
         }
         return extras;
     }
@@ -558,6 +565,66 @@ class RoleLabTech {
             || lab.store.getFreeCapacity(producingBoost) < LAB_REACTION_MINERAL;
     }
 
+    isLabOutputBlocked(lab, producingBoost, hubIds, mem) {
+        if (!lab.mineralType || hubIds.has(lab.id)) return false;
+        if (mem && (mem.itemNeeded || mem.neededBoost)) return false;
+        if (lab.mineralType !== producingBoost) return false;
+        return lab.store.getFreeCapacity(producingBoost) < LAB_REACTION_MINERAL;
+    }
+
+    emptyLabTask(lab, storeTarget) {
+        if (!lab || !storeTarget || !lab.mineralType) return null;
+        const amount = lab.store[lab.mineralType];
+        if (!(amount > 0)) return null;
+        return {
+            withdrawTarget: lab.id,
+            deliveryTarget: storeTarget.id,
+            resource: lab.mineralType,
+            amount
+        };
+    }
+
+    findLabWrongMineralTask(labs, labStructMem, storeTarget, producingBoost, hubIds) {
+        if (!storeTarget) return null;
+        for (const lab of labs) {
+            if (!hubIds.has(lab.id) || !lab.mineralType) continue;
+            const mem = labStructMem && labStructMem[lab.id];
+            const itemNeeded = mem && mem.itemNeeded;
+            if (itemNeeded && lab.mineralType !== itemNeeded) {
+                return this.emptyLabTask(lab, storeTarget);
+            }
+        }
+        for (const lab of labs) {
+            if (hubIds.has(lab.id) || !lab.mineralType) continue;
+            const mem = labStructMem && labStructMem[lab.id];
+            if (mem && mem.neededBoost) continue;
+            if (mem && mem.itemNeeded) {
+                if (lab.mineralType !== mem.itemNeeded) return this.emptyLabTask(lab, storeTarget);
+                continue;
+            }
+            if (producingBoost && lab.mineralType !== producingBoost) {
+                return this.emptyLabTask(lab, storeTarget);
+            }
+        }
+        return null;
+    }
+
+    findLabOutputBlockedTask(labs, labStructMem, storeTarget, producingBoost, hubIds) {
+        if (!storeTarget || !producingBoost) return null;
+        let best = null;
+        let bestFree = Infinity;
+        for (const lab of labs) {
+            const mem = labStructMem && labStructMem[lab.id];
+            if (!this.isLabOutputBlocked(lab, producingBoost, hubIds, mem)) continue;
+            const free = lab.store.getFreeCapacity(producingBoost);
+            if (free < bestFree) {
+                best = lab;
+                bestFree = free;
+            }
+        }
+        return this.emptyLabTask(best, storeTarget);
+    }
+
     findLabOutputClogTask(labs, labStructMem, storeTarget) {
         const producingBoost = this.room.memory.producingBoost;
         const hubIds = this.getHubLabIds();
@@ -612,44 +679,76 @@ class RoleLabTech {
         if (!components) return null;
 
         const hubIds = this.getHubLabIds();
+        const storeTarget = this.pickStoreTarget(storage, terminal);
+        const wrongMineral = this.findLabWrongMineralTask(labs, labStructMem, storeTarget, producingBoost, hubIds);
+        if (wrongMineral) return wrongMineral;
+
+        const canAccept = this.hasAcceptingOutputLab(labs, labStructMem, producingBoost, hubIds);
+        if (!canAccept) {
+            const jammed = this.findLabOutputBlockedTask(labs, labStructMem, storeTarget, producingBoost, hubIds);
+            if (jammed) return jammed;
+            const energyFirst = this.findOutputEnergyTask(labs);
+            if (energyFirst) return energyFirst;
+        }
+
         const hubNeed = labs.filter(s => {
             const mem = labStructMem && labStructMem[s.id];
             return hubIds.has(s.id) && mem && mem.itemNeeded && components.includes(mem.itemNeeded)
-                && this.hubLabNeedsFill(s, mem.itemNeeded)
-                && this.room.store(mem.itemNeeded, true) > 0;
+                && this.hubLabNeedsFill(s, mem.itemNeeded);
         });
         const hubUrgent = hubNeed.filter(s =>
             this.hubLabNeedsFill(s, labStructMem[s.id].itemNeeded, LAB_HUB_INPUT_LOW));
         const hubFill = this.makeHubFillTask(labStructMem, hubUrgent.length ? hubUrgent : null);
         if (hubFill) return hubFill;
 
-        const energySupplier = this.pickBestSupplier(RESOURCE_ENERGY);
-        if (energySupplier) {
-            let outputLab = null;
-            let lowestEnergy = Infinity;
-            for (let i = 0; i < labs.length; i++) {
-                const s = labs[i];
-                if (!this.outputLabNeedsEnergy(s)) continue;
-                const have = s.store[RESOURCE_ENERGY] || 0;
-                if (have < lowestEnergy) {
-                    lowestEnergy = have;
-                    outputLab = s;
-                }
-            }
-            if (outputLab) {
-                return {
-                    withdrawTarget: energySupplier.id,
-                    deliveryTarget: outputLab.id,
-                    resource: RESOURCE_ENERGY,
-                    amount: Math.min(
-                        outputLab.store.getFreeCapacity(RESOURCE_ENERGY),
-                        energySupplier.store[RESOURCE_ENERGY]
-                    )
-                };
-            }
-        }
+        const blocked = this.findLabOutputBlockedTask(labs, labStructMem, storeTarget, producingBoost, hubIds);
+        if (blocked) return blocked;
+
+        const energyTask = this.findOutputEnergyTask(labs);
+        if (energyTask) return energyTask;
 
         return this.makeHubFillTask(labStructMem, hubNeed);
+    }
+
+    hasAcceptingOutputLab(labs, labStructMem, producingBoost, hubIds) {
+        for (let i = 0; i < labs.length; i++) {
+            const lab = labs[i];
+            if (hubIds.has(lab.id)) continue;
+            const mem = labStructMem && labStructMem[lab.id];
+            if (mem && (mem.itemNeeded || mem.neededBoost || mem.paused)) continue;
+            if (lab.mineralType && producingBoost && lab.mineralType !== producingBoost) continue;
+            if (lab.mineralType === producingBoost
+                && lab.store.getFreeCapacity(producingBoost) < LAB_REACTION_MINERAL) continue;
+            if ((lab.store[RESOURCE_ENERGY] || 0) < LAB_REACTION_ENERGY) continue;
+            return true;
+        }
+        return false;
+    }
+
+    findOutputEnergyTask(labs) {
+        const energySupplier = this.pickBestSupplier(RESOURCE_ENERGY);
+        if (!energySupplier) return null;
+        let outputLab = null;
+        let lowestEnergy = Infinity;
+        for (let i = 0; i < labs.length; i++) {
+            const s = labs[i];
+            if (!this.outputLabNeedsEnergy(s)) continue;
+            const have = s.store[RESOURCE_ENERGY] || 0;
+            if (have < lowestEnergy) {
+                lowestEnergy = have;
+                outputLab = s;
+            }
+        }
+        if (!outputLab) return null;
+        return {
+            withdrawTarget: energySupplier.id,
+            deliveryTarget: outputLab.id,
+            resource: RESOURCE_ENERGY,
+            amount: Math.min(
+                outputLab.store.getFreeCapacity(RESOURCE_ENERGY),
+                energySupplier.store[RESOURCE_ENERGY]
+            )
+        };
     }
 
     makeHubFillTask(labStructMem, hubNeed) {

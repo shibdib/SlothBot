@@ -10,7 +10,7 @@
 
 
 const state = require('termState');
-const {selectMarketHub} = require('termMarket');
+const {selectMarketHub, shouldProcureResource, isMarketProcureResource} = require('termMarket');
 
 const TerminalControl = require('termClass');
 
@@ -60,8 +60,8 @@ Object.assign(TerminalControl.prototype, {
             let order = myOrders[key];
             if (!order || isPendingOrder(order)) continue;
 
-            // Energy and base mineral buy orders are repriced by placeBuyOrders with tiered logic -- skip here
-            if (order.type === ORDER_BUY && (order.resourceType === RESOURCE_ENERGY || BASE_MINERALS.includes(order.resourceType))) continue;
+            // Energy, mineral, and bar buy orders are repriced by placeBuyOrders -- skip here
+            if (order.type === ORDER_BUY && (order.resourceType === RESOURCE_ENERGY || isMarketProcureResource(order.resourceType))) continue;
 
             // Initialize the tracker for this order if it doesn't exist
             if (!state.priceUpdateTracker[order.id]) {
@@ -185,11 +185,18 @@ Object.assign(TerminalControl.prototype, {
                 continue;
             }
 
-            // Check for buy orders of minerals we mine ourselves
-            if (order.type === ORDER_BUY && MY_MINERALS[order.resourceType]) {
-                this.cancelOrder(order, 'We can mine this ourselves');
-                cancelled.add(order.id);
-                continue;
+            // Minerals/bars only, and only when we still need them (not mining, or extreme shortage)
+            if (order.type === ORDER_BUY && order.resourceType !== RESOURCE_ENERGY) {
+                if (!isMarketProcureResource(order.resourceType)) {
+                    this.cancelOrder(order, 'Boost and compound buys disabled');
+                    cancelled.add(order.id);
+                    continue;
+                }
+                if (!shouldProcureResource(order.resourceType)) {
+                    this.cancelOrder(order, 'No longer procuring this resource');
+                    cancelled.add(order.id);
+                    continue;
+                }
             }
 
             // Cancel duplicate orders. Keep best price, then oldest; never drop both

@@ -76,7 +76,7 @@ module.exports.role = function (powerCreep) {
         let targetTower = _.find(powerCreep.room.impassibleStructures, (s) => (s.safeIsMy ? s.safeIsMy() : false) && s.structureType === STRUCTURE_TOWER && (!s.effects || !s.effects.length));
         let targetFactory = _.find(powerCreep.room.impassibleStructures, (s) => (s.safeIsMy ? s.safeIsMy() : false) && s.structureType === STRUCTURE_FACTORY && (!s.effects || !s.effects.length));
         let targetSource = _.find(powerCreep.room.sources, (s) => !s.effects || !s.effects.length || s.effects.ticksRemaining < 25);
-        let targetLab = _.find(powerCreep.room.impassibleStructures, (s) => (s.safeIsMy ? s.safeIsMy() : false) && s.structureType === STRUCTURE_LAB && !s.memory.itemNeeded && (!s.effects || !s.effects.length));
+        let targetLab = pickOperateLab(powerCreep.room);
         // Enable power
         if (!powerCreep.room.controller.isPowerEnabled) {
             switch (powerCreep.enableRoom(powerCreep.room.controller)) {
@@ -188,6 +188,28 @@ function upgradePowers(powerCreep) {
     else if (powerCreep.powers[PWR_OPERATE_FACTORY] && powerCreep.powers[PWR_OPERATE_FACTORY].level === 1 && _.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 1)[0] && !_.filter(Game.powerCreeps, (c) => c.my && c.id !== powerCreep.id && c.powers[PWR_OPERATE_FACTORY] && c.powers[PWR_OPERATE_FACTORY].level === 2)[0]) {
         return upgradeSwitch(powerCreep, PWR_OPERATE_FACTORY)
     }
+}
+
+function pickOperateLab(room) {
+    if (!room || !room.memory.producingBoost) return null;
+    const labs = room.labs || [];
+    const producing = room.memory.producingBoost;
+    let best = null;
+    let bestCd = -1;
+    for (let i = 0; i < labs.length; i++) {
+        const lab = labs[i];
+        if (!lab || (lab.safeIsMy && !lab.safeIsMy())) continue;
+        const mem = lab.memory;
+        if (mem && (mem.itemNeeded || mem.neededBoost || mem.paused)) continue;
+        if (lab.effects && lab.effects.length) continue;
+        if (lab.mineralType && lab.mineralType !== producing) continue;
+        const cd = lab.cooldown || 0;
+        if (!best || cd > bestCd) {
+            best = lab;
+            bestCd = cd;
+        }
+    }
+    return best;
 }
 
 function abilitySwitch(powerCreep, power, target = undefined) {

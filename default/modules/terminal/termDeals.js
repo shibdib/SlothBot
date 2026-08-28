@@ -9,8 +9,9 @@
  */
 
 
-const {canEmpireSell, getEffectiveSupply, getEmpireDemand} = require('termNetwork');
+const {canEmpireSell} = require('termNetwork');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
+const {shouldProcureResource} = require('termMarket');
 
 const TerminalControl = require('termClass');
 
@@ -66,8 +67,7 @@ Object.assign(TerminalControl.prototype, {
                     return true;
                 }
             } else {
-                const empireDemand = getEmpireDemand(mineral) || REACTION_AMOUNT;
-                if (getEffectiveSupply(mineral) >= empireDemand) continue;
+                if (!shouldProcureResource(mineral)) continue;
 
                 const buyTxCost = Game.market.calcTransactionCost(amount, terminal.room.name, lowestSell.roomName);
                 if (!canAffordSend(buyTxCost)) continue;
@@ -81,9 +81,9 @@ Object.assign(TerminalControl.prototype, {
 
         if (this.getCreditTrend() < 0) return false;
 
-        for (let mineral of shuffle(_.union(BASE_MINERALS, ALL_BOOSTS, ALL_COMMODITIES))) {
-            const empireDemand = getEmpireDemand(mineral) || REACTION_AMOUNT;
-            if (getEffectiveSupply(mineral) >= empireDemand) continue;
+        const procureResources = _.union(BASE_MINERALS, COMPRESSED_COMMODITIES.filter(r => r !== RESOURCE_BATTERY));
+        for (let mineral of shuffle(procureResources)) {
+            if (!shouldProcureResource(mineral)) continue;
 
             let marketHistory = latestMarketHistory(mineral);
             if (!marketHistory.avg || marketHistory.entries < 50) continue;

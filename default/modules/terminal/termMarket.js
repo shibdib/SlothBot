@@ -5,12 +5,13 @@
  */
 
 const state = require('termState');
-const {getEffectiveSupply, getEmpireDemand} = require('termNetwork');
+const {getEffectiveSupply, getEmpireDemand, buildEquivalenceMap} = require('termNetwork');
 const {getRoomResourceDemand, getRoomEffective} = require('termTransfers');
 const {isCoreRoom, getColonyProfile} = require('module.colonyProfile');
 const profiler = require('tools.profiler');
 
 const RESOURCE_SEND_MIN = 100;
+const EXTREME_SHORTAGE_RATIO = 0.25;
 
 function isValidMarketHub(name) {
     const room = Game.rooms[name];
@@ -92,24 +93,73 @@ function getInboundPlannedAmount(roomName, resource, plannedTransfers = null) {
     return total;
 }
 
-function collectEmpireLabNeeds() {
-    const needs = new Set();
-    for (const name of MY_ROOMS) {
-        const room = Game.rooms[name];
-        if (!room) continue;
-        for (const lab of room.labs || []) {
-            if (lab.memory?.itemNeeded) needs.add(lab.memory.itemNeeded);
-        }
-    }
-    return needs;
-}
-
 function getRoomLabNeeds(room) {
     const set = new Set();
     for (const lab of room.labs || []) {
         if (lab.memory?.itemNeeded) set.add(lab.memory.itemNeeded);
     }
     return set;
+}
+
+function isCompressedBar(resource) {
+    return !!(typeof COMPRESSED_COMMODITIES !== 'undefined'
+        && COMPRESSED_COMMODITIES.includes(resource)
+        && resource !== RESOURCE_BATTERY);
+}
+
+function isMarketProcureResource(resource) {
+    if (!resource || resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) return false;
+    if (typeof BASE_MINERALS !== 'undefined' && BASE_MINERALS.includes(resource)) return true;
+    return isCompressedBar(resource);
+}
+
+function getSourceMineral(resource) {
+    if (typeof BASE_MINERALS !== 'undefined' && BASE_MINERALS.includes(resource)) return resource;
+    if (!isCompressedBar(resource)) return null;
+    const entries = buildEquivalenceMap()[resource];
+    if (!entries) return null;
+    for (let i = 0; i < entries.length; i++) {
+        if (entries[i].base) return entries[i].base;
+    }
+    return null;
+}
+
+function isActivelyMiningMineral(mineralType) {
+    if (!mineralType || typeof MY_ROOMS === 'undefined') return false;
+    for (const name of MY_ROOMS) {
+        const room = Game.rooms[name];
+        if (!room || room.level < 6 || !room.extractor) continue;
+        const mineral = room.mineral;
+        if (!mineral || mineral.mineralType !== mineralType) continue;
+        if (mineral.mineralAmount > 0) return true;
+    }
+    return false;
+}
+
+function isExtremeShortage(entry) {
+    return !!(entry && entry.stockRatio < EXTREME_SHORTAGE_RATIO);
+}
+
+function barCoveredByMineralStock(resource) {
+    if (!isCompressedBar(resource)) return false;
+    const source = getSourceMineral(resource);
+    if (!source) return false;
+    return (getEffectiveSupply(source) - getEmpireDemand(source)) >= REACTION_AMOUNT;
+}
+
+/**
+ * Market procurement is minerals and bars only. Buy when we need it and either
+ * nobody is currently mining the source mineral, or stock is critically low.
+ * Boosts are never bought.
+ */
+function shouldProcureResource(resource, entry = null) {
+    if (!isMarketProcureResource(resource)) return false;
+    if (barCoveredByMineralStock(resource)) return false;
+    const deficit = entry || getEmpireResourceDeficit(resource);
+    if (!deficit) return false;
+    const source = getSourceMineral(resource);
+    if (source && isActivelyMiningMineral(source) && !isExtremeShortage(deficit)) return false;
+    return true;
 }
 
 function getEmpireResourceDeficit(resource) {
@@ -153,13 +203,22 @@ function getEmpireResourceDeficit(resource) {
 
 function getEmpireBuyCandidates() {
     const resources = new Set(BASE_MINERALS);
-    for (const need of collectEmpireLabNeeds()) resources.add(need);
+    if (typeof COMPRESSED_COMMODITIES !== 'undefined') {
+        for (let i = 0; i < COMPRESSED_COMMODITIES.length; i++) {
+            const resource = COMPRESSED_COMMODITIES[i];
+            if (resource !== RESOURCE_BATTERY) resources.add(resource);
+        }
+    }
 
     const candidates = [];
     for (const resource of resources) {
         if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
         const entry = getEmpireResourceDeficit(resource);
-        if (entry) candidates.push(entry);
+        if (!entry || !shouldProcureResource(resource, entry)) continue;
+        const source = getSourceMineral(resource);
+        entry.mining = !!(source && isActivelyMiningMineral(source));
+        entry.extreme = isExtremeShortage(entry);
+        candidates.push(entry);
     }
 
     candidates.sort((a, b) => b.urgency - a.urgency);
@@ -211,6 +270,9 @@ profiler.registerObject({
     isMarketHub,
     getInboundPlannedAmount,
     getEmpireBuyCandidates,
+    shouldProcureResource,
+    isMarketProcureResource,
+    isActivelyMiningMineral,
     runHousekeeping,
     runActiveMarket,
     runPassiveMarket,
@@ -221,6 +283,12 @@ module.exports = {
     isMarketHub,
     getInboundPlannedAmount,
     getEmpireBuyCandidates,
+    shouldProcureResource,
+    isMarketProcureResource,
+    isActivelyMiningMineral,
+    isCompressedBar,
+    getSourceMineral,
+    EXTREME_SHORTAGE_RATIO,
     runHousekeeping,
     runActiveMarket,
     runPassiveMarket,

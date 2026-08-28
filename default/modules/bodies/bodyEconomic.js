@@ -266,7 +266,8 @@ const builders = {
     upgrader: buildUpgrader,
     labTech(gen) {
         let carry = Math.floor(gen.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
-        carry = Math.min(carry, 20);
+        const cap = gen.room.level >= 8 ? 32 : 20;
+        carry = Math.min(carry, cap);
         const halfMove = colonyRoadsBuilt(gen.room.name) || undefined;
         return {carry, halfMove};
     },

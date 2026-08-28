@@ -2,15 +2,14 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  */
 const profiler = require("tools.profiler");
-const {empireOpsPaused} = require('hcReadiness');
-const {getInboundPlannedAmount} = require('termMarket');
-const {getDerivedCommodityAmount} = require('termCache');
 const runNext = {};
 const lastClean = {};
 const goOverCap = {};
 const productionTracker = {};
 const INPUT_STOP_RATIO = 0.25;
-const STALL_GRACE = CREEP_LIFE_TIME * 3;
+const STALL_GRACE = CREEP_LIFE_TIME;
+const WORKING_STOCK = 6000;
+const REACTION_RANGE = 2;
 
 class LabManager {
     constructor(room) {
@@ -23,7 +22,7 @@ class LabManager {
         if (!room.labs.length) return;
 
         const idle = !room.memory.producingBoost && runNext[room.name] && runNext[room.name] > Game.time;
-        if (idle && !room.memory.dangerousAttack && !empireOpsPaused()) {
+        if (idle && !room.memory.dangerousAttack) {
             if (!lastClean[room.name] || lastClean[room.name] + 100 < Game.time) {
                 const idleLabs = room.labs.filter(l => l.isActive());
                 if (idleLabs.length) this.cleanLabs(idleLabs);
@@ -42,9 +41,8 @@ class LabManager {
 
         this.hub = this.getLabHub(room);
 
-        const opsPaused = empireOpsPaused();
-        if (room.memory.dangerousAttack || opsPaused) {
-            this.pauseProduction(room, opsPaused ? 'Empire ops paused.' : 'Room under attack.');
+        if (room.memory.dangerousAttack) {
+            this.pauseProduction(room, 'Room under attack.');
             return;
         }
         this.resumeProduction(room);
@@ -66,19 +64,16 @@ class LabManager {
         if (!room.memory.producingBoost) {
             if (!runNext[room.name] || runNext[room.name] < Game.time) {
                 this.manageBoostProduction(room, labs);
+            }
+            if (!room.memory.producingBoost) {
                 if (!runNext[room.name] || runNext[room.name] <= Game.time) {
                     runNext[room.name] = Game.time + 15;
                 }
+                return;
             }
-            return;
         }
 
-        if (!runNext[room.name] || runNext[room.name] < Game.time) {
-            this.manageActiveLabs(room, labs);
-            if (!runNext[room.name] || runNext[room.name] <= Game.time) {
-                runNext[room.name] = Game.time + 15;
-            }
-        }
+        this.manageActiveLabs(room, labs);
     }
 
     manageBoostProduction(room, labs) {
@@ -113,20 +108,13 @@ class LabManager {
             }
         }
 
-        const secondaryLabs = labs.filter(lab => this.isViableReactionSecondary(lab, hubIds, structMem, producingBoost));
+        const secondaryLabs = labs.filter(lab => this.isReadyReactionSecondary(lab, hubIds, structMem, producingBoost));
 
         for (const target of secondaryLabs) {
             const result = target.runReaction(this.hub[0], this.hub[1]);
             if (result === OK) {
-                runNext[room.name] = Game.time + REACTION_TIME[room.memory.producingBoost] + 1;
                 productionTracker[this.room.name] = Game.time;
             }
-        }
-
-        if (this.hasAnySecondaryLab(room, labs) && !this.hasReactionSecondary(room, labs, producingBoost)) {
-            room.memory.labProductionWaiting = Game.time;
-        } else {
-            delete room.memory.labProductionWaiting;
         }
     }
 
@@ -135,29 +123,23 @@ class LabManager {
         if (!boost) return null;
 
         if (room.store(boost) >= this.getProductionCutoff(boost)) {
-            if (goOverCap[room.name]) goOverCap[room.name]--;
             return {reason: 'Boost cap reached.', chain: true};
         }
 
-        if (productionTracker[this.room.name] && productionTracker[this.room.name] + STALL_GRACE < Game.time) {
-            if (room.memory.labProductionWaiting) {
-                productionTracker[this.room.name] = Game.time;
-                return null;
-            }
-            if (this.inputsStillViable(room, boost, labs)) {
-                productionTracker[this.room.name] = Game.time;
-                return null;
-            }
-            if (this.waitingForReactionSecondary(room, labs, boost)) {
-                productionTracker[this.room.name] = Game.time;
-                return null;
-            }
-            return {reason: 'Production stalled — time limit reached.', chain: false};
+        if (!this.hub || this.hub.length < 2) {
+            return {reason: 'Hub labs missing.', chain: false};
         }
 
-        if (!this.hub || this.hub.length < 2 || this.inputsExhausted(room, boost)) {
-            if (this.inputsStillViable(room, boost, labs)) return null;
+        if (!this.inputsStillViable(room, boost)) {
             return {reason: 'Input exhausted.', chain: true};
+        }
+
+        if (productionTracker[this.room.name] && productionTracker[this.room.name] + STALL_GRACE < Game.time) {
+            if (!this.hasProductionOutput(room, labs)) {
+                productionTracker[this.room.name] = Game.time;
+                return null;
+            }
+            return {reason: 'Production stalled — time limit reached.', chain: true};
         }
 
         return null;
@@ -192,16 +174,15 @@ class LabManager {
         delete room.memory.labProductionPaused;
     }
 
-    isValidProductionTarget(room, boost, labs) {
+    isValidProductionTarget(room, boost) {
         if (!boost || !BOOST_COMPONENTS[boost]) return false;
         if (room.store(boost) >= this.getProductionCutoff(boost)) return false;
-        if (this.hubCanReactNow(room)) return true;
-        return this.inputsStillViable(room, boost, labs);
+        return this.inputsStillViable(room, boost);
     }
 
     retargetIfInvalid(room, labs) {
         const current = room.memory.producingBoost;
-        if (!current || this.isValidProductionTarget(room, current, labs)) return;
+        if (!current || this.isValidProductionTarget(room, current)) return;
 
         const hubIds = this.primaryLabs[room.name];
         if (!this.hub || this.hub.length < 2 || !hubIds || !labs.some(lab => !hubIds.includes(lab.id))) return;
@@ -238,21 +219,28 @@ class LabManager {
         return Math.floor(this.getInputStartThreshold(room, resource) * INPUT_STOP_RATIO);
     }
 
+    getWorkingStock(boost) {
+        return Math.min(this.getProductionCutoff(boost), WORKING_STOCK);
+    }
+
     getAvailableInput(room, resource) {
-        let amount = (room.store(resource) || 0) + getInboundPlannedAmount(room.name, resource);
-        if (!room.factory) return amount;
-        if (!BASE_MINERALS.includes(resource) && resource !== RESOURCE_GHODIUM) return amount;
-        amount += getDerivedCommodityAmount(room, resource);
-        const {buildEquivalenceMap} = require('termNetwork');
-        const eq = buildEquivalenceMap();
-        for (const product in eq) {
-            const entries = eq[product];
-            for (let i = 0; i < entries.length; i++) {
-                if (entries[i].base !== resource) continue;
-                amount += getInboundPlannedAmount(room.name, product) * entries[i].ratio;
+        let amount = room.store(resource) || 0;
+        const factory = room.factory;
+        if (factory && factory.store) {
+            const producing = factory.memory && factory.memory.producing;
+            const commodity = producing && COMMODITIES[producing];
+            if (commodity && commodity.components[resource]) {
+                amount -= factory.store[resource] || 0;
             }
         }
-        return amount;
+        const structMem = room.memory._structureMemory;
+        const labs = room.labs || [];
+        for (let i = 0; i < labs.length; i++) {
+            const lab = labs[i];
+            const mem = structMem && structMem[lab.id];
+            if (mem && mem.neededBoost === resource) amount -= lab.store[resource] || 0;
+        }
+        return Math.max(0, amount);
     }
 
     hubCanReactNow(room) {
@@ -264,10 +252,22 @@ class LabManager {
         });
     }
 
-    isViableReactionSecondary(lab, hubIds, structMem, producingBoost) {
-        if (!lab || hubIds.includes(lab.id) || lab.cooldown) return false;
+    inReactionRange(lab) {
+        if (!lab || !this.hub || this.hub.length < 2) return false;
+        return lab.pos.getRangeTo(this.hub[0]) <= REACTION_RANGE
+            && lab.pos.getRangeTo(this.hub[1]) <= REACTION_RANGE;
+    }
+
+    isProductionOutputLab(lab, hubIds, structMem) {
+        if (!lab || hubIds.includes(lab.id) || !this.inReactionRange(lab)) return false;
         const mem = structMem && structMem[lab.id];
         if (mem && (mem.itemNeeded || mem.neededBoost || mem.paused)) return false;
+        return true;
+    }
+
+    isReadyReactionSecondary(lab, hubIds, structMem, producingBoost) {
+        if (!this.isProductionOutputLab(lab, hubIds, structMem)) return false;
+        if (lab.cooldown) return false;
         if (lab.mineralType && lab.mineralType !== producingBoost) return false;
         if (lab.store[RESOURCE_ENERGY] < LAB_REACTION_ENERGY) return false;
         const product = lab.store[producingBoost] || 0;
@@ -275,40 +275,18 @@ class LabManager {
         return true;
     }
 
-    hasReactionSecondary(room, labs, producingBoost) {
+    hasProductionOutput(room, labs) {
         const hubIds = this.primaryLabs[room.name];
         if (!hubIds) return false;
         const structMem = room.memory._structureMemory;
-        return labs.some(lab => this.isViableReactionSecondary(lab, hubIds, structMem, producingBoost));
+        return labs.some(lab => this.isProductionOutputLab(lab, hubIds, structMem));
     }
 
-    hasAnySecondaryLab(room, labs) {
-        const hubIds = this.primaryLabs[room.name];
-        return !!hubIds && labs.some(lab => !hubIds.includes(lab.id));
-    }
-
-    waitingForReactionSecondary(room, labs, producingBoost) {
-        if (!this.hasAnySecondaryLab(room, labs)) return false;
-        if (this.hasReactionSecondary(room, labs, producingBoost)) return false;
-        const components = BOOST_COMPONENTS[producingBoost];
-        if (!components || !components.length) return false;
-        return this.hubCanReactNow(room)
-            || components.some(c => this.getAvailableInput(room, c) >= this.getInputStopThreshold(room, c));
-    }
-
-    inputsExhausted(room, boost) {
-        if (this.hubCanReactNow(room)) return false;
-        const components = BOOST_COMPONENTS[boost];
-        if (!components || !components.length) return true;
-        return components.every(input => this.getAvailableInput(room, input) < this.getInputStopThreshold(room, input));
-    }
-
-    inputsStillViable(room, boost, labs) {
-        if (this.hubCanReactNow(room) && this.hasReactionSecondary(room, labs, boost)) return true;
+    inputsStillViable(room, boost) {
+        if (this.hubCanReactNow(room)) return true;
         const components = BOOST_COMPONENTS[boost];
         if (!components || !components.length) return false;
-        const hasInputs = components.some(input => this.getAvailableInput(room, input) >= this.getInputStopThreshold(room, input));
-        return hasInputs && this.hasReactionSecondary(room, labs, boost);
+        return components.every(input => this.getAvailableInput(room, input) >= this.getInputStopThreshold(room, input));
     }
 
     boostDeficitSort(room, a, b) {
@@ -335,43 +313,28 @@ class LabManager {
 
     tryPriority(room) {
         const priority = !HOSTILES.length ? LAB_PEACE_PRIORITY : LAB_WAR_PRIORITY;
-        const t1 = [], t2 = [], t3 = [];
         for (const boost of priority) {
-            if (!t3.includes(boost)) t3.push(boost);
-            const t2Comp = BOOST_COMPONENTS[boost] && BOOST_COMPONENTS[boost][0];
-            if (!t2Comp) continue;
-            if (!t2.includes(t2Comp)) t2.push(t2Comp);
-            const t1Comp = BOOST_COMPONENTS[t2Comp] && BOOST_COMPONENTS[t2Comp][0];
-            if (t1Comp && !t1.includes(t1Comp)) t1.push(t1Comp);
-        }
-        for (const boost of t1) {
-            const result = this.findProducible(room, boost, false);
-            if (result) return result;
-        }
-        for (const boost of t2) {
-            const result = this.findProducible(room, boost, false);
-            if (result) return result;
-        }
-        for (const boost of t3) {
-            const result = this.findProducible(room, boost, true);
+            const result = this.findProducible(room, boost, true, true);
             if (result) return result;
         }
         return null;
     }
 
-    findProducible(room, boost, globalCheck = false) {
-        const cutoff = this.getProductionCutoff(boost);
-        const current = globalCheck ? getResourceTotal(boost) : room.store(boost);
+    findProducible(room, boost, globalCheck = false, isGoal = false) {
+        const components = BOOST_COMPONENTS[boost];
+        if (!components || !components.length) return null;
+
+        const cutoff = isGoal ? this.getProductionCutoff(boost) : this.getWorkingStock(boost);
+        const current = (globalCheck && isGoal) ? getResourceTotal(boost)
+            : (isGoal ? room.store(boost) : this.getAvailableInput(room, boost));
         if (current >= cutoff) return null;
 
-        const components = BOOST_COMPONENTS[boost];
-        if (components && components.length) {
-            for (const component of components) {
-                const result = this.findProducible(room, component, false);
-                if (result) return result;
-            }
-        }
         if (this.checkForInputs(room, boost)) return boost;
+
+        for (let i = 0; i < components.length; i++) {
+            const result = this.findProducible(room, components[i], false, false);
+            if (result) return result;
+        }
         return null;
     }
 
@@ -389,13 +352,19 @@ class LabManager {
     setupProduction(hub, boost, room) {
         if (!hub || hub.length < 2) return;
         const components = BOOST_COMPONENTS[boost];
+        if (!components || components.length < 2) return;
+        const already = room.memory.producingBoost === boost;
         hub.forEach((lab, i) => {
-            lab.memory = {itemNeeded: components[i], room: room.name};
+            const mem = lab.memory;
+            if (!mem || mem.itemNeeded !== components[i]) {
+                lab.memory = {itemNeeded: components[i], room: room.name};
+            }
         });
         room.memory.producingBoost = boost;
-        productionTracker[this.room.name] = Game.time;
-        delete goOverCap[room.name];
-        log.a(`${roomLink(room.name)} starting production of ${boost} (inputs: ${components.join(', ')})`);
+        if (!already) {
+            productionTracker[this.room.name] = Game.time;
+            log.a(`${roomLink(room.name)} starting production of ${boost} (inputs: ${components.join(', ')})`);
+        }
     }
 
     cleanLabs(labs) {
@@ -446,6 +415,7 @@ class LabManager {
         );
 
         if (hubLabs.length >= 2) {
+            hubLabs.sort((a, b) => a.pos.y - b.pos.y || a.pos.x - b.pos.x);
             const pair = hubLabs.slice(0, 2);
             this.primaryLabs[room.name] = pair.map(l => l.id);
             return pair;
@@ -476,7 +446,9 @@ class LabManager {
                         room.memory.labHub = {x: lab.pos.x, y: lab.pos.y};
                         room.memory.labHubPartial = true;
                     }
-                    return this.getLabHub(room);
+                    const pair = [lab, partner].sort((a, b) => a.pos.y - b.pos.y || a.pos.x - b.pos.x);
+                    this.primaryLabs[room.name] = pair.map(l => l.id);
+                    return pair;
                 }
             }
         }
