@@ -4,10 +4,11 @@
  * Per-room terminal keep amounts.
  */
 
-const {isLaunchRoom} = require('module.colonyProfile');
+const {isLaunchRoom, isCoreRoom} = require('module.colonyProfile');
 
 // One lab load. Enough to pre-reserve upgrader WORK boosts so spawn/claim can start.
 const UPGRADE_BOOST_WORKING_STOCK = 3000;
+const CORE_BAR_KEEP = 10000;
 const COMBAT_BOOST_TYPES = ['attack', 'ranged_attack', 'heal', 'tough', 'dismantle', 'move'];
 
 let upgradePrefTick = -1;
@@ -137,15 +138,20 @@ function getRoomKeepAmount(room, resource) {
     }
     if (ALL_BOOSTS.includes(resource)) {
         // Combat T3 lives on launch rooms so waves spawn where the minerals are.
-        // Hub still warehouses non-combat boosts (upgrade/build/harvest).
+        // Core rooms (and the market hub if there is no core) warehouse the rest.
         if (isCombatT3Boost(resource) && isLaunchRoom(room)) return BOOST_AMOUNT(room, resource);
-        if (isHubRoom(room) && !isCombatT3Boost(resource)) return BOOST_AMOUNT(room, resource);
+        if (!isCombatT3Boost(resource) && (isCoreRoom(room) || isHubRoom(room))) {
+            return BOOST_AMOUNT(room, resource);
+        }
         return getRoomOperationalNeed(room, resource);
     }
     if (resource === RESOURCE_BATTERY) return 1000;
     if (room.memory.commodityProduction && room.mineral && room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
     if (BASE_MINERALS.includes(resource)) return room.terminal ? REACTION_AMOUNT : 0;
-    if (COMPRESSED_COMMODITIES.includes(resource)) return 1000;
+    if (COMPRESSED_COMMODITIES.includes(resource)) {
+        if (isCoreRoom(room) || isHubRoom(room)) return CORE_BAR_KEEP;
+        return 1000;
+    }
     return REACTION_AMOUNT;
 }
 

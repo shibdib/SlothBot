@@ -14,7 +14,7 @@ const {
 } = require('termKeep');
 const {getDerivedCommodityAmount} = require('termCache');
 const FactoryControl = require('module.factoryController');
-const {getColonyRole} = require('module.colonyProfile');
+const {getColonyRole, isCoreRoom} = require('module.colonyProfile');
 const profiler = require('tools.profiler');
 
 const RESOURCE_SEND_MAX = 5000;
@@ -28,6 +28,9 @@ const PARK_STORAGE_FREE_MIN = 0.2;
 const DEST_TERMINAL_BUSY = 0.7;
 // 0.25 only covers ~9 rooms; alliance dests are often 15–30 rooms (fee ~0.4–0.65).
 const ALLY_FEE_MAX = 0.75;
+// Empire fills and hub pulls. 0.5 covers ~20 rooms so a frontier can supply the core.
+const EMPIRE_FEE_MAX = 0.5;
+const FRONTIER_EVAC_STORAGE_FREE = 0.2;
 
 // Pressure outranks hub/ally consolidation so overfull rooms evacuate first.
 const PRIORITY_RANK = {urgent: 0, pressure: 1, battery: 2, energy: 3, resource: 4, ally: 5, hub: 6};
@@ -47,12 +50,39 @@ function isRoomCapacityPressured(room) {
     return terminal.store.getFreeCapacity() < TERMINAL_CAPACITY * 0.15;
 }
 
+function shouldEvacuateToHub(room) {
+    if (isRoomCapacityPressured(room)) return true;
+    const role = getColonyRole(room);
+    if (role !== 'frontier' && role !== 'outpost') return false;
+    if (room.storage) {
+        return room.storage.store.getFreeCapacity() < STORAGE_CAPACITY * FRONTIER_EVAC_STORAGE_FREE;
+    }
+    return !!(room.terminal && room.terminal.store.getUsedCapacity() > TERMINAL_CAPACITY * DEST_TERMINAL_BUSY);
+}
+
 function getRoomLabNeeds(room) {
     const needs = new Set();
     for (const lab of room.labs || []) {
         if (lab.memory && lab.memory.itemNeeded) needs.add(lab.memory.itemNeeded);
     }
     return needs;
+}
+
+function compressedUnpackDemand(room, resource) {
+    if (!room || !room.factory || resource === RESOURCE_BATTERY) return 0;
+    if (typeof COMPRESSED_COMMODITIES === 'undefined' || !COMPRESSED_COMMODITIES.includes(resource)) return 0;
+    const {buildEquivalenceMap} = require('termNetwork');
+    const entries = buildEquivalenceMap()[resource];
+    if (!entries || !entries.length) return 0;
+    let extra = 0;
+    for (let i = 0; i < entries.length; i++) {
+        const {base, ratio} = entries[i];
+        if (!base || !ratio) continue;
+        const mineralNeed = getRoomKeepAmount(room, base) || 0;
+        const mineralHave = room.store(base) || 0;
+        extra = Math.max(extra, Math.ceil(Math.max(0, mineralNeed - mineralHave) / ratio));
+    }
+    return extra;
 }
 
 function getRoomResourceDemand(room, resource) {
@@ -62,7 +92,24 @@ function getRoomResourceDemand(room, resource) {
     if (resource === RESOURCE_BATTERY) {
         need = Math.max(need, FactoryControl.factoryBatteryInboundNeed(room));
     }
+    need = Math.max(need, compressedUnpackDemand(room, resource));
     return need;
+}
+
+function inboundMineralEquivalent(roomName, resource, transfers) {
+    const {getInboundPlannedAmount} = require('termMarket');
+    let total = getInboundPlannedAmount(roomName, resource, transfers);
+    if (!BASE_MINERALS.includes(resource) && resource !== RESOURCE_GHODIUM) return total;
+    const {buildEquivalenceMap} = require('termNetwork');
+    const eq = buildEquivalenceMap();
+    for (const product in eq) {
+        const entries = eq[product];
+        for (let i = 0; i < entries.length; i++) {
+            if (entries[i].base !== resource) continue;
+            total += getInboundPlannedAmount(roomName, product, transfers) * entries[i].ratio;
+        }
+    }
+    return total;
 }
 
 function getRoomEffective(room, resource) {
@@ -186,7 +233,6 @@ function addTransfer(transfers, transfer) {
 
 function planResourceTransfers(transfers, resource, profiles, options = {}) {
     const {pressureRelief = false, kind = 'resource', bonus = 0, sourceNames = null} = options;
-    const {getInboundPlannedAmount} = require('termMarket');
     const deficits = [];
 
     for (const profile of profiles) {
@@ -195,7 +241,7 @@ function planResourceTransfers(transfers, resource, profiles, options = {}) {
         const demand = getRoomResourceDemand(room, resource);
         if (!demand) continue;
         const effective = getRoomEffective(room, resource);
-        const inbound = getInboundPlannedAmount(profile.name, resource, transfers);
+        const inbound = inboundMineralEquivalent(profile.name, resource, transfers);
         const need = demand - effective - inbound;
         if (need < RESOURCE_SEND_MIN) continue;
         deficits.push({name: profile.name, need, demand});
@@ -219,11 +265,11 @@ function planResourceTransfers(transfers, resource, profiles, options = {}) {
         if (destFree < RESOURCE_SEND_MIN) continue;
         if (isRoomCapacityPressured(destRoom)) continue;
         // Don't park keep-fills into an already busy satellite terminal.
-        // Operational lab need, hub warehouse, and launch combat stockpiles still accept.
+        // Operational lab need, core warehouses, and launch combat stockpiles still accept.
         if (destTerminalBusy(destRoom)
             && !getRoomLabNeeds(destRoom).has(resource)
             && !getRoomOperationalNeed(destRoom, resource)
-            && !isHubRoom(destRoom)
+            && !isCoreRoom(destRoom)
             && getRoomKeepAmount(destRoom, resource) <= (getRoomOperationalNeed(destRoom, resource) || 0)) continue;
 
         const remaining = Math.min(dest.need, destFree, RESOURCE_SEND_MAX);
@@ -234,14 +280,16 @@ function planResourceTransfers(transfers, resource, profiles, options = {}) {
             const amount = Math.min(remaining, src.amount, RESOURCE_SEND_MAX);
             if (amount < RESOURCE_SEND_MIN) continue;
             const cost = txCost(src.name, dest.name, amount);
-            if (cost > amount * 0.25) continue;
+            if (cost > amount * EMPIRE_FEE_MAX) continue;
+            const srcRole = getColonyRole(src.name);
+            const srcBonus = (srcRole === 'frontier' || srcRole === 'outpost') ? 1 : 0;
             candidates.push({
                 from: src.name,
                 to: dest.name,
                 resource,
                 amount,
                 kind,
-                score: scoreTransfer(dest.need, cost, bonus),
+                score: scoreTransfer(dest.need, cost, bonus + srcBonus),
             });
         }
 
@@ -529,46 +577,79 @@ function planAllyTransfers(transfers, ledger, profiles) {
     }
 }
 
+function listCoreWarehouses(profiles, resource, transfers) {
+    const {getInboundPlannedAmount} = require('termMarket');
+    const dests = [];
+    for (const profile of profiles) {
+        const room = Game.rooms[profile.name];
+        if (!room?.terminal || !isCoreRoom(room)) continue;
+        if (!canUseTerminal(profile.name) || isRoomCapacityPressured(room)) continue;
+        const inbound = getInboundPlannedAmount(profile.name, resource, transfers);
+        const destFree = room.terminal.store.getFreeCapacity(resource) - inbound;
+        if (destFree < RESOURCE_SEND_MIN) continue;
+        dests.push({name: profile.name, free: destFree});
+    }
+    return dests;
+}
+
+function pickNearestWarehouse(fromName, dests) {
+    let best = null;
+    let bestDist = Infinity;
+    for (let i = 0; i < dests.length; i++) {
+        const dest = dests[i];
+        if (dest.name === fromName) continue;
+        const dist = Game.map.getRoomLinearDistance(fromName, dest.name);
+        if (dist < bestDist || (dist === bestDist && dest.free > (best ? best.free : 0))) {
+            best = dest;
+            bestDist = dist;
+        }
+    }
+    return best;
+}
+
 function planHubConsolidation(transfers, ledger, profiles) {
-    const hub = ledger.marketHub;
-    if (!hub) return;
-
-    const hubRoom = Game.rooms[hub];
-    if (!hubRoom?.terminal || !canUseTerminal(hub) || isRoomCapacityPressured(hubRoom)) return;
-
     const {canEmpireSell} = require('termNetwork');
     const allyPlanned = plannedAllyResources(transfers);
+    const fallbackHub = ledger.marketHub;
 
     for (const profile of profiles) {
-        if (profile.name === hub) continue;
         const room = Game.rooms[profile.name];
         if (!room?.terminal || !canUseTerminal(profile.name) || room.memory.dangerousAttack) continue;
+        // Cores are the warehouse. Only frontier/launch/outpost dump into them.
+        if (isCoreRoom(room)) continue;
 
-        const pressured = isRoomCapacityPressured(room);
+        const evacuate = shouldEvacuateToHub(room);
         for (const resource of Object.keys(room.terminal.store)) {
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
             if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) continue;
             if (allyPlanned.has(resource)) continue;
-            // Pressured rooms may ship local surplus even when empire soft-keep blocks normal sells.
-            if (!pressured && !canEmpireSell(resource, ledger)) continue;
+            if (!evacuate && !canEmpireSell(resource, ledger)) continue;
 
-            const amount = getTerminalExportable(room, resource, pressured);
+            const amount = getTerminalExportable(room, resource, evacuate);
             if (amount < RESOURCE_SEND_MIN) continue;
 
-            const hubFree = hubRoom.terminal.store.getFreeCapacity(resource);
-            if (hubFree < RESOURCE_SEND_MIN) continue;
+            const dests = listCoreWarehouses(profiles, resource, transfers);
+            let dest = pickNearestWarehouse(profile.name, dests);
+            if (!dest && fallbackHub && fallbackHub !== profile.name) {
+                const hubRoom = Game.rooms[fallbackHub];
+                if (hubRoom?.terminal && canUseTerminal(fallbackHub) && !isRoomCapacityPressured(hubRoom)) {
+                    const hubFree = hubRoom.terminal.store.getFreeCapacity(resource);
+                    if (hubFree >= RESOURCE_SEND_MIN) dest = {name: fallbackHub, free: hubFree};
+                }
+            }
+            if (!dest) continue;
 
-            const sendAmount = Math.min(amount, hubFree, pressured ? PRESSURE_SEND_MAX : RESOURCE_SEND_MAX);
-            const cost = txCost(profile.name, hub, sendAmount);
-            if (cost > sendAmount * (pressured ? 0.35 : 0.25)) continue;
+            const sendAmount = Math.min(amount, dest.free, evacuate ? PRESSURE_SEND_MAX : RESOURCE_SEND_MAX);
+            const cost = txCost(profile.name, dest.name, sendAmount);
+            if (cost > sendAmount * EMPIRE_FEE_MAX) continue;
 
             addTransfer(transfers, {
                 from: profile.name,
-                to: hub,
+                to: dest.name,
                 resource,
                 amount: sendAmount,
-                kind: pressured ? 'pressure' : 'hub',
-                score: scoreTransfer(sendAmount, cost, pressured ? 2 : 0.5),
+                kind: evacuate ? 'pressure' : 'hub',
+                score: scoreTransfer(sendAmount, cost, evacuate ? 2 : 0.5),
             });
         }
     }
@@ -629,10 +710,10 @@ function planPressureTransfers(transfers, profiles) {
                 const demand = getRoomResourceDemand(destRoom, resource);
                 const effective = getRoomEffective(destRoom, resource);
                 const underKeep = demand ? Math.max(0, demand - effective - inbound) : 0;
-                const hub = isHubRoom(destRoom);
-                // Demand and hub always accept. Parking elsewhere requires unused
+                const warehouse = isCoreRoom(destRoom) || isHubRoom(destRoom);
+                // Demand and core warehouses always accept. Parking elsewhere requires unused
                 // terminal/storage headroom so we don't stuff a working satellite.
-                if (underKeep < RESOURCE_SEND_MIN && !hub && !destParkFree(destRoom, resource, inbound)) continue;
+                if (underKeep < RESOURCE_SEND_MIN && !warehouse && !destParkFree(destRoom, resource, inbound)) continue;
 
                 let sendAmount = Math.min(amount, destFree, PRESSURE_SEND_MAX,
                     maxAffordableByEnergy(srcName, profile.name, srcEnergy));
@@ -789,6 +870,12 @@ function planTransfers(ledger) {
     if (!profiles.length) return [];
 
     const resources = Object.keys(ledger.demand || {});
+    // Bars before minerals so inbound bars count against dest mineral need.
+    resources.sort((a, b) => {
+        const ac = COMPRESSED_COMMODITIES.includes(a) && a !== RESOURCE_BATTERY ? 0 : 1;
+        const bc = COMPRESSED_COMMODITIES.includes(b) && b !== RESOURCE_BATTERY ? 0 : 1;
+        return ac - bc;
+    });
     const transfers = [];
 
     planUrgentTransfers(transfers, ledger, profiles);

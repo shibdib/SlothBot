@@ -7,6 +7,7 @@
 const state = require('termState');
 const {getEffectiveSupply, getEmpireDemand} = require('termNetwork');
 const {getRoomResourceDemand, getRoomEffective} = require('termTransfers');
+const {isCoreRoom, getColonyProfile} = require('module.colonyProfile');
 const profiler = require('tools.profiler');
 
 const RESOURCE_SEND_MIN = 100;
@@ -16,22 +17,36 @@ function isValidMarketHub(name) {
     return !!(name && room?.terminal && !room.memory.dangerousAttack && _.includes(MY_ROOMS, name));
 }
 
+function empireHasCoreHub() {
+    for (const name of MY_ROOMS) {
+        if (isValidMarketHub(name) && isCoreRoom(name)) return true;
+    }
+    return false;
+}
+
 function scoreMarketHubCandidate(room) {
     const energy = room.terminal.store[RESOURCE_ENERGY] || 0;
     let score = energy + room.level * 1000;
     if (room.energyState >= 2) score += 5000;
+    if (room.storage) score += Math.min(room.storage.store.getFreeCapacity(), 300000) / 50;
+    const profile = getColonyProfile(room.name);
+    if (profile && Number.isFinite(profile.hostileHops)) score += profile.hostileHops * 2000;
     return score;
 }
 
 function pickMarketHubCandidate() {
-    const candidates = [];
+    const cores = [];
+    const fallback = [];
     for (const name of MY_ROOMS) {
         const room = Game.rooms[name];
         if (!isValidMarketHub(name)) continue;
-        candidates.push({name, score: scoreMarketHubCandidate(room)});
+        const entry = {name, score: scoreMarketHubCandidate(room)};
+        if (isCoreRoom(room)) cores.push(entry);
+        else fallback.push(entry);
     }
-    candidates.sort((a, b) => b.score - a.score);
-    if (candidates.length) return candidates[0].name;
+    const pool = cores.length ? cores : fallback;
+    pool.sort((a, b) => b.score - a.score);
+    if (pool.length) return pool[0].name;
     for (const name of MY_ROOMS) {
         if (Game.rooms[name]?.terminal) return name;
     }
@@ -46,7 +61,9 @@ function selectMarketHub() {
         stored = state.ledger.marketHub;
     }
 
-    if (stored && isValidMarketHub(stored)) {
+    const storedOk = stored && isValidMarketHub(stored);
+    const storedIsCore = storedOk && isCoreRoom(stored);
+    if (storedIsCore || (storedOk && !empireHasCoreHub())) {
         if (Memory._banker.marketHub !== stored) Memory._banker.marketHub = stored;
         return stored;
     }

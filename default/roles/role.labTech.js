@@ -5,6 +5,7 @@
 const profiler = require("tools.profiler");
 const FactoryControl = require('module.factoryController');
 const {getRoomKeepAmount, getOperationalProtectAmount, getRoomOperationalNeed} = require('termKeep');
+const {isCoreRoom} = require('module.colonyProfile');
 
 const BALANCE_MIN_TRANSFER = 100;
 const STORAGE_ENERGY_RESERVE = 25000;
@@ -16,6 +17,7 @@ const BATTERY_TERMINAL_SOFT_CAP = 2000;
 const BATTERY_TRANSFER_MAX = 5000;
 const ENERGY_TRANSFER_MAX = 15000;
 const TERMINAL_EXPORT_CEILING = 5000;
+const IDLE_TERMINAL_SLICE = 1000;
 const STORAGE_HEADROOM = 100000;
 const TERMINAL_HEADROOM = 40000;
 const BALANCE_DIRECTION_COOLDOWN = 50;
@@ -752,7 +754,10 @@ class RoleLabTech {
         if (!resource || resource === RESOURCE_ENERGY) return 0;
         const keep = this.getKeepAmount(resource);
         if (resource === RESOURCE_BATTERY) return Math.max(keep, BATTERY_TERMINAL_SOFT_CAP);
-        return Math.min(keep || 0, TERMINAL_EXPORT_CEILING);
+        const warehouse = isCoreRoom(this.room);
+        if (COMPRESSED_COMMODITIES.includes(resource) && !warehouse) return TERMINAL_EXPORT_CEILING;
+        if (keep) return Math.min(keep, TERMINAL_EXPORT_CEILING);
+        return warehouse ? TERMINAL_EXPORT_CEILING : IDLE_TERMINAL_SLICE;
     }
 
     getTerminalRetainFloor(resource) {
