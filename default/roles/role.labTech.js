@@ -145,7 +145,36 @@ class RoleLabTech {
         const networkBoost = this.findNetworkBoostExport(storage, terminal);
         if (networkBoost) return networkBoost;
 
-        // 2d. Either store under headroom — drain/overflow before nuker/factory/labs
+        // 2e. Lab hub feed beats store balancing. Filling labs from a stuffed
+        // warehouse frees space; balancing first can starve reactions.
+        if (this.room.memory.producingBoost) {
+            const productionTask = this.findLabProductionTask(labs, labStructMem, storage, terminal);
+            if (productionTask) return productionTask;
+            if (storeTarget) {
+                const outputClog = this.findLabOutputClogTask(labs, labStructMem, storeTarget);
+                if (outputClog) return outputClog;
+            }
+        }
+        const resourceNeededLabs = labs.filter(s => {
+            const mem = labStructMem && labStructMem[s.id];
+            return mem && mem.itemNeeded
+                && this.hubLabNeedsFill(s, mem.itemNeeded)
+                && s.room.store(mem.itemNeeded, true);
+        });
+        const resourceNeededLab = _.min(resourceNeededLabs, s => s.store.getUsedCapacity(labStructMem[s.id].itemNeeded))
+        if (resourceNeededLab && resourceNeededLab.id) {
+            const resourceNeeded = labStructMem[resourceNeededLab.id].itemNeeded;
+            const supplier = this.pickBestSupplier(resourceNeeded,
+                this.getIdleLabSources(resourceNeeded, resourceNeededLab.id));
+            if (supplier) return {
+                withdrawTarget: supplier.id,
+                deliveryTarget: resourceNeededLab.id,
+                resource: resourceNeeded,
+                amount: resourceNeededLab.store.getCapacity(resourceNeeded) - resourceNeededLab.store.getUsedCapacity(resourceNeeded)
+            };
+        }
+
+        // 2d. Either store under headroom — drain/overflow before nuker/factory
         // pack the last free slot. Dual-zero swap stays at 1b.
         if (storage && terminal && this.needsBalanceSpace(storage, terminal)) {
             const spaceTask = this.findBalancingTask(storage, terminal);
@@ -179,16 +208,6 @@ class RoleLabTech {
             if (resourceContainer) {
                 const res = Object.keys(resourceContainer.store).find(r => r !== RESOURCE_ENERGY && resourceContainer.store[r] > 0);
                 if (res) return {withdrawTarget: resourceContainer.id, deliveryTarget: storeTarget.id, resource: res};
-            }
-        }
-
-        // 6. Active lab production — hub inputs, output energy, product clog
-        if (this.room.memory.producingBoost) {
-            const productionTask = this.findLabProductionTask(labs, labStructMem, storage, terminal);
-            if (productionTask) return productionTask;
-            if (storeTarget) {
-                const outputClog = this.findLabOutputClogTask(labs, labStructMem, storeTarget);
-                if (outputClog) return outputClog;
             }
         }
 
@@ -231,26 +250,6 @@ class RoleLabTech {
                 if (!dumpTarget) continue;
                 return {withdrawTarget: factory.id, deliveryTarget: dumpTarget.id, resource: res};
             }
-        }
-
-        // 9. Lab reaction input fill (itemNeeded; wrong mineral must be emptied first)
-        const resourceNeededLabs = labs.filter(s => {
-            const mem = labStructMem && labStructMem[s.id];
-            return mem && mem.itemNeeded
-                && this.hubLabNeedsFill(s, mem.itemNeeded)
-                && s.room.store(mem.itemNeeded, true);
-        });
-        const resourceNeededLab = _.min(resourceNeededLabs, s => s.store.getUsedCapacity(labStructMem[s.id].itemNeeded))
-        if (resourceNeededLab && resourceNeededLab.id) {
-            const resourceNeeded = labStructMem[resourceNeededLab.id].itemNeeded;
-            const supplier = this.pickBestSupplier(resourceNeeded,
-                this.getIdleLabSources(resourceNeeded, resourceNeededLab.id));
-            if (supplier) return {
-                withdrawTarget: supplier.id,
-                deliveryTarget: resourceNeededLab.id,
-                resource: resourceNeeded,
-                amount: resourceNeededLab.store.getCapacity(resourceNeeded) - resourceNeededLab.store.getUsedCapacity(resourceNeeded)
-            };
         }
 
         // 12. Nuker energy from spare stock. Beats factory unpack and power spawn
@@ -864,7 +863,10 @@ class RoleLabTech {
         for (let i = 0; i < resources.length; i++) {
             const resource = resources[i];
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
-            if (!ALL_BOOSTS.includes(resource)) continue;
+            const labFeed = (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource))
+                || BASE_MINERALS.includes(resource)
+                || resource === RESOURCE_GHODIUM;
+            if (!labFeed) continue;
             const inStorage = storage.store[resource] || 0;
             if (inStorage < BALANCE_MIN_TRANSFER) continue;
             const protect = getOperationalProtectAmount(this.room, resource);

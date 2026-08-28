@@ -4,6 +4,7 @@
 const profiler = require("tools.profiler");
 const {empireOpsPaused} = require('hcReadiness');
 const {getInboundPlannedAmount} = require('termMarket');
+const {getDerivedCommodityAmount} = require('termCache');
 const runNext = {};
 const lastClean = {};
 const goOverCap = {};
@@ -238,7 +239,20 @@ class LabManager {
     }
 
     getAvailableInput(room, resource) {
-        return room.store(resource) + getInboundPlannedAmount(room.name, resource);
+        let amount = (room.store(resource) || 0) + getInboundPlannedAmount(room.name, resource);
+        if (!room.factory) return amount;
+        if (!BASE_MINERALS.includes(resource) && resource !== RESOURCE_GHODIUM) return amount;
+        amount += getDerivedCommodityAmount(room, resource);
+        const {buildEquivalenceMap} = require('termNetwork');
+        const eq = buildEquivalenceMap();
+        for (const product in eq) {
+            const entries = eq[product];
+            for (let i = 0; i < entries.length; i++) {
+                if (entries[i].base !== resource) continue;
+                amount += getInboundPlannedAmount(room.name, product) * entries[i].ratio;
+            }
+        }
+        return amount;
     }
 
     hubCanReactNow(room) {

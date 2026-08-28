@@ -114,7 +114,8 @@ function inboundMineralEquivalent(roomName, resource, transfers) {
 
 function getRoomEffective(room, resource) {
     let amount = room.store(resource) || 0;
-    if (BASE_MINERALS.includes(resource) || resource === RESOURCE_GHODIUM) {
+    // Bars only count where a factory can unpack them. RCL6 labs have no factory.
+    if ((BASE_MINERALS.includes(resource) || resource === RESOURCE_GHODIUM) && room.factory) {
         amount += getDerivedCommodityAmount(room, resource);
     }
     return amount;
@@ -303,6 +304,19 @@ function planResourceTransfers(transfers, resource, profiles, options = {}) {
     }
 }
 
+function compressedFormsOf(base) {
+    const {buildEquivalenceMap} = require('termNetwork');
+    const eq = buildEquivalenceMap();
+    const out = [];
+    for (const product in eq) {
+        const entries = eq[product];
+        for (let i = 0; i < entries.length; i++) {
+            if (entries[i].base === base) out.push({product, ratio: entries[i].ratio});
+        }
+    }
+    return out;
+}
+
 function planUrgentTransfers(transfers, ledger, profiles) {
     for (const entry of ledger.urgent || []) {
         const destRoom = Game.rooms[entry.room];
@@ -312,26 +326,40 @@ function planUrgentTransfers(transfers, ledger, profiles) {
 
         const destFree = destRoom.terminal.store.getFreeCapacity(resource);
         const need = Math.min(entry.deficit, destFree, RESOURCE_SEND_MAX);
-        if (need < RESOURCE_SEND_MIN) continue;
-
         const candidates = [];
-        for (const profile of profiles) {
-            if (profile.name === entry.room) continue;
-            const room = Game.rooms[profile.name];
-            if (!room?.terminal || !canUseTerminal(profile.name)) continue;
-            const available = getTerminalExportable(room, resource);
-            if (available < RESOURCE_SEND_MIN) continue;
-            const amount = Math.min(need, available, RESOURCE_SEND_MAX);
-            const cost = txCost(profile.name, entry.room, amount);
-            if (cost > amount * 0.25) continue;
-            candidates.push({
-                from: profile.name,
-                to: entry.room,
-                resource,
-                amount,
-                kind: 'urgent',
-                score: scoreTransfer(need, cost, 2),
-            });
+
+        const consider = (sendResource, sendNeed) => {
+            if (sendNeed < RESOURCE_SEND_MIN) return;
+            const free = destRoom.terminal.store.getFreeCapacity(sendResource);
+            if (free < RESOURCE_SEND_MIN) return;
+            for (const profile of profiles) {
+                if (profile.name === entry.room) continue;
+                const room = Game.rooms[profile.name];
+                if (!room?.terminal || !canUseTerminal(profile.name)) continue;
+                const available = getTerminalExportable(room, sendResource);
+                if (available < RESOURCE_SEND_MIN) continue;
+                const amount = Math.min(sendNeed, available, RESOURCE_SEND_MAX, free);
+                if (amount < RESOURCE_SEND_MIN) continue;
+                const cost = txCost(profile.name, entry.room, amount);
+                if (cost > amount * EMPIRE_FEE_MAX) continue;
+                candidates.push({
+                    from: profile.name,
+                    to: entry.room,
+                    resource: sendResource,
+                    amount,
+                    kind: 'urgent',
+                    score: scoreTransfer(entry.deficit, cost, sendResource === resource ? 2 : 1.5),
+                });
+            }
+        };
+
+        consider(resource, need);
+        if (destRoom.factory && (BASE_MINERALS.includes(resource) || resource === RESOURCE_GHODIUM)) {
+            const forms = compressedFormsOf(resource);
+            for (let i = 0; i < forms.length; i++) {
+                const barsNeeded = Math.ceil(entry.deficit / forms[i].ratio);
+                consider(forms[i].product, barsNeeded);
+            }
         }
 
         candidates.sort((a, b) => b.score - a.score);
@@ -915,7 +943,9 @@ function recordTransferEnergyCost(terminal, resource, amount, destRoom) {
 
 function markTerminalsUsed(from, to, resource) {
     state.usedTerminals[from] = {tick: Game.time};
-    state.usedTerminals[to] = {tick: Game.time + (resource === RESOURCE_BATTERY ? 500 : 50)};
+    // Dest lock matches terminal cooldown so a lab room can receive the second
+    // input 10 ticks later instead of waiting 50.
+    state.usedTerminals[to] = {tick: Game.time + (resource === RESOURCE_BATTERY ? 500 : 10)};
 }
 
 function executeTransfer(terminal, transfer) {

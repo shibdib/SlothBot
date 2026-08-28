@@ -323,9 +323,16 @@ class FactoryControl {
             return true;
         }
 
-        if (producing === RESOURCE_BATTERY && !FactoryControl.shouldPackBatteries(room)) {
-            log.i(`${roomLink(room.name)} stopping battery production — pack no longer needed.`, 'FACTORY CONTROL:');
-            return true;
+        if (producing === RESOURCE_BATTERY) {
+            if (!FactoryControl.shouldPackBatteries(room)) {
+                log.i(`${roomLink(room.name)} stopping battery production — pack no longer needed.`, 'FACTORY CONTROL:');
+                return true;
+            }
+            if (this.canUnpackMineral(room, factory.level || 0)) {
+                log.i(`${roomLink(room.name)} stopping battery production — mineral unpack needed.`, 'FACTORY CONTROL:');
+                return true;
+            }
+            return false;
         }
         if (producing === RESOURCE_ENERGY) {
             if (FactoryControl.batteryUnpackRecovered(room)) {
@@ -372,12 +379,6 @@ class FactoryControl {
             return;
         }
 
-        // Pack when energy is overflowing locally and cannot be sent elsewhere
-        if (FactoryControl.shouldPackBatteries(room)) {
-            this.setProduction(factory, RESOURCE_BATTERY, 'energy overflow');
-            return;
-        }
-
         if (opsPaused) return;
 
         const totalFree = (room.storage ? room.storage.store.getFreeCapacity() : 0) +
@@ -389,12 +390,18 @@ class FactoryControl {
             return (productionCap(b) - room.store(b)) - (productionCap(a) - room.store(a));
         };
 
-        // Unpack needed minerals even when warehouses are tight — labs need the mineral.
+        // Labs need the mineral, not the bar. Beats battery packing.
         for (const resource of unpackMinerals().sort(deficitSort)) {
             if (this.isValidProductionTarget(resource, room, factoryLevel)) {
                 this.setProduction(factory, resource, 'decompressing');
                 return;
             }
+        }
+
+        // Pack when energy is overflowing locally and cannot be sent elsewhere
+        if (FactoryControl.shouldPackBatteries(room)) {
+            this.setProduction(factory, RESOURCE_BATTERY, 'energy overflow');
+            return;
         }
 
         // Compression frees space; still run it when storage is tight.
@@ -447,6 +454,14 @@ class FactoryControl {
                 }
             }
         }
+    }
+
+    canUnpackMineral(room, factoryLevel) {
+        const minerals = unpackMinerals();
+        for (let i = 0; i < minerals.length; i++) {
+            if (this.isValidProductionTarget(minerals[i], room, factoryLevel)) return true;
+        }
+        return false;
     }
 
     isValidProductionTarget(resource, room, factoryLevel) {
