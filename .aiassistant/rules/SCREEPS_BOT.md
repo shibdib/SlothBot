@@ -90,6 +90,51 @@ requests a structural change.
 
 ## Key Systems
 
+### Colony room roles
+
+Owned rooms are classified in `module.colonyProfile.js` (HUD: CORE / FRNT / LNCH / OUTP). Geography is sticky for one
+creep lifetime so a room does not flip every tick; capability (RCL, terminal, labs) is not. Override with
+`colonyRoles(roomName, 'core'|'frontier'|'launch'|'outpost'|'auto')` or `room.memory.forceRole`.
+
+These are **jobs**, not layout types. A launch room still mines and upgrades. A core still defends.
+
+| Role         | Who gets it                                                                                                                                                   | Intent                                                              | Keep / logistics                                                                                                                         | Military                                     |
+|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------|
+| **Outpost**  | RCL &lt; 6                                                                                                                                                    | Growing room. Not a warehouse, not a combat pad.                    | Working stock only.                                                                                                                      | Last choice to spawn ops (penalty 4).        |
+| **Frontier** | Convex-hull / leaf, or ≤3 hops from a hostile, or remote/intel pressure ≥ 15. Not chosen as a launch pad.                                                     | Border: see the enemy, feed remotes, do **not** hoard empire stock. | Operational boosts only. 1k bars. At ≥80% storage, evacuate surplus to the nearest core. Energy target ×1.15.                            | Prefer over core for spawning (penalty 1).   |
+| **Launch**   | Thinned subset of RCL6+ rooms with terminal + labs. One pad per nearby hostile contact and per hot incapable outpost; neighbors of a pad are not also launch. | Combat door: waves spawn where the T3 is.                           | Combat T3 at `BOOST_AMOUNT`. Other boosts operational. 1k bars (not a bar warehouse). Energy target ×1.25. Surplus still dumps to cores. | First choice to spawn ops (penalty 0).       |
+| **Core**     | Interior: not hull, not launch, RCL ≥ 6.                                                                                                                      | Safe shelf: hold empire minerals/boosts, supply hungry rooms.       | Non-combat boosts at `BOOST_AMOUNT`. 10k of each compressed mineral (50k mineral-eq). Do not dump into other cores.                      | Spawn ops only if closer/better (penalty 3). |
+
+**Market hub** is not a fifth role. It is a **job** on one room: `Memory._banker.marketHub`. Buy/sell orders, ally
+segment publish, and credit logic live there so we do not bid against ourselves. The hub **must be a core** when any
+core exists (scored by energy, RCL, storage headroom, distance from hostiles). If the empire is all frontier, the hub
+falls back to the best available room and that room temporarily gets warehouse keep.
+
+**How stock is supposed to move**
+
+1. Frontier/outpost keep only what they are using. Extra bars and idle boosts load into the terminal and ship.
+2. Hungry rooms (labs, launch T3, core keep) pull first — bars count as mineral supply and are planned before raw
+   minerals.
+3. Whatever is still extra goes to the **nearest core with space**, not only the market hub.
+4. Cores fill each other via normal demand (keep), not via “everything piles in one room.”
+
+`isFrontierRoom()` is a helper that is true for **frontier or launch** (anything on the border). Do not treat it as a
+fifth role.
+
+**Do we need more types?** No. Do not add `hub`, `warehouse`, `factory`, or `lab` as colony roles.
+
+- Hub is a job on a core (above).
+- Warehouse **is** core.
+- Combat pad **is** launch.
+- Factory/commodity assignment is already per-room mineral (`commodityProduction`), not a geography role.
+- Power processing and SK mining are room features, not empire roles.
+
+A fifth role would overlap these four and make keep/spawn/routing branch on two flags for the same room. If a room is
+misbehaving, force its role or fix the keep/routing rules — do not invent a new type.
+
+Code: `default/modules/module.colonyProfile.js`, keep in `termKeep.js`, hub pick in `termMarket.js`, routing in
+`termTransfers.js`, spawn origin in `spawnOperations.js` (`COLONY_ASSIGN_PENALTY`).
+
 ### Economy & Harvesting
 
 Stable source mining and hauling with good support for both local and remote operations. Focus on reliable energy flow
@@ -151,6 +196,9 @@ expensive operations in frequently called code.
 ## Memory Schema (High-Level)
 
 - `Memory.rooms[roomName]` — room state, sources, defense status, threats
+- `room.memory.colonyProfile` — `{role, hull, hostileHops, pressure, launchEligible, forced, tick}`
+- `room.memory.forceRole` — optional sticky override (`core`/`frontier`/`launch`/`outpost`)
+- `Memory._banker.marketHub` — single market-desk room name (a core when any core exists)
 - `creep.memory` — role, target, squad info, working state, traffic data
 - Squad/memory coordination for duos and quads
 - Global configuration via `configs/`
@@ -305,6 +353,8 @@ appears in **every** controller room. Verify on `docs-season.screeps.com` before
   needs concrete payoff.
 - **2026-08-27** — Documented Season 11 (Thorium Reactors, Season 5 rules + northern density skew, no portals) under
   Seasonal Specific information.
+- **2026-08-27** — Documented colony room roles (core / frontier / launch / outpost) and the market-hub job. No extra
+  role types; hub is a job on a core, warehouse is core, combat pad is launch.
 
 ---
 
