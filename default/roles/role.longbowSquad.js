@@ -32,6 +32,7 @@ const {
 const {isBumperCandidate, yieldOccupant} = require("pathTraffic");
 const {recordSiegeWave} = require('hcTargets');
 const {clearOpQueueRole} = require('spawnQueue');
+const {waitForWaveStillFilling} = require('spawnOperations');
 const stagingCache = {}; // creepId → {x, y, tick, roomName}
 const musterCache = {}; // roomName → {x, y, tick}
 const formupAssignCache = {tick: 0, claimed: {}}; // leaderId → {creepId → "x,y"} this tick
@@ -118,7 +119,8 @@ const FORMING_ABANDON_TTL = 600;
 
 // No new body, and nothing queued/spawning, for this long: seal or recycle
 // even if renew is still topping TTL. ~one 50-part spawn cycle plus slack;
-// room queues wipe after 500 ticks without a spawn.
+// room queues wipe after 500 ticks without a spawn. Suppressed while
+// waitForWaveStillFilling (assigned room still has remaining queued/in egg).
 const FORMING_STALL_TICKS = 500;
 
 // Assembled wave waiting on labs. LabTech already prioritizes wave fill;
@@ -1487,11 +1489,17 @@ class RoleLongbowSquad {
         const dest = creep.memory.destination;
         const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
         const op = dest && (Memory.targetRooms[dest] || Memory.auxiliaryTargets[dest]);
+        const assignedOp = ['roomDenial', 'stronghold', 'guard'].includes(creep.memory.operation);
         // Assignment gone or moved: the rest of this wave will never spawn here.
-        if (live >= 2 && (!op || !op.assignedRoom
+        // Only for ops that use assignedRoom — missing op used to abort a
+        // waitFor-4 remote contest at 2 bodies.
+        if (assignedOp && live >= 2 && (!op || !op.assignedRoom
             || (home && op.assignedRoom !== home && op.assignedRoom !== creep.room.name))) {
             return true;
         }
+        // Energy-starved rooms serialize the rest of the quad. Stall must not
+        // shrink/recycle the pad while those bodies are still queued or in egg.
+        if (waitForWaveStillFilling(dest, home)) return false;
         this.markFormingLive(creep, live);
         const since = (creep.memory.misc && creep.memory.misc.formLiveTick) || Game.time;
         return Game.time - since >= FORMING_STALL_TICKS;

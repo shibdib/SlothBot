@@ -204,8 +204,10 @@ function isWaveCreepMemory(memory, wave) {
     return true;
 }
 
-function reservationAllowed(room) {
-    if (spawnEnergyState(room) < 1) return false;
+function reservationAllowed(room, waveStarted) {
+    // A waitFor wave already on the pad keeps a spawn even in state 0 so the
+    // remaining bodies can pop as energy trickles in. Fresh waves still wait.
+    if (spawnEnergyState(room) < 1 && !waveStarted) return false;
     if (!getCreepCount(room, 'stationaryHarvester')) return false;
     if (room.storage && !getCreepCount(room, 'hauler')) return false;
     return true;
@@ -382,9 +384,8 @@ function processBuildQueue(room) {
     // is the TTL win; they top off after the last body pops.
     let availableSpawns = totalSpawns.filter(s => isMySpawn(s) && !s.spawning && !spawnHeldByRenewer(s, room));
 
-    const canReserve = formingWave && reservationAllowed(room);
     const waitFor = (wave && wave.misc && wave.misc.waitFor) || 0;
-    const demand = canReserve ? waveSpawnDemand(waitFor) : 0;
+    const needed = (wave && (wave.numberNeeded || waitFor)) || 0;
     let busyWave = 0;
     if (wave) {
         for (let i = 0; i < totalSpawns.length; i++) {
@@ -394,6 +395,9 @@ function processBuildQueue(room) {
             if (creep && isWaveCreepMemory(creep.memory, wave)) busyWave++;
         }
     }
+    const waveStarted = !!(wave && ((needed && wave.remaining < needed) || busyWave));
+    const canReserve = formingWave && reservationAllowed(room, waveStarted);
+    const demand = canReserve ? waveSpawnDemand(waitFor) : 0;
     const reserveCount = canReserve
         ? idleReserveCount(room, availableSpawns.length, owned, demand, busyWave, waitFor)
         : 0;

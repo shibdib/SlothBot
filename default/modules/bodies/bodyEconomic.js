@@ -10,6 +10,7 @@ const {
     roomInSpawnRecovery,
     roomSpawnEnergyStuck,
 } = require('bodyHelpers');
+const {getRegenSourceOperatorForRoom} = require('module.powerManager');
 
 function buildRoadDroneWaller(gen) {
     const leanColony = gen.room.level >= 7 && !gen.creepInfo.destination;
@@ -115,8 +116,7 @@ function shuttleHarvestRate(room, trend = 0, spareIncome = 0) {
         const isHealthy = (room.energyState >= 2 || spareIncome > 3 || trend >= 0);
         work += isHealthy ? 9 : 2;
     }
-    const powerCreep = _.find(Game.powerCreeps, c =>
-        c.my && c.memory.destinationRoom === room.name && c.powers[PWR_REGEN_SOURCE]);
+    const powerCreep = getRegenSourceOperatorForRoom(room.name);
     if (powerCreep) {
         const level = powerCreep.powers[PWR_REGEN_SOURCE].level;
         const boostedSat = Math.floor((SOURCE_ENERGY_CAPACITY +
@@ -238,7 +238,7 @@ function buildStationaryHarvester(gen) {
     const additionalWork = gen.room.controller.level >= 7 ? (isHealthy ? 9 : 2) : 0;
     const baseSaturation = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
     let work;
-    let powerCreep = _.find(Game.powerCreeps, c => c.my && c.memory.destinationRoom === gen.room.name && c.powers[PWR_REGEN_SOURCE]);
+    let powerCreep = getRegenSourceOperatorForRoom(gen.room.name);
     if (powerCreep) {
         const boostedSat = Math.floor((SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME));
         work = Math.max(boostedSat, boostedSat + additionalWork);

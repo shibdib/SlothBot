@@ -116,7 +116,7 @@ function waveBodiesNeedingBoost(creepInfo, resource) {
     for (const name in Game.creeps) {
         const c = Game.creeps[name];
         if (!c.my || !c.memory) continue;
-        if ((c.memory.destination || '') !== dest) continue;
+        if (creepOpDest(c) !== dest) continue;
         if (op && c.memory.operation && c.memory.operation !== op) continue;
         const r = c.memory.oldRole || c.memory.role || '';
         if (r !== role) continue;
@@ -391,12 +391,28 @@ function assignmentAllowsMissingIntel(opMemory, entry) {
     return opMemory.type === 'scout' || !!(entry && entry.role === 'scout');
 }
 
+function creepOpDest(c) {
+    if (!c || !c.memory) return '';
+    return (c.memory.other && c.memory.other.assignment) || c.memory.destination || '';
+}
+
+function isUncommittedWaitForCreep(c, target) {
+    if (!c || !c.my || !c.memory) return false;
+    if (creepOpDest(c) !== target) return false;
+    if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) return false;
+    return !!(c.memory.misc && c.memory.misc.waitFor > 1);
+}
+
+function isQueuedWaitForWave(entry) {
+    if (!entry || !entry.misc || !(entry.misc.waitFor > 1)) return false;
+    const role = entry.role || '';
+    return role === 'longbowSquad' || role === 'longbow';
+}
+
 function hasInflightOpCreeps(target, operation) {
     const matches = (c) => {
         if (!c || !c.my || !c.memory) return false;
-        const destMatch = c.memory.destination === target
-            || !!(c.memory.other && c.memory.other.assignment === target);
-        if (!destMatch) return false;
+        if (creepOpDest(c) !== target) return false;
         if (operation && c.memory.operation && c.memory.operation !== operation) return false;
         return true;
     };
@@ -450,33 +466,75 @@ function handleAssignmentReadinessWait(target, opMemory, reason, levelTarget, en
 function hasUncommittedWaitForWave(target) {
     if (!target) return false;
     for (const name in Game.creeps) {
-        const c = Game.creeps[name];
-        if (!c.my || !c.memory) continue;
-        if (c.memory.destination !== target) continue;
-        if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
-        if (c.memory.misc && c.memory.misc.waitFor > 1) return true;
+        if (isUncommittedWaitForCreep(Game.creeps[name], target)) return true;
+    }
+    const op = Memory.targetRooms[target] || Memory.auxiliaryTargets[target];
+    const room = op && op.assignedRoom && Game.rooms[op.assignedRoom];
+    if (room && room.spawns) {
+        for (let i = 0; i < room.spawns.length; i++) {
+            const spawning = room.spawns[i].spawning;
+            if (!spawning) continue;
+            if (isUncommittedWaitForCreep(Game.creeps[spawning.name], target)) return true;
+        }
+    }
+    return false;
+}
+
+// Origin is still producing this waitFor wave (egg in a spawn or a queue
+// still wants more). Forming stall must not shrink/recycle the pad while
+// the rest of the quad is waiting on energy.
+function waitForWaveStillFilling(target, home) {
+    if (!target) return false;
+    const op = Memory.targetRooms[target] || Memory.auxiliaryTargets[target];
+    if (op && op.assignedRoom && home && op.assignedRoom !== home) return false;
+    if (!hasUncommittedWaitForWave(target)) return false;
+
+    const spawnRooms = [];
+    if (op && op.assignedRoom && Game.rooms[op.assignedRoom]) spawnRooms.push(Game.rooms[op.assignedRoom]);
+    else if (home && Game.rooms[home]) spawnRooms.push(Game.rooms[home]);
+    for (let r = 0; r < spawnRooms.length; r++) {
+        const spawns = spawnRooms[r].spawns || [];
+        for (let i = 0; i < spawns.length; i++) {
+            const spawning = spawns[i].spawning;
+            if (!spawning) continue;
+            if (isUncommittedWaitForCreep(Game.creeps[spawning.name], target)) return true;
+        }
+    }
+
+    const caches = [CREEP_QUEUES['global']];
+    if (home && CREEP_QUEUES[home]) caches.push(CREEP_QUEUES[home]);
+    if (op && op.assignedRoom && CREEP_QUEUES[op.assignedRoom]) caches.push(CREEP_QUEUES[op.assignedRoom]);
+    for (let i = 0; i < caches.length; i++) {
+        const cache = caches[i];
+        if (!cache) continue;
+        for (const key in cache) {
+            const e = cache[key];
+            if (!isQueuedWaitForWave(e)) continue;
+            if (entryTarget(e) !== target) continue;
+            return true;
+        }
     }
     return false;
 }
 
 function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
     if (opMemory.assignedRoom) {
+        // A live waitFor wave must finish where it spawned. Steal/unassign
+        // mid-form dumps 1–3 bodies on the pad, then formingGiveUp recycles
+        // them once assignedRoom no longer matches formColony.
+        if (hasUncommittedWaitForWave(target)) return opMemory.assignedRoom;
+
         const assigned = Game.rooms[opMemory.assignedRoom];
-        const formingWave = hasUncommittedWaitForWave(target);
         // Intel can raise levelTarget (1 tower → 2) while a low-RCL room is
         // sticky. considerGlobalEntry then rejects that room AND every other
         // room (not assigned) — nothing spawns. Inflight creeps do not keep
         // an under-level assignee; retargetFormingWaitForColony sends remnants.
-        // A live waitFor wave must finish where it spawned — steal mid-form
-        // dumps them in a room whose labs were never reserved.
-        if (assigned && assigned.level < levelTarget && !formingWave) {
+        if (assigned && assigned.level < levelTarget) {
             unassignRoom(target, 'Assigned room is below operation level.');
         } else if (!assigned) {
             if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
             if (handleInvisibleAssignmentWait(target, opMemory)) return opMemory.assignedRoom;
         } else {
-            if (formingWave) return opMemory.assignedRoom;
-
             if (Memory.targetRooms[target]) {
                 const tier = getOpTier(opMemory, entry);
                 if (!isRoomReadyForTier(assigned, tier)) {
@@ -565,12 +623,8 @@ function retargetFormingWaitForColony(target, operation, newColony) {
     if (!target || !newColony) return;
     for (const name in Game.creeps) {
         const c = Game.creeps[name];
-        if (!c.my || !c.memory) continue;
-        if (c.memory.destination !== target) continue;
+        if (!isUncommittedWaitForCreep(c, target)) continue;
         if (operation && c.memory.operation && c.memory.operation !== operation) continue;
-        if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
-        const waitFor = c.memory.misc && c.memory.misc.waitFor;
-        if (!(waitFor > 1)) continue;
         const home = (c.memory.misc && c.memory.misc.formColony) || c.memory.colony;
         if (home === newColony) continue;
         if (!c.memory.misc) c.memory.misc = {};
@@ -834,5 +888,7 @@ module.exports = {
     releaseAssignmentIfStuck,
     generatedBodyMissingBoosts,
     getPriority,
+    hasUncommittedWaitForWave,
+    waitForWaveStillFilling,
 };
 
