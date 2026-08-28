@@ -14,6 +14,7 @@ const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
 const {getInboundPlannedAmount, getEmpireBuyCandidates, shouldProcureResource} = require('termMarket');
 const {hasRoomOrder, recordCreatedOrder} = require('termCache');
 const {empireHasSpareBoostType} = require('termKeep');
+const FactoryControl = require('module.factoryController');
 
 const TerminalControl = require('termClass');
 
@@ -245,21 +246,20 @@ Object.assign(TerminalControl.prototype, {
 
         publishAllyResourceRequests(terminal, allyMineralAdds);
 
-        if (BUY_ENERGY && terminal.room.energyState < 2 && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER) {
+        // CRIT only. LOW rooms unpack batteries / take empire energy instead of locking credits.
+        if (BUY_ENERGY && !terminal.room.energyState && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER
+            && terminal.room.store(RESOURCE_BATTERY) < FactoryControl.batteryBatchCost()) {
             const histAvg = parseFloat(latestMarketHistory(RESOURCE_ENERGY).avg) || 1;
             const currentEnergyBuyOrders = globalOrders.filter(o => o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY && o.remainingAmount >= 500 && !MY_ROOMS.includes(o.roomName));
             const sortedBuyPrices = currentEnergyBuyOrders.map(o => o.price).sort((a, b) => a - b);
             const p90 = sortedBuyPrices.length ? sortedBuyPrices[Math.floor(sortedBuyPrices.length * 0.9)] : null;
             const refPrice = p90 ? Math.min(histAvg, p90) : histAvg;
-            const isCritical = !terminal.room.energyState && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER * 2;
             const existingOrder = _.find(myOrders, o => o.resourceType === RESOURCE_ENERGY && o.roomName === terminal.room.name && o.type === ORDER_BUY);
             const orderAge = existingOrder ? Game.time - existingOrder.created : 0;
-            const baseMult = isCritical ? 1 : 0.75;
-            const escalationTicks = isCritical ? 25000 : 50000;
-            const ageMult = Math.min(1.0, baseMult + (orderAge / escalationTicks) * (1.0 - baseMult));
+            const ageMult = Math.min(1.0, 0.85 + (orderAge / 25000) * 0.15);
             const targetPrice = refPrice * ageMult;
             if (!existingOrder) {
-                if (createBuyOrder(RESOURCE_ENERGY, targetPrice, isCritical ? 10000 : 5000)) return true;
+                if (createBuyOrder(RESOURCE_ENERGY, targetPrice, 10000)) return true;
             } else if (!existingOrder.pending && Math.abs(existingOrder.price - targetPrice) > 0.02 * refPrice) {
                 Game.market.changeOrderPrice(existingOrder.id, targetPrice);
             }

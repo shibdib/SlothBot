@@ -439,15 +439,19 @@ function planEnergyTransfers(transfers, profiles) {
         const destFree = destRoom.terminal.store.getFreeCapacity(RESOURCE_ENERGY);
         if (destFree < ENERGY_SEND_MIN) continue;
 
-        const energyGap = Math.max(0, FactoryControl.energyTarget(destRoom) * 0.25 - destRoom.rawEnergy);
+        const energyGap = Math.max(0, FactoryControl.energyTarget(destRoom) - destRoom.rawEnergy);
         const desired = Math.min(RESOURCE_SEND_MAX * 2, destFree, Math.max(ENERGY_SEND_MIN, Math.floor(energyGap)));
+        const feeCap = destRoom.energyState < 1 ? EMPIRE_FEE_MAX : 0.25;
 
         const candidates = [];
         for (const srcProfile of profiles) {
             if (srcProfile.name === profile.name) continue;
             const srcRoom = Game.rooms[srcProfile.name];
             if (!srcRoom?.terminal || !canUseTerminal(srcProfile.name)) continue;
-            if (srcRoom.memory.dangerousAttack || srcRoom.energyState < 2) continue;
+            if (srcRoom.memory.dangerousAttack) continue;
+            const srcState = srcRoom.energyState || 0;
+            const srcSpare = (srcRoom.memory.energyInfo && srcRoom.memory.energyInfo.spareIncome) || 0;
+            if (srcState < 3 && !(srcState >= 2 && srcSpare > 0)) continue;
 
             if (destRoom.factory && FactoryControl.roomNeedsBatteryInbound(destRoom) && srcRoom.terminal.store[RESOURCE_BATTERY]) {
                 const bNeed = FactoryControl.factoryBatteryInboundNeed(destRoom);
@@ -456,7 +460,7 @@ function planEnergyTransfers(transfers, profiles) {
                     destRoom.terminal.store.getFreeCapacity(RESOURCE_BATTERY));
                 if (bAmount >= 50) {
                     const cost = txCost(srcProfile.name, profile.name, bAmount);
-                    if (cost <= bAmount * 0.25) {
+                    if (cost <= bAmount * feeCap) {
                         candidates.push({
                             from: srcProfile.name,
                             to: profile.name,
@@ -472,7 +476,7 @@ function planEnergyTransfers(transfers, profiles) {
             const amount = terminalExportableEnergy(srcRoom.terminal, profile.name, desired);
             if (amount < ENERGY_SEND_MIN) continue;
             const cost = txCost(srcProfile.name, profile.name, amount);
-            if (cost > amount * 0.25) continue;
+            if (cost > amount * feeCap) continue;
             candidates.push({
                 from: srcProfile.name,
                 to: profile.name,

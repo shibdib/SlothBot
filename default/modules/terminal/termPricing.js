@@ -11,6 +11,7 @@
 
 const state = require('termState');
 const {selectMarketHub, shouldProcureResource, isMarketProcureResource} = require('termMarket');
+const FactoryControl = require('module.factoryController');
 
 const TerminalControl = require('termClass');
 
@@ -229,8 +230,12 @@ Object.assign(TerminalControl.prototype, {
                 if (order.type === ORDER_BUY) {
                     const orderRoom = Game.rooms[order.roomName];
                     // Cancel only if the room placing the order itself no longer needs energy
-                    if (!orderRoom || orderRoom.energyState >= 2) {
+                    if (!orderRoom || orderRoom.energyState >= 1) {
                         this.cancelOrder(order, 'Energy surplus detected');
+                        continue;
+                    }
+                    if (orderRoom.store(RESOURCE_BATTERY) >= FactoryControl.batteryBatchCost()) {
+                        this.cancelOrder(order, 'Unpack batteries before buying energy');
                         continue;
                     }
                 } else if (order.type === ORDER_SELL) {

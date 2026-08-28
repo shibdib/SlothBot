@@ -6,6 +6,66 @@
  * Created by Bob on 7/12/2017.
  */
 
+const OPERATOR_STICKY = CREEP_LIFE_TIME;
+
+function assignedOperatorRooms(exceptId) {
+    const taken = {};
+    for (const name in Game.powerCreeps) {
+        const c = Game.powerCreeps[name];
+        if (!c || !c.my || c.id === exceptId) continue;
+        if (c.memory && c.memory.destinationRoom) taken[c.memory.destinationRoom] = true;
+    }
+    return taken;
+}
+
+function operatorHungerScore(room) {
+    const state = room.energyState || 0;
+    const spare = (room.memory.energyInfo && room.memory.energyInfo.spareIncome) || 0;
+    const rclPenalty = room.level >= 8 ? 0 : 200;
+    return state * 1000 + spare + rclPenalty;
+}
+
+function pickOperatorRoom(exceptId) {
+    const taken = assignedOperatorRooms(exceptId);
+    let best = null;
+    let bestScore = Infinity;
+    if (!MY_ROOMS) return null;
+    for (let i = 0; i < MY_ROOMS.length; i++) {
+        const name = MY_ROOMS[i];
+        if (taken[name]) continue;
+        const room = Game.rooms[name];
+        if (!room || !room.controller || room.level < 7) continue;
+        const score = operatorHungerScore(room);
+        if (score < bestScore || (score === bestScore && (!best || name < best))) {
+            bestScore = score;
+            best = name;
+        }
+    }
+    return best;
+}
+
+function assignOperatorRoom(powerCreep) {
+    const dest = powerCreep.memory.destinationRoom;
+    const destRoom = dest && Game.rooms[dest];
+    const destValid = !!(destRoom && destRoom.controller && destRoom.controller.my && destRoom.level >= 7);
+    const stickyUntil = powerCreep.memory.destinationStickyUntil || 0;
+    if (destValid && stickyUntil > Game.time) return dest;
+
+    const pick = pickOperatorRoom(powerCreep.id);
+    const destHealthy = destValid && (destRoom.energyState || 0) >= 3
+        && ((destRoom.memory.energyInfo && destRoom.memory.energyInfo.spareIncome) || 0) >= 0;
+    const pickRoom = pick && Game.rooms[pick];
+    const pickHungry = pickRoom && (pickRoom.energyState || 0) < 2;
+
+    let next = destValid ? dest : pick;
+    if (!destValid) next = pick;
+    else if (destHealthy && pickHungry) next = pick;
+
+    if (next && next !== dest) powerCreep.memory.destinationRoom = next;
+    if (next) powerCreep.memory.destinationStickyUntil = Game.time + OPERATOR_STICKY;
+    return next || dest;
+}
+
 module.exports.role = function (powerCreep) {
     // If not spawned return
     if (!powerCreep.ticksToLive) return;
@@ -64,11 +124,10 @@ module.exports.role = function (powerCreep) {
     }
     // level 0 idle
     if (!powerCreep.level) return powerCreep.idleFor(10);
-    // Handle room assignment
-    if (powerCreep.memory.destinationRoom && powerCreep.memory.destinationRoom !== powerCreep.room.name) {
-        return powerCreep.shibMove(new RoomPosition(25, 25, powerCreep.memory.destinationRoom), {range: 24})
-    } else if (!powerCreep.memory.destinationRoom) {
-        powerCreep.memory.destinationRoom = _.find(MY_ROOMS, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 8) || _.find(MY_ROOMS, (r) => !_.find(Game.powerCreeps, (c) => c.my && c.memory.destinationRoom === r) && Game.rooms[r].controller.level === 7);
+    // Handle room assignment — hungriest RCL7+ room, sticky one life, rehome from surplus.
+    const assigned = assignOperatorRoom(powerCreep);
+    if (assigned && assigned !== powerCreep.room.name) {
+        return powerCreep.shibMove(new RoomPosition(25, 25, assigned), {range: 24});
     }
     // Handle owned rooms
     if (powerCreep.room.controller.owner && powerCreep.room.controller.owner.username === MY_USERNAME) {

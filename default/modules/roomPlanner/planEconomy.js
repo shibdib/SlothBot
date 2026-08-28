@@ -697,8 +697,10 @@ function placeLinks(room) {
         }
     }
 
-    // 4. Second source link (RCL 7+) — V1 relied on link cap; enforce RCL7 as documented.
-    if (placed < MAX_SITES_PER_SUBPHASE && currentLinks + placed < linkLimit && sortedSources.length > 1 && level >= 7) {
+    // 4. Second source link. RCL7+ has the 4th slot; at RCL6 the slot is free when
+    // the controller link is skipped (near-hub), so take it for harvest instead of waiting.
+    if (placed < MAX_SITES_PER_SUBPHASE && currentLinks + placed < linkLimit && sortedSources.length > 1
+        && (level >= 7 || skipControllerNearHub)) {
         const r = buildSourceLink(room, sortedSources[1]);
         details.push(Object.assign({step: 'source1'}, r));
         if (r.ok) placed++;
