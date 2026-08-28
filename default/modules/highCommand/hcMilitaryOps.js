@@ -5,7 +5,8 @@
  *
  * Sieges open rooms in a 3-hop Manhattan ring around the closest war-target
  * dest to the empire center, regardless of owner. Unused SIEGE_LIMIT stays
- * idle. If the ring is on cooldown, one stretch dest is allowed.
+ * idle. If the ring is on cooldown, one stretch dest is allowed — but only
+ * with a T3 combat stockpile and an active enemy. Peace is fine.
  * Occupy / remoteDenial stay one non-siege op per user, nearest users first.
  * Strongholds stay on their own track (one at a time, never while
  * invulnerable).
@@ -28,6 +29,13 @@ const {
 const {setTarget} = require('hcTargets');
 const {notifySiegeLaunch} = require('module.notifications');
 const {getOpsPauseReason} = require('hcReadiness');
+const {
+    siegeAffordable,
+    getSiegeGateReason,
+    resetSiegeGateReason,
+    noteSiegeGateReason,
+    getCombatBoostStocks
+} = require('hcSiegeBoost');
 
 const SKIP_LOG_INTERVAL = 500;
 
@@ -102,7 +110,7 @@ function pickMissionForUser(rooms, opts) {
         const crushNew = NEW_SPAWN_DENIAL && (r.level || 0) <= 3 && !noDirect && safe;
         const siegeReady = crushNew || (safe && (r.lastSiege || 0) + siegeCooldown < ct);
 
-        if (allowSiege && roomDenialLaunchOk(r)) {
+        if (allowSiege && roomDenialLaunchOk(r) && siegeAffordable(r)) {
             let score = scoreTarget(r.name, 'roomDenial');
             if (crushNew) score -= 200;
             if (score < bestSiegeScore) {
@@ -166,7 +174,8 @@ function removeCandidateEverywhere(candidates, rooms, roomName) {
 
 function canLaunchNewRoomDenial(intel) {
     if (countActiveSieges() >= (state.SIEGE_LIMIT || 0)) return false;
-    return siegeLaunchAllowed(intel);
+    if (!siegeLaunchAllowed(intel)) return false;
+    return siegeAffordable(intel);
 }
 
 function militaryOperations() {
@@ -292,6 +301,7 @@ function militaryOperations() {
 
     let planned = 0;
     let considered = 0;
+    resetSiegeGateReason();
 
     if (activeSiege < state.SIEGE_LIMIT) {
         const rooms = flattenCandidates(candidates);
@@ -315,6 +325,11 @@ function militaryOperations() {
                     continue;
                 }
                 if (!allowSiegeStretch(warTargetUsers, dMin)) break;
+                const stocks = getCombatBoostStocks();
+                if (!stocks.stockpile) {
+                    noteSiegeGateReason(stocks.stockpileReason || 'no combat stockpile');
+                    break;
+                }
                 const stretch = pickMissionForUser(rooms, {
                     siegeCooldown,
                     allowSiege: true,
@@ -367,7 +382,7 @@ function militaryOperations() {
         clearPlanSkip();
         return;
     }
-    if (considered) logPlanSkip('no matching mission (siege/occupy/remotes)');
+    if (considered) logPlanSkip(getSiegeGateReason() || 'no matching mission (siege/occupy/remotes)');
 }
 
 module.exports = {

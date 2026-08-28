@@ -517,6 +517,8 @@ module.exports = {
 
     empireLinearDistance,
 
+    closestOwnedManhattan,
+
     SIEGE_RING,
 
     minEmpireDist,
