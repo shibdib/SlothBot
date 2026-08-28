@@ -1234,6 +1234,11 @@ function ensurePerimeterSites(room, options = {}) {
     return cycles;
 }
 
+/** True when this room still needs a perimeterPlanRev replan (new geometry). */
+function perimeterRevStale(room) {
+    return !room.memory || room.memory.perimeterPlanRev !== PERIMETER_PLAN_REV;
+}
+
 // Round-robin index for incomplete perimeter rooms (heap — fine if reset).
 /**
  * Throttled pass: at most 1 incomplete room places barriers per call.
@@ -1289,7 +1294,9 @@ function ensureAllIncompletePerimetersDirect() {
         }
 
         // Cheap incomplete: structure-list set, no lookFor per tile.
-        if (!perimeterHasMissingBuilt(room)) continue;
+        // Stale rev must not be skipped: a finished old ring looks complete and
+        // would never reach ensurePerimeterSites (the only place that replans).
+        if (!perimeterRevStale(room) && !perimeterHasMissingBuilt(room)) continue;
 
         try {
             // maxPlace 3, no bridge on the hot path (bridge runs at init/recalc).
@@ -1677,7 +1684,8 @@ function ensureAllIncompletePerimeters() {
             }
         }
 
-        if (!perimeterHasMissingBuilt(room)) continue;
+        // Finished old rings look complete and would starve a geometry rev bump.
+        if (!perimeterRevStale(room) && !perimeterHasMissingBuilt(room)) continue;
 
         let placed = 0;
         try {
