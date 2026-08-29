@@ -4,7 +4,7 @@
 
 const profiler = require("tools.profiler");
 const {routeHasBuiltRoads} = require('bodyHelpers');
-const {effectiveHaulScore, getMiningRouteRooms} = require('remoteMining');
+const {effectiveHaulScore, getMiningRouteRooms, hasSkAttackerOnSite, skGuardRoom} = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
 const {canPlaceConstructionSite, tryCreateConstructionSite, findBestContainerPos} = require('planUtils');
 
@@ -73,6 +73,19 @@ class RoleRemoteHarvester {
         // SK Safety - Throttled
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) {
             this.creep.memory.onContainer = undefined;
+            return true;
+        }
+
+        // Don't sit on keepers while the SKAttacker is only queued, spawning, or dead.
+        const dest = this.creep.memory.destination;
+        const guard = dest && skGuardRoom(this.creep.memory.colony, dest);
+        if (guard && !hasSkAttackerOnSite(guard)) {
+            this.creep.memory.onContainer = undefined;
+            if (this.creep.room.name === dest || this.creep.room.name === guard) {
+                this.creep.fleeHome(true);
+                return true;
+            }
+            this.creep.idleFor(10);
             return true;
         }
 

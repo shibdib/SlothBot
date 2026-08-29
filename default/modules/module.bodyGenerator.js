@@ -50,6 +50,12 @@ class ModuleBodyGenerator {
     }
 
     setEnergyAmount() {
+        // SK mining is how an SK-only room recovers. A 300-energy recovery cap
+        // hides the attacker body, so remotes spawn and the room stays starved.
+        if (this.role === 'SKAttacker') {
+            this.energyAmount = this.room.energyCapacityAvailable;
+            return;
+        }
         const operation = this.creepInfo && this.creepInfo.operation;
         if (roomInSpawnRecovery(this.room, this.creepInfo) && !operation) {
             this.energyAmount = recoverySpawnEnergy(this.room);

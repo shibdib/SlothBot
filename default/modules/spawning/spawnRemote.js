@@ -153,14 +153,16 @@ function purgeUnguardedSkQueue(room) {
         const entry = queue[key];
         if (!entry) continue;
         const dest = queuedSkRoom(entry);
-        if (!dest || !isSkRoom(dest)) continue;
-        if (assignedSk.length && assignedSk.indexOf(dest) === -1) {
+        if (!dest) continue;
+        const guard = remoteMining.skGuardRoom(room.name, dest) || (isSkRoom(dest) ? dest : null);
+        if (!guard || !isSkRoom(guard)) continue;
+        if (assignedSk.length && assignedSk.indexOf(guard) === -1) {
             delete queue[key];
             continue;
         }
         if (entry.role === 'SKAttacker') continue;
         if (!remoteMining.SK_GUARD_DEPENDENT_ROLES.has(entry.role)) continue;
-        if (hasSkAttackerCoverage(dest)) continue;
+        if (hasSkAttackerCoverage(guard)) continue;
         delete queue[key];
     }
 }
@@ -456,10 +458,10 @@ function handleRemoteBuilder(room) {
 
 function handleSkCreeps(room, remoteName) {
     const live = getCreepCount(undefined, 'SKAttacker', remoteName);
-    // Replacement must beat drones/remotes so spawn starts during the lead window.
-    const priority = live
-        ? PRIORITIES.hauler
-        : Math.max(1, PRIORITIES.remoteHarvester - 2);
+    // Missing attacker is the bottleneck for SK/center income: beat drones so
+    // spawn energy can accumulate on the 4100 body instead of cheap remotes.
+    // Replacement still beats drones so the lead window actually starts.
+    const priority = live ? PRIORITIES.hauler : PRIORITIES.hauler - 0.5;
     queueCreepIfNeeded({
         room,
         role: 'SKAttacker',

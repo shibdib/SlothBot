@@ -1121,25 +1121,23 @@ function isSkRoomName(roomName) {
 
 let liveSkTick = -1;
 const liveSkByDest = Object.create(null);
+const onSiteSkByDest = Object.create(null);
 
 function refreshLiveSkAttackers() {
     if (liveSkTick === Game.time) return;
     liveSkTick = Game.time;
     for (const key in liveSkByDest) delete liveSkByDest[key];
+    for (const key in onSiteSkByDest) delete onSiteSkByDest[key];
+    // Only spawned creeps. A queued SKAttacker used to count as coverage, so
+    // cheap harvesters/haulers spawned while the 4100-energy body never did.
     for (const name in Game.creeps) {
         const creep = Game.creeps[name];
         if (!creep.my || creep.memory.role !== 'SKAttacker') continue;
         const dest = creep.memory.destination || creep.room.name;
-        if (dest) liveSkByDest[dest] = true;
-    }
-    if (typeof CREEP_QUEUES === 'undefined' || !CREEP_QUEUES) return;
-    for (const colony in CREEP_QUEUES) {
-        const queue = CREEP_QUEUES[colony];
-        if (!queue) continue;
-        for (const key in queue) {
-            const entry = queue[key];
-            if (!entry || entry.role !== 'SKAttacker') continue;
-            if (entry.destination) liveSkByDest[entry.destination] = true;
+        if (!dest) continue;
+        liveSkByDest[dest] = true;
+        if (!creep.spawning && (creep.room.name === dest || creep.memory.arrived)) {
+            onSiteSkByDest[dest] = true;
         }
     }
 }
@@ -1150,26 +1148,47 @@ function hasLiveSkAttacker(remoteName) {
     return !!liveSkByDest[remoteName];
 }
 
-function skAssignmentRoom(creep) {
+function hasSkAttackerOnSite(remoteName) {
+    if (!remoteName) return false;
+    refreshLiveSkAttackers();
+    return !!onSiteSkByDest[remoteName];
+}
+
+function creepRemoteDest(creep) {
+    const memory = creep && creep.memory;
+    if (!memory) return undefined;
+    if (memory.role === 'remoteHauler') return memory.other && memory.other.remoteRoom;
+    return memory.destination;
+}
+
+/** SK room whose attacker this creep depends on (own dest, or parent SK of a center). */
+function skGuardAssignment(creep) {
     const memory = creep && creep.memory;
     if (!memory) return undefined;
     if (memory.other && memory.other.skRoom) return memory.other.skRoom;
-    if (memory.role === 'remoteHauler') return memory.other && memory.other.remoteRoom;
-    return memory.destination;
+    const dest = creepRemoteDest(creep);
+    if (!dest) return undefined;
+    if (isSkRoomName(dest)) return dest;
+    if (isSectorCenterRoomName(dest) && memory.colony) {
+        return getSectorCenterSkParent(memory.colony, dest);
+    }
+    return undefined;
 }
 
 function shouldRecycleExcessSkCreep(creep) {
     if (!creep || !creep.memory) return false;
     const role = creep.memory.role;
     if (role !== 'SKAttacker' && !SK_GUARD_DEPENDENT_ROLES.has(role)) return false;
-    const remote = skAssignmentRoom(creep);
-    if (!remote || !isSkRoomName(remote)) return false;
+    const dest = creepRemoteDest(creep);
+    const guard = skGuardAssignment(creep);
+    if (dest && isSectorCenterRoomName(dest) && !guard) return true;
+    if (!guard || !isSkRoomName(guard)) return false;
     const colony = creep.memory.colony;
     if (!colony) return false;
-    if (!isExitNeighbor(colony, remote)) return true;
+    if (!isExitNeighbor(colony, guard)) return true;
     const assigned = getColonySkRooms(colony);
     if (!assigned.length) return false;
-    return assigned.indexOf(remote) === -1;
+    return assigned.indexOf(guard) === -1;
 }
 
 function shouldRecycleUnguardedSkCreep(creep) {
@@ -1191,12 +1210,12 @@ function shouldRecycleUnguardedSkCreep(creep) {
         delete skUnguardedSince[name];
         return false;
     }
-    const remote = skAssignmentRoom(creep);
-    if (!remote || !isSkRoomName(remote)) {
+    const guard = skGuardAssignment(creep);
+    if (!guard || !isSkRoomName(guard)) {
         delete skUnguardedSince[name];
         return false;
     }
-    if (hasLiveSkAttacker(remote)) {
+    if (hasLiveSkAttacker(guard)) {
         delete skUnguardedSince[name];
         return false;
     }
@@ -1251,6 +1270,7 @@ module.exports = {
     skGuardRoom,
     isKeeperYieldRoom,
     hasLiveSkAttacker,
+    hasSkAttackerOnSite,
     shouldRecycleUnguardedSkCreep,
     SK_GUARD_DEPENDENT_ROLES,
     SK_UNGUARDED_RECYCLE_TICKS,

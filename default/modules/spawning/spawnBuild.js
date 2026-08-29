@@ -212,6 +212,8 @@ function reservationAllowed(room, waveStarted) {
 }
 
 const WAVE_FALLBACK_ROLES = new Set(['hauler', 'stationaryHarvester', 'shuttle']);
+const ENERGY_HOLD_ROLES = new Set(['SKAttacker']);
+const ENERGY_HOLD_FALLBACK = new Set(['stationaryHarvester', 'hauler', 'shuttle', 'defender']);
 
 function idleReserveCount(room, availableCount, owned, demand, busyWave, waitFor) {
     const cap = maxMilitaryReserve(owned, waitFor);
@@ -248,6 +250,7 @@ function spawnHeldByRenewer(spawn, room) {
 function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
     const {only, excludeKey, spawned, fallbackRoles} = opts;
     let waitingOnEnergy = false;
+    let holdForEnergy = false;
     for (let i = 0; i < queue.length; i++) {
         const item = queue[i];
         if (!item || !item.role || !item.body || !item.body.length) continue;
@@ -264,8 +267,16 @@ function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
                 waitingOnEnergy = true;
                 break;
             }
+            // SKAttacker is 4100. Skipping it for cheap remotes/drones is how an
+            // SK-only colony starves: workers spawn, kite keepers, produce nothing.
+            if (ENERGY_HOLD_ROLES.has(item.role)) {
+                holdForEnergy = true;
+                waitingOnEnergy = true;
+                continue;
+            }
             continue;
         }
+        if (holdForEnergy && !ENERGY_HOLD_FALLBACK.has(item.role)) continue;
         return {item, cost, waitingOnEnergy: false};
     }
     return {item: null, cost: 0, waitingOnEnergy};

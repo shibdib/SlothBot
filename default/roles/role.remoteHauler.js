@@ -4,7 +4,7 @@
 
 const profiler = require("tools.profiler");
 const {getRemoteHarvesterForSource} = require('spawnCounts');
-const {getMiningRouteRooms} = require('remoteMining');
+const {getMiningRouteRooms, hasSkAttackerOnSite, skGuardRoom} = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
 
 class RoleRemoteHauler {
@@ -29,6 +29,19 @@ class RoleRemoteHauler {
 
     housekeeping() {
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
+        if (!this.store.getUsedCapacity()) {
+            const remoteRoom = this.memory.other && this.memory.other.remoteRoom;
+            const guard = (this.memory.other && this.memory.other.skRoom)
+                || (remoteRoom && skGuardRoom(this.memory.colony, remoteRoom));
+            if (guard && !hasSkAttackerOnSite(guard)) {
+                if (this.room.name === remoteRoom || this.room.name === guard) {
+                    this.creep.fleeHome(true);
+                    return true;
+                }
+                this.creep.idleFor(10);
+                return true;
+            }
+        }
         if (Game.time % 50 === 0 && safemodeGeneration(this.creep)) return true;
         // Recycle if the assigned remote is no longer viable (destination is the colony, not the remote).
         const remoteRoom = this.memory.other && this.memory.other.remoteRoom;
