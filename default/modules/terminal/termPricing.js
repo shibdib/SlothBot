@@ -10,7 +10,13 @@
 
 
 const state = require('termState');
-const {selectMarketHub, shouldProcureResource, isMarketProcureResource} = require('termMarket');
+const {
+    selectMarketHub,
+    shouldProcureResource,
+    isMarketProcureResource,
+    isCompressedBar,
+    maxBarBuyPrice
+} = require('termMarket');
 const FactoryControl = require('module.factoryController');
 
 const TerminalControl = require('termClass');
@@ -131,7 +137,7 @@ Object.assign(TerminalControl.prototype, {
         }
     },
 
-    orderCleanup(myOrders) {
+    orderCleanup(myOrders, globalOrders) {
         // Ensure myOrders is an object and contains valid order data
         if (typeof myOrders !== 'object' || Object.keys(myOrders).length === 0) {
             return;
@@ -197,6 +203,23 @@ Object.assign(TerminalControl.prototype, {
                     this.cancelOrder(order, 'No longer procuring this resource');
                     cancelled.add(order.id);
                     continue;
+                }
+                if (isCompressedBar(order.resourceType)) {
+                    const cap = maxBarBuyPrice(order.resourceType, globalOrders);
+                    if (!(cap > 0)) {
+                        this.cancelOrder(order, 'Cannot value bar vs raw mineral');
+                        cancelled.add(order.id);
+                        continue;
+                    }
+                    if (order.price >= cap) {
+                        const capped = cap * 0.99;
+                        if (capped > 0) Game.market.changeOrderPrice(order.id, capped);
+                        else {
+                            this.cancelOrder(order, 'Bar buy not cheaper than raw mineral');
+                            cancelled.add(order.id);
+                            continue;
+                        }
+                    }
                 }
             }
 

@@ -11,7 +11,13 @@
 
 const {getEffectiveSupply} = require('termNetwork');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
-const {getInboundPlannedAmount, getEmpireBuyCandidates, shouldProcureResource} = require('termMarket');
+const {
+    getInboundPlannedAmount,
+    getEmpireBuyCandidates,
+    shouldProcureResource,
+    isCompressedBar,
+    maxBarBuyPrice
+} = require('termMarket');
 const {hasRoomOrder, recordCreatedOrder} = require('termCache');
 const {empireHasSpareBoostType} = require('termKeep');
 const FactoryControl = require('module.factoryController');
@@ -211,7 +217,13 @@ Object.assign(TerminalControl.prototype, {
                     : 50000;
             const mineralOrderAge = activeBuyOrder ? Game.time - activeBuyOrder.created : 0;
             const ageMult = Math.min(1.0, baseMult + (mineralOrderAge / escalationTicks) * (1.0 - baseMult));
-            const targetPrice = avgPrice * ageMult;
+            let targetPrice = avgPrice * ageMult;
+            const barCap = isCompressedBar(mineral) ? maxBarBuyPrice(mineral, globalOrders) : 0;
+            if (isCompressedBar(mineral)) {
+                if (!(barCap > 0)) continue;
+                targetPrice = Math.min(targetPrice, barCap * 0.99);
+                if (!(targetPrice < barCap)) continue;
+            }
             if (!activeBuyOrder) {
                 buyAmount = Math.min(buyAmount, REACTION_AMOUNT);
                 if (createBuyOrder(mineral, targetPrice, buyAmount)) break;
@@ -224,7 +236,9 @@ Object.assign(TerminalControl.prototype, {
             if (isLabNeed && adjustedStored < 500) acceptableMarkup *= 1.5;
 
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
-                order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName) && order.price <= latestMarketHistory(mineral).avg * acceptableMarkup), 'price');
+                order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)
+                && (!barCap || order.price < barCap)
+                && order.price <= latestMarketHistory(mineral).avg * acceptableMarkup), 'price');
             if (sellOrder && sellOrder.id) {
                 if (sellOrder.remainingAmount < buyAmount) buyAmount = Math.min(buyAmount, sellOrder.remainingAmount);
                 if (sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);

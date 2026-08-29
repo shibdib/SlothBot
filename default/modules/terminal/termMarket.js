@@ -124,6 +124,64 @@ function getSourceMineral(resource) {
     return null;
 }
 
+function historyAvgPrice(resource) {
+    if (typeof latestMarketHistory !== 'function') return 0;
+    const avg = parseFloat(latestMarketHistory(resource).avg);
+    return avg > 0 ? avg : 0;
+}
+
+function cheapestSellPrice(resource, globalOrders, minAmount = 50) {
+    if (!globalOrders) return 0;
+    let best = 0;
+    for (let i = 0; i < globalOrders.length; i++) {
+        const order = globalOrders[i];
+        if (!order || order.resourceType !== resource || order.type !== ORDER_SELL) continue;
+        if ((order.remainingAmount || order.amount || 0) < minAmount) continue;
+        if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS.includes(order.roomName)) continue;
+        if (!best || order.price < best) best = order.price;
+    }
+    return best;
+}
+
+function rawRefPrice(resource, globalOrders) {
+    const hist = historyAvgPrice(resource);
+    const live = cheapestSellPrice(resource, globalOrders);
+    if (hist && live) return Math.min(hist, live);
+    return live || hist || 0;
+}
+
+function getBarRecipe(resource) {
+    if (!isCompressedBar(resource) || typeof COMMODITIES === 'undefined') return null;
+    const def = COMMODITIES[resource];
+    const source = getSourceMineral(resource);
+    if (!def || !def.amount || !source || !def.components) return null;
+    const mineralIn = def.components[source];
+    if (!mineralIn) return null;
+    return {source, ratio: mineralIn / def.amount};
+}
+
+/**
+ * Ceiling for a bar buy. Mineral content only: 500 raw + 200 energy → 100 bar,
+ * so 1 bar unit ≡ `ratio` raw (usually 5).
+ *
+ * Compress energy is left out on purpose. Cheap energy means buy raw and
+ * compress; overpriced energy would inflate this cap and we would overpay
+ * for bars. Either way, if raw is cheaper, do not buy bars.
+ */
+function maxBarBuyPrice(bar, globalOrders) {
+    const recipe = getBarRecipe(bar);
+    if (!recipe) return 0;
+    const mineralPrice = rawRefPrice(recipe.source, globalOrders);
+    if (!(mineralPrice > 0)) return 0;
+    return recipe.ratio * mineralPrice;
+}
+
+function barPriceBeatsRaw(bar, barPrice, globalOrders) {
+    if (!(barPrice > 0)) return false;
+    const cap = maxBarBuyPrice(bar, globalOrders);
+    return cap > 0 && barPrice < cap;
+}
+
 function isActivelyMiningMineral(mineralType) {
     if (!mineralType || typeof MY_ROOMS === 'undefined') return false;
     for (const name of MY_ROOMS) {
@@ -231,7 +289,7 @@ function runHousekeeping(ctrl, globalOrders, myOrders) {
     if (!state.lastRun['updates'] || state.lastRun['updates'] + 50 < Game.time) {
         ctrl.updateSpendingMoney();
         ctrl.pricingUpdate(globalOrders, myOrders);
-        ctrl.orderCleanup(myOrders);
+        ctrl.orderCleanup(myOrders, globalOrders);
         const {pruneTerminalCaches} = require('termCache');
         pruneTerminalCaches();
         if (['shard0', 'shard1', 'shard2', 'shard3', 'shardX'].includes(Game.shard.name) && SELL_PIXELS) {
@@ -288,6 +346,8 @@ module.exports = {
     isActivelyMiningMineral,
     isCompressedBar,
     getSourceMineral,
+    maxBarBuyPrice,
+    barPriceBeatsRaw,
     EXTREME_SHORTAGE_RATIO,
     runHousekeeping,
     runActiveMarket,

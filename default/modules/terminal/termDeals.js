@@ -11,7 +11,7 @@
 
 const {canEmpireSell} = require('termNetwork');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
-const {shouldProcureResource} = require('termMarket');
+const {shouldProcureResource, isCompressedBar, barPriceBeatsRaw} = require('termMarket');
 
 const TerminalControl = require('termClass');
 
@@ -68,6 +68,7 @@ Object.assign(TerminalControl.prototype, {
                 }
             } else {
                 if (!shouldProcureResource(mineral)) continue;
+                if (isCompressedBar(mineral) && !barPriceBeatsRaw(mineral, lowestSell.price, globalOrders)) continue;
 
                 const buyTxCost = Game.market.calcTransactionCost(amount, terminal.room.name, lowestSell.roomName);
                 if (!canAffordSend(buyTxCost)) continue;
@@ -103,6 +104,8 @@ Object.assign(TerminalControl.prototype, {
                     let costB = Game.market.calcTransactionCost(100, terminal.room.name, b.roomName) * energyPrice / 100;
                     return (a.price + costA) - (b.price + costB);
                 })[0];
+
+                if (isCompressedBar(mineral) && !barPriceBeatsRaw(mineral, bestDeal.price, globalOrders)) continue;
 
                 let buyAmount = Math.min(bestDeal.remainingAmount, 1000);
                 let cost = (bestDeal.price * buyAmount);
