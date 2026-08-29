@@ -28,10 +28,10 @@ function maxRemoteHarvesters(room) {
     const assigned = (ROOM_REMOTE_TARGETS[room.name] || []).length;
     const fromSpare = Math.max(0, Math.floor(spareIncome / 15));
     const hasCenter = (ROOM_REMOTE_TARGETS[room.name] || []).some(s => remoteMining.isSectorCenterRoomName(s.room));
-    // Cover assigned sources up to 4 before spare income alone would allow it.
-    // SK + sector-center is 6 keeper-yield sources; raise the floor/cap so they get staffed.
+    // RCL7+ can hold 4 rooms × 2 sources (or SK + center). Cap 5 left assigned
+    // sources idle while the room was still net-negative.
     const assignedFloor = hasCenter ? Math.min(assigned, 7) : Math.min(assigned, 4);
-    const cap = hasCenter ? 8 : 5;
+    const cap = 8;
     const energyState = spawnEnergyState(room) || 0;
     // Below surplus (or already bleeding) staff every assigned source so harvest can recover.
     const needIncome = energyState < 3 || flowStressed || spareIncome < 0;
@@ -406,12 +406,10 @@ function handleReservation(room, remoteName) {
     if (!getCreepCount(undefined, 'remoteHarvester', remoteName)
         && !countQueuedRole(room.name, 'remoteHarvester', remoteName)) return;
 
-    // One reserver per remote. queueCreepIfNeeded replaces when the incumbent is
-    // within claim-lifetime lead time. Do not wait for reservation to decay —
-    // CLAIM creeps live CREEP_CLAIM_LIFE_TIME (600), not CREEP_LIFE_TIME (1500).
-    const reserverPriority = spawnEnergyState(room) < 2 || room.level < 7
-        ? PRIORITIES.reserver + 3
-        : PRIORITIES.reserver;
+    // Reservation doubles source regen (1500 → 3000). Deprioritizing CLAIM when
+    // lean delayed that doubling and kept poor rooms poor.
+    const reserved = INTEL[remoteName] && INTEL[remoteName].reservation === MY_USERNAME;
+    const reserverPriority = reserved ? PRIORITIES.reserver : PRIORITIES.remoteHarvester;
     queueCreepIfNeeded({
         room,
         role: 'reserver',
@@ -660,7 +658,6 @@ function handleRemoteHaulers(room) {
         const keeperYield = remoteMining.isKeeperYieldRoom(dest) || !!(destIntel && destIntel.sk);
         let maxHaulers = room.memory.remotePenalty ? 1
             : keeperYield ? 3 : 2;
-        if (room.level >= 7 && !keeperYield) maxHaulers = 1;
         if (shouldDeprioritizeRemotes(room)) maxHaulers = Math.min(maxHaulers, 2);
         const minCarryPerHauler = room.level >= 7 ? (onRoads ? 12 : 8) : Math.max(2, room.level * 2);
         const count = Math.min(maxHaulers, Math.max(1,
@@ -705,19 +702,17 @@ function shouldSkipRemote(room, remoteName) {
     if (isSkRoom(remoteName) && !skMiningAllowed(room)) return true;
     if (isSkRoom(remoteName) && !remoteMining.isAllowedSkRoom(room.name, remoteName)) return true;
     if (isSkRoom(remoteName)) return skTowersOrCombatBlock(remoteName);
-    if (INTEL[remoteName].threatLevel > 1) return true;
     if (remoteMining.isSectorCenterRoomName(remoteName)) {
         if (!skMiningAllowed(room) || !remoteMining.isSectorCenterAddOn(room.name, remoteName)) return true;
         if (INTEL[remoteName].owner || INTEL[remoteName].obstacles) return true;
-        if (INTEL[remoteName].roomHeat > 250) return true;
         if (!INTEL[remoteName].sources) return true;
+        if (remoteMining.remoteCombatBlocksMining(remoteName)) return true;
         return skTowersOrCombatBlock(remoteMining.getSectorCenterSkParent(room.name, remoteName) || remoteName);
     }
     if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
     if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
-    if (INTEL[remoteName].roomHeat > 250) return true;
     if (INTEL[remoteName].obstacles) return true;
-    return false;
+    return remoteMining.remoteCombatBlocksMining(remoteName);
 }
 
 function handleInvaderCore(room, remoteName) {

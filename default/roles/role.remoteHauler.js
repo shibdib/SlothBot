@@ -4,7 +4,7 @@
 
 const profiler = require("tools.profiler");
 const {getRemoteHarvesterForSource} = require('spawnCounts');
-const {getMiningRouteRooms, hasSkAttackerOnSite, skGuardRoom} = require('remoteMining');
+const {getMiningRouteRooms, hasSkAttackerOnSite, skGuardRoom, remoteCombatBlocksMining} = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
 
 class RoleRemoteHauler {
@@ -48,7 +48,7 @@ class RoleRemoteHauler {
         if (Game.time % 30 === 0 && remoteRoom && INTEL[remoteRoom]) {
             const intel = INTEL[remoteRoom];
             const hostile = intel.level || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader');
-            const blocked = intel.threatLevel > 1 || intel.roomHeat > 250 || intel.obstacles;
+            const blocked = intel.obstacles || remoteCombatBlocksMining(remoteRoom);
             const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(remoteRoom);
             if (hostile || blocked || dropped || !intel.sources) return this.creep.recycleCreep();
         }
@@ -137,10 +137,10 @@ class RoleRemoteHauler {
                 this.memory.energyDestination = container.id;
                 return this.creep.withdrawResource();
             }
-            if (this.creep.pos.getRangeTo(container) <= 3) {
-                return this.creep.idleFor(5);
+            if (this.creep.pos.getRangeTo(container) <= 1) {
+                return this.creep.idleFor(3);
             }
-            return this.creep.shibMove(container, {range: 3});
+            return this.creep.shibMove(container, {range: 1});
         }
 
         if (harvester) {

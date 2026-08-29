@@ -4,7 +4,13 @@
 
 const profiler = require("tools.profiler");
 const {routeHasBuiltRoads} = require('bodyHelpers');
-const {effectiveHaulScore, getMiningRouteRooms, hasSkAttackerOnSite, skGuardRoom} = require('remoteMining');
+const {
+    effectiveHaulScore,
+    getMiningRouteRooms,
+    hasSkAttackerOnSite,
+    skGuardRoom,
+    remoteCombatBlocksMining
+} = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
 const {canPlaceConstructionSite, tryCreateConstructionSite, findBestContainerPos} = require('planUtils');
 
@@ -106,7 +112,7 @@ class RoleRemoteHarvester {
             const intel = INTEL[this.creep.memory.destination];
             const colony = Game.rooms[this.creep.memory.colony];
             const hostile = intel.level || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader');
-            const blocked = intel.threatLevel > 1 || intel.roomHeat > 250 || intel.obstacles;
+            const blocked = intel.obstacles || remoteCombatBlocksMining(this.creep.memory.destination);
             const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(this.creep.memory.destination);
             const destIsSk = intel.sk || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.creep.memory.destination));
             const destIsCenter = global.isSectorCenterRoomName && global.isSectorCenterRoomName(this.creep.memory.destination);
@@ -117,9 +123,12 @@ class RoleRemoteHarvester {
             }
         }
 
-        if (Game.time % 50 === 0 && this.creep.memory.other && this.creep.memory.other.source) {
-            const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
-            if (sourceInfo) updateHaulingRequired(this.creep, sourceInfo, true);
+        if (this.creep.memory.other && this.creep.memory.other.source) {
+            const needInit = !this.creep.memory.other.haulingRequired;
+            if (needInit || Game.time % 50 === 0) {
+                const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
+                if (sourceInfo) updateHaulingRequired(this.creep, sourceInfo, !needInit);
+            }
         }
 
         // Periodically check the container
@@ -170,8 +179,7 @@ class RoleRemoteHarvester {
                 const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
                 if (sourceInfo) updateHaulingRequired(this.creep, sourceInfo);
             } else if (this.container && this.container.store && !this.container.store.getFreeCapacity(RESOURCE_ENERGY)) {
-                this.creep.repair(this.container);
-                this.creep.idleFor(10);
+                if (this.container.hits < this.container.hitsMax) this.creep.repair(this.container);
             }
         } else if (result === ERR_NOT_IN_RANGE) {
             this.creep.shibMove(this.source);
@@ -243,7 +251,6 @@ class RoleRemoteHarvester {
 function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     const roadsBuilt = routeHasBuiltRoads(creep.memory.colony, creep.memory.destination);
     const colony = Game.rooms[creep.memory.colony];
-    const linkFed = !!(colony && colony.links && colony.links.length >= 2);
     const haulScore = effectiveHaulScore(creep.memory.colony, creep.memory.destination, sourceInfo.score);
     const power = creep.getActiveBodyparts(WORK) * HARVEST_POWER;
     const destIntel = INTEL[creep.memory.destination];
@@ -254,10 +261,10 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     const sourceCap = keeperYield ? SOURCE_ENERGY_KEEPER_CAPACITY
         : (reserved || willReserve ? SOURCE_ENERGY_CAPACITY : SOURCE_ENERGY_NEUTRAL_CAPACITY);
     if (onlyIfChanged && creep.memory.other.haulingRequired
+        && creep.memory.other.haulingLinkFed === undefined
         && creep.memory.other.haulingScore === sourceInfo.score
         && creep.memory.other.haulingEffectiveScore === haulScore
         && creep.memory.other.haulingRoads === roadsBuilt
-        && creep.memory.other.haulingLinkFed === linkFed
         && creep.memory.other.haulingSourceCap === sourceCap
         && creep.memory.other.haulingPower === power) {
         return;
@@ -267,15 +274,15 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     creep.memory.other.haulingScore = sourceInfo.score;
     creep.memory.other.haulingEffectiveScore = haulScore;
     creep.memory.other.haulingRoads = roadsBuilt;
-    creep.memory.other.haulingLinkFed = linkFed;
     creep.memory.other.haulingSourceCap = sourceCap;
     creep.memory.other.haulingPower = power;
     creep.memory.other.harvestRate = actualRate;
+    delete creep.memory.other.haulingLinkFed;
     // Total carry capacity (energy units) to clear one round-trip backlog. score ≈ one-way
     // path cost; round trip ≈ 2×score ticks of production at actualRate.
+    // Hub+controller links do not shrink remote haul; exit-link dumps are opportunistic.
     const roundTripBuffer = roadsBuilt ? 1.25 : 1.4;
-    const linkScale = linkFed ? 0.55 : 1;
-    creep.memory.other.haulingRequired = actualRate * haulScore * 2 * roundTripBuffer * linkScale;
+    creep.memory.other.haulingRequired = actualRate * haulScore * 2 * roundTripBuffer;
 }
 
 function harvestDepositContainer(source, creep) {

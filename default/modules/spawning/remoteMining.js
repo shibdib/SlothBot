@@ -720,6 +720,14 @@ function intelObservationTick(intel) {
     return Math.max(intel.lastObservation || 0, intel.cached || 0, intel.microUpdate || 0);
 }
 
+function visionHasArmedHostiles(room) {
+    return room.hostileCreeps.some(c => {
+        const owner = c.owner && c.owner.username;
+        if (!owner || owner === 'Source Keeper') return false;
+        return c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK);
+    });
+}
+
 /**
  * Live combat/stronghold that should pause SK mining. Stale threatLevel from a
  * previous invader wave must not drop the assignment forever once we have no vision.
@@ -730,15 +738,31 @@ function skCombatBlocksMining(remoteName) {
     const vis = Game.rooms[remoteName];
     if (vis) {
         if (vis.structures.some(s => s.structureType === STRUCTURE_TOWER && !s.my)) return true;
-        return vis.hostileCreeps.some(c => {
-            const owner = c.owner && c.owner.username;
-            if (!owner || owner === 'Source Keeper') return false;
-            return c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK);
-        });
+        return visionHasArmedHostiles(vis);
     }
     if (intel.invaderCore && intel.invaderCore > Game.time) return true;
     if (intel.invaderTTL && intel.invaderTTL > Game.time) return true;
     if (intel.threatLevel > 1 && intelObservationTick(intel) + 300 > Game.time) return true;
+    return false;
+}
+
+/**
+ * Live combat that should pause regular remote harvest. Same freshness rules as SK:
+ * a past invader wave must not freeze the remote after vision (and threatLevel) goes stale.
+ */
+function remoteCombatBlocksMining(remoteName) {
+    const intel = INTEL[remoteName];
+    if (!intel) return false;
+    const vis = Game.rooms[remoteName];
+    if (vis) {
+        if (vis.structures.some(s => s.structureType === STRUCTURE_TOWER && !s.my)) return true;
+        if (vis.structures.some(s => s.structureType === STRUCTURE_INVADER_CORE)) return true;
+        return visionHasArmedHostiles(vis);
+    }
+    if (intel.invaderCore && intel.invaderCore > Game.time) return true;
+    if (intel.invaderTTL && intel.invaderTTL > Game.time) return true;
+    if (intel.threatLevel > 1 && intelObservationTick(intel) + 300 > Game.time) return true;
+    if (intel.roomHeat > 250 && intelObservationTick(intel) + CREEP_LIFE_TIME > Game.time) return true;
     return false;
 }
 
@@ -758,10 +782,10 @@ function shouldSkipRemotePrune(colonyRoom, remoteName) {
         if (skCombatBlocksMining(remoteName)) return true;
         return false;
     }
-    if (INTEL[remoteName].threatLevel > 1) return true;
+    // Transient combat pauses spawn (shouldSkipRemote) but must not drop the
+    // assignment — restaffing after every invader wave is an income hole.
     if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
     if (INTEL[remoteName].reservation && ![MY_USERNAME, 'Invader'].includes(INTEL[remoteName].reservation)) return true;
-    if (INTEL[remoteName].roomHeat > 250) return true;
     if (INTEL[remoteName].obstacles) return true;
     return false;
 }
@@ -1258,6 +1282,7 @@ module.exports = {
     isBlockedRemoteCandidate,
     isSkRoomName,
     skCombatBlocksMining,
+    remoteCombatBlocksMining,
     isAllowedSkRoom,
     getColonySkRooms,
     getColonySkGuardRooms,
