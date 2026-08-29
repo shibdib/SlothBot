@@ -1226,6 +1226,7 @@ function waveBoostMates(creep) {
         if (role !== 'longbowSquad' && role !== 'longbow'
             && old !== 'longbowSquad' && old !== 'longbow') continue;
         if (c.memory.misc && c.memory.misc.sealed) continue;
+        if (c.memory.recycling) continue;
         if (c.memory.boostAttempt) boosted++;
         else names.push(c.name);
     }
@@ -1413,11 +1414,9 @@ function getEntryLab(creep, entryKey, boostNeeded) {
 //   2. a ready lab no squadmate picked this tick (4 boosts × 4 bodies in parallel),
 //   3. waitFor waves: a ready lab another mate is already on (dump that type
 //      for the whole quad instead of camping an empty lab),
-//   4. waitFor waves: spread across claimed-but-empty labs so each body waits
-//      in range of a different boost,
-//   5. a claimed but not-ready lab (solos wait in place for labtech),
-//   6. a ready lab another creep already took (solo last resort),
-//   7. an unclaimed entry.
+//   4. a claimed but not-ready lab (wait in place for labtech),
+//   5. a ready lab another creep already took (solo last resort),
+//   6. an unclaimed entry.
 // Without this, a non-ready first entry would block ready later ones —
 // killing the whole point of parallel claims.
 let boostLabTick = -1;
@@ -1457,14 +1456,9 @@ function pickActiveEntry(creep) {
     }
     let pick;
     if (isWaitForWave(creep)) {
-        if (readyFree.length) pick = readyFree[0];
-        else if (readyTaken.length) pick = readyTaken[0];
-        else if (claimed.length) {
-            let h = 0;
-            const n = creep.name;
-            for (let i = 0; i < n.length; i++) h = (h + n.charCodeAt(i)) | 0;
-            pick = claimed[((h % claimed.length) + claimed.length) % claimed.length];
-        } else pick = firstUnclaimed || Object.keys(requested)[0];
+        // Stack on a ready lab (even if a mate is already on it) instead of
+        // hashing across empty labs. Optional boosts only move when ready.
+        pick = readyFree[0] || readyTaken[0] || firstClaimed || firstUnclaimed || Object.keys(requested)[0];
     } else {
         pick = readyFree[0] || firstClaimed || readyTaken[0] || firstUnclaimed || Object.keys(requested)[0];
     }
@@ -1625,8 +1619,8 @@ function ensureWaveBoostLab(creep, boostNeeded, amountNeeded, names, excludeIds)
 }
 
 // True when another same-wave body is spawning, still queued, or walking in
-// to formColony (assignment steal). Do not seal a 3-body pad while the 4th
-// is on the highway.
+// to formColony (assignment steal). holdForWave must not recycle/commit
+// short while this is true.
 Creep.prototype.waveStillIncoming = function () {
     const waitFor = this.memory.misc && this.memory.misc.waitFor;
     if (!(waitFor > 1)) return false;
@@ -1639,6 +1633,7 @@ Creep.prototype.waveStillIncoming = function () {
         if (!c.my || !c.memory || c.id === this.id) continue;
         if ((c.memory.destination || '') !== dest) continue;
         if ((c.memory.operation || '') !== op) continue;
+        if (c.memory.recycling) continue;
         if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) continue;
         if (((c.memory.misc && c.memory.misc.waitFor) || 0) !== waitFor) continue;
         const role = c.memory.role || '';
@@ -1698,6 +1693,9 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
     if (this.memory.boostAttempt) return false;
 
     if (this.ticksToLive < BOOST_TTL_FLOOR) {
+        // WaitFor waves must not stamp boostAttempt here — that permanently
+        // skips labs, then holdForWave stall-recycles the whole quad.
+        if (isWaitForWave(this)) return false;
         finishBoosting(this);
         this.memory.needsRenewal = undefined;
         return false;

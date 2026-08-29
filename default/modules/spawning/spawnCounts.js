@@ -6,7 +6,6 @@ const generator = require('module.bodyGenerator');
 
 const CREEP_COUNT_CACHE = {counts: {}, tick: 0, harvesterBySource: {}};
 const SQUAD_STAT_CACHE = {tick: 0, stats: {}};
-const FORMING_CAP_IDS = {tick: 0, ids: null};
 
 function getWaitForSquadStats(creep) {
     if (SQUAD_STAT_CACHE.tick !== Game.time) {
@@ -40,113 +39,15 @@ function waitForReplacementLeadTime(creep, waitFor) {
     return 3 * bodyLen * spawnWaves + distance + 80;
 }
 
-function formingWaveGroupKey(creep) {
-    const role = creep.memory.oldRole || creep.memory.role || '';
-    const dest = creep.memory.destination || '';
-    const op = creep.memory.operation || '';
-    const waitFor = (creep.memory.misc && creep.memory.misc.waitFor) || 0;
-    return `${role}|${dest}|${op}|${waitFor}`;
-}
-
-function formingSquadId(creep) {
-    if (creep.memory.leader) return creep.id;
-    if (creep.memory.groupLeader) return creep.memory.groupLeader;
-    return '';
-}
-
-function pickLargestFormingSquad(squads) {
-    let bestId = '';
-    let bestSize = 0;
-    let bestName = '';
-    for (const sid in squads) {
-        const members = squads[sid];
-        const size = members.length;
-        const leader = Game.getObjectById(sid);
-        const name = (leader && leader.name) || (members[0] && members[0].name) || sid;
-        if (size > bestSize || (size === bestSize && name < bestName)) {
-            bestSize = size;
-            bestId = sid;
-            bestName = name;
-        }
-    }
-    return {bestId, bestSize};
-}
-
-// Uncommitted waitFor waves contribute the largest incomplete squad plus
-// ungrouped joiners, not every split pair. Two pairs of 2 for waitFor 4
-// used to fill the cap and freeze both on the pad. Extra pairs count only
-// after one fill attempt (total live >= waitFor + missing slots).
-function buildFormingCapIds(allCreeps) {
-    const groups = {};
-    for (let i = 0; i < allCreeps.length; i++) {
-        const creep = allCreeps[i];
-        if (!creep.my || !creep.memory) continue;
-        const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
-        if (!(waitFor > 1)) continue;
-        if (creep.memory.initialFormUp || (creep.memory.misc && creep.memory.misc.sealed)) continue;
-
-        const key = formingWaveGroupKey(creep);
-        let g = groups[key];
-        if (!g) {
-            g = {waitFor, squads: {}, ungrouped: []};
-            groups[key] = g;
-        }
-        const sid = formingSquadId(creep);
-        if (!sid) g.ungrouped.push(creep);
-        else {
-            if (!g.squads[sid]) g.squads[sid] = [];
-            g.squads[sid].push(creep);
-        }
-    }
-
-    const ids = new Set();
-    for (const key in groups) {
-        const g = groups[key];
-        const {bestId, bestSize} = pickLargestFormingSquad(g.squads);
-        let counted = 0;
-        const largest = bestId && g.squads[bestId];
-        if (largest) {
-            for (let i = 0; i < largest.length; i++) {
-                ids.add(largest[i].id);
-                counted++;
-            }
-        }
-        for (let i = 0; i < g.ungrouped.length; i++) {
-            if (counted >= g.waitFor) break;
-            ids.add(g.ungrouped[i].id);
-            counted++;
-        }
-
-        let totalLive = g.ungrouped.length;
-        for (const sid in g.squads) totalLive += g.squads[sid].length;
-        const fillAttempted = totalLive >= g.waitFor + Math.max(0, g.waitFor - bestSize);
-        if (fillAttempted && counted < g.waitFor) {
-            for (const sid in g.squads) {
-                if (sid === bestId) continue;
-                const members = g.squads[sid];
-                for (let i = 0; i < members.length; i++) {
-                    if (counted >= g.waitFor) break;
-                    ids.add(members[i].id);
-                    counted++;
-                }
-                if (counted >= g.waitFor) break;
-            }
-        }
-    }
-    return ids;
-}
-
-// Forming waitFor: largest incomplete squad (+ joiners), not every body.
+// Uncommitted waitFor bodies all count so remaining = waitFor - live.
+// Hiding split pairs used to queue extras that bound into a 5–6 body blob.
 // Committed: fill the cap only while at committedSize and outside replacement
 // lead time; remnants and dying waves drop out so a new group can form at home.
 function waitForSquadCountsTowardCap(creep) {
+    if (creep.memory.recycling) return false;
     const misc = creep.memory.misc || {};
     const committed = !!(misc.sealed || creep.memory.initialFormUp);
-    if (!committed) {
-        if (!(misc.waitFor > 1)) return true;
-        if (FORMING_CAP_IDS.tick !== Game.time || !FORMING_CAP_IDS.ids) return true;
-        return FORMING_CAP_IDS.ids.has(creep.id);
-    }
+    if (!committed) return true;
     const fullSize = misc.committedSize;
     if (!fullSize) return false;
     const stats = getWaitForSquadStats(creep);
@@ -162,8 +63,6 @@ function updateCreepCountCache() {
     const counts = {};
     const harvesterBySource = {};
     const allCreeps = Object.values(Game.creeps);
-    FORMING_CAP_IDS.tick = currentTick;
-    FORMING_CAP_IDS.ids = buildFormingCapIds(allCreeps);
 
     for (const creep of allCreeps) {
         if (!creep.my) continue;
@@ -317,7 +216,6 @@ function haulerCarryCapacity(creep) {
 
 function invalidateCreepCountCache() {
     CREEP_COUNT_CACHE.tick = 0;
-    FORMING_CAP_IDS.tick = 0;
     SQUAD_STAT_CACHE.tick = 0;
 }
 

@@ -1020,8 +1020,12 @@ function ungroupCreep(creep) {
 }
 
 Creep.prototype.ungroupFromSquad = function () {
+    const waitFor = this.memory.misc && this.memory.misc.waitFor;
+    const forming = waitFor > 1 && !isCommittedSquad(this);
     ungroupCreep(this);
-    if (this.releaseBoostLabs) this.releaseBoostLabs();
+    // Forming waitFor waves share pooled labs. Releasing here dropped
+    // reservations whenever bindWaveHere reshuffled membership.
+    if (!forming && this.releaseBoostLabs) this.releaseBoostLabs();
 };
 
 function formingAtHome(creep) {
@@ -1171,6 +1175,10 @@ function tryMergePartialSquads(leader) {
 
 Creep.prototype.formSquad = function () {
     if (this.spawning) return;
+    const waitFor = this.memory.misc && this.memory.misc.waitFor;
+    // Uncommitted waitFor waves are bound at formColony by bindWaveHere.
+    // Opportunistic pairing here created two duos that never merged.
+    if (waitFor > 1 && !isCommittedSquad(this)) return;
     if (this.memory.leader) disbandEmptyLeader(this);
     if (!this.memory.grouped) findGroup(this);
     else if (this.memory.leader) tryMergePartialSquads(this);

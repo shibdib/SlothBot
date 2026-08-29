@@ -123,6 +123,7 @@ function waveBodiesNeedingBoost(creepInfo, resource) {
         // Sealed bodies already left home. Counting them made a replacement
         // waitFor-4 look fully covered while the labs were empty.
         if (c.memory.misc && c.memory.misc.sealed) continue;
+        if (c.memory.recycling) continue;
         // Live unboosted bodies already spawned. Requiring stock for the full
         // waitFor (4x) to pop the last body failed "Missing required boosts"
         // and unassigned the room with 3/4 sitting on the pad.
@@ -398,6 +399,7 @@ function creepOpDest(c) {
 
 function isUncommittedWaitForCreep(c, target) {
     if (!c || !c.my || !c.memory) return false;
+    if (c.memory.recycling) return false;
     if (creepOpDest(c) !== target) return false;
     if (c.memory.initialFormUp || (c.memory.misc && c.memory.misc.sealed)) return false;
     return !!(c.memory.misc && c.memory.misc.waitFor > 1);
