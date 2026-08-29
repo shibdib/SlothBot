@@ -61,8 +61,7 @@ function recordSendCost(energyCost) {
 
 function recordMarketEnergyCost(roomName, energyCost) {
     if (!energyCost) return;
-    Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
-    Memory.terminalEnergyExpense[roomName] = (Memory.terminalEnergyExpense[roomName] || 0) + energyCost;
+    if (global.bumpEnergyExpense) global.bumpEnergyExpense('terminal', roomName, energyCost);
     recordSendCost(energyCost);
 }
 

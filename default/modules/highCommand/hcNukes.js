@@ -179,9 +179,7 @@ function executeNukeLaunch(launcher, intel, options = {}) {
     }
 
     if (nukeEnergySunk > 0) {
-        Memory.nukeEnergyExpense = Memory.nukeEnergyExpense || {};
-        const rn = launcher.room.name;
-        Memory.nukeEnergyExpense[rn] = (Memory.nukeEnergyExpense[rn] || 0) + nukeEnergySunk;
+        if (global.bumpEnergyExpense) global.bumpEnergyExpense('nuke', launcher.room.name, nukeEnergySunk);
     }
 
     intel.lastNuke = Game.time;

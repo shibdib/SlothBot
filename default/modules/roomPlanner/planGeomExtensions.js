@@ -359,17 +359,43 @@ function computeDynamicSpecialSlotTiles(room) {
     return candidates.slice(0, DYNAMIC_SPECIAL_STRUCTURES.length).map(c => ({x: c.x, y: c.y}));
 }
 
+function persistDynamicSpecialPacks(room, packed) {
+    try {
+        let plan = room.memory.plan;
+        if (!plan || !plan.layers) {
+            try {
+                plan = require('planDoc').ensurePlan(room, {resync: false});
+            } catch (e) { /* ignore */
+            }
+        }
+        if (!plan || !plan.layers) return;
+        if (!plan.layers.specials) {
+            plan.layers.specials = {packed: null, rev: 0, access: null, extra: null};
+        }
+        plan.layers.specials.packed = packed && packed.length ? packed.slice() : [];
+        plan.layers.specials.rev = EXTENSION_LAYOUT_VERSION;
+        plan.meta = plan.meta || {};
+        plan.meta.layoutVersions = plan.meta.layoutVersions || {};
+        plan.meta.layoutVersions.specials = EXTENSION_LAYOUT_VERSION;
+    } catch (e) { /* ignore */
+    }
+}
+
 function getDynamicSpecialSlotTiles(room) {
     if (!room.memory.dynamicLayout) return [];
+    const plan = room.memory.plan;
+    const specials = plan && plan.layers && plan.layers.specials;
+    if (specials && specials.packed && specials.packed.length
+        && specials.rev === EXTENSION_LAYOUT_VERSION) {
+        const tiles = unpackPackedTiles(specials.packed);
+        if (tiles.length >= DYNAMIC_SPECIAL_STRUCTURES.length) return tiles.slice(0, DYNAMIC_SPECIAL_STRUCTURES.length);
+    }
     if (room.memory.dynamicSpecialPacked && room.memory.dynamicSpecialVersion === EXTENSION_LAYOUT_VERSION) {
         const tiles = unpackPackedTiles(room.memory.dynamicSpecialPacked);
         if (tiles.length >= DYNAMIC_SPECIAL_STRUCTURES.length) return tiles.slice(0, DYNAMIC_SPECIAL_STRUCTURES.length);
     }
     const tiles = computeDynamicSpecialSlotTiles(room);
-    if (tiles.length) {
-        room.memory.dynamicSpecialPacked = packTiles(tiles);
-        room.memory.dynamicSpecialVersion = EXTENSION_LAYOUT_VERSION;
-    }
+    if (tiles.length) persistDynamicSpecialPacks(room, packTiles(tiles));
     return tiles;
 }
 
@@ -878,21 +904,13 @@ function resolveStoredDynamicPacks(room) {
 }
 
 /**
- * Dual-write generated packs to plan + legacy (C3).
+ * Persist generated packs to plan only.
  * @param {Room} room
  * @param {number[]} extPacked
  * @param {number[]} corrPacked
  * @param {object|null} access
  */
 function persistDynamicExtensionPacks(room, extPacked, corrPacked, access) {
-    room.memory.dynamicExtensionsPacked = extPacked;
-    room.memory.dynamicCorridorPacked = corrPacked;
-    room.memory.dynamicExtensionsVersion = EXTENSION_LAYOUT_VERSION;
-    if (access) {
-        room.memory.dynamicAccessOk = access.ok;
-        room.memory.dynamicAccessFailed = access.failed;
-        room.memory.dynamicAccessSkipped = access.skippedUnreachable;
-    }
     try {
         let plan = room.memory.plan;
         if (!plan || !plan.layers) {
@@ -945,26 +963,6 @@ function computeDynamicLayoutTiles(room) {
         if (!extensions.length && getExtensionDeficit(room) > 0) {
             clearDynamicExtensionPlanOnly(room);
         } else {
-            // Hydrate legacy keys once when plan was authority (cheap dual-read consumers).
-            if (stored.source === 'plan') {
-                if (room.memory.dynamicExtensionsVersion !== stored.version
-                    || !room.memory.dynamicExtensionsPacked) {
-                    room.memory.dynamicExtensionsPacked = stored.extPacked.slice
-                        ? stored.extPacked.slice()
-                        : stored.extPacked;
-                    room.memory.dynamicCorridorPacked = stored.corrPacked.slice
-                        ? stored.corrPacked.slice()
-                        : stored.corrPacked;
-                    room.memory.dynamicExtensionsVersion = stored.version;
-                    if (stored.access) {
-                        if (stored.access.ok != null) room.memory.dynamicAccessOk = stored.access.ok;
-                        if (stored.access.failed != null) room.memory.dynamicAccessFailed = stored.access.failed;
-                        if (stored.access.skippedUnreachable != null) {
-                            room.memory.dynamicAccessSkipped = stored.access.skippedUnreachable;
-                        }
-                    }
-                }
-            }
             const layout = {
                 extensions,
                 corridors: unpackPackedTiles(stored.corrPacked),
@@ -976,12 +974,12 @@ function computeDynamicLayoutTiles(room) {
             extensionPositionCache[room.name] = layout.extensions;
             return layout;
         }
-    } else if (room.memory.dynamicExtensionsPacked
-        || (room.memory.plan && room.memory.plan.layers
+    } else if ((room.memory.plan && room.memory.plan.layers
             && room.memory.plan.layers.extensions
             && room.memory.plan.layers.extensions.packed
-            && room.memory.plan.layers.extensions.packed.length)) {
-        // Stale wrong-version packs — wipe plan + legacy so we regenerate.
+            && room.memory.plan.layers.extensions.packed.length)
+        || room.memory.dynamicExtensionsPacked) {
+        // Stale wrong-version packs — wipe plan + leftover legacy so we regenerate.
         clearDynamicExtensionPlanOnly(room);
     }
 

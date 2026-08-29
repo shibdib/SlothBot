@@ -33,7 +33,7 @@ function harassRoomLevel() {
 }
 
 function roomStockpileRatio(room) {
-    const diag = room.memory.energyDiag;
+    const diag = room.energyDiag;
     if (!diag || !diag.stockTarget) return 0;
     return (diag.stockEnergy || 0) / diag.stockTarget;
 }
@@ -43,16 +43,16 @@ function roomHasCombatStockpile(room) {
 }
 
 function roomMilitaryFlowSpare(room) {
-    const ei = room.memory.energyInfo;
+    const ei = room.energyInfo;
     if (!ei) return 0;
     if (typeof ei.flowSpare === 'number') return ei.flowSpare;
-    const diag = room.memory.energyDiag;
+    const diag = room.energyDiag;
     const military = diag && diag.militarySpawnExpense || 0;
     return (ei.spareIncome || 0) + military;
 }
 
 function roomFlowStressed(room) {
-    const ei = room.memory.energyInfo;
+    const ei = room.energyInfo;
     if (!ei) return false;
     if ((room.energyState || 0) >= 2) return false;
     if (roomHasCombatStockpile(room)) return false;
@@ -73,11 +73,11 @@ function isLiveCombatReadyRaw(room) {
 }
 
 function applyStickyCombatReady(room, rawReady) {
-    if (!room.memory.readinessSticky) room.memory.readinessSticky = {};
-    const sticky = room.memory.readinessSticky;
+    const heap = global.roomHeap ? global.roomHeap(room.name) : room.memory;
+    if (!heap.readinessSticky) heap.readinessSticky = {};
+    const sticky = heap.readinessSticky;
     if (rawReady) {
-        // Refresh only when missing or near expiry — writing Game.time every tick
-        // dirties room.memory for every combat-ready room.
+        // Refresh only when missing or near expiry (heap — not serialized).
         if (!sticky.combatReady || !sticky.until || sticky.until < Game.time + 10) {
             sticky.combatReady = true;
             sticky.until = Game.time + STICKY_CR_TTL;
@@ -147,14 +147,14 @@ function getCombatReadyFailReason(room) {
 }
 
 function recordSiegeCancellation() {
-    if (!Memory._siegeCancelLog) Memory._siegeCancelLog = [];
-    Memory._siegeCancelLog.push(Game.time);
-    while (Memory._siegeCancelLog.length > 30) Memory._siegeCancelLog.shift();
+    if (!global.SIEGE_CANCEL_LOG) global.SIEGE_CANCEL_LOG = [];
+    global.SIEGE_CANCEL_LOG.push(Game.time);
+    while (global.SIEGE_CANCEL_LOG.length > 30) global.SIEGE_CANCEL_LOG.shift();
     invalidateReadinessCache();
 }
 
 function getSiegeLimitMultiplier() {
-    const log = Memory._siegeCancelLog || [];
+    const log = global.SIEGE_CANCEL_LOG || [];
     let recent = 0;
     const cutoff = Game.time - SIEGE_CANCEL_WINDOW;
     for (let i = log.length - 1; i >= 0; i--) {

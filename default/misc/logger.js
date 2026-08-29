@@ -74,8 +74,9 @@ class Log {
             this.cprint(custom + ' ' + message, this.LOGGING_LEVEL.ERROR, '#e59821');
         } else {
             this.cprint('ERROR: ' + message, this.LOGGING_LEVEL.ERROR, '#e59821');
-            if (!Memory.errorLogs) Memory.errorLogs = [];
-            Memory.errorLogs.push(message);
+            if (!global.ERROR_LOGS) global.ERROR_LOGS = [];
+            global.ERROR_LOGS.push(message);
+            if (global.ERROR_LOGS.length > 50) global.ERROR_LOGS = global.ERROR_LOGS.slice(-50);
         }
     }
 

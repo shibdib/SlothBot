@@ -76,7 +76,7 @@ module.exports.towerController = function (room) {
     }
 
     const cache = towerCache[cacheKey];
-    const energyInfo = room.memory.energyInfo;
+    const energyInfo = room.energyInfo;
     const trend = (energyInfo && energyInfo.trend) || 0;
     const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
     const repairAllowed = room.energyState >= 3

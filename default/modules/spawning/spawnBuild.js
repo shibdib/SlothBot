@@ -66,7 +66,7 @@ function updateRoomAndGlobalQueue(room, building) {
 }
 
 function renewNearbyCreepIfNeeded(room, availableSpawn) {
-    const renewInfo = room.memory.energyInfo;
+    const renewInfo = room.energyInfo;
     const renewTrend = (renewInfo && renewInfo.trend) || 0;
     // Harvesters are the base income engine for the room (link-fed sources). Renew them more
     // aggressively than other economy creeps even in marginal state 1, because extending a
@@ -90,9 +90,7 @@ function renewNearbyCreepIfNeeded(room, availableSpawn) {
             const after = availableSpawn.store[RESOURCE_ENERGY] || 0;
             const cost = before - after;
             if (cost > 0) {
-                Memory.renewalEnergyExpense = Memory.renewalEnergyExpense || {};
-                const rn = room.name;
-                Memory.renewalEnergyExpense[rn] = (Memory.renewalEnergyExpense[rn] || 0) + cost;
+                if (global.bumpEnergyExpense) global.bumpEnergyExpense('renewal', room.name, cost);
             }
         }
     }

@@ -224,7 +224,7 @@ function computeSortPriority(item, room) {
     }
     const waitForWave = isWaitForLongbowWave(item);
     if (item.destination && (Memory.targetRooms[item.destination] || Memory.auxiliaryTargets[item.destination])) {
-        const milInfo = room.memory.energyInfo;
+        const milInfo = room.energyInfo;
         const milTrend = (milInfo && milInfo.trend) || 0;
         const milSpare = (milInfo && milInfo.spareIncome) || 0;
         const flowReady = spawnEnergyState(room) >= 2 && milTrend >= 0 && milSpare >= 8;

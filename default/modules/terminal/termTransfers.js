@@ -450,7 +450,7 @@ function planEnergyTransfers(transfers, profiles) {
             if (!srcRoom?.terminal || !canUseTerminal(srcProfile.name)) continue;
             if (srcRoom.memory.dangerousAttack) continue;
             const srcState = srcRoom.energyState || 0;
-            const srcSpare = (srcRoom.memory.energyInfo && srcRoom.memory.energyInfo.spareIncome) || 0;
+            const srcSpare = (srcRoom.energyInfo && srcRoom.energyInfo.spareIncome) || 0;
             if (srcState < 3 && !(srcState >= 2 && srcSpare > 0)) continue;
 
             if (destRoom.factory && FactoryControl.roomNeedsBatteryInbound(destRoom) && srcRoom.terminal.store[RESOURCE_BATTERY]) {
@@ -937,9 +937,8 @@ function planTransfers(ledger) {
 function recordTransferEnergyCost(terminal, resource, amount, destRoom) {
     const txCost = Game.market.calcTransactionCost(amount, terminal.room.name, destRoom);
     const energyCost = (resource === RESOURCE_ENERGY ? amount : 0) + txCost;
-    Memory.terminalEnergyExpense = Memory.terminalEnergyExpense || {};
     const rn = terminal.room.name;
-    Memory.terminalEnergyExpense[rn] = (Memory.terminalEnergyExpense[rn] || 0) + energyCost;
+    if (global.bumpEnergyExpense) global.bumpEnergyExpense('terminal', rn, energyCost);
     const {recordSendCost} = require('termBudget');
     recordSendCost(energyCost);
     return txCost;

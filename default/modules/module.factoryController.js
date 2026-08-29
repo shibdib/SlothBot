@@ -59,7 +59,7 @@ class FactoryControl {
     }
 
     static roomSpareIncome(room) {
-        const ei = room && room.memory && room.memory.energyInfo;
+        const ei = room && room.energyInfo;
         return (ei && ei.spareIncome) || 0;
     }
 
@@ -76,7 +76,7 @@ class FactoryControl {
         const energyState = room.energyState || 0;
         if (energyState >= 2) return true;
         if (energyState === 0) return false;
-        const ei = room.memory && room.memory.energyInfo;
+        const ei = room.energyInfo;
         const spare = (ei && ei.spareIncome) || 0;
         return spare > 0 && !(ei && ei.flowStressed);
     }
@@ -268,9 +268,7 @@ class FactoryControl {
                     cooldownTracker[room.name] = commodity.cooldown + 1;
                     if (commodity.components && commodity.components[RESOURCE_ENERGY]) {
                         const amt = commodity.components[RESOURCE_ENERGY];
-                        Memory.factoryEnergyExpense = Memory.factoryEnergyExpense || {};
-                        const rn = room.name;
-                        Memory.factoryEnergyExpense[rn] = (Memory.factoryEnergyExpense[rn] || 0) + amt;
+                        if (global.bumpEnergyExpense) global.bumpEnergyExpense('factory', room.name, amt);
                     }
                 } else {
                     log.w(`${roomLink(room.name)} factory produce() failed for ${factory.memory.producing} (${result}), re-evaluating.`, 'FACTORY CONTROL:');

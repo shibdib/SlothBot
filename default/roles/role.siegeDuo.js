@@ -174,8 +174,8 @@ class RoleSiegeDuo {
         } else {
             this.creep.shibMove(partner, {range: 1});
         }
-        if (this.creep.pos.isNearTo(partner) && partner.memory.idle) {
-            this.creep.memory.idle = partner.memory.idle;
+        if (this.creep.pos.isNearTo(partner) && partner.idle) {
+            this.creep.idle = partner.idle;
         }
     }
 

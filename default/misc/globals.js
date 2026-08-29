@@ -1611,6 +1611,36 @@ let globals = function () {
     global.TOWER_DAMAGE_CACHE = CACHE.TOWER_DAMAGE_CACHE = {};
     global.ROOM_RAMPART_SPOTS = CACHE.ROOM_RAMPART_SPOTS = {};
 
+    // Tick/reset-local state. Never put this in Memory — stringify of a 2MB
+    // Memory blob still costs CPU even with the parse-skip hack.
+    global.ROOM_HEAP = CACHE.ROOM_HEAP = {};
+    global.CREEP_HEAP = CACHE.CREEP_HEAP = {};
+    global.ENERGY_EXPENSE = CACHE.ENERGY_EXPENSE = {terminal: {}, renewal: {}, nuke: {}, factory: {}};
+    global.HUD_DATA = CACHE.HUD_DATA = {};
+    global.ERROR_LOGS = CACHE.ERROR_LOGS = [];
+    global.DEFENSE_ALERTS = CACHE.DEFENSE_ALERTS = {};
+    global.SIEGE_CANCEL_LOG = CACHE.SIEGE_CANCEL_LOG = [];
+    global.RAMPARTS_SET = false;
+
+    global.roomHeap = function (roomName) {
+        if (!roomName) return {};
+        if (!global.ROOM_HEAP) global.ROOM_HEAP = {};
+        return global.ROOM_HEAP[roomName] || (global.ROOM_HEAP[roomName] = {});
+    };
+
+    global.creepHeap = function (name) {
+        if (!name) return {};
+        if (!global.CREEP_HEAP) global.CREEP_HEAP = {};
+        return global.CREEP_HEAP[name] || (global.CREEP_HEAP[name] = {});
+    };
+
+    global.bumpEnergyExpense = function (kind, roomName, amount) {
+        if (!kind || !roomName || !amount) return;
+        if (!global.ENERGY_EXPENSE) global.ENERGY_EXPENSE = {};
+        const bag = global.ENERGY_EXPENSE[kind] || (global.ENERGY_EXPENSE[kind] = {});
+        bag[roomName] = (bag[roomName] || 0) + amount;
+    };
+
     // Set some diplo stuff
     global.ENEMIES = [];
     global.THREATS = [];

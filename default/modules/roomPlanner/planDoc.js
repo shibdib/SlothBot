@@ -8,8 +8,8 @@
  * Chunk 8–9 / C5: plan is authoritative for anchors (hub / towers / lab).
  *   - Readers: getHub / getTowerHubs / getLabHub (legacy fallback).
  *   - Anchor writes: plan only (no bunkerHub/towerHubs/labHub dual-write).
- *   - Packed layers still dual-write plan + legacy dynamic* packs (C3).
- *   - ensurePlan resync: fill empty plan anchors from legacy once, packs → legacy.
+ *   - Packed layers live only on plan (legacy dynamic* packs are a one-way import).
+ *   - ensurePlan resync: fill empty plan anchors/packs from leftover legacy once.
  *   - clearPlan + remigratePlan / migrateFromLegacy still rebuild from legacy.
  */
 
@@ -106,16 +106,6 @@ function cloneTowers(list) {
         if (isValidHub(t)) out.push({x: t.x, y: t.y});
     }
     return out;
-}
-
-function packedSame(a, b) {
-    if (a === b) return true;
-    if (!a || !b) return !a && !b;
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) return false;
-    }
-    return true;
 }
 
 function assignIfChanged(obj, key, value) {
@@ -267,7 +257,8 @@ function getLayerPacked(room, layerName) {
  * sole authority; readers use getHub/getTowerHubs/getLabHub (legacy fallback).
  * Pass options.anchors === true only for disaster remigrate tools.
  *
- * Packed extension/corridor/special layers still dual-write (C3).
+ * Packed extension/corridor/special layers are plan-only. Leftover
+ * dynamic* packs are imported once when the plan layer is empty.
  *
  * Does not delete legacy keys when plan field is empty (avoids wipe races).
  * @param {Room} room
@@ -302,36 +293,6 @@ function syncToLegacy(room, plan, options) {
     }
     // Do not force-clear dynamicLayout on bunker mode — room may still be mid-switch.
 
-    const ext = plan.layers && plan.layers.extensions;
-    if (ext && ext.packed && ext.packed.length) {
-        if (!packedSame(mem.dynamicExtensionsPacked, ext.packed)) {
-            mem.dynamicExtensionsPacked = ext.packed.slice();
-            dirty = true;
-        }
-        if (ext.rev && assignIfChanged(mem, 'dynamicExtensionsVersion', ext.rev)) dirty = true;
-        if (ext.access) {
-            if (ext.access.ok != null && assignIfChanged(mem, 'dynamicAccessOk', ext.access.ok)) dirty = true;
-            if (ext.access.failed != null && assignIfChanged(mem, 'dynamicAccessFailed', ext.access.failed)) dirty = true;
-            if (ext.access.skippedUnreachable != null
-                && assignIfChanged(mem, 'dynamicAccessSkipped', ext.access.skippedUnreachable)) dirty = true;
-        }
-    }
-    const corr = plan.layers && plan.layers.corridors;
-    if (corr && corr.packed && corr.packed.length) {
-        if (!packedSame(mem.dynamicCorridorPacked, corr.packed)) {
-            mem.dynamicCorridorPacked = corr.packed.slice();
-            dirty = true;
-        }
-    }
-    const spec = plan.layers && plan.layers.specials;
-    if (spec && spec.packed && spec.packed.length) {
-        if (!packedSame(mem.dynamicSpecialPacked, spec.packed)) {
-            mem.dynamicSpecialPacked = spec.packed.slice();
-            dirty = true;
-        }
-        if (spec.rev && assignIfChanged(mem, 'dynamicSpecialVersion', spec.rev)) dirty = true;
-    }
-
     if (plan.meta && plan.meta.layoutVersions && plan.meta.layoutVersions.towers != null) {
         if (assignIfChanged(mem, 'towerLayoutVersion', plan.meta.layoutVersions.towers)) dirty = true;
     }
@@ -351,7 +312,7 @@ function syncToLegacy(room, plan, options) {
 }
 
 /**
- * V2 reconcile: fill empty plan fields from legacy, then sync packs → legacy.
+ * V2 reconcile: fill empty plan fields from leftover legacy, then stamp plan authority.
  * Plan wins when both sides have a hub/towers/lab (authoritative).
  * C5: does not push anchors back into bunkerHub/towerHubs/labHub.
  * @param {Room} room

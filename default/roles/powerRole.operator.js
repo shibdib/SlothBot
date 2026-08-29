@@ -93,7 +93,7 @@ function isMine(structure) {
 
 function operatorHungerScore(room) {
     const state = room.energyState || 0;
-    const spare = (room.memory.energyInfo && room.memory.energyInfo.spareIncome) || 0;
+    const spare = (room.energyInfo && room.energyInfo.spareIncome) || 0;
     const rclPenalty = room.level >= 8 ? 0 : 200;
     return state * 1000 + spare + rclPenalty;
 }

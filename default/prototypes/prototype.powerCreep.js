@@ -9,12 +9,22 @@ const {getShibMove, clearShibMove} = require('pathUtils');
  *
  * @type {int}
  */
+function powerIdleState(creep) {
+    const heap = global.creepHeap ? global.creepHeap(creep.name) : {};
+    if (creep.memory && creep.memory.idle !== undefined) {
+        heap.idle = creep.memory.idle;
+        delete creep.memory.idle;
+    }
+    return heap;
+}
+
 Object.defineProperty(PowerCreep.prototype, "idle", {
     configurable: true,
     get: function () {
-        if (this.memory.idle === undefined) return 0;
-        if (this.memory.idle <= Game.time) {
-            delete this.idle;
+        const heap = powerIdleState(this);
+        if (heap.idle === undefined) return 0;
+        if (heap.idle <= Game.time) {
+            delete heap.idle;
             return 0;
         }
         this.say(_.sample([ICONS.wait23, ICONS.wait21, ICONS.wait19, ICONS.wait17, ICONS.wait13, ICONS.wait11, ICONS.wait7, ICONS.wait10, ICONS.wait3, ICONS.wait1]), true);
@@ -26,21 +36,19 @@ Object.defineProperty(PowerCreep.prototype, "idle", {
             if (closestSpawn && this.pos.getRangeTo(closestSpawn) === 1) {
                 this.moveRandom();
             } else {
-                return this.memory.idle;
+                return heap.idle;
             }
         } else if (this.room.spawns && this.room.spawns.length &&
             this.pos.getRangeTo(this.pos.findClosestByRange(this.room.spawns)) === 1) {
             this.moveRandom();
         } else {
-            return this.memory.idle;
+            return heap.idle;
         }
     },
     set: function (val) {
-        if (!val && this.memory.idle) {
-            delete(this.memory.idle);
-        } else {
-            this.memory.idle = val;
-        }
+        const heap = powerIdleState(this);
+        if (!val) delete heap.idle;
+        else heap.idle = val;
     }
 });
 
@@ -93,7 +101,7 @@ PowerCreep.prototype.idleFor = function (ticks = 0) {
     if (ticks > 0) {
         this.idle = Game.time + ticks;
     } else {
-        delete this.idle;
+        this.idle = 0;
     }
 };
 

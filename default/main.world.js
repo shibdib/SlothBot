@@ -21,6 +21,14 @@ const {refreshColonyProfiles} = require('module.colonyProfile');
 let tickTracker = {};
 let errorCount = {};
 
+function rollEnergyExpense(kind, prevGlobal, leftoverMemoryKey) {
+    const bag = (global.ENERGY_EXPENSE && global.ENERGY_EXPENSE[kind]) || {};
+    global[prevGlobal] = bag;
+    if (!global.ENERGY_EXPENSE) global.ENERGY_EXPENSE = {};
+    global.ENERGY_EXPENSE[kind] = {};
+    if (leftoverMemoryKey && Memory[leftoverMemoryKey] !== undefined) delete Memory[leftoverMemoryKey];
+}
+
 class World {
     constructor() {
         global.world = this;
@@ -48,39 +56,12 @@ class World {
         // Must run before stateManager, which snapshots the rolling averages.
         energyTracker.runAll();
 
-        // Terminal energy export accounting (sends + market deals).
-        // The Memory value at the *start* of the tick holds the costs from the *previous* tick's terminal activity.
-        // Snapshot for use in this tick's expense/spare calc (stateManager), then clear so this tick's sends accumulate for next tick.
-        if (!Memory.terminalEnergyExpense) Memory.terminalEnergyExpense = {};
-        global.prevTickTerminalEnergyExpense = {};
-        for (const r in Memory.terminalEnergyExpense) {
-            global.prevTickTerminalEnergyExpense[r] = Memory.terminalEnergyExpense[r] || 0;
-        }
-        Memory.terminalEnergyExpense = {};  // reset for this tick's terminal.send / market.deal activity
-
-        // Similar for renewal energy (spawn.renewCreep for economy creeps)
-        if (!Memory.renewalEnergyExpense) Memory.renewalEnergyExpense = {};
-        global.prevTickRenewalEnergyExpense = {};
-        for (const r in Memory.renewalEnergyExpense) {
-            global.prevTickRenewalEnergyExpense[r] = Memory.renewalEnergyExpense[r] || 0;
-        }
-        Memory.renewalEnergyExpense = {};
-
-        // For nuke launches (energy payload consumed on launchNuke - infrequent but significant sink)
-        if (!Memory.nukeEnergyExpense) Memory.nukeEnergyExpense = {};
-        global.prevTickNukeEnergyExpense = {};
-        for (const r in Memory.nukeEnergyExpense) {
-            global.prevTickNukeEnergyExpense[r] = Memory.nukeEnergyExpense[r] || 0;
-        }
-        Memory.nukeEnergyExpense = {};
-
-        // For factory production that consumes ENERGY as a component (e.g. some commodities, battery production)
-        if (!Memory.factoryEnergyExpense) Memory.factoryEnergyExpense = {};
-        global.prevTickFactoryEnergyExpense = {};
-        for (const r in Memory.factoryEnergyExpense) {
-            global.prevTickFactoryEnergyExpense[r] = Memory.factoryEnergyExpense[r] || 0;
-        }
-        Memory.factoryEnergyExpense = {};
+        // Terminal/renewal/nuke/factory energy sinks live on the heap. Snapshot last
+        // tick's bag for this tick's spare calc, then start a fresh bag.
+        rollEnergyExpense('terminal', 'prevTickTerminalEnergyExpense', 'terminalEnergyExpense');
+        rollEnergyExpense('renewal', 'prevTickRenewalEnergyExpense', 'renewalEnergyExpense');
+        rollEnergyExpense('nuke', 'prevTickNukeEnergyExpense', 'nukeEnergyExpense');
+        rollEnergyExpense('factory', 'prevTickFactoryEnergyExpense', 'factoryEnergyExpense');
 
         // Handle seasonal score assignment
         if (Game.time % 25 === 0 && Game.shard.name === 'shardSeason') {
@@ -144,7 +125,7 @@ class World {
     houseKeeping() {
         stripLegacyShibMemory();
         // Timing
-        Memory.tickCooldowns = undefined;
+        if (Memory.tickCooldowns !== undefined) delete Memory.tickCooldowns;
 
         // Silence Alerts (Every 2500 Ticks)
         if (Game.time % 2500 === 0) {

@@ -765,7 +765,7 @@ function computeAssignmentScore(myRoom, routeDistance, load, isAuxiliary) {
     let score = routeDistance + (COLONY_ASSIGN_PENALTY[getColonyRole(myRoom)] || 0);
 
     const energyState = spawnEnergyState(myRoom) || 0;
-    const ei = myRoom.memory.energyInfo;
+    const ei = myRoom.energyInfo;
     const trend = (ei && ei.trend) || 0;
     const flowSpare = roomMilitaryFlowSpare(myRoom);
     const flowStressed = flowSpare < 0 || trend < -2;

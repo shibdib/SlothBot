@@ -150,7 +150,7 @@ function depositEnergy(creep, source, container) {
         } else if (container && container.hits < container.hitsMax) {
             return creep.repair(container);
         }
-        const roomHealthy = creep.room.energyState >= 2 || (creep.room.memory.energyInfo && (creep.room.memory.energyInfo.spareIncome || 0) > 2);
+        const roomHealthy = creep.room.energyState >= 2 || (creep.room.energyInfo && (creep.room.energyInfo.spareIncome || 0) > 2);
         if (roomHealthy) {
             const rampart = creep.pos.checkForRampart();
             if (rampart && rampart.hits < rampart.hitsMax) {

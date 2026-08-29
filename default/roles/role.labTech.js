@@ -1051,14 +1051,15 @@ class RoleLabTech {
     }
 
     isBalanceDirectionBlocked(resource, terminalToStorage) {
-        const lock = this.room.memory._labTechBalance?.[resource];
+        const lock = (global.roomHeap ? global.roomHeap(this.room.name).labTechBalance : this.room.memory._labTechBalance)?.[resource];
         if (!lock || lock.tick + BALANCE_DIRECTION_COOLDOWN < Game.time) return false;
         return lock.terminalToStorage !== terminalToStorage;
     }
 
     setBalanceDirectionLock(resource, terminalToStorage) {
-        if (!this.room.memory._labTechBalance) this.room.memory._labTechBalance = {};
-        this.room.memory._labTechBalance[resource] = {terminalToStorage, tick: Game.time};
+        const heap = global.roomHeap ? global.roomHeap(this.room.name) : this.room.memory;
+        const bag = heap.labTechBalance || (heap.labTechBalance = {});
+        bag[resource] = {terminalToStorage, tick: Game.time};
     }
 
     makeBalanceTask(withdrawTarget, deliveryTarget, resource, amount, options = {}) {

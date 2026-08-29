@@ -9,7 +9,7 @@ const CONTROLLER_FEED_TICKS = 40;
 const CONTROLLER_DRIP_MIN = 100;
 
 function getUpgradeWork(room) {
-    const diag = room.memory.energyDiag;
+    const diag = room.energyDiag;
     if (diag && diag.upgradeExpense > 0) return diag.upgradeExpense;
 
     let work = 0;
@@ -20,7 +20,7 @@ function getUpgradeWork(room) {
 }
 
 function buildLinkPolicy(room, hubLink, controllerLink) {
-    const energyInfo = room.memory.energyInfo;
+    const energyInfo = room.energyInfo;
     const upgraderDuty = (energyInfo && typeof energyInfo.upgraderDuty === 'number') ? energyInfo.upgraderDuty : 1;
     const upgradeWork = getUpgradeWork(room);
     const controllerTarget = Math.min(LINK_CAPACITY, upgradeWork * CONTROLLER_FEED_TICKS);

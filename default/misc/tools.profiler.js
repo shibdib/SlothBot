@@ -77,23 +77,39 @@ function setupProfiler() {
     overloadCPUCalc();
 }
 
+function profilerRuntime() {
+    if (!global._profilerRuntime) {
+        const runtime = {map: {}, totalTime: 0};
+        if (Memory.profiler) {
+            if (Memory.profiler.map) {
+                runtime.map = Memory.profiler.map;
+                delete Memory.profiler.map;
+            }
+            if (Memory.profiler.totalTime != null) {
+                runtime.totalTime = Memory.profiler.totalTime;
+                delete Memory.profiler.totalTime;
+            }
+        }
+        global._profilerRuntime = runtime;
+    }
+    return global._profilerRuntime;
+}
+
 function setupMemory(profileType, duration, filter) {
     resetMemory();
     const disableTick = Number.isInteger(duration) ? Game.time + duration : false;
-    if (!Memory.profiler) {
-        Memory.profiler = {
-            map: {},
-            totalTime: 0,
-            enabledTick: Game.time + 1,
-            disableTick,
-            type: profileType,
-            filter,
-        };
-    }
+    Memory.profiler = {
+        enabledTick: Game.time + 1,
+        disableTick,
+        type: profileType,
+        filter,
+    };
+    global._profilerRuntime = {map: {}, totalTime: 0};
 }
 
 function resetMemory() {
     Memory.profiler = undefined;
+    global._profilerRuntime = undefined;
 }
 
 function overloadCPUCalc() {
@@ -257,17 +273,17 @@ const Profiler = {
 
     callgrind() {
         const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
-        Memory.profiler.map['(tick)'].calls = elapsedTicks;
-        Memory.profiler.map['(tick)'].time = Memory.profiler.totalTime;
+        profilerRuntime().map['(tick)'].calls = elapsedTicks;
+        profilerRuntime().map['(tick)'].time = profilerRuntime().totalTime;
         Profiler.checkMapItem('(root)');
-        Memory.profiler.map['(root)'].calls = 1;
-        Memory.profiler.map['(root)'].time = Memory.profiler.totalTime;
-        Profiler.checkMapItem('(tick)', Memory.profiler.map['(root)'].subs);
-        Memory.profiler.map['(root)'].subs['(tick)'].calls = elapsedTicks;
-        Memory.profiler.map['(root)'].subs['(tick)'].time = Memory.profiler.totalTime;
-        let body = `events: ns\nsummary: ${Math.round(Memory.profiler.totalTime * 1000000)}\n`;
-        for (const fnName of Object.keys(Memory.profiler.map)) {
-            const fn = Memory.profiler.map[fnName];
+        profilerRuntime().map['(root)'].calls = 1;
+        profilerRuntime().map['(root)'].time = profilerRuntime().totalTime;
+        Profiler.checkMapItem('(tick)', profilerRuntime().map['(root)'].subs);
+        profilerRuntime().map['(root)'].subs['(tick)'].calls = elapsedTicks;
+        profilerRuntime().map['(root)'].subs['(tick)'].time = profilerRuntime().totalTime;
+        let body = `events: ns\nsummary: ${Math.round(profilerRuntime().totalTime * 1000000)}\n`;
+        for (const fnName of Object.keys(profilerRuntime().map)) {
+            const fn = profilerRuntime().map[fnName];
             let callsBody = '';
             let callsTime = 0;
             for (const callName of Object.keys(fn.subs)) {
@@ -292,8 +308,8 @@ const Profiler = {
         const elapsedTicks = endTick - startTick + 1;
         const header = 'calls\t\ttime\t\tavg\t\tfunction';
         const footer = [
-            `Avg: ${(Memory.profiler.totalTime / elapsedTicks).toFixed(2)}`,
-            `Total: ${Memory.profiler.totalTime.toFixed(2)}`,
+            `Avg: ${(profilerRuntime().totalTime / elapsedTicks).toFixed(2)}`,
+            `Total: ${profilerRuntime().totalTime.toFixed(2)}`,
             `Ticks: ${elapsedTicks}`,
         ].join('\t');
 
@@ -316,8 +332,8 @@ const Profiler = {
     },
 
     lines() {
-        const stats = Object.keys(Memory.profiler.map).map(functionName => {
-            const functionCalls = Memory.profiler.map[functionName];
+        const stats = Object.keys(profilerRuntime().map).map(functionName => {
+            const functionCalls = profilerRuntime().map[functionName];
             return {
                 name: functionName,
                 calls: functionCalls.calls,
@@ -391,7 +407,7 @@ const Profiler = {
         {name: 'Tombstone', val: Tombstone},
     ],
 
-    checkMapItem(functionName, map = Memory.profiler.map) {
+    checkMapItem(functionName, map = profilerRuntime().map) {
         if (!map[functionName]) {
             // eslint-disable-next-line no-param-reassign
             map[functionName] = {
@@ -404,20 +420,20 @@ const Profiler = {
 
     record(functionName, time, parent) {
         this.checkMapItem(functionName);
-        Memory.profiler.map[functionName].calls++;
-        Memory.profiler.map[functionName].time += time;
+        profilerRuntime().map[functionName].calls++;
+        profilerRuntime().map[functionName].time += time;
         if (parent) {
             this.checkMapItem(parent);
-            this.checkMapItem(functionName, Memory.profiler.map[parent].subs);
-            Memory.profiler.map[parent].subs[functionName].calls++;
-            Memory.profiler.map[parent].subs[functionName].time += time;
+            this.checkMapItem(functionName, profilerRuntime().map[parent].subs);
+            profilerRuntime().map[parent].subs[functionName].calls++;
+            profilerRuntime().map[parent].subs[functionName].time += time;
         }
     },
 
     endTick() {
         if (Game.time >= Memory.profiler.enabledTick) {
             const cpuUsed = Game.cpu.getUsed();
-            Memory.profiler.totalTime += cpuUsed;
+            profilerRuntime().totalTime += cpuUsed;
             Profiler.report();
         }
     },

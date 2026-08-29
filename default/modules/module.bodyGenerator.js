@@ -34,7 +34,7 @@ class ModuleBodyGenerator {
         this.room = room;
         this.creepInfo = creepInfo;
         this.energyAmount = room.energyCapacityAvailable;
-        const ei = this.room.memory.energyInfo;
+        const ei = this.room.energyInfo;
         this.spareIncome = (ei && ei.spareIncome) || 0;
         this.trend = (ei && ei.trend) || 0;
         this.upgraderDuty = (ei && typeof ei.upgraderDuty === 'number') ? ei.upgraderDuty : 1.0;

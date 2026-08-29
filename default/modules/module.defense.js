@@ -67,7 +67,7 @@ class DefenseManager {
             if (this.room.memory.safeModeDeferred) delete this.room.memory.safeModeDeferred;
         }
 
-        if (!Memory._rampartsSet || RAMPART_ACCESS) this.rampartManager();
+        if (!global.RAMPARTS_SET || RAMPART_ACCESS) this.rampartManager();
 
         if (Game.time % 100 === 0) this.handleNukeAttack();
 
@@ -113,14 +113,14 @@ class DefenseManager {
         const state = ROOM_STATE_CACHE[roomName];
 
         if (!RAMPART_ACCESS) {
-            Memory._rampartsSet = true;
+            global.RAMPARTS_SET = true;
             for (let rampart of state.ramparts) {
                 if (rampart.isPublic) rampart.setPublic(false);
             }
             return;
         }
 
-        Memory._rampartsSet = undefined;
+        global.RAMPARTS_SET = false;
 
         if (!state.hostileCreeps.length) {
             for (let rampart of state.ramparts) {
@@ -622,8 +622,8 @@ function buildHostileNotificationMessage(room, reason, assessment, ownersKey) {
 }
 
 function sendHostileNotification(room, hostileOwners, threatening) {
-    Memory._defenseAlerts = Memory._defenseAlerts || {};
-    const state = Memory._defenseAlerts[room.name];
+    if (!global.DEFENSE_ALERTS) global.DEFENSE_ALERTS = {};
+    const state = global.DEFENSE_ALERTS[room.name];
     const ownersKey = hostileOwners.join(',');
     const assessment = assessNotificationThreat(room, threatening);
     const threatLevel = assessment.threatLevel;
@@ -642,7 +642,7 @@ function sendHostileNotification(room, hostileOwners, threatening) {
         }
     }
 
-    Memory._defenseAlerts[room.name] = {
+    global.DEFENSE_ALERTS[room.name] = {
         firstAlert: state ? state.firstAlert : Game.time,
         lastAlert: reason ? Game.time : (state && state.lastAlert) || Game.time,
         ownersKey,
@@ -666,9 +666,9 @@ function sendHostileNotification(room, hostileOwners, threatening) {
 }
 
 function clearHostileAlert(room) {
-    if (!Memory._defenseAlerts || !Memory._defenseAlerts[room.name]) return;
-    const state = Memory._defenseAlerts[room.name];
-    delete Memory._defenseAlerts[room.name];
+    if (!global.DEFENSE_ALERTS || !global.DEFENSE_ALERTS[room.name]) return;
+    const state = global.DEFENSE_ALERTS[room.name];
+    delete global.DEFENSE_ALERTS[room.name];
 
     if (!state.notified || (state.peakThreat || 0) < NOTIFY_MIN_THREAT) return;
     const duration = Game.time - (state.firstAlert || Game.time);

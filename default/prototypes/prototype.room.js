@@ -506,12 +506,48 @@ Object.defineProperty(Room.prototype, 'rawEnergy', {
     configurable: true
 });
 
+function roomHeapField(room) {
+    if (global.roomHeap) return global.roomHeap(room.name);
+    if (!global.ROOM_HEAP) global.ROOM_HEAP = {};
+    return global.ROOM_HEAP[room.name] || (global.ROOM_HEAP[room.name] = {});
+}
+
+Object.defineProperty(Room.prototype, 'energyInfo', {
+    get: function () {
+        const heap = global.ROOM_HEAP && global.ROOM_HEAP[this.name];
+        return heap && heap.energyInfo;
+    },
+    set: function (v) {
+        const heap = roomHeapField(this);
+        if (v === undefined) delete heap.energyInfo;
+        else heap.energyInfo = v;
+        if (this.memory && this.memory.energyInfo !== undefined) delete this.memory.energyInfo;
+    },
+    enumerable: false,
+    configurable: true
+});
+
+Object.defineProperty(Room.prototype, 'energyDiag', {
+    get: function () {
+        const heap = global.ROOM_HEAP && global.ROOM_HEAP[this.name];
+        return heap && heap.energyDiag;
+    },
+    set: function (v) {
+        const heap = roomHeapField(this);
+        if (v === undefined) delete heap.energyDiag;
+        else heap.energyDiag = v;
+        if (this.memory && this.memory.energyDiag !== undefined) delete this.memory.energyDiag;
+    },
+    enumerable: false,
+    configurable: true
+});
+
 Object.defineProperty(Room.prototype, 'energyIncome', {
     get: function () {
         // Authoritative net flow from stateManager (event log + spawn amortization). Falls
         // back to the raw tracker only until energyInfo has been populated.
         if (this._energyIncome === undefined) {
-            const ei = this.memory.energyInfo;
+            const ei = this.energyInfo;
             if (ei && typeof ei.spareIncome === 'number') {
                 this._energyIncome = _.round(ei.spareIncome, 0);
             } else {

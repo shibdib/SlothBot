@@ -116,7 +116,7 @@ function manageResponseForces() {
             creep.memory.awaitingOrders = undefined;
             if (creep.clearShibMove) creep.clearShibMove();
             else delete creep.memory._shibMove;
-            creep.memory.idle = undefined;
+            creep.idle = 0;
             assigned++;
 
             if (creep.room.name !== targetRoom) {

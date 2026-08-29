@@ -35,8 +35,13 @@ const HUD_LAYOUT = {
 
 class HUD {
     constructor() {
-        if (!Memory.HUD) Memory.HUD = {};
-        this.hudData = Memory.HUD;
+        if (!global.HUD_DATA) global.HUD_DATA = {};
+        this.hudData = global.HUD_DATA;
+        if (Memory.HUD) {
+            if (!this.hudData.GCL && Memory.HUD.GCL) this.hudData.GCL = Memory.HUD.GCL;
+            if (!this.hudData.RCL && Memory.HUD.RCL) this.hudData.RCL = Memory.HUD.RCL;
+            delete Memory.HUD;
+        }
         if (!this.hudData.GCL) this.hudData.GCL = {last: Game.gcl.progress, progress: []};
         if (!this.hudData.RCL) this.hudData.RCL = {};
     }
@@ -44,7 +49,7 @@ class HUD {
     run() {
         if (!Memory.tickInfo) return;
 
-        if (Memory._mapVisuals !== undefined) Memory._mapVisuals = undefined;
+        if (Memory._mapVisuals !== undefined) delete Memory._mapVisuals;
         this._empireReadiness = state.EMPIRE_READINESS || getEmpireReadiness();
         this._opCount = this.countMilitaryOps();
 
@@ -204,7 +209,7 @@ class HUD {
     renderDashboard(room) {
         const {x, width, rowH} = HUD_LAYOUT;
         let y = 0.75;
-        const hasAudit = room.memory.energyDiag && room.memory.energyInfo;
+        const hasAudit = room.energyDiag && room.energyInfo;
         const empire = this._empireReadiness || getEmpireReadiness();
         const pauseReason = hasAudit ? getOpsPauseReason(empire) : null;
         const stressNote = hasAudit ? getOpsStressNote(empire) : null;
@@ -283,8 +288,8 @@ class HUD {
             return y + rowH;
         }
 
-        const diag = room.memory.energyDiag;
-        const info = room.memory.energyInfo;
+        const diag = room.energyDiag;
+        const info = room.energyInfo;
         const spendDetail = `upg ${diag.upgradeExpense} · drn ${diag.maintenanceExpense || diag.droneExpense || 0} · spn ${diag.spawnExpense}`;
 
         this.drawHudSeparator(room, x, y, width);
@@ -315,7 +320,7 @@ class HUD {
 
     renderReadiness(room, x, y, width, empire, pauseReason, stressNote) {
         const {pad, rowH} = HUD_LAYOUT;
-        const diag = room.memory.energyDiag;
+        const diag = room.energyDiag;
         const opsPaused = !!pauseReason;
         const opsThrottled = !opsPaused && !!stressNote;
         const opsColor = opsPaused ? '#ef6b6b' : (opsThrottled ? '#ffb347' : '#7dcea0');

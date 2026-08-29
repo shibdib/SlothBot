@@ -77,7 +77,7 @@ class RoleRemoteHauler {
 
         if (Game.time % 2 === 0 && this.room.name === this.memory.colony) {
             const colony = Game.rooms[this.memory.colony];
-            const colonyInfo = colony && colony.memory.energyInfo;
+            const colonyInfo = colony && colony.energyInfo;
             const colonyTrend = (colonyInfo && colonyInfo.trend) || 0;
             if (colony && colony.energyState >= 2 && colonyTrend >= 0) {
                 this.creep.opportunisticRepair();

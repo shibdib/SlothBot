@@ -198,48 +198,63 @@ function isNearRoomSource(creep) {
     return false;
 }
 
+function creepIdleState(creep) {
+    const heap = global.creepHeap ? global.creepHeap(creep.name) : {};
+    if (creep.memory) {
+        if (creep.memory.idle !== undefined) {
+            heap.idle = creep.memory.idle;
+            delete creep.memory.idle;
+        }
+        if (creep.memory.idleSet !== undefined) {
+            heap.idleSet = creep.memory.idleSet;
+            delete creep.memory.idleSet;
+        }
+    }
+    return heap;
+}
+
 Object.defineProperty(Creep.prototype, "idle", {
     configurable: true,
     get: function () {
-        if (this.memory.idle === undefined) return 0;
+        const heap = creepIdleState(this);
+        if (heap.idle === undefined) return 0;
 
         const now = Game.time;
-        if (this.memory.idle <= now ||
+        if (heap.idle <= now ||
             (this.ticksToLive >= 1485 || this.hasActiveBodyparts(CLAIM)) ||
             this.room.hostileCreeps.length ||
             (INTEL[this.room.name] && INTEL[this.room.name].threatLevel)) {
-            delete this.memory.idle;
-            delete this.memory.idleSet;
+            delete heap.idle;
+            delete heap.idleSet;
             return 0;
         }
 
         if (this.memory.runCooldown && this.memory.ranFrom && INTEL[this.memory.ranFrom] && !INTEL[this.memory.ranFrom].numberOfHostiles) {
-            delete this.memory.idle;
+            delete heap.idle;
+            delete heap.idleSet;
             delete this.memory.ranFrom;
             delete this.memory.runCooldown;
             return 0;
         }
 
-        if (!this.memory.idleSet) {
+        if (!heap.idleSet) {
             const militaryCreep = this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK);
             if ((militaryCreep && this.pos.checkForRampart()) || !this.hasActiveBodyparts(MOVE)) {
-                this.memory.idleSet = true;
+                heap.idleSet = true;
             } else if (!this.memory.role.includes("Harvester") && (this.pos.checkForRoad() || this.pos.checkForContainer() || this.pos.lookForNearby(LOOK_SOURCES, true, 2)[0])) {
                 return this.moveRandom();
             } else {
-                this.memory.idleSet = true;
+                heap.idleSet = true;
             }
         }
 
         this.say(_.sample([ICONS.wait23, ICONS.wait21, ICONS.wait19, ICONS.wait17, ICONS.wait13, ICONS.wait11, ICONS.wait7, ICONS.wait10, ICONS.wait3, ICONS.wait1]), true);
-        return this.memory.idle;
+        return heap.idle;
     },
     set: function (val) {
-        if (!val && this.memory.idle) {
-            delete this.memory.idle;
-        } else {
-            this.memory.idle = val;
-        }
+        const heap = creepIdleState(this);
+        if (!val) delete heap.idle;
+        else heap.idle = val;
     }
 });
 
@@ -259,8 +274,9 @@ Creep.prototype.idleFor = function (ticks = 0) {
     if (ticks > 0) {
         this.idle = Game.time + ticks;
     } else {
-        delete this.memory.idle;
-        delete this.memory.idleSet;
+        const heap = creepIdleState(this);
+        delete heap.idle;
+        delete heap.idleSet;
     }
     return true;
 };
@@ -643,19 +659,20 @@ Creep.prototype.haulerDelivery = function () {
                     this.memory.haulerGroup = otherGroups.has(0) ? 1 : 0;
                 }
             }
-            if (!this.room.memory.extensionGroups || this.room.memory.extensionGroupLevel !== this.room.level) {
+            const extHeap = global.roomHeap ? global.roomHeap(this.room.name) : this.room.memory;
+            if (!extHeap.extensionGroups || extHeap.extensionGroupLevel !== this.room.level) {
                 const hub = this.room.hub;
                 if (hub) {
                     const allExt = allSpawnExtensions.filter(s => s.structureType === STRUCTURE_EXTENSION);
-                    this.room.memory.extensionGroups = [
+                    extHeap.extensionGroups = [
                         allExt.filter(e => e.pos.x < hub.x).map(e => e.id),
                         allExt.filter(e => e.pos.x >= hub.x).map(e => e.id)
                     ];
-                    this.room.memory.extensionGroupLevel = this.room.level;
+                    extHeap.extensionGroupLevel = this.room.level;
                 }
             }
-            if (this.room.memory.extensionGroups && this.memory.haulerGroup !== undefined) {
-                const myExtensionIds = new Set(this.room.memory.extensionGroups[this.memory.haulerGroup]);
+            if (extHeap.extensionGroups && this.memory.haulerGroup !== undefined) {
+                const myExtensionIds = new Set(extHeap.extensionGroups[this.memory.haulerGroup]);
                 const grouped = targets.filter(s => s.structureType === STRUCTURE_SPAWN || myExtensionIds.has(s.id));
                 if (grouped.length) targets = grouped;
             }
@@ -672,7 +689,7 @@ Creep.prototype.haulerDelivery = function () {
         targets.push(hubLink);
     }
 
-    const haulerEnergyInfo = this.room.memory.energyInfo;
+    const haulerEnergyInfo = this.room.energyInfo;
     const haulerTrend = (haulerEnergyInfo && haulerEnergyInfo.trend) || 0;
     const haulerFlowOk = this.room.energyState >= 2 && haulerTrend >= 0;
     if (haulerFlowOk) {
@@ -809,8 +826,8 @@ Creep.prototype.constructionWork = function (scope) {
             if (ramparts) return buildClosest(ramparts);
         }
 
-        const trend = (room.memory.energyInfo && room.memory.energyInfo.trend) || 0;
-        const spareIncome = (room.memory.energyInfo && room.memory.energyInfo.spareIncome) || 0;
+        const trend = (room.energyInfo && room.energyInfo.trend) || 0;
+        const spareIncome = (room.energyInfo && room.energyInfo.spareIncome) || 0;
         if (room.energyState >= 3 || (room.energyState >= 2 && spareIncome > 0 && trend >= 0)
             || (room.energyState === 1 && trend >= 0 && spareIncome > 0)) {
             const walls = wallBarrierSites();
@@ -849,8 +866,8 @@ Creep.prototype.constructionWork = function (scope) {
     site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.5));
     if (site) return repair(site, site.hitsMax * 0.8);
 
-    const trend = (room.memory.energyInfo && room.memory.energyInfo.trend) || 0;
-    const spareIncome = (room.memory.energyInfo && room.memory.energyInfo.spareIncome) || 0;
+    const trend = (room.energyInfo && room.energyInfo.trend) || 0;
+    const spareIncome = (room.energyInfo && room.energyInfo.spareIncome) || 0;
     if (room.energyState >= 3 || (room.energyState >= 1 && spareIncome > 0 && trend >= 0)) {
         if (sites.misc.length) return buildClosest(sites.misc);
         if (sites.roads.length) return buildClosest(sites.roads);

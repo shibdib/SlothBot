@@ -166,11 +166,11 @@ class StateManager {
             ? Math.min(1.0, roomSnap.upgrade / roomSnap.upgradeWork)
             : 1.0;
 
-        room.memory.energyInfo = {
+        room.energyInfo = {
             income, expense, spareIncome, flowSpare, trend, upgraderDuty, flowStressed, militarySpawnExpense,
         };
 
-        room.memory.energyDiag = {
+        room.energyDiag = {
             statHarv: statHarvesters.length,
             statHarvWork: _.sum(statHarvesters, c => c.getActiveBodyparts(WORK)) || 0,
             remoteHarv: remoteHarvesters.length,
@@ -208,7 +208,7 @@ class StateManager {
         const stockEnergy = room.rawEnergy + batteryEquiv;
         const stockTarget = energyTarget(room);
 
-        Object.assign(room.memory.energyDiag, {
+        Object.assign(room.energyDiag, {
             stockEnergy,
             stockTarget,
             stockpilePct: stockTarget > 0 ? Math.min(150, Math.round((stockEnergy / stockTarget) * 100)) : 0,
