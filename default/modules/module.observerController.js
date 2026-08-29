@@ -25,7 +25,7 @@ const TUNING = {
     BACKGROUND_STALE_TICKS: 5000,     // rooms with intel older than this (~hours) are eligible for background/exploratory refresh
     HIGHWAY_SWEEP_TICKS: 750,         // catch power banks (5k TTL) while still mineable
     HIGHWAY_SWEEP_RANGE: 8,           // matches power/commodity launch range
-    HIGHWAY_SWEEP_PRIORITY: 55,
+    HIGHWAY_SWEEP_PRIORITY: 93,       // above expansion scouts (88-91); banks expire in 5k ticks
     EMPTY_SWEEP_BACKOFF_TICKS: 25,
     PRUNE_INTERVAL_TICKS: 1500,
     MAX_OBSERVE_RETRIES: 3,
@@ -262,9 +262,9 @@ class ObserverControl {
         for (const rName of (idx.power || [])) {
             const r = INTEL[rName];
             if (r && r.power && r.power > ct) {
-                // Incomplete bank intel (pre-field format) needs a faster refresh
-                // so launch can see amount / hits / contest before committing.
-                add(rName, r.powerAmount == null ? 80 : 70);
+                // Incomplete bank intel must beat HIGH_PRIORITY (85) or expansion
+                // scouts keep the observer busy until the bank expires.
+                add(rName, r.powerAmount == null ? 90 : 72);
             }
         }
         for (const rName of (idx.commodity || [])) {
@@ -489,25 +489,20 @@ function isRecentlyObserved(target, currentTime, state) {
     return true;
 }
 
-function isHighwayCoords(x, y) {
-    return (Math.abs(x) % 10 === 0) || (Math.abs(y) % 10 === 0);
-}
-
 function addNearbyHighways(add, currentTime) {
     const owned = global.MY_ROOMS || [];
     const range = TUNING.HIGHWAY_SWEEP_RANGE;
     const seen = new Set();
+    const isHighway = global.isHighwayRoomName;
     for (const home of owned) {
         const hp = parseRoomName(home);
         if (!hp) continue;
         for (let dx = -range; dx <= range; dx++) {
             for (let dy = -range; dy <= range; dy++) {
                 if (!dx && !dy) continue;
-                const x = hp.x + dx;
-                const y = hp.y + dy;
-                if (!isHighwayCoords(x, y)) continue;
-                const name = formatRoomName(x, y);
-                if (seen.has(name)) continue;
+                const name = formatRoomName(hp.x + dx, hp.y + dy);
+                if (!name || seen.has(name)) continue;
+                if (isHighway ? !isHighway(name) : !isHighwayName(name)) continue;
                 seen.add(name);
                 const intel = INTEL[name];
                 const age = intel && intel.lastObservation;
@@ -516,6 +511,11 @@ function addNearbyHighways(add, currentTime) {
             }
         }
     }
+}
+
+function isHighwayName(name) {
+    const parsed = parseRoomNumbers(name);
+    return !!(parsed && (parsed.x % 10 === 0 || parsed.y % 10 === 0));
 }
 
 function isIntelStale(intel, currentTime) {
@@ -531,17 +531,25 @@ function needsHeavyIntel(intel, currentTime) {
     return !intel.cached || intel.cached + TUNING.HEAVY_INTEL_TICKS <= currentTime;
 }
 
-function parseRoomName(name) {
-    const m = name.match(/^([EW])(\d+)([NS])(\d+)$/);
+function parseRoomNumbers(name) {
+    const m = name && name.match(/^([EW])(\d+)([NS])(\d+)$/);
     if (!m) return null;
+    return {ew: m[1], x: m[2] | 0, ns: m[3], y: m[4] | 0};
+}
+
+// World coords so E0 and W0 are adjacent (W0 → -1, E0 → 0). Multiplying the
+// room number by ±1 collapsed both onto 0 and skipped W0/N0 highways.
+function parseRoomName(name) {
+    const parsed = parseRoomNumbers(name);
+    if (!parsed) return null;
     return {
-        x: (m[1] === 'W' ? -1 : 1) * (m[2] | 0),
-        y: (m[3] === 'N' ? -1 : 1) * (m[4] | 0),
+        x: parsed.ew === 'W' ? -parsed.x - 1 : parsed.x,
+        y: parsed.ns === 'N' ? -parsed.y - 1 : parsed.y,
     };
 }
 
 function formatRoomName(x, y) {
-    return `${x >= 0 ? 'E' : 'W'}${Math.abs(x)}${y >= 0 ? 'S' : 'N'}${Math.abs(y)}`;
+    return `${x < 0 ? 'W' : 'E'}${x < 0 ? -x - 1 : x}${y < 0 ? 'N' : 'S'}${y < 0 ? -y - 1 : y}`;
 }
 
 function chebyshev(a, b) {

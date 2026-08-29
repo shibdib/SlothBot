@@ -233,6 +233,10 @@ function tryGenerateAssignableBody(room, creepInfo) {
     const clone = cloneCreepInfo(creepInfo);
     const generatedInfo = new generator(room.level, clone.role, room, clone).generateBody();
     if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) return null;
+    const cost = global.UNIT_COST
+        ? global.UNIT_COST(generatedInfo.body)
+        : generatedInfo.body.reduce((sum, p) => sum + BODYPART_COST[p], 0);
+    if (cost > room.energyCapacityAvailable) return null;
     if (generatedBodyMissingBoosts(room, generatedInfo.body, clone)) return null;
     return {body: generatedInfo.body, info: clone};
 }
@@ -366,6 +370,9 @@ function computeOpLevelTarget(target, opMemory, intel) {
             return 1;
         case 'claim':
             return 5;
+        case 'power':
+            // 20 HEAL + 20 MOVE is 6000 energy; RCL 7 caps at 5600.
+            return 8;
         case 'roomDenial':
             return scoreOriginMinLevel('roomDenial', intel);
         case 'guard':

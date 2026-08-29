@@ -31,15 +31,18 @@ function powerTimeNeeded(dist) {
 function isUncontestedPowerBank(r) {
     if (!r.power || r.power <= Game.time) return false;
     if (r.powerMined) return false;
-    if (r.powerHits != null && r.powerHits < POWER_BANK_MAX_HITS) return false;
-    if (!r.powerAmount || r.powerAmount < POWER_MIN_AMOUNT) return false;
-    if (!(r.powerSpace >= POWER_MIN_SPACE)) return false;
+    // Chip damage is not a contest — others adjacent is. Requiring full HP
+    // dropped every bank that an explorer or NPC had poked.
+    if (r.powerHits != null && r.powerHits < POWER_BANK_MAX_HITS * 0.8) return false;
+    if (r.powerAmount != null && r.powerAmount < POWER_MIN_AMOUNT) return false;
+    if (r.powerSpace != null && r.powerSpace < POWER_MIN_SPACE) return false;
     return true;
 }
 
 function scorePowerBank(r, dist) {
     const timeRemaining = r.power - Game.time;
-    return dist * 100 - Math.min(timeRemaining / 100, 50) - Math.min(r.powerAmount / 100, 80);
+    const amount = r.powerAmount || POWER_MIN_AMOUNT;
+    return dist * 100 - Math.min(timeRemaining / 100, 50) - Math.min(amount / 100, 80);
 }
 
 function planPowerTeam(r) {
@@ -64,42 +67,50 @@ function auxiliaryOperations() {
     for (const key in cache) {
         const op = cache[key];
         if (!op) continue;
-        if (op.type === 'power') activePowerOps++;
+        if (op.type === 'power' && !op.complete) activePowerOps++;
         if (op.type === 'commodity') activeCommodityOps++;
     }
 
-    if (MAX_LEVEL >= 4 && auxLimit > 0 && state.ALLOW_NEW_OPS) {
-        // Power
-        if (MAX_LEVEL >= 8 && activePowerOps < 2 && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT) {
-            let best = null, bestScore = Infinity;
-            for (const rName of (idx.power || [])) {
-                const r = INTEL[rName];
-                if (!auxEntryEligible(r, cache)) continue;
-                if (!isUncontestedPowerBank(r)) continue;
-                const dist = findClosestOwnedRoom(r.name, true);
-                if (dist == null || dist > POWER_MAX_RANGE) continue;
-                if (r.power - Game.time < powerTimeNeeded(dist)) continue;
-                const score = scorePowerBank(r, dist);
-                if (score < bestScore) {
-                    bestScore = score;
-                    best = r;
-                }
-            }
-            if (best) {
-                const team = planPowerTeam(best);
-                cache[best.name] = {
-                    tick: Game.time,
-                    type: 'power',
-                    level: 1,
-                    priority: PRIORITIES.medium,
-                    space: team.attackers,
-                    powerAmount: best.powerAmount,
-                    haulers: team.haulers,
-                };
-                log.a(`Power mining planned for ${roomLink(best.name)} (${best.powerAmount} power, ${team.attackers} attackers / ${team.attackers * 2} healers / ${team.haulers} haulers)`, 'HIGH COMMAND: ');
+    const readiness = state.EMPIRE_READINESS;
+    const auxReady = readiness && readiness.auxReady > 0;
+    // Power is income, not a siege. Combat-ready pause (ALLOW_NEW_OPS / auxLimit 0)
+    // used to freeze banks while RCL 8 rooms were still aux-ready.
+    const canLaunchPower = MAX_LEVEL >= 8 && activePowerOps < 2
+        && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT
+        && (auxLimit > 0 || auxReady)
+        && (state.ALLOW_NEW_OPS || (auxReady && readiness.militaryCpuOk !== false));
+
+    if (canLaunchPower) {
+        let best = null, bestScore = Infinity;
+        for (const rName of (idx.power || [])) {
+            const r = INTEL[rName];
+            if (!auxEntryEligible(r, cache)) continue;
+            if (!isUncontestedPowerBank(r)) continue;
+            const dist = findClosestOwnedRoom(r.name, true);
+            if (dist == null || dist > POWER_MAX_RANGE) continue;
+            if (r.power - Game.time < powerTimeNeeded(dist)) continue;
+            const score = scorePowerBank(r, dist);
+            if (score < bestScore) {
+                bestScore = score;
+                best = r;
             }
         }
+        if (best) {
+            const team = planPowerTeam(best);
+            cache[best.name] = {
+                tick: Game.time,
+                type: 'power',
+                level: 1,
+                priority: PRIORITIES.medium,
+                space: team.attackers,
+                powerAmount: best.powerAmount,
+                haulers: team.haulers,
+            };
+            log.a(`Power mining planned for ${roomLink(best.name)} (${best.powerAmount} power, ${team.attackers} attackers / ${team.attackers * 2} healers / ${team.haulers} haulers)`, 'HIGH COMMAND: ');
+        }
+    }
 
+    if (MAX_LEVEL >= 4 && auxLimit > 0 && state.ALLOW_NEW_OPS) {
         // Commodity
         if (activeCommodityOps < auxLimit) {
             const cutoff = Game.market.credits < CREDIT_BUFFER * 2 ? 150 : 40;

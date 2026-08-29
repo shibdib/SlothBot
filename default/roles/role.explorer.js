@@ -302,7 +302,10 @@ class RoleExplorer {
     exploreRoom() {
         if (this.room) {
             const intel = INTEL[this.room.name];
-            if (!intel || !intel.lastObservation || intel.lastObservation + INTEL_REFRESH_TICKS < Game.time) {
+            const highway = global.isHighwayRoomName && global.isHighwayRoomName(this.room.name);
+            // Banks spawn on a 5k timer. A fresh lastObservation from an empty
+            // look used to skip the cache and walk past a new bank.
+            if (highway || !intel || !intel.lastObservation || intel.lastObservation + INTEL_REFRESH_TICKS < Game.time) {
                 this.room.cacheRoomIntel();
             }
         }
