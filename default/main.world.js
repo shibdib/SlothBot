@@ -151,8 +151,18 @@ class World {
     }
 
     hudManager() {
-        new HudControl().run();
-        new DefenseVisualizer().run();
+        try {
+            new HudControl().run();
+        } catch (e) {
+            log.e('HUD Error: ');
+            log.e(`${e} ${e.stack}`);
+        }
+        try {
+            new DefenseVisualizer().run();
+        } catch (e) {
+            log.e('DefenseViz Error: ');
+            log.e(`${e} ${e.stack}`);
+        }
     }
 
     stateManager() {
