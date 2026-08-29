@@ -243,9 +243,9 @@ function pickSquadHopGoals(tiles, exitDir, preferred, nextRoom) {
         picked.push(t);
     };
     for (let i = 0; i < wide.length && picked.length < 8; i++) add(wide[i]);
-    const cap = Math.max(HOP_GOAL_COUNT, picked.length);
-    for (let i = 0; i < narrow.length && picked.length < cap; i++) add(narrow[i]);
-    return picked.length ? picked : tiles.slice();
+    // 1-wide exits cannot host a 2×2. Aiming at them made PathFinder emit a
+    // step the blob then had to snake or leak through.
+    return picked;
 }
 
 function pickHopGoals(tiles, exitDir, preferred) {
@@ -529,6 +529,8 @@ module.exports = {
     travelRouteHops,
 
     onExitToward,
+
+    preferredExitAlong,
 
     ROUTE_TTL,
 

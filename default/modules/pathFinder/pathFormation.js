@@ -13,6 +13,26 @@ const {MATRIX_CACHE} = require('pathState');
 
 const {hashStructures, applyLookObstaclesToMatrix, lookObstacleHash} = require('pathUtils');
 
+function neighborPortalHash(roomName) {
+    const exits = Game.map.describeExits(roomName);
+    if (!exits) return '';
+    const dirs = [TOP, RIGHT, BOTTOM, LEFT];
+    const parts = [];
+    for (let i = 0; i < dirs.length; i++) {
+        const n = exits[dirs[i]];
+        if (!n) continue;
+        const room = Game.rooms[n];
+        if (!room) {
+            parts.push(n);
+            continue;
+        }
+        const lookHash = lookObstacleHash(room);
+        const structHash = hashStructures(room.impassibleStructures || []);
+        parts.push(lookHash ? `${n}:${structHash}|L:${lookHash}` : `${n}:${structHash}`);
+    }
+    return parts.join(',');
+}
+
 function getSquadMatrix(roomName, orientation = 0, squadSize = 4) {
     const room = Game.rooms[roomName];
     const impassibleHash = room ? hashStructures(room.impassibleStructures || []) : '';
@@ -21,7 +41,8 @@ function getSquadMatrix(roomName, orientation = 0, squadSize = 4) {
     // Duos path solo. A 3-creep remnant uses the L (two cardinals), not the
     // full 2×2, so a missing corner does not block the step.
     const footprint = squadSize >= 4 ? `q${orientation}` : squadSize === 3 ? `l${orientation}` : 'd';
-    const cacheType = `squad_${footprint}_${structuresHash}`;
+    const neighborHash = squadSize >= 3 ? neighborPortalHash(roomName) : '';
+    const cacheType = `squad_${footprint}_${structuresHash}_${neighborHash}`;
     return getCachedMatrix(roomName, cacheType, 200, () => buildSquadMatrix(roomName, orientation, squadSize));
 }
 
@@ -133,13 +154,137 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
         }
     }
 
-    for (let y = 0; y < 50; y++) {
-        for (let x = 0; x < 50; x++) {
-            if (x <= 1 || x >= 48 || y <= 1 || y >= 48) raise(x, y, EDGE);
+    if (squadSize >= 3) {
+        inflateNeighborEdges(roomName, inflate, FOOTPRINT_BLOCK, SWAMP);
+        blockNonThroughExits(matrix, roomName, FOOTPRINT_BLOCK);
+    } else {
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                if (x <= 1 || x >= 48 || y <= 1 || y >= 48) raise(x, y, EDGE);
+            }
         }
     }
 
     return matrix;
+}
+
+// Neighbor exit tiles are one step from this room's edge. Inflate them so a
+// 2×2 whose next footprint wraps into the next room will not path onto a
+// 1-wide hole or a walled landing.
+function inflateNeighborEdges(roomName, inflate, blockCost, swampCost) {
+    const exits = Game.map.describeExits(roomName);
+    if (!exits) return;
+    const edges = [
+        {room: exits[RIGHT], gx: 50, gy: null, lx: 0, ly: null},
+        {room: exits[LEFT], gx: -1, gy: null, lx: 49, ly: null},
+        {room: exits[BOTTOM], gx: null, gy: 50, lx: null, ly: 0},
+        {room: exits[TOP], gx: null, gy: -1, lx: null, ly: 49}
+    ];
+    for (let e = 0; e < edges.length; e++) {
+        const edge = edges[e];
+        if (!edge.room) continue;
+        const terrain = Game.map.getRoomTerrain(edge.room);
+        const vis = Game.rooms[edge.room];
+        for (let i = 0; i < 50; i++) {
+            const lx = edge.lx == null ? i : edge.lx;
+            const ly = edge.ly == null ? i : edge.ly;
+            const gx = edge.gx == null ? i : edge.gx;
+            const gy = edge.gy == null ? i : edge.gy;
+            const tile = terrain.get(lx, ly);
+            if (tile === TERRAIN_MASK_WALL) inflate(gx, gy, blockCost);
+            else if (tile === TERRAIN_MASK_SWAMP) inflate(gx, gy, swampCost);
+            if (vis && new RoomPosition(lx, ly, edge.room).checkForImpassible(false, true)) {
+                inflate(gx, gy, blockCost);
+            }
+        }
+    }
+}
+
+const THROUGH_WIDTH = 2;
+const THROUGH_INLAND = 2;
+
+function tileTerrainOpen(roomName, x, y) {
+    if (x < 0 || x > 49 || y < 0 || y > 49) return false;
+    if (Game.map.getRoomTerrain(roomName).get(x, y) === TERRAIN_MASK_WALL) return false;
+    const room = Game.rooms[roomName];
+    if (room && new RoomPosition(x, y, roomName).checkForObstacleStructure()) return false;
+    return true;
+}
+
+function alongExitPos(dir, along) {
+    if (dir === RIGHT) return {x: 49, y: along};
+    if (dir === LEFT) return {x: 0, y: along};
+    if (dir === TOP) return {x: along, y: 0};
+    return {x: along, y: 49};
+}
+
+function alongLanding(dir, along) {
+    if (dir === RIGHT) return {x: 0, y: along};
+    if (dir === LEFT) return {x: 49, y: along};
+    if (dir === TOP) return {x: along, y: 49};
+    return {x: along, y: 0};
+}
+
+function alongInland(dir, along, depth) {
+    if (dir === RIGHT) return {x: depth, y: along};
+    if (dir === LEFT) return {x: 49 - depth, y: along};
+    if (dir === TOP) return {x: along, y: 49 - depth};
+    return {x: along, y: depth};
+}
+
+// 2 consecutive exit tiles whose landings and the next 2 inland tiles are open.
+// Plains-then-wall is not a portal — the 2×2 can step on the landing and then
+// has nowhere to go except along the exit.
+function isSquadThroughPair(fromRoom, nextRoom, dir, along) {
+    if (!fromRoom || !nextRoom || !dir) return false;
+    for (let w = 0; w < THROUGH_WIDTH; w++) {
+        const a = along + w;
+        if (a < 1 || a > 48) return false;
+        const exit = alongExitPos(dir, a);
+        if (!tileTerrainOpen(fromRoom, exit.x, exit.y)) return false;
+        const land = alongLanding(dir, a);
+        if (!tileTerrainOpen(nextRoom, land.x, land.y)) return false;
+        for (let d = 1; d <= THROUGH_INLAND; d++) {
+            const t = alongInland(dir, a, d);
+            if (!tileTerrainOpen(nextRoom, t.x, t.y)) return false;
+        }
+    }
+    return true;
+}
+
+function exitOnThroughPortal(fromRoom, nextRoom, dir, along) {
+    return isSquadThroughPair(fromRoom, nextRoom, dir, along)
+        || isSquadThroughPair(fromRoom, nextRoom, dir, along - 1);
+}
+
+function blockNonThroughExits(matrix, roomName, blockCost) {
+    const exits = Game.map.describeExits(roomName);
+    if (!exits) return;
+    const dirs = [TOP, RIGHT, BOTTOM, LEFT];
+    for (let i = 0; i < dirs.length; i++) {
+        const dir = dirs[i];
+        const nextRoom = exits[dir];
+        if (!nextRoom) continue;
+        for (let along = 0; along < 50; along++) {
+            if (exitOnThroughPortal(roomName, nextRoom, dir, along)) continue;
+            const p = alongExitPos(dir, along);
+            if (matrix.get(p.x, p.y) < blockCost) matrix.set(p.x, p.y, blockCost);
+        }
+    }
+}
+
+function collectThroughPairs(fromRoom, nextRoom, dir) {
+    const pairs = [];
+    if (!fromRoom || !nextRoom || !dir) return pairs;
+    for (let along = 1; along <= 47; along++) {
+        if (isSquadThroughPair(fromRoom, nextRoom, dir, along)) pairs.push(along);
+    }
+    return pairs;
+}
+
+function inlandRoomPos(nextRoom, dir, along, depth) {
+    const t = alongInland(dir, along, depth);
+    return new RoomPosition(t.x, t.y, nextRoom);
 }
 
 
@@ -235,6 +380,35 @@ function posAfterMove(pos, direction) {
     return offsetPos(pos, MOVE_DX[direction], MOVE_DY[direction]);
 }
 
+function footprintPositions(leaderPos, orientation, squadSize = 4) {
+    if (!leaderPos) return null;
+    const tiles = [leaderPos];
+    const offsets = followerOffsets(orientation, squadSize);
+    for (let i = 0; i < offsets.length; i++) {
+        const tile = offsetPos(leaderPos, offsets[i].dx, offsets[i].dy);
+        if (!tile) return null;
+        tiles.push(tile);
+    }
+    return tiles;
+}
+
+function tileBlocked(pos, ignoreCreeps = true) {
+    if (!pos) return true;
+    const terrain = Game.map.getRoomTerrain(pos.roomName);
+    if (terrain.get(pos.x, pos.y) === TERRAIN_MASK_WALL) return true;
+    if (Game.rooms[pos.roomName] && pos.checkForImpassible(false, ignoreCreeps)) return true;
+    return false;
+}
+
+function isFootprintWalkable(leaderPos, orientation, squadSize = 4) {
+    const tiles = footprintPositions(leaderPos, orientation, squadSize);
+    if (!tiles) return false;
+    for (let i = 0; i < tiles.length; i++) {
+        if (tileBlocked(tiles[i], true)) return false;
+    }
+    return true;
+}
+
 // PathFinder emits diagonal exit steps ((49,25) → (0,24) next room). Encoding
 // only the edge cardinal walked the 2×2 one tile off the rest of the path.
 function directionBetween(from, to) {
@@ -299,7 +473,16 @@ function isSquadCreep(creep) {
 function wouldEnterDest(pos, direction, destRoom) {
     if (!pos || !destRoom || pos.roomName === destRoom) return false;
     const next = posAfterMove(pos, direction);
-    return !!(next && next.roomName === destRoom);
+    if (!next) return false;
+    if (next.roomName === destRoom) return true;
+    // Stepping onto this room's dest-facing exit teleports at tick end.
+    const dir = exitDirectionTo(pos.roomName, destRoom);
+    if (!dir || next.roomName !== pos.roomName) return false;
+    if (dir === RIGHT) return next.x === 49;
+    if (dir === LEFT) return next.x === 0;
+    if (dir === TOP) return next.y === 0;
+    if (dir === BOTTOM) return next.y === 49;
+    return false;
 }
 
 module.exports = {
@@ -323,6 +506,18 @@ module.exports = {
     wrapRoomPos,
 
     offsetPos,
+
+    footprintPositions,
+
+    tileBlocked,
+
+    isFootprintWalkable,
+
+    isSquadThroughPair,
+
+    collectThroughPairs,
+
+    inlandRoomPos,
 
     directionBetween,
 

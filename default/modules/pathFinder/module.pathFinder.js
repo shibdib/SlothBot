@@ -18,6 +18,8 @@ module.exports = {
     formationRange: pathFormation.formationRange,
     posAfterMove: pathFormation.posAfterMove,
     offsetPos: pathFormation.offsetPos,
+    tileBlocked: pathFormation.tileBlocked,
+    isFootprintWalkable: pathFormation.isFootprintWalkable,
     exitDirectionTo: pathFormation.exitDirectionTo,
     isQuadCreep: pathFormation.isQuadCreep,
     isSquadCreep: pathFormation.isSquadCreep,

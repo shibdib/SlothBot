@@ -21,11 +21,20 @@ const {
     roomNeedsMazeOps
 } = require('pathUtils');
 
-const {findRoute, attachStagingAvoid, filterAvoidedRooms, exitHopTarget, onExitToward} = require('pathRoute');
+const {findRoute, attachStagingAvoid, filterAvoidedRooms, preferredExitAlong} = require('pathRoute');
 
 const {serializePath} = require('pathPathCache');
 
-const {getSquadMatrix, getFormationVectors, posAfterMove, formationRange, exitDirectionTo} = require('pathFormation');
+const {
+    getSquadMatrix,
+    posAfterMove,
+    formationRange,
+    exitDirectionTo,
+    tileBlocked,
+    isFootprintWalkable,
+    collectThroughPairs,
+    inlandRoomPos
+} = require('pathFormation');
 const {
     findOccupyingCreep,
     yieldOccupant,
@@ -82,34 +91,63 @@ function applySquadHop(origin, target, options) {
         return null;
     }
 
-    // 2-room search to the next room's landings so the serialized path includes
-    // the cross (diagonal or cardinal). Stopping on this room's exit and then
-    // forcing hopExitDir skipped the PathFinder step.
     const lookAhead = route[idx + 2] || target.roomName;
-    const hop = exitHopTarget(origin.roomName, nextRoom, origin, lookAhead,
-        {squadSize: options.squadSize});
     options.route = route.slice(idx, idx + HOP_WINDOW);
     options.maxRooms = HOP_WINDOW;
-    if (hop && hop.landingGoals && hop.landingGoals.length) {
-        options.hopGoals = hop.landingGoals;
-        options.range = 0;
-        return hop.landingGoals[0].pos;
+    const through = squadHopThroughTarget(origin.roomName, nextRoom, lookAhead);
+    if (through.goals && through.goals.length) options.hopGoals = through.goals;
+    options.range = through.range;
+    return through.pos;
+}
+
+// Goal is 3 tiles inland of a 2-wide through-portal, not the landing and not
+// 25,25. That keeps the serialized path crossing AND stepping off the exit
+// so we do not repath (and walk the edge) on the entry tile.
+function squadHopThroughTarget(fromRoom, nextRoom, lookAheadRoom) {
+    const fallback = {pos: new RoomPosition(25, 25, nextRoom), range: 20};
+    const exitDir = Game.map.findExit(fromRoom, nextRoom);
+    if (!(exitDir > 0)) return fallback;
+    const pairs = collectThroughPairs(fromRoom, nextRoom, exitDir);
+    if (!pairs.length) return fallback;
+    const preferred = preferredExitAlong(exitDir, nextRoom, lookAheadRoom);
+    pairs.sort((a, b) => {
+        const da = Math.abs(a - preferred) * 10 + Math.abs(a - 25);
+        const db = Math.abs(b - preferred) * 10 + Math.abs(b - 25);
+        return da - db;
+    });
+    const goals = [];
+    const seen = new Set();
+    for (let i = 0; i < pairs.length && goals.length < 8; i++) {
+        const pos = inlandRoomPos(nextRoom, exitDir, pairs[i], 3);
+        const key = pos.x + ',' + pos.y;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        goals.push({pos, range: 1});
     }
-    options.range = 23;
-    return new RoomPosition(25, 25, nextRoom);
+    if (!goals.length) return fallback;
+    return {pos: goals[0].pos, range: 1, goals};
 }
 
 // getRangeTo is Infinity across rooms, so an incomplete path that reached the
 // exit toward the target used to be discarded and the 2×2 stalled.
 function squadEndpointUsable(end, target, range) {
     if (!end || !target) return false;
-    if (end.roomName === target.roomName) {
-        return Math.max(Math.abs(end.x - target.x), Math.abs(end.y - target.y)) <= (range || 1);
-    }
-    const toward = exitDirectionTo(end.roomName, target.roomName);
-    return !!(toward && onExitToward(end, toward));
+    if (end.roomName !== target.roomName) return false;
+    return Math.max(Math.abs(end.x - target.x), Math.abs(end.y - target.y)) <= (range || 1);
 }
 
+
+function onExitTile(pos) {
+    return !!(pos && (pos.x === 0 || pos.x === 49 || pos.y === 0 || pos.y === 49));
+}
+
+// Engine skips the exit tile, so a 2×2 straddles at chebyshev 2 for one tick.
+function inSquadStep(memberPos, leaderPos) {
+    const r = formationRange(memberPos, leaderPos);
+    if (r <= 1) return true;
+    return r <= 2 && (onExitTile(memberPos) || onExitTile(leaderPos)
+        || memberPos.roomName !== leaderPos.roomName);
+}
 
 function squadMove(creep, path) {
     if (!creep.memory.squadMembers || !path?.length) return false;
@@ -123,99 +161,47 @@ function squadMove(creep, path) {
         return false;
     }
 
-    const orientation = creep.memory.squadOrientation || 0;
-    const squadSize = members.length + 1;
-    const newLeaderPos = posAfterMove(creep.pos, move);
-    const dest = creep.memory.destination;
-    const leaderLeaving = !!(newLeaderPos && newLeaderPos.roomName !== creep.pos.roomName);
-    const leaderEnteringDest = !!(dest && leaderLeaving && newLeaderPos.roomName === dest);
-    const destEdgeSlide = isDestEdgeSlide(creep, dest, members);
-    // 1-wide exit: the hole is still this room's exit tile, so leaderLeaving
-    // is false until the following tick. Slide onto it the same way we slide
-    // across. First dest hop into dest still needs the dest-exit 2×2.
-    const ontoExit = !!(newLeaderPos && newLeaderPos.roomName === creep.pos.roomName
-        && onDestExitTile(newLeaderPos));
-    const roomEdgeSlide = destEdgeSlide || !!(newLeaderPos && !leaderEnteringDest
-        && (leaderLeaving || ontoExit)
-        && !roomCrossBlocked(newLeaderPos)
-        && !isFootprintWalkable(newLeaderPos, orientation, squadSize, true));
+    const packed = [];
+    for (let i = 0; i < members.length; i++) {
+        if (inSquadStep(members[i].pos, creep.pos)) packed.push(members[i]);
+    }
+    const movers = [creep];
+    for (let i = 0; i < packed.length; i++) movers.push(packed[i]);
 
-    if (newLeaderPos) {
-        if (newLeaderPos.checkForImpassible(false, true)) {
+    const hostiles = !!creep.room.hostileCreeps.length;
+    let anyoneLeaving = false;
+    for (let i = 0; i < movers.length; i++) {
+        const next = posAfterMove(movers[i].pos, move);
+        if (!next || tileBlocked(next, true) || (hostiles && isOccupiedByEnemy(creep, next))) {
             creep.memory._shibSquadMove = undefined;
             return false;
         }
-        // Full 2×2 inland often hits the bunker wall 1 tile off dest-exit.
-        // Aborting here left the front row on dest-exit and the back row
-        // parked in staging. Dest-edge slides still move whoever can.
-        if (!isFootprintWalkable(newLeaderPos, orientation, squadSize, leaderLeaving || destEdgeSlide)
-            && !roomEdgeSlide) {
-            creep.memory._shibSquadMove = undefined;
-            return false;
-        }
+        if (next.roomName !== movers[i].pos.roomName) anyoneLeaving = true;
     }
 
-    if (!canSquadMove(creep, members, move, roomEdgeSlide)) {
+    // A room hop is the same step as any other: every live member must be in
+    // the blob. Partial crosses are how the 2×2 turns into a snake.
+    if (anyoneLeaving && packed.length !== members.length) {
         creep.memory._shibSquadMove = undefined;
         return false;
     }
 
-    // Dest hop is a 2-tick 2×2 slide: leader (front row) crosses with the
-    // dest-side column, back row occupies the exit. Abort if anyone would
-    // enter dest while the leader is still stepping onto the exit — that is
-    // the "front row leaks in, re-form under towers" case.
+    const newLeaderPos = posAfterMove(creep.pos, move);
+    const dest = creep.memory.destination;
+    const leaderEnteringDest = !!(dest && newLeaderPos && newLeaderPos.roomName === dest
+        && creep.pos.roomName !== dest);
     const misc = creep.memory.misc;
     const destAdjacent = !!(dest && exitDirectionTo(creep.pos.roomName, dest));
     const stagingBypass = !!(dest && misc && misc.stagingRoom && misc.stagingRoom !== dest
         && !misc.staged && creep.pos.roomName !== dest && !destAdjacent);
-    // Don't walk through dest to reach the dest-adjacent staging room.
-    // Dest-adjacent hops ARE the dest entry — blocking them parked the 2×2
-    // on the neighbor's dest-facing exit.
     if (leaderEnteringDest && stagingBypass) {
         creep.memory._shibSquadMove = undefined;
         return false;
     }
-    if (leaderLeaving && members.some(m => formationRange(m.pos, creep.pos) > 1)) {
-        creep.memory._shibSquadMove = undefined;
-        return false;
-    }
-    for (const member of members) {
-        if (formationRange(member.pos, creep.pos) > 1) continue;
-        const memberNext = posAfterMove(member.pos, move);
-        if (memberNext && memberNext.roomName !== member.pos.roomName
-            && (!leaderLeaving || memberNext.roomName !== newLeaderPos.roomName)) {
-            creep.memory._shibSquadMove = undefined;
-            return false;
-        }
-    }
 
-    if (!clearSquadFootprint(creep, members, move)) return false;
+    if (!clearSquadFootprint(creep, packed, move)) return false;
 
-    if (roomEdgeSlide && !destEdgeSlide) creep.memory.quadSnake = true;
-
-    creep.move(move);
-    for (const member of members) {
-        // Same-room adjacency plus the 2×2 split across an exit (range 1 through
-        // the edge). getRangeTo is Infinity across rooms, which used to drop the
-        // back row and send only 2 into dest.
-        if (formationRange(member.pos, creep.pos) > 1) continue;
-        const nextPos = posAfterMove(member.pos, move);
-        if (!nextPos) {
-            member.move(move);
-        } else if (nextPos.roomName !== member.pos.roomName) {
-            // In-formation dest landings were already gated in canSquadMove.
-            // A blocked tile here means this body stays; others still step.
-            if (roomCrossBlocked(nextPos)) continue;
-            member.move(move);
-        } else if (nextPos.checkForImpassible(false, true)) {
-            // Stay on the square. forceSolo peels off the 2×2 and will cross a
-            // room edge if this body is already on an exit tile.
-            if (roomEdgeSlide || leaderLeaving || onDestExitTile(member.pos)) continue;
-            member.shibMove(creep, {range: 0, forceSolo: true});
-        } else {
-            member.move(move);
-        }
-    }
+    for (let i = 0; i < movers.length; i++) movers[i].move(move);
 
     // Followers run in undefined order; this tick's intent wins over getInPosition.
     creep.memory.squadMoveTick = Game.time;
@@ -260,7 +246,7 @@ function clearSquadFootprint(leader, members, direction) {
     const occupied = [];
     for (let i = 0; i < consider.length; i++) {
         const c = consider[i];
-        if (c.id !== leader.id && formationRange(c.pos, leader.pos) > 1) continue;
+        if (c.id !== leader.id && !inSquadStep(c.pos, leader.pos)) continue;
         const next = posAfterMove(c.pos, direction);
         if (!next) continue;
         footprint.add(`${next.x},${next.y},${next.roomName}`);
@@ -288,48 +274,16 @@ function clearSquadFootprint(leader, members, direction) {
     return true;
 }
 
-function roomCrossBlocked(nextPos) {
-    if (!nextPos) return true;
-    const terrain = Game.map.getRoomTerrain(nextPos.roomName);
-    if (terrain.get(nextPos.x, nextPos.y) === TERRAIN_MASK_WALL) return true;
-    return !!(Game.rooms[nextPos.roomName] && nextPos.checkForImpassible(false, true));
-}
-
-function onDestExitTile(pos) {
-    return !!(pos && (pos.x === 0 || pos.x === 49 || pos.y === 0 || pos.y === 49));
-}
-
-function isDestEdgeSlide(leader, dest, members) {
-    if (!dest) return false;
-    // First hop (nobody in dest yet) still needs the dest-exit footprint so
-    // we don't leak a single body in. Relax only once the 2×2 straddles dest
-    // or is clearing dest-exit inland.
-    if (leader.pos.roomName !== dest) {
-        return !!(members && members.some(m => m && m.pos.roomName === dest
-            && formationRange(m.pos, leader.pos) <= 1));
-    }
-    const p = leader.pos;
-    if (onDestExitTile(p)) return true;
-    if (members && members.some(m => m && m.pos.roomName === dest && onDestExitTile(m.pos))) return true;
-    return !!(members && members.some(m => m && m.pos.roomName !== p.roomName
-        && formationRange(m.pos, p) <= 1));
-}
-
-function canSquadMove(leader, members, direction, destEdgeSlide) {
+function canSquadMove(leader, members, direction) {
     const hostiles = !!leader.room.hostileCreeps.length;
-    for (const member of members) {
-        if (formationRange(member.pos, leader.pos) > 1) continue;
-        const nextPos = posAfterMove(member.pos, direction);
-        if (!nextPos) continue;
-        if (nextPos.roomName !== member.pos.roomName) {
-            // Dest-edge: a blocked landing parks that body; others still step.
-            if (roomCrossBlocked(nextPos) && !destEdgeSlide) return false;
-            continue;
-        }
-        if (nextPos.checkForImpassible(false, true) || (hostiles && isOccupiedByEnemy(leader, nextPos))) {
-            if (destEdgeSlide) continue;
-            return false;
-        }
+    const movers = [leader];
+    for (let i = 0; i < members.length; i++) {
+        if (inSquadStep(members[i].pos, leader.pos)) movers.push(members[i]);
+    }
+    for (let i = 0; i < movers.length; i++) {
+        const nextPos = posAfterMove(movers[i].pos, direction);
+        if (!nextPos || tileBlocked(nextPos, true)) return false;
+        if (hostiles && isOccupiedByEnemy(leader, nextPos)) return false;
     }
     return true;
 }
@@ -339,26 +293,6 @@ function isOccupiedByEnemy(leader, pos) {
     const occupant = pos.lookFor(LOOK_CREEPS)[0];
     leader.memory.blockingCreep = occupant && !occupant.my ? occupant.id : undefined;
     return occupant && !occupant.my;
-}
-
-function isFootprintWalkable(leaderPos, orientation, squadSize = 4, straddle = false) {
-    const vectors = getFormationVectors(orientation, squadSize);
-    const terrain = Game.map.getRoomTerrain(leaderPos.roomName);
-    for (const v of vectors) {
-        const mx = leaderPos.x - v.x;
-        const my = leaderPos.y - v.y;
-        if (mx < 0 || mx > 49 || my < 0 || my > 49) {
-            // Rest of the 2×2 is still in the previous room during an exit hop.
-            // Walking along an edge is not a hop — a hanging 2×2 must fail.
-            if (straddle) continue;
-            return false;
-        }
-        if (terrain.get(mx, my) === TERRAIN_MASK_WALL) return false;
-        // Invisible dest: only terrain. Ramparts need a scout/creep in dest.
-        if (Game.rooms[leaderPos.roomName]
-            && new RoomPosition(mx, my, leaderPos.roomName).checkForImpassible(false, true)) return false;
-    }
-    return true;
 }
 
 
