@@ -667,10 +667,63 @@ function isRoadPlaceable(pos) {
     return true;
 }
 
+const CONTROLLER_LINK_MAX_RANGE = 3;
+const SOURCE_CONTROLLER_SHARE_RANGE = 2;
+
+function isControllerNeighborSource(source, room, maxRange = SOURCE_CONTROLLER_SHARE_RANGE) {
+    return !!(source && room && room.controller && source.pos.getRangeTo(room.controller) <= maxRange);
+}
+
+function getControllerNeighborSource(room, maxRange = SOURCE_CONTROLLER_SHARE_RANGE) {
+    if (!room || !room.controller || !room.sources) return null;
+    let best = null;
+    let bestRange = Infinity;
+    for (let i = 0; i < room.sources.length; i++) {
+        const source = room.sources[i];
+        const range = source.pos.getRangeTo(room.controller);
+        if (range <= maxRange && range < bestRange) {
+            bestRange = range;
+            best = source;
+        }
+    }
+    return best;
+}
+
+/**
+ * Open neighbors of a source pad that can hold the shared controller/source link.
+ * @param {RoomPosition} containerPos
+ * @param {Source} source
+ * @param {Room} room
+ * @returns {number}
+ */
+function countSharedControllerLinkSlots(containerPos, source, room) {
+    if (!room || !room.controller || !containerPos) return 0;
+    const terrain = Game.map.getRoomTerrain(containerPos.roomName);
+    const ctrl = room.controller.pos;
+    let n = 0;
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (!xOff && !yOff) continue;
+            const x = containerPos.x + xOff;
+            const y = containerPos.y + yOff;
+            if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+            if (x === source.pos.x && y === source.pos.y) continue;
+            if (x === ctrl.x && y === ctrl.y) continue;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            const range = Math.max(Math.abs(x - ctrl.x), Math.abs(y - ctrl.y));
+            if (range > CONTROLLER_LINK_MAX_RANGE) continue;
+            n++;
+        }
+    }
+    return n;
+}
+
 function findBestContainerPos(source) {
     const room = Game.rooms[source.pos.roomName];
     const lairs = room && room.keeperLairs && room.keeperLairs.length ? room.keeperLairs : null;
     const nearestLair = lairs ? source.pos.findClosestByRange(lairs) : null;
+    const nearOwnController = !!(room && room.controller && room.controller.my
+        && isControllerNeighborSource(source, room));
 
     let bestPos, bestScore;
     for (let xOff = -1; xOff <= 1; xOff++) {
@@ -681,6 +734,11 @@ function findBestContainerPos(source) {
             let score = pos.countOpenTerrainAround(true, true);
             // Keepers walk lair → source and camp the near side. Prefer the far tile.
             if (nearestLair) score += pos.getRangeTo(nearestLair) * 3;
+            if (nearOwnController) {
+                const slots = countSharedControllerLinkSlots(pos, source, room);
+                if (slots > 0) score += 15 + slots * 2;
+                else score -= 12;
+            }
             if (bestScore === undefined || score > bestScore) {
                 bestScore = score;
                 bestPos = pos;
@@ -750,27 +808,65 @@ function isControllerAreaContainer(structure, room) {
         && !isSourceOrMineralContainer(structure, room);
 }
 
-const CONTROLLER_LINK_MAX_RANGE = 3;
-
-function isAssignedSourceLink(structure, room) {
-    if (!structure || !room || structure.structureType !== STRUCTURE_LINK) return false;
-    for (const source of room.sources) {
-        if (source.memory.link && source.memory.link === structure.id) return true;
-    }
-    return false;
-}
-
 function isControllerLinkPos(pos, room) {
     if (!room.controller || pos.getRangeTo(room.controller) > CONTROLLER_LINK_MAX_RANGE) return false;
-    return !isNearAnySource(pos, room, 2);
+    const sources = room.sources || [];
+    for (let i = 0; i < sources.length; i++) {
+        const source = sources[i];
+        if (pos.getRangeTo(source.pos) > 2) continue;
+        // Only the controller-adjacent source may share this tile; keep far
+        // source-link pads exclusive.
+        if (!isControllerNeighborSource(source, room)) return false;
+    }
+    return true;
 }
 
 function isControllerAreaLink(structure, room) {
-    return structure
-        && structure.structureType === STRUCTURE_LINK
-        && (!structure.isActive || structure.isActive())
-        && isControllerLinkPos(structure.pos, room)
-        && !isAssignedSourceLink(structure, room);
+    if (!structure || structure.structureType !== STRUCTURE_LINK) return false;
+    if (structure.isActive && !structure.isActive()) return false;
+    if (room && room.memory && room.memory.hubLink && structure.id === room.memory.hubLink) return false;
+    return isControllerLinkPos(structure.pos, room);
+}
+
+/**
+ * True when the controller-adjacent source already has (or is bound to) the
+ * controller link — one structure serves harvest dump + upgrade withdraw.
+ * @param {Room} room
+ * @returns {boolean}
+ */
+function hasSharedSourceControllerLink(room) {
+    const source = getControllerNeighborSource(room);
+    if (!source || !room.controller) return false;
+    const link = Game.getObjectById(room.memory.controllerLink);
+    if (!link || !isControllerLinkPos(link.pos, room)) return false;
+    const container = resolveSourceContainer(source, room, false);
+    if (container && link.pos.isNearTo(container)) return true;
+    return link.pos.getRangeTo(source) <= 2;
+}
+
+/**
+ * Tile next to the neighbor source's harvest pad that should stay free for the
+ * shared controller/source link.
+ * @param {RoomPosition} pos
+ * @param {Room} room
+ * @returns {boolean}
+ */
+function isSharedLinkReserveTile(pos, room) {
+    const source = getControllerNeighborSource(room);
+    if (!source || !room.controller || !pos) return false;
+    const existing = resolveSourceContainer(source, room, false);
+    const pad = existing ? existing.pos : findBestContainerPos(source);
+    if (!pad || !pos.isNearTo(pad)) return false;
+    if (pos.getRangeTo(room.controller) > CONTROLLER_LINK_MAX_RANGE) return false;
+    if (pos.checkForWall && pos.checkForWall()) return false;
+    return isControllerLinkPos(pos, room);
+}
+
+function shouldSkipControllerContainer(room) {
+    if (!room || !room.controller) return false;
+    if (room.controller.level >= 8) return !!Game.getObjectById(room.memory.controllerLink);
+    if (room.controller.level < 5) return false;
+    return hasSharedSourceControllerLink(room);
 }
 
 function controllerContainersNear(room) {
@@ -1067,6 +1163,20 @@ module.exports = {
     isControllerLinkPos,
 
     isControllerAreaLink,
+
+    isControllerNeighborSource,
+
+    getControllerNeighborSource,
+
+    hasSharedSourceControllerLink,
+
+    isSharedLinkReserveTile,
+
+    shouldSkipControllerContainer,
+
+    CONTROLLER_LINK_MAX_RANGE,
+
+    SOURCE_CONTROLLER_SHARE_RANGE,
 
     resolveControllerContainer,
 

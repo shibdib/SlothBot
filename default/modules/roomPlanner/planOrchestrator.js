@@ -147,9 +147,10 @@ function needsEarlyEconomy(room) {
             hasSourceContainerSite,
             resolveControllerContainer,
             hasControllerContainerSite,
+            shouldSkipControllerContainer,
         } = require('planUtils');
 
-        if (level >= 2 && level < 8) {
+        if (level >= 2 && level < 8 && !shouldSkipControllerContainer(room)) {
             if (!resolveControllerContainer(room, false) && !hasControllerContainerSite(room)) {
                 result = true;
             }

@@ -46,6 +46,7 @@ const {
     hasSourceContainerSite,
     resolveControllerContainer,
     hasControllerContainerSite,
+    shouldSkipControllerContainer,
 } = require('planUtils');
 
 const DYNAMIC_SPECIAL_SITE_TYPES = DYNAMIC_SPECIAL_STRUCTURES.map(d => d.structureType);
@@ -568,7 +569,8 @@ function economySiteReserve(room) {
 
     let need = 0;
     if (level >= 2 && level < 8) {
-        if (!resolveControllerContainer(room, false) && !hasControllerContainerSite(room)) {
+        if (!shouldSkipControllerContainer(room)
+            && !resolveControllerContainer(room, false) && !hasControllerContainerSite(room)) {
             need++;
         }
     }

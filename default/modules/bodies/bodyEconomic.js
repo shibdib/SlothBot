@@ -70,10 +70,20 @@ function buildUpgrader(gen) {
                         (gen.room.energyState >= 2 || s.id !== gen.room.memory.hubLink))
                     .sort((a, b) => a.pos.getRangeTo(controllerLink) - b.pos.getRangeTo(controllerLink))
                 : [];
+            // Shared source+controller link dumps harvest into the controller
+            // link directly, so it is not in sourceLinks.
+            let sharedHarvest = 0;
+            const sources = gen.room.sources || [];
+            for (let i = 0; i < sources.length; i++) {
+                if (sources[i].memory && sources[i].memory.link === gen.room.memory.controllerLink) {
+                    sharedHarvest++;
+                }
+            }
 
-            if (sourceLinks.length > 0) {
+            if (sourceLinks.length + sharedHarvest > 0) {
                 const sourceRate = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME;
-                work = Math.floor(sourceRate * sourceLinks.length * (1 - LINK_LOSS_RATIO)) + 1;
+                const linked = sourceLinks.length * (1 - LINK_LOSS_RATIO) + sharedHarvest;
+                work = Math.floor(sourceRate * linked) + 1;
             }
             if (!gen.room.energyState) {
                 work *= 0.15;
