@@ -730,7 +730,11 @@ function evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads
     if (!myRoom || !myRoom.controller) return null;
     const key = myRoom.name;
     if (key === targetRoom) return null;
-    if (myRoom.controller.level !== myRoom.level || myRoom.downgraded) return null;
+    // Energy-capacity tier below controller RCL means missing/inactive
+    // extensions. Inactive extras after an RCL dip (nuker, observer, 60th
+    // extension) do not change room.level when the remaining cap still matches
+    // — those rooms can still spawn and should still assign.
+    if (myRoom.controller.level !== myRoom.level) return null;
     if (myRoom.level < level) return null;
 
     const tier = flags.isHelper || flags.isAuxiliary || flags.isScout

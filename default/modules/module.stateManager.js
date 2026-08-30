@@ -238,7 +238,12 @@ class StateManager {
                 return false;
             }
         });
-        room.memory.buildersNeeded = !hasSpawn || room.downgraded || (room.level < MAX_LEVEL * 0.5);
+        // `room.downgraded` is "any structure isActive() === false". An RCL 8→7
+        // dip leaves nuker/observer/extra extensions inactive even though
+        // nothing was destroyed and the room can still spawn — that is not a
+        // rebuild. Empire drones only when there is no active spawn, or the
+        // room is still a baby vs empire max.
+        room.memory.buildersNeeded = !hasSpawn || (room.level < MAX_LEVEL * 0.5);
     }
 
     funnelRequest(room) {
