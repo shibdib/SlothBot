@@ -37,7 +37,10 @@ function getSquadMatrix(roomName, orientation = 0, squadSize = 4) {
     const room = Game.rooms[roomName];
     const impassibleHash = room ? hashStructures(room.impassibleStructures || []) : '';
     const lookHash = room ? lookObstacleHash(room) : '';
-    const structuresHash = room ? (lookHash ? `${impassibleHash}|L:${lookHash}` : impassibleHash) || 'static' : 'static';
+    const roadHash = room ? hashStructures((room.structures || []).filter(s => s.structureType === STRUCTURE_ROAD)) : '';
+    const structuresHash = room
+        ? (lookHash ? `${impassibleHash}|L:${lookHash}|R:${roadHash}` : `${impassibleHash}|R:${roadHash}`) || 'static'
+        : 'static';
     // Duos path solo. A 3-creep remnant uses the L (two cardinals), not the
     // full 2×2, so a missing corner does not block the step.
     const footprint = squadSize >= 4 ? `q${orientation}` : squadSize === 3 ? `l${orientation}` : 'd';
@@ -81,15 +84,27 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
         }
     }
 
+    const room = Game.rooms[roomName];
+    // Paint roads before swamp inflate so a swamp-road landing is fatigue 1
+    // (raise() only increases, so inflating first would leave cost 35).
+    if (room) {
+        for (const structure of room.structures) {
+            if (!(structure instanceof StructureRoad)) continue;
+            if (structure.pos.checkForObstacleStructure()) continue;
+            matrix.set(structure.pos.x, structure.pos.y, PLAIN);
+        }
+    }
+
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
             const tile = terrain.get(x, y);
             if (tile === TERRAIN_MASK_WALL) inflate(x, y, FOOTPRINT_BLOCK);
-            else if (tile === TERRAIN_MASK_SWAMP) inflate(x, y, SWAMP);
+            else if (tile === TERRAIN_MASK_SWAMP) {
+                inflate(x, y, matrix.get(x, y) <= PLAIN ? PLAIN : SWAMP);
+            }
         }
     }
 
-    const room = Game.rooms[roomName];
     if (room) {
         for (const structure of room.structures) {
             if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
@@ -155,7 +170,7 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
     }
 
     if (squadSize >= 3) {
-        inflateNeighborEdges(roomName, inflate, FOOTPRINT_BLOCK, SWAMP);
+        inflateNeighborEdges(roomName, inflate, FOOTPRINT_BLOCK, SWAMP, PLAIN);
         blockNonThroughExits(matrix, roomName, FOOTPRINT_BLOCK);
     } else {
         for (let y = 0; y < 50; y++) {
@@ -168,17 +183,17 @@ function buildSquadMatrix(roomName, orientation, squadSize = 4) {
     return matrix;
 }
 
-// Neighbor exit tiles are one step from this room's edge. Inflate them so a
-// 2×2 whose next footprint wraps into the next room will not path onto a
-// 1-wide hole or a walled landing.
-function inflateNeighborEdges(roomName, inflate, blockCost, swampCost) {
+// Neighbor landings sit on this room's edge. Inflate that edge so a 2×2
+// whose next footprint wraps will not path onto a 1-wide hole or swamp/wall
+// landing. Writes 0..49 (the virtual x=50 tile is outside the cost matrix).
+function inflateNeighborEdges(roomName, inflate, blockCost, swampCost, roadCost) {
     const exits = Game.map.describeExits(roomName);
     if (!exits) return;
     const edges = [
-        {room: exits[RIGHT], gx: 50, gy: null, lx: 0, ly: null},
-        {room: exits[LEFT], gx: -1, gy: null, lx: 49, ly: null},
-        {room: exits[BOTTOM], gx: null, gy: 50, lx: null, ly: 0},
-        {room: exits[TOP], gx: null, gy: -1, lx: null, ly: 49}
+        {room: exits[RIGHT], x: 49, y: null, lx: 0, ly: null},
+        {room: exits[LEFT], x: 0, y: null, lx: 49, ly: null},
+        {room: exits[BOTTOM], x: null, y: 49, lx: null, ly: 0},
+        {room: exits[TOP], x: null, y: 0, lx: null, ly: 49}
     ];
     for (let e = 0; e < edges.length; e++) {
         const edge = edges[e];
@@ -188,13 +203,17 @@ function inflateNeighborEdges(roomName, inflate, blockCost, swampCost) {
         for (let i = 0; i < 50; i++) {
             const lx = edge.lx == null ? i : edge.lx;
             const ly = edge.ly == null ? i : edge.ly;
-            const gx = edge.gx == null ? i : edge.gx;
-            const gy = edge.gy == null ? i : edge.gy;
+            const x = edge.x == null ? i : edge.x;
+            const y = edge.y == null ? i : edge.y;
             const tile = terrain.get(lx, ly);
-            if (tile === TERRAIN_MASK_WALL) inflate(gx, gy, blockCost);
-            else if (tile === TERRAIN_MASK_SWAMP) inflate(gx, gy, swampCost);
-            if (vis && new RoomPosition(lx, ly, edge.room).checkForImpassible(false, true)) {
-                inflate(gx, gy, blockCost);
+            const landing = vis ? new RoomPosition(lx, ly, edge.room) : null;
+            if (tile === TERRAIN_MASK_WALL) inflate(x, y, blockCost);
+            else if (tile === TERRAIN_MASK_SWAMP) {
+                const road = landing && landing.checkForRoad() && !landing.checkForObstacleStructure();
+                inflate(x, y, road ? roadCost : swampCost);
+            }
+            if (landing && landing.checkForImpassible(false, true)) {
+                inflate(x, y, blockCost);
             }
         }
     }
@@ -409,6 +428,23 @@ function isFootprintWalkable(leaderPos, orientation, squadSize = 4) {
     return true;
 }
 
+function onExitTile(pos) {
+    return !!(pos && (pos.x === 0 || pos.x === 49 || pos.y === 0 || pos.y === 49));
+}
+
+// Off every exit axis at once so a corner landing does not slide along an edge
+// and bounce into the wrong neighbor.
+function inlandOffExit(pos) {
+    if (!pos) return 0;
+    const dx = pos.x === 0 ? 1 : pos.x === 49 ? -1 : 0;
+    const dy = pos.y === 0 ? 1 : pos.y === 49 ? -1 : 0;
+    if (!dx && !dy) return 0;
+    for (let d = TOP; d <= TOP_LEFT; d++) {
+        if (MOVE_DX[d] === dx && MOVE_DY[d] === dy) return d;
+    }
+    return 0;
+}
+
 // PathFinder emits diagonal exit steps ((49,25) → (0,24) next room). Encoding
 // only the edge cardinal walked the 2×2 one tile off the rest of the path.
 function directionBetween(from, to) {
@@ -418,6 +454,8 @@ function directionBetween(from, to) {
         const n = posAfterMove(from, d);
         if (n && n.x === to.x && n.y === to.y && n.roomName === to.roomName) return d;
     }
+    const exitDir = exitDirectionTo(from.roomName, to.roomName);
+    if (exitDir) return exitDir;
     if (from.x === 49 && to.x === 0) return RIGHT;
     if (from.x === 0 && to.x === 49) return LEFT;
     if (from.y === 0 && to.y === 49) return TOP;
@@ -520,6 +558,10 @@ module.exports = {
     inlandRoomPos,
 
     directionBetween,
+
+    onExitTile,
+
+    inlandOffExit,
 
     formationRange,
 

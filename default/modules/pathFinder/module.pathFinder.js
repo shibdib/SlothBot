@@ -24,6 +24,8 @@ module.exports = {
     isQuadCreep: pathFormation.isQuadCreep,
     isSquadCreep: pathFormation.isSquadCreep,
     wouldEnterDest: pathFormation.wouldEnterDest,
+    onExitTile: pathFormation.onExitTile,
+    inlandOffExit: pathFormation.inlandOffExit,
     findRoute: pathRoute.findRoute,
     deleteRoute: pathRoute.deleteRoute,
     getRoute: pathRoute.getRoute,

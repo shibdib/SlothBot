@@ -28,7 +28,9 @@ const {
     posAfterMove,
     offsetPos,
     wouldEnterDest,
-    tileBlocked
+    tileBlocked,
+    inlandOffExit,
+    onExitTile
 } = require("module.pathFinder");
 const {isBumperCandidate, yieldOccupant} = require("pathTraffic");
 const {recordSiegeWave} = require('hcTargets');
@@ -417,20 +419,25 @@ class RoleLongbowSquad {
 
         const dest = this.creep.memory.destination || leader.memory.destination;
         const grouped = (leader.memory.squadMembers || []).length >= 1;
-        // Dest landing is a portal. Sitting here teleports back to staging.
+        const squadSize = (leader.memory.squadMembers || []).length + 1;
+        // Dest landing is a portal. Sitting here teleports back. Formation
+        // movement should already have stepped us; this is tick-order fallback.
         if (dest && this.creep.room.name === dest && this.onRoomExitTile(this.creep.pos)) {
-            const inward = this.inwardMoveDir(this.creep.pos);
-            if (inward && !this.creep.fatigue) {
-                const next = posAfterMove(this.creep.pos, inward);
-                if (next && next.roomName === dest && !next.checkForImpassible(false, true)) {
-                    this.creep.move(inward);
+            const inland = inlandOffExit(this.creep.pos);
+            if (inland && !this.creep.fatigue) {
+                const next = posAfterMove(this.creep.pos, inland);
+                if (next && next.roomName === dest && !onExitTile(next)
+                    && !next.checkForImpassible(false, true)) {
+                    this.creep.move(inland);
                 }
             }
             return;
         }
-        // Staging dest-facing exit is a portal. Standing here teleports into
-        // dest alone. Step inland onto the pad; the leader walks the 2×2 across.
-        if (grouped && dest && this.creep.room.name !== dest && this.onDestFacingExit(this.creep, dest)) {
+        // Duo/snake on dest-facing staging: step inland so we don't hop alone.
+        // Packed quads stay in the blob — squadMove walks the 2×2 through.
+        if (grouped && dest && this.creep.room.name !== dest && this.onDestFacingExit(this.creep, dest)
+            && (squadSize <= 2 || leader.memory.quadSnake
+                || formationRange(this.creep.pos, leader.pos) > 2)) {
             const off = exitDirectionTo(this.creep.room.name, dest);
             const inland = off === RIGHT ? LEFT : off === LEFT ? RIGHT : off === TOP ? BOTTOM : TOP;
             if (inland && !this.creep.fatigue) {
@@ -471,7 +478,6 @@ class RoleLongbowSquad {
         // and tight terrain without any formation math. Falls back to a range-1
         // follow when we're catching up or when lastPos is in another room
         // (mid-transition — shibMove handles the cross-room routing).
-        const squadSize = (leader.memory.squadMembers || []).length + 1;
         if (squadSize <= 2 || leader.memory.quadSnake) {
             // Leader already in dest: line up on this side of the exit and wait
             // for the coordinated hop. Chasing the leader is 1-at-a-time entry
@@ -2159,9 +2165,8 @@ class RoleLongbowSquad {
         return this.applyBreachTarget(creep, best);
     }
 
-    // Packed on the dest-facing exit (or already straddling it): step the
-    // formation across together. Unpacked: form dest-inward, then walk onto
-    // that exit. Never path to dest 25,25 from here — that is 1-at-a-time entry.
+    // Unpacked / incomplete waves stay off dest portals. A packed quad walks
+    // rooms with shibSquadMovement — same as any other 2×2 step.
     holdForSquadEntry(creep, squad) {
         const live = (creep.memory.squadMembers || []).length + 1;
         if (live < 2 || !creep.memory.destination) return false;
@@ -2176,8 +2181,6 @@ class RoleLongbowSquad {
 
         // Intel picked a staging neighbor. Do not hop in from a different
         // adjacent room just because the shortest path brushed dest's other face.
-        // Already dest-adjacent: hop this face. Going to the other neighbor
-        // parks the 2×2 on that exit and never enters dest.
         const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
         const stagingShares = !!(staging && staging !== dest && exitDirectionTo(staging, dest));
         if (!inDest && !split && stagingShares && creep.room.name !== staging
@@ -2188,38 +2191,14 @@ class RoleLongbowSquad {
 
         const fullSquad = (squad || this.getSquad()).concat(creep);
         const together = this.isFormationPacked(fullSquad, creep);
+        const quad = this.isQuad(creep);
 
-        // Portal tiles teleport at tick end. Get off them before anything else.
-        if (inDest && this.onRoomExitTile(creep.pos)) {
-            if (this.stepOffDestExit(creep)) return true;
-        } else if (!inDest && this.onDestFacingExit(creep, dest) && !creep.fatigue) {
-            const off = exitDirectionTo(creep.room.name, dest);
-            const inland = off === RIGHT ? LEFT : off === LEFT ? RIGHT : off === TOP ? BOTTOM : TOP;
-            const next = inland && posAfterMove(creep.pos, inland);
-            if (next && next.roomName === creep.room.name && !next.checkForImpassible(false, true)) {
-                creep.move(inland);
-                return true;
-            }
-        }
-
-        if (split) {
-            if (inDest) {
-                // Front row already inland: stay. Walking back onto dest-exit
-                // occupies the landings the back row needs.
-                if (!this.onRoomExitTile(creep.pos)) return true;
-                if (this.stepOffDestExit(creep)) return true;
-                this.chipDestEntry(creep, dest);
-                return true;
-            }
-            if (together) {
-                if (this.quadPresentForEntry(creep, squad) && this.stepFormationIntoDest(creep)) return true;
-                this.chipDestEntry(creep, dest);
-                return false;
-            }
+        if (quad && together && !creep.memory.quadSnake && this.quadPresentForEntry(creep, squad)) {
+            return false;
         }
 
         if (inDest) {
-            if (this.squadOnDestExit(creep)) {
+            if (this.squadOnDestExit(creep) || split) {
                 if (this.stepOffDestExit(creep)) return true;
                 this.chipDestEntry(creep, dest);
                 return true;
@@ -2239,9 +2218,7 @@ class RoleLongbowSquad {
         const exitSpot = this.findStaging(creep);
         const goToExit = () => {
             if (!exitSpot || (creep.pos.x === exitSpot.x && creep.pos.y === exitSpot.y)) return false;
-            // Packed quads walk the pad as a 2×2. Unpacked quads still walk the
-            // leader to an inward pad (not forceSolo onto the dest strip).
-            if (this.isQuad(creep) && together) this.leaderTransit(exitSpot, {range: 0});
+            if (quad && together) this.leaderTransit(exitSpot, {range: 0});
             else creep.shibMove(exitSpot, {range: 0, forceSolo: true});
             return true;
         };
@@ -2249,16 +2226,13 @@ class RoleLongbowSquad {
         if (!together) {
             // Dest-inward 2×2 fits here: wait for followers to slot instead of
             // dragging an unpacked blob onto the exit (front row leaks into dest).
-            if (this.isQuad(creep) && !creep.memory.quadSnake) {
-                const destDir = exitDirectionTo(creep.room.name, dest);
+            if (quad && !creep.memory.quadSnake) {
                 const destOrients = destDir ? this.destExitOrients(destDir) : [];
                 const facing = creep.memory.squadOrientation || 0;
                 if (destOrients.includes(facing) && this.orientationFits(creep, facing)
                     && !this.onSpawnApron(creep)) {
                     return true;
                 }
-                // On the dest strip with the wrong facing: lock a dest-front
-                // 2×2 if it fits instead of snaking the front row in.
                 if (this.onDestFacingExit(creep, dest)) {
                     const fit = destOrients.find(o => this.orientationFits(creep, o));
                     if (fit !== undefined && !this.onSpawnApron(creep)) {
@@ -2267,9 +2241,7 @@ class RoleLongbowSquad {
                     }
                 }
             }
-            // 1-wide dest face: a 2×2 cannot pack. Snake the leader through
-            // once on the dest-facing tile; waiting forever was the stuck case.
-            if (this.isQuad(creep) && (creep.memory.quadSnake || this.onDestFacingExit(creep, dest))
+            if (quad && (creep.memory.quadSnake || this.onDestFacingExit(creep, dest))
                 && this.snakeIntoDest(creep)) return true;
             goToExit();
             return true;
@@ -2280,11 +2252,8 @@ class RoleLongbowSquad {
             return true;
         }
 
-        // Packed 2×2: one dest-ward step, same as any other packed move.
-        if (this.stepFormationIntoDest(creep)) return true;
-        const faceDir = exitDirectionTo(creep.room.name, dest);
-        if (this.isQuad(creep) && faceDir
-            && !this.destFrontOpen(dest, faceDir, creep.pos.x, creep.pos.y, creep.memory.squadOrientation || 0)
+        if (quad && destDir
+            && !this.destFrontOpen(dest, destDir, creep.pos.x, creep.pos.y, creep.memory.squadOrientation || 0)
             && this.snakeIntoDest(creep)) return true;
         if (!this.onDestFacingExit(creep, dest) && goToExit()) return true;
         this.chipDestEntry(creep, dest);
@@ -2302,12 +2271,8 @@ class RoleLongbowSquad {
         }
 
         if (creep.memory.destination && creep.room.name === creep.memory.destination) {
-            if (this.squadSplitAcrossDest(creep) || this.squadOnDestExit(creep)) {
-                // Split and already inland: wait for the back row on dest-exit.
-                // Another inland step puts us range 2 from staging.
-                if (this.squadSplitAcrossDest(creep) && !this.onRoomExitTile(creep.pos)) return;
+            if (this.squadOnDestExit(creep) || this.squadSplitAcrossDest(creep)) {
                 if (this.stepOffDestExit(creep)) return;
-                if (this.squadSplitAcrossDest(creep)) return;
             }
             if (this.holdForQuadWiden(creep)) return;
 
@@ -3143,8 +3108,9 @@ class RoleLongbowSquad {
         return creep.move(dir) === OK;
     }
 
-    // Dest-facing pad. Quads: 2×2 extending inward so the next step is a packed
-    // cross. Duos: a single dest-facing tile whose dest landing is open (1×1).
+    // Dest-facing pad. Quads: inland 2×2 so the next formation step crosses.
+    // On-exit pads teleport at tick end and cannot host a 2×2. Duos: a single
+    // dest-facing tile whose dest landing is open (1×1).
     findExitStaging(creep, dest, claimedByOther, tileClear) {
         const dir = creep.room.findExitTo(dest);
         if (!(dir > 0)) return null;
@@ -3199,7 +3165,6 @@ class RoleLongbowSquad {
             const lx = tiles[i].x;
             const ly = tiles[i].y;
             for (let o = 0; o < orients.length; o++) {
-                consider(lx, ly, orients[o], false);
                 consider(lx + inward.dx, ly + inward.dy, orients[o], true);
             }
         }
@@ -3553,20 +3518,26 @@ class RoleLongbowSquad {
         }
     }
 
-    // Staging neighbor until staged; dest-adjacent hops the pad, never dest 25,25.
+    // Staging neighbor until staged. Packed quads path dest as a 2×2; duos/unpacked
+    // still walk the dest-facing pad so they do not hop 1-at-a-time.
     transitToOpTarget(creep) {
         if (creep.ensureDenialStaging) creep.ensureDenialStaging();
         const dest = creep.memory.destination;
         if (!dest) return false;
         const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
-        // In staging: walk the dest-facing pad. Do not wander 25,25 because
-        // staged is only set on that exit, not on room entry.
         const destAdjacent = !!exitDirectionTo(creep.room.name, dest);
         // Dest-adjacent on the wrong face: walk around to the tunnel staging
         // unless we are already committed on dest-facing tiles.
         if (staging && staging !== dest && destAdjacent && creep.room.name !== staging
             && !this.onDestFacingExit(creep, dest)) {
             return this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
+        }
+        // Packed quad: dest is just another room. Walk the 2×2 there.
+        if (this.isQuad(creep) && dest !== creep.room.name && !creep.memory.quadSnake) {
+            const together = this.isFormationPacked(this.getSquad().concat(creep), creep);
+            if (together && this.quadPresentForEntry(creep)) {
+                return this.leaderTransit(new RoomPosition(25, 25, dest), {range: 22});
+            }
         }
         if (staging && staging !== dest && creep.room.name === staging) {
             if (this.onDestFacingExit(creep, dest)) {

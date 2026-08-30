@@ -16,7 +16,7 @@ const {
     normalizePos, clearTrailerTowState,
     tryPullSwapThrough, isPullSwapBlocker, isImmobileBlocker,
     getShibMove, setShibMove, ensureShibMove, clearShibMove,
-    roomNeedsMazeOps,
+    roomNeedsMazeOps, getMoveWeight,
 } = require('pathUtils');
 
 const {requestTow, needsTow} = require('pathTow');
@@ -201,6 +201,8 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     if (options.useCache == null) options.useCache = true;
     if (options.ignoreCreeps == null) options.ignoreCreeps = true;
 
+    if (typeof creep.getActiveBodyparts === 'function') getMoveWeight(creep, options);
+
     if (creep.memory && creep.memory._shibMove !== undefined) delete creep.memory._shibMove;
 
     // Long-distance: walk the findRoute room list one hop at a time so
@@ -318,6 +320,14 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     if (!pathState || targetChanged) {
         pathState = setShibMove(creep, {});
         if (creep.memory) delete creep.memory._mazeOpsRetry;
+    } else {
+        const prevOff = pathState.pathOptions && pathState.pathOptions.offRoad;
+        const prevIgnore = pathState.pathOptions && pathState.pathOptions.ignoreRoads;
+        if (prevOff !== (options.offRoad || undefined) || prevIgnore !== (options.ignoreRoads || undefined)) {
+            delete pathState.path;
+            delete pathState.pathPos;
+            pathState.pathPosTime = 0;
+        }
     }
 
     // Stuck detection

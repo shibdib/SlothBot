@@ -314,6 +314,9 @@ function hashRoomStructures(room) {
 }
 
 function getMoveWeight(creep, options = {}) {
+    if (options.offRoad || options.ignoreRoads) return options;
+    if (!creep || typeof creep.getActiveBodyparts !== 'function') return options;
+
     if (creep.className) {
         options.offRoad = true;
         return options;

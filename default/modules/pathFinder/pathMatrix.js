@@ -20,7 +20,9 @@ function getBaseMatrix(roomName, creep, options) {
     const noWallWrecker = creep instanceof Creep
         ? ((INTEL[roomName]?.owner && FRIENDLIES.includes(INTEL[roomName].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)))
         : true;
-    const type = options.offRoad || options.tunnel || !noWallWrecker ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
+    // Terrain type follows move weight. Wall wrecking only changes wall/rampart
+    // costs so fatigued combat still prefers roads.
+    const type = options.offRoad || options.tunnel ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
     const ignoreKeeper = !!options.ignoreKeeper;
 
     let plainCost, swampCost, roadCost;
@@ -28,12 +30,12 @@ function getBaseMatrix(roomName, creep, options) {
         case 2:
             plainCost = 1;
             swampCost = 25;
-            roadCost = 10;
+            roadCost = 1;
             break;
         case 3:
             plainCost = 1;
             swampCost = 1;
-            roadCost = 10;
+            roadCost = 1;
             break;
         default:
             plainCost = Math.ceil(2 + (creep instanceof Creep ? (creep.store.getCapacity() / 50) * 0.1 : 0));
@@ -48,7 +50,8 @@ function getBaseMatrix(roomName, creep, options) {
     const structuresHash = room
         ? (lookHash ? `${impassibleHash}|L:${lookHash}` : impassibleHash) || 'no-obstacles'
         : 'no-room';
-    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}`;
+    const skSelf = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'SKAttacker');
+    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}`;
     const baseKey = `${roomName}_base_${cacheStamp}_${structuresHash}`;
 
     // Per-tick reuse (biggest CPU win). Stamp includes type/wrecker so a
@@ -108,8 +111,11 @@ function getBaseMatrix(roomName, creep, options) {
             }
 
             if (structure instanceof StructureRoad) {
-                if (!pos.checkForObstacleStructure() && !pos.checkForContainer()) {
-                    const cost = (room.hostileCreeps.length && pos.checkForRampart()) ? roadCost * 0.5 : roadCost;
+                if (!pos.checkForObstacleStructure()) {
+                    let cost = roadCost;
+                    if (room.hostileCreeps.length && pos.checkForRampart()) {
+                        cost = Math.max(1, Math.round(roadCost * 0.5));
+                    }
                     matrix.set(pos.x, pos.y, cost);
                 }
                 continue;
@@ -143,7 +149,7 @@ function getBaseMatrix(roomName, creep, options) {
             }
 
             if (structure instanceof StructureContainer) {
-                matrix.set(pos.x, pos.y, 75);
+                if (!pos.checkForRoad()) matrix.set(pos.x, pos.y, 75);
                 continue;
             }
 
@@ -177,7 +183,7 @@ function getBaseMatrix(roomName, creep, options) {
         applyLookObstaclesToMatrix(matrix, room);
     }
 
-    const finalMatrix = addSksToMatrix(roomName, matrix, options);
+    const finalMatrix = addSksToMatrix(roomName, matrix, options, creep);
     MATRIX_CACHE[baseKey] = {matrix: finalMatrix, tick: Game.time};
     ROOM_BASE_MATRIX_CACHE[roomName] = {matrix: finalMatrix, tick: Game.time, hash: structuresHash, stamp: cacheStamp};
 
@@ -202,14 +208,20 @@ function getMatrix(roomName, creep, options) {
 }
 
 function addCreepsToMatrix(room, matrix, creep, options) {
+    const skSelf = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'SKAttacker');
+    const occupiedCost = skSelf ? 8 : 100;
     if (options.ignoreCreeps) {
         if (creep instanceof Creep && creep.room.name === room.name) {
             const nearby = creep.pos.findInRange(room.creeps.concat(room.powerCreeps), 5);
-            for (const c of nearby) matrix.set(c.pos.x, c.pos.y, 100);
+            for (const c of nearby) {
+                if (c.id === creep.id) continue;
+                matrix.set(c.pos.x, c.pos.y, occupiedCost);
+            }
         }
     } else {
         for (const c of room.creeps.concat(room.powerCreeps)) {
-            matrix.set(c.pos.x, c.pos.y, 100);
+            if (creep && c.id === creep.id) continue;
+            matrix.set(c.pos.x, c.pos.y, occupiedCost);
         }
     }
     return matrix;
@@ -247,21 +259,24 @@ function addHostilesToMatrix(room, matrix) {
     return matrix;
 }
 
-function addSksToMatrix(roomName, matrix, options) {
+function addSksToMatrix(roomName, matrix, options, creep) {
     const intel = INTEL[roomName];
     if (!intel?.sk) return matrix;
 
     const room = Game.rooms[roomName];
+    const isSkAttacker = !!(creep && creep.memory && creep.memory.role === 'SKAttacker');
+    const skOnSite = isSkAttacker && creep.memory.destination === roomName;
 
-    // If our SKAttacker is on-site, it'll mop up keepers and the rest of the room is safe.
-    if (room) {
+    // Miners path to the source once our SKAttacker is in dest. The attacker
+    // itself still needs other-keeper bubbles (ignoreKeeper drops the target).
+    if (room && !skOnSite) {
         const activeMining = room.myCreeps.find(c => c.memory.role === 'SKAttacker' && c.memory.destination === roomName);
         if (activeMining) return matrix;
     }
 
     const terrain = Game.map.getRoomTerrain(roomName);
 
-    // Live SK creep positions take priority when we have vision â€” they're the actual
+    // Live SK creep positions take priority when we have vision — they're the actual
     // current threat and may have wandered off their lair/source.
     let sks = [];
     if (room) {
@@ -291,7 +306,28 @@ function addSksToMatrix(roomName, matrix, options) {
         return matrix;
     }
 
-    // No live keepers visible (or no vision at all) â€” fall back to the static danger
+    // SK attacker walks to lairs. Source/mineral blankets at range 5 forced
+    // swamp corridors around the only plains/road into the pocket.
+    if (isSkAttacker) {
+        const anchors = (!room && intel.skDangerPoints) ? intel.skDangerPoints : [];
+        for (let i = 0; i < anchors.length; i++) {
+            const pt = anchors[i];
+            const top = Math.max(0, pt.y - 2);
+            const left = Math.max(0, pt.x - 2);
+            const bottom = Math.min(49, pt.y + 2);
+            const right = Math.min(49, pt.x + 2);
+            for (let y = top; y <= bottom; y++) {
+                for (let x = left; x <= right; x++) {
+                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL && matrix.get(x, y) < 250) {
+                        matrix.set(x, y, 250);
+                    }
+                }
+            }
+        }
+        return matrix;
+    }
+
+    // No live keepers visible (or no vision at all) — fall back to the static danger
     // anchors. With vision: imminent-respawn lairs + sources + mineral. Without vision:
     // cached anchor positions from INTEL.skDangerPoints.
     let dangerPoints;

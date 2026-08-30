@@ -14,7 +14,6 @@ const {DEFAULT_MAXOPS, MAZE_MAXOPS, FLEE_RANGE} = require('pathState');
 const {
     normalizePos,
     getPosKey,
-    getMoveWeight,
     endpointInRange,
     gatherThreats,
     isImmobileBlocker,
@@ -33,7 +32,9 @@ const {
     tileBlocked,
     isFootprintWalkable,
     collectThroughPairs,
-    inlandRoomPos
+    inlandRoomPos,
+    onExitTile,
+    inlandOffExit
 } = require('pathFormation');
 const {
     findOccupyingCreep,
@@ -137,10 +138,6 @@ function squadEndpointUsable(end, target, range) {
 }
 
 
-function onExitTile(pos) {
-    return !!(pos && (pos.x === 0 || pos.x === 49 || pos.y === 0 || pos.y === 49));
-}
-
 // Engine skips the exit tile, so a 2×2 straddles at chebyshev 2 for one tick.
 function inSquadStep(memberPos, leaderPos) {
     const r = formationRange(memberPos, leaderPos);
@@ -149,13 +146,42 @@ function inSquadStep(memberPos, leaderPos) {
         || memberPos.roomName !== leaderPos.roomName);
 }
 
+function exitStepClears(pos, direction) {
+    const next = posAfterMove(pos, direction);
+    if (!next) return false;
+    if (next.roomName !== pos.roomName) return true;
+    return !onExitTile(next);
+}
+
+function onDestFacingExit(pos, destRoom) {
+    if (!pos || !destRoom || pos.roomName === destRoom) return false;
+    const dir = exitDirectionTo(pos.roomName, destRoom);
+    if (!dir) return false;
+    if (dir === RIGHT) return pos.x === 49;
+    if (dir === LEFT) return pos.x === 0;
+    if (dir === TOP) return pos.y === 0;
+    if (dir === BOTTOM) return pos.y === 49;
+    return false;
+}
+
+function agreedInlandOffExit(creeps) {
+    let inland = 0;
+    for (let i = 0; i < creeps.length; i++) {
+        const d = inlandOffExit(creeps[i].pos);
+        if (!d) continue;
+        if (!inland) inland = d;
+        else if (inland !== d) return 0;
+    }
+    return inland;
+}
+
 function squadMove(creep, path) {
     if (!creep.memory.squadMembers || !path?.length) return false;
 
     const members = creep.memory.squadMembers.map(id => Game.getObjectById(id)).filter(Boolean);
     if (creep.fatigue || members.some(m => m.fatigue)) return false;
 
-    const move = parseInt(path[0], 10);
+    let move = parseInt(path[0], 10);
     if (!(move >= TOP && move <= TOP_LEFT)) {
         creep.memory._shibSquadMove = undefined;
         return false;
@@ -167,6 +193,21 @@ function squadMove(creep, path) {
     }
     const movers = [creep];
     for (let i = 0; i < packed.length; i++) movers.push(packed[i]);
+
+    const dest = creep.memory.destination;
+    const destEdge = [];
+    for (let i = 0; i < movers.length; i++) {
+        const p = movers[i].pos;
+        if (!onExitTile(p)) continue;
+        if (dest && (p.roomName === dest || onDestFacingExit(p, dest))) destEdge.push(movers[i]);
+    }
+    // Tick-end teleport on dest-facing exits leaks the 2×2 into dest one at a
+    // time. Ordinary edges keep the serialized path so a slide toward a
+    // through-portal is not yanked inland. Skip if inland dirs disagree (corner).
+    if (destEdge.length && !destEdge.every(m => exitStepClears(m.pos, move))) {
+        const inland = agreedInlandOffExit(destEdge);
+        if (inland && canSquadMove(creep, members, inland)) move = inland;
+    }
 
     const hostiles = !!creep.room.hostileCreeps.length;
     let anyoneLeaving = false;
@@ -187,7 +228,6 @@ function squadMove(creep, path) {
     }
 
     const newLeaderPos = posAfterMove(creep.pos, move);
-    const dest = creep.memory.destination;
     const leaderEnteringDest = !!(dest && newLeaderPos && newLeaderPos.roomName === dest
         && creep.pos.roomName !== dest);
     const misc = creep.memory.misc;
@@ -321,7 +361,6 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     const searchTarget = applySquadHop(origin, target, options) || target;
 
     const allowedRooms = resolveAllowedRooms(origin.roomName, searchTarget.roomName, options);
-    options = getMoveWeight(this, options);
 
     const maze = roomNeedsMazeOps(origin.roomName) || roomNeedsMazeOps(searchTarget.roomName);
     let maxOps = Math.max(DEFAULT_MAXOPS * Math.max(1, allowedRooms.length), maze ? MAZE_MAXOPS : DEFAULT_MAXOPS);
