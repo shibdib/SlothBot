@@ -280,25 +280,138 @@ function invalidateRoomConstructionSiteCache(room) {
 const SITE_PLACEMENT_LOG_COOLDOWN = 100;
 const sitePlacementLogThrottle = Object.create(null);
 
+function structureTypeLimit(room, structureType) {
+    const table = typeof CONTROLLER_STRUCTURES !== 'undefined' ? CONTROLLER_STRUCTURES[structureType] : null;
+    if (!table) return Infinity;
+    const rcl = (room.controller && room.controller.my) ? room.controller.level : 0;
+    const cap = table[rcl];
+    return cap == null ? 0 : cap;
+}
+
+function countBuiltStructuresOfType(room, structureType) {
+    if (room._ensureStructuresByType) {
+        const list = room._ensureStructuresByType()[structureType];
+        return list ? list.length : 0;
+    }
+    const structs = room.structures || [];
+    let n = 0;
+    for (let i = 0; i < structs.length; i++) {
+        if (structs[i].structureType === structureType) n++;
+    }
+    return n;
+}
+
+function countBuiltAndSitesOfType(room, structureType) {
+    return countBuiltStructuresOfType(room, structureType)
+        + countRoomConstructionSitesOfType(room.name, structureType);
+}
+
+function canPlaceStructureType(room, structureType) {
+    const limit = structureTypeLimit(room, structureType);
+    if (limit === Infinity) return true;
+    return countBuiltAndSitesOfType(room, structureType) < limit;
+}
+
+function isEconomyContainerPos(pos, room) {
+    const sources = room.sources || [];
+    for (let i = 0; i < sources.length; i++) {
+        if (pos.isNearTo(sources[i])) return true;
+    }
+    if (room.mineral && pos.isNearTo(room.mineral)) return true;
+    if (room.extractor && pos.isNearTo(room.extractor)) return true;
+    return false;
+}
+
+/**
+ * Free a container slot in a remote/SK room: collapse duplicate source pads,
+ * then drop a stray (not next to a source or mineral). Unowned rooms cap at 5.
+ * @param {Room} room
+ * @returns {boolean} true if a slot is available
+ */
+function freeRemoteContainerSlot(room) {
+    if (!room) return false;
+    if (canPlaceStructureType(room, STRUCTURE_CONTAINER)) return true;
+
+    const sources = room.sources || [];
+    for (let i = 0; i < sources.length; i++) {
+        resolveSourceContainer(sources[i], room, true);
+    }
+    if (canPlaceStructureType(room, STRUCTURE_CONTAINER)) return true;
+
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const site = sites[i];
+        if (site.structureType !== STRUCTURE_CONTAINER) continue;
+        if (isEconomyContainerPos(site.pos, room)) continue;
+        try {
+            if (site.remove() === OK) {
+                invalidateRoomConstructionSiteCache(room);
+                return true;
+            }
+        } catch (e) { /* ignore */
+        }
+    }
+
+    const containers = room.containers || [];
+    let fallback = null;
+    for (let i = 0; i < containers.length; i++) {
+        const c = containers[i];
+        if (isEconomyContainerPos(c.pos, room)) continue;
+        const energy = c.store && c.store[RESOURCE_ENERGY] || 0;
+        if (!energy) {
+            try {
+                if (c.destroy() === OK) {
+                    if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+                    return true;
+                }
+            } catch (e) { /* ignore */
+            }
+        } else if (!fallback) {
+            fallback = c;
+        }
+    }
+    if (fallback) {
+        try {
+            if (fallback.destroy() === OK) {
+                if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+                return true;
+            }
+        } catch (e) { /* ignore */
+        }
+    }
+    return canPlaceStructureType(room, STRUCTURE_CONTAINER);
+}
+
 function recordSitePlacementFailure(roomName, structureType, pos, result) {
     const room = Game.rooms[roomName];
     if (!room) return;
+    const limit = structureTypeLimit(room, structureType);
+    const built = limit === Infinity ? undefined : countBuiltAndSitesOfType(room, structureType);
     room.memory.plannerLastSiteError = {
         tick: Game.time,
         x: pos.x,
         y: pos.y,
         type: structureType,
         result,
+        built,
+        limit: limit === Infinity ? undefined : limit,
         globalSites: countGlobalConstructionSites(),
         roomSites: countRoomConstructionSites(roomName),
         globalBudget: globalConstructionSiteBudget(),
         roomBudget: roomConstructionSiteBudget(room),
     };
-    const key = `${roomName}:${structureType}:${result}:${pos.x},${pos.y}`;
+    // -14 is a room-level structure cap, not a tile problem — one log per type.
+    const key = result === ERR_RCL_NOT_ENOUGH
+        ? `${roomName}:${structureType}:${result}`
+        : `${roomName}:${structureType}:${result}:${pos.x},${pos.y}`;
     const last = sitePlacementLogThrottle[key] || 0;
     if (Game.time - last < SITE_PLACEMENT_LOG_COOLDOWN) return;
     sitePlacementLogThrottle[key] = Game.time;
-    log.a(`${roomName} site ${structureType} at (${pos.x},${pos.y}) failed: ${result}`, 'PLANNER');
+    if (result === ERR_RCL_NOT_ENOUGH && built != null) {
+        log.a(`${roomName} site ${structureType} failed: ${result} (${built}/${limit} in room)`, 'PLANNER');
+    } else {
+        log.a(`${roomName} site ${structureType} at (${pos.x},${pos.y}) failed: ${result}`, 'PLANNER');
+    }
 }
 
 function tryCreateConstructionSite(pos, structureType) {
@@ -320,6 +433,10 @@ function tryCreateConstructionSite(pos, structureType) {
     }
     if (structureType === STRUCTURE_WALL && !canPlaceConstructedWall(pos)) {
         return ERR_INVALID_TARGET;
+    }
+    if (!canPlaceStructureType(room, structureType)) {
+        recordSitePlacementFailure(room.name, structureType, pos, ERR_RCL_NOT_ENOUGH);
+        return ERR_RCL_NOT_ENOUGH;
     }
     const result = pos.createConstructionSite(structureType);
     if (result !== OK) {
@@ -1115,6 +1232,11 @@ module.exports = {
     invalidateSiteCountCache,
 
     tryCreateConstructionSite,
+
+    structureTypeLimit,
+    countBuiltAndSitesOfType,
+    canPlaceStructureType,
+    freeRemoteContainerSlot,
 
     shouldSkipStructure,
 

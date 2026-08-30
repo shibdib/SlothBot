@@ -12,7 +12,13 @@ const {
     remoteCombatBlocksMining
 } = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
-const {canPlaceConstructionSite, tryCreateConstructionSite, findBestContainerPos} = require('planUtils');
+const {
+    canPlaceConstructionSite,
+    tryCreateConstructionSite,
+    findBestContainerPos,
+    canPlaceStructureType,
+    freeRemoteContainerSlot,
+} = require('planUtils');
 
 class RoleRemoteHarvester {
     constructor(creep) {
@@ -302,6 +308,12 @@ function harvestDepositContainer(source, creep) {
     }
 
     if (!canPlaceConstructionSite(creep.room)) return;
+    // Unowned/SK rooms cap at 5 containers. A stray pad or duplicate at another
+    // source makes every adjacent tile fail with -14 (ERR_RCL_NOT_ENOUGH).
+    if (!canPlaceStructureType(creep.room, STRUCTURE_CONTAINER)
+        && !freeRemoteContainerSlot(creep.room)) {
+        return;
+    }
 
     const spots = containerCandidatePositions(source);
     for (let i = 0; i < spots.length; i++) {
