@@ -137,6 +137,12 @@ class RoleRemoteHauler {
                 this.memory.energyDestination = container.id;
                 return this.creep.withdrawResource();
             }
+            const pile = container.pos.lookFor(LOOK_RESOURCES)
+                .find(r => r.resourceType === RESOURCE_ENERGY && r.amount > 0);
+            if (pile) {
+                this.memory.energyDestination = pile.id;
+                return this.creep.withdrawResource();
+            }
             if (this.creep.pos.getRangeTo(container) <= 1) {
                 return this.creep.idleFor(3);
             }

@@ -109,9 +109,22 @@ function haulerExpiringSoon(creep, remoteRoom) {
     const ttl = creep.ticksToLive;
     if (!ttl || ttl === Infinity) return false;
     const origin = creep.memory.colony;
-    const distance = (origin && remoteRoom) ? Game.map.getRoomLinearDistance(origin, remoteRoom) * 50 : 0;
+    let hops = (origin && remoteRoom) ? Game.map.getRoomLinearDistance(origin, remoteRoom) : 0;
+    if (origin && remoteRoom) {
+        const route = remoteMining.getMiningRouteRooms(origin, remoteRoom);
+        if (route && route.length) hops = Math.max(hops, route.length);
+    }
     const spawnTime = 3 * ((creep.body && creep.body.length) || 0);
-    return ttl <= spawnTime + distance;
+    return ttl <= spawnTime + (hops + 1) * 50;
+}
+
+function maxHaulersForSource(room, dest, keeperYield) {
+    if (room.memory.remotePenalty) return 1;
+    if (keeperYield) {
+        // Center is colony → SK → center (2 hops) at 4000-energy sources.
+        return remoteMining.isSectorCenterRoomName(dest) ? 6 : 4;
+    }
+    return 2;
 }
 
 function hasSkAttackerCoverage(remoteName) {
@@ -656,9 +669,7 @@ function handleRemoteHaulers(room) {
             : maxRemoteHaulerCarryParts(room.level, onRoads);
         const destIntel = INTEL[dest];
         const keeperYield = remoteMining.isKeeperYieldRoom(dest) || !!(destIntel && destIntel.sk);
-        let maxHaulers = room.memory.remotePenalty ? 1
-            : keeperYield ? 3 : 2;
-        if (shouldDeprioritizeRemotes(room)) maxHaulers = Math.min(maxHaulers, 2);
+        const maxHaulers = maxHaulersForSource(room, dest, keeperYield);
         const minCarryPerHauler = room.level >= 7 ? (onRoads ? 12 : 8) : Math.max(2, room.level * 2);
         const count = Math.min(maxHaulers, Math.max(1,
             Math.ceil(targetCapacity / (maxCarryPerHauler * CARRY_CAPACITY))));
@@ -667,10 +678,11 @@ function handleRemoteHaulers(room) {
         const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + haulerCarryCapacity(creep), 0);
         const queuedCapacity = queuedHaulers * minCarryPerHauler * CARRY_CAPACITY;
         if (!targetCapacity || haulingCapacity + queuedCapacity >= targetCapacity) continue;
-        const priority = shouldDeprioritizeRemotes(room)
+        const deprioritize = shouldDeprioritizeRemotes(room) && !keeperYield;
+        const priority = deprioritize
             ? PRIORITIES.remoteHauler * 2
             : PRIORITIES.remoteHauler;
-        queueCreep(room, priority + getCreepCount(undefined, 'remoteHauler', room.name), {
+        queueCreep(room, priority + assignedHaulers.length + queuedHaulers, {
             role: 'remoteHauler',
             destination: room.name,
             other: {

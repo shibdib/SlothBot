@@ -281,7 +281,8 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     // Total carry capacity (energy units) to clear one round-trip backlog. score ≈ one-way
     // path cost; round trip ≈ 2×score ticks of production at actualRate.
     // Hub+controller links do not shrink remote haul; exit-link dumps are opportunistic.
-    const roundTripBuffer = roadsBuilt ? 1.25 : 1.4;
+    let roundTripBuffer = roadsBuilt ? 1.25 : 1.4;
+    if (keeperYield) roundTripBuffer += 0.15;
     creep.memory.other.haulingRequired = actualRate * haulScore * 2 * roundTripBuffer;
 }
 
