@@ -11,9 +11,6 @@ const {roomCanBurnSurplus} = require('spawnFlow');
 const BALANCE_MIN_TRANSFER = 100;
 const STORAGE_ENERGY_RESERVE = 25000;
 const BALANCE_KEEP_HYSTERESIS = 500;
-const TERMINAL_ENERGY_TARGET = terminalEnergyTarget();
-const TERMINAL_ENERGY_LOW = TERMINAL_ENERGY_TARGET - 10000;
-const TERMINAL_ENERGY_HIGH = TERMINAL_ENERGY_TARGET + 10000;
 const BATTERY_TERMINAL_SOFT_CAP = 2000;
 const BATTERY_TRANSFER_MAX = 5000;
 const ENERGY_TRANSFER_MAX = 15000;
@@ -38,18 +35,13 @@ class RoleLabTech {
     }
 
     performRoleActions() {
-        // 1. Plan a task batch if we don't have one yet.
-        if (!this.creep.memory.tasks) {
-            const initial = this.findTask();
-            if (!initial) {
-                this.creep.idleFor(5);
-                return;
-            }
-            this.creep.memory.tasks = this.batchTasks(initial);
+        if (!this.creep.memory.tasks || !this.creep.memory.tasks.length) {
+            this.startNextBatch();
+            return;
         }
 
-        // 2. Drop tasks whose source vanished (pre-pickup) or destination vanished.
-        //    Picked-up tasks survive a missing source — the goods are already on us.
+        // Drop tasks whose source vanished (pre-pickup) or destination vanished.
+        // Picked-up tasks survive a missing source — the goods are already on us.
         this.creep.memory.tasks = this.creep.memory.tasks.filter(t => {
             if (!Game.getObjectById(t.deliveryTarget)) return false;
             if (t.pickedUp) return true;
@@ -58,39 +50,40 @@ class RoleLabTech {
         });
         if (!this.creep.memory.tasks.length) {
             this.creep.memory.tasks = undefined;
+            this.startNextBatch();
             return;
         }
 
-        // 3. Pickup phase — any unpicked task while we still have free capacity.
         const pendingPickup = this.creep.memory.tasks.find(t => !t.pickedUp);
         if (pendingPickup && this.creep.store.getFreeCapacity() > 0) {
             return this.executePickup(pendingPickup);
         }
 
-        // 4. Delivery phase — first picked-up task whose resource is on us.
         const pendingDelivery = this.creep.memory.tasks.find(t => t.pickedUp && this.creep.store[t.resource] > 0);
         if (pendingDelivery) {
             return this.executeDelivery(pendingDelivery);
         }
 
-        // 5. Residual carry not tied to any active task — fall back.
         if (this.creep.store.getUsedCapacity() > 0) {
             return this.fallbackDelivery();
         }
 
-        // 6. Batch complete — immediately start the next job (hub B, output
-        // drain, boost, factory) instead of a 5-tick nap.
         this.creep.memory.tasks = undefined;
-        const next = this.findTask();
-        if (next) {
-            this.creep.memory.tasks = this.batchTasks(next);
-            const pendingPickup = this.creep.memory.tasks.find(t => !t.pickedUp);
-            if (pendingPickup && this.creep.store.getFreeCapacity() > 0) {
-                return this.executePickup(pendingPickup);
-            }
-            return;
+        this.startNextBatch();
+    }
+
+    startNextBatch() {
+        const initial = this.findTask();
+        if (!initial) {
+            this.creep.idleFor(5);
+            return false;
         }
-        this.creep.idleFor(5);
+        this.creep.memory.tasks = this.batchTasks(initial);
+        const pendingPickup = this.creep.memory.tasks.find(t => !t.pickedUp);
+        if (pendingPickup && this.creep.store.getFreeCapacity() > 0) {
+            this.executePickup(pendingPickup);
+        }
+        return true;
     }
 
     // Task prioritizer - Returns {withdrawTarget, deliveryTarget, resource, amount}
@@ -105,8 +98,6 @@ class RoleLabTech {
         // Prefer the warehouse with working headroom. Nullable when both are
         // packed. Every branch that uses storeTarget.id must guard for null.
         const storeTarget = this.pickStoreTarget(storage, terminal);
-
-        // Priority order below is the real dispatch order (1 = highest).
 
         // 1. Combat — fill towers during attacks
         if (this.room.memory.dangerousAttack) {
@@ -124,8 +115,8 @@ class RoleLabTech {
             }
         }
 
-        // 1b. Both stores packed — swap/export before lab busywork. Otherwise
-        // a 0-space hub stays stuck feeding labs while K never reaches the terminal.
+        // 2. Both stores packed — swap/export before lab busywork. Otherwise
+        // a 0-space hub stays stuck feeding labs while minerals never reach the terminal.
         if (storage && terminal
             && storage.store.getFreeCapacity() < BALANCE_MIN_TRANSFER
             && terminal.store.getFreeCapacity() < BALANCE_MIN_TRANSFER) {
@@ -133,7 +124,7 @@ class RoleLabTech {
             if (stuck) return stuck;
         }
 
-        // 2. Boost labs beat production, nuker, and cleanup. Pre-stage first,
+        // 3. Boost labs beat production, nuker, and cleanup. Pre-stage first,
         // then live requestors, then leftover neededBoost; energy with them.
         const emptyBoost = this.findBoostLabEmptyTask(labs, labStructMem, storeTarget);
         if (emptyBoost) return emptyBoost;
@@ -142,11 +133,7 @@ class RoleLabTech {
         const energyBoost = this.findBoostLabEnergyTask(labs, labStructMem, storage, terminal);
         if (energyBoost) return energyBoost;
 
-        // 2c. Stage boosts other rooms need into the terminal so the network can send.
-        const networkBoost = this.findNetworkBoostExport(storage, terminal);
-        if (networkBoost) return networkBoost;
-
-        // 2e. Lab hub feed beats store balancing. Filling labs from a stuffed
+        // 4. Lab hub feed beats store balancing. Filling labs from a stuffed
         // warehouse frees space; balancing first can starve reactions.
         if (this.room.memory.producingBoost) {
             const productionTask = this.findLabProductionTask(labs, labStructMem, storage, terminal);
@@ -174,35 +161,38 @@ class RoleLabTech {
             };
         }
 
-        // 2d. Either store under headroom — drain/overflow before nuker/factory
-        // pack the last free slot. Dual-zero swap stays at 1b.
+        // 5. Either store under headroom — drain/overflow before nuker/factory
+        // pack the last free slot. Dual-zero swap stays at 2.
         if (storage && terminal && this.needsBalanceSpace(storage, terminal)) {
             const spaceTask = this.findBalancingTask(storage, terminal);
             if (spaceTask) return spaceTask;
         }
 
-        // 3. Ground cleanup — non-energy drops and tombstones
+        // 6. Ground cleanup — non-energy drops and mineral tombstones
         if (storeTarget) {
-            const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY) || this.room.tombstones.find(t => t.store.getUsedCapacity() > 0);
+            const tombMineral = (t) => Object.keys(t.store).find(r => r !== RESOURCE_ENERGY && t.store[r] > 0);
+            const drop = this.room.droppedResources.find(r => r.resourceType !== RESOURCE_ENERGY)
+                || this.room.tombstones.find(t => tombMineral(t));
             if (drop) {
-                const res = drop.resourceType || Object.keys(drop.store).find(r => drop.store[r] > 0);
-                return {withdrawTarget: drop.id, deliveryTarget: storeTarget.id, resource: res};
+                const res = drop.resourceType || tombMineral(drop);
+                if (res) return {withdrawTarget: drop.id, deliveryTarget: storeTarget.id, resource: res};
             }
         }
 
-        // 4. Nuker ghodium
-        if (nuker && ((storage && storage.store[RESOURCE_GHODIUM] > 0) || (terminal && terminal.store[RESOURCE_GHODIUM] > 0)) &&
-            nuker.store.getFreeCapacity(RESOURCE_GHODIUM) > 0) {
-            const ghodiumStore = storage && storage.store[RESOURCE_GHODIUM] ? storage.id : terminal.id;
-            return {
-                withdrawTarget: ghodiumStore,
-                deliveryTarget: nuker.id,
-                resource: RESOURCE_GHODIUM,
-                amount: nuker.store.getFreeCapacity(RESOURCE_GHODIUM)
-            };
+        // 7. Nuker ghodium
+        if (nuker && nuker.store.getFreeCapacity(RESOURCE_GHODIUM) > 0) {
+            const ghodiumStore = this.pickBestSupplier(RESOURCE_GHODIUM);
+            if (ghodiumStore) {
+                return {
+                    withdrawTarget: ghodiumStore.id,
+                    deliveryTarget: nuker.id,
+                    resource: RESOURCE_GHODIUM,
+                    amount: nuker.store.getFreeCapacity(RESOURCE_GHODIUM)
+                };
+            }
         }
 
-        // 5. Mineral container overfull (no free capacity)
+        // 8. Mineral container overfull (no free capacity)
         if (storeTarget) {
             const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY) && !s.store.getFreeCapacity());
             if (resourceContainer) {
@@ -211,7 +201,7 @@ class RoleLabTech {
             }
         }
 
-        // 7. Lab empties — wrong mineral / output product that should not sit
+        // 9. Lab empties — wrong mineral / output product that should not sit
         // `amount` is included so batchTasks can size the rest of an empty
         // batch against remaining carry. Runtime executePickup re-clamps to
         // the lab's actual store, so a stale amount degrades to a partial
@@ -240,9 +230,13 @@ class RoleLabTech {
             }
         }
 
-        // 8. Factory empties — residue not needed for current recipe
+        // 10. Factory empties — residue not needed for current recipe
         if (factory && factory.store.getUsedCapacity() > 0) {
-            for (const res in factory.store) {
+            const contents = Object.keys(factory.store);
+            for (let i = 0; i < contents.length; i++) {
+                const res = contents[i];
+                if (!(factory.store[res] > 0)) continue;
+                if (typeof RESOURCES_ALL !== 'undefined' && !RESOURCES_ALL.includes(res)) continue;
                 if (res === RESOURCE_BATTERY && FactoryControl.shouldContinueBatteryUnpack(this.room)) continue;
                 if (factory.memory.producing && COMMODITIES[factory.memory.producing] && COMMODITIES[factory.memory.producing].components[res]) continue;
                 if (factory.memory.producing === res && factory.store[res] < 5000) continue;
@@ -252,7 +246,7 @@ class RoleLabTech {
             }
         }
 
-        // 12. Nuker energy from overflow only. Filling at energyState 1–2 dumps
+        // 11. Nuker energy from overflow only. Filling at energyState 1–2 dumps
         // stockpile into a sink that rawEnergy does not count, so rooms never accrue.
         if (nuker && roomCanBurnSurplus(this.room)) {
             const nukerEnergyNeed = nuker.store.getFreeCapacity(RESOURCE_ENERGY);
@@ -269,13 +263,13 @@ class RoleLabTech {
             }
         }
 
-        // 13. Factory battery feed (unpack)
+        // 12. Factory battery feed (unpack)
         if (factory && FactoryControl.shouldContinueBatteryUnpack(this.room)) {
             const batteryTask = this.findFactoryBatterySupply(factory, storage, terminal);
             if (batteryTask) return batteryTask;
         }
 
-        // 14. Factory supply — recipe inputs
+        // 13. Factory supply — recipe inputs
         if (factory && factory.memory.producing) {
             const commodity = COMMODITIES[factory.memory.producing];
             if (commodity) {
@@ -301,7 +295,7 @@ class RoleLabTech {
             }
         }
 
-        // 15. Mineral container cleanup (has minerals, not necessarily full)
+        // 14. Mineral container cleanup (has minerals, not necessarily full)
         if (storeTarget) {
             const resourceContainer = this.room.containers.find(s => s.store.getUsedCapacity() > s.store.getUsedCapacity(RESOURCE_ENERGY));
             if (resourceContainer) {
@@ -310,37 +304,50 @@ class RoleLabTech {
             }
         }
 
-        // 16. Power spawn energy / power — 50 e/tick, only from overflow.
+        // 15. Power spawn energy / power — 50 e/tick, only from overflow.
         if (powerSpawn && roomCanBurnSurplus(this.room)) {
-            if (powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000 && storage && storage.store[RESOURCE_ENERGY] > 10000) {
-                return {
-                    withdrawTarget: storage.id,
-                    deliveryTarget: powerSpawn.id,
-                    resource: RESOURCE_ENERGY,
-                    amount: powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY)
-                };
+            if (powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000) {
+                const energySupplier = this.pickBestSupplier(RESOURCE_ENERGY);
+                if (energySupplier && energySupplier.store[RESOURCE_ENERGY] > 10000) {
+                    return {
+                        withdrawTarget: energySupplier.id,
+                        deliveryTarget: powerSpawn.id,
+                        resource: RESOURCE_ENERGY,
+                        amount: powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY)
+                    };
+                }
             }
-            if (powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 50 && storage && storage.store[RESOURCE_POWER] > 0) {
-                return {
-                    withdrawTarget: storage.id,
-                    deliveryTarget: powerSpawn.id,
-                    resource: RESOURCE_POWER,
-                    amount: powerSpawn.store.getFreeCapacity(RESOURCE_POWER)
-                };
+            if (powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 50) {
+                const powerSupplier = this.pickBestSupplier(RESOURCE_POWER);
+                if (powerSupplier) {
+                    return {
+                        withdrawTarget: powerSupplier.id,
+                        deliveryTarget: powerSpawn.id,
+                        resource: RESOURCE_POWER,
+                        amount: powerSpawn.store.getFreeCapacity(RESOURCE_POWER)
+                    };
+                }
             }
         }
 
-        // 17. Routine storage/terminal balance (keep split, energy, export slices)
+        // 16. Routine storage/terminal balance (keep split, energy, export slices)
         const balancingTask = this.findBalancingTask(storage, terminal);
         if (balancingTask) return balancingTask;
 
-        // 18. Lab energy refill for reaction labs (boost labs are filled in #2).
-        // Labs hold 2000 energy (5 per reaction = 400 reactions of headroom).
-        for (const lab of labs) {
-            const mem = labStructMem && labStructMem[lab.id];
-            if (mem && mem.neededBoost) continue;
-            if (!(mem && mem.itemNeeded) && lab.store[RESOURCE_ENERGY] < LAB_OUTPUT_ENERGY_REFILL && storage && storage.store[RESOURCE_ENERGY] > 5000) {
-                return {withdrawTarget: storage.id, deliveryTarget: lab.id, resource: RESOURCE_ENERGY};
+        // 17. Lab energy refill for reaction labs (boost labs are filled in #3).
+        const energySupplier = this.pickBestSupplier(RESOURCE_ENERGY);
+        if (energySupplier && energySupplier.store[RESOURCE_ENERGY] > 5000) {
+            for (const lab of labs) {
+                if (!this.outputLabNeedsEnergy(lab)) continue;
+                return {
+                    withdrawTarget: energySupplier.id,
+                    deliveryTarget: lab.id,
+                    resource: RESOURCE_ENERGY,
+                    amount: Math.min(
+                        lab.store.getFreeCapacity(RESOURCE_ENERGY),
+                        energySupplier.store[RESOURCE_ENERGY]
+                    )
+                };
             }
         }
 
@@ -654,7 +661,6 @@ class RoleLabTech {
 
     getHubLabIds() {
         if (this._hubLabIds) return this._hubLabIds;
-        // C4: plan.anchors.lab first.
         let hub = null;
         try {
             const res = require('planDoc').getLabHub(this.room);
@@ -1050,16 +1056,22 @@ class RoleLabTech {
             || (pair[0] === STRUCTURE_STORAGE && pair[1] === STRUCTURE_TERMINAL);
     }
 
+    getBalanceLockBag() {
+        if (global.roomHeap) {
+            const heap = global.roomHeap(this.room.name);
+            return heap.labTechBalance || (heap.labTechBalance = {});
+        }
+        return this.room.memory._labTechBalance || (this.room.memory._labTechBalance = {});
+    }
+
     isBalanceDirectionBlocked(resource, terminalToStorage) {
-        const lock = (global.roomHeap ? global.roomHeap(this.room.name).labTechBalance : this.room.memory._labTechBalance)?.[resource];
+        const lock = this.getBalanceLockBag()[resource];
         if (!lock || lock.tick + BALANCE_DIRECTION_COOLDOWN < Game.time) return false;
         return lock.terminalToStorage !== terminalToStorage;
     }
 
     setBalanceDirectionLock(resource, terminalToStorage) {
-        const heap = global.roomHeap ? global.roomHeap(this.room.name) : this.room.memory;
-        const bag = heap.labTechBalance || (heap.labTechBalance = {});
-        bag[resource] = {terminalToStorage, tick: Game.time};
+        this.getBalanceLockBag()[resource] = {terminalToStorage, tick: Game.time};
     }
 
     makeBalanceTask(withdrawTarget, deliveryTarget, resource, amount, options = {}) {
@@ -1088,8 +1100,8 @@ class RoleLabTech {
             if (!terminalToStorage && terminal && this.isStructureNearFull(terminal) && !allowIntoTerminal) {
                 return null;
             }
-            // Overflow/swap must not wait out the 50-tick anti-churn lock — that
-            // lock is what parked 776k K in storage after a terminal drain.
+            // Overflow/swap must not wait out the anti-churn lock or bulk cannot
+            // enter the terminal for export.
             if (!allowIntoTerminal && this.isBalanceDirectionBlocked(resource, terminalToStorage)) return null;
             this.setBalanceDirectionLock(resource, terminalToStorage);
         }
@@ -1133,16 +1145,19 @@ class RoleLabTech {
         const storageEnergy = storage.store[RESOURCE_ENERGY] || 0;
         const storageFree = storage.store.getFreeCapacity(RESOURCE_ENERGY);
         const terminalFree = terminal.store.getFreeCapacity(RESOURCE_ENERGY);
+        const energyTarget = terminalEnergyTarget();
+        const energyLow = energyTarget - 10000;
+        const energyHigh = energyTarget + 10000;
 
         // Storage is the bulk warehouse. Any terminal energy above the export target
         // pulls into storage whenever storage has room — do not leave energy stranded
         // in the terminal so pressure/network dumps fire incorrectly.
-        if (storageFree >= BALANCE_MIN_TRANSFER && terminalEnergy > TERMINAL_ENERGY_TARGET) {
+        if (storageFree >= BALANCE_MIN_TRANSFER && terminalEnergy > energyTarget) {
             const storageTight = this.usableFree(storage) < BALANCE_MIN_TRANSFER;
             if (!(storageTight && !this.isStructureNearFull(terminal))) {
                 const energyOpts = storageTight ? {emergency: true} : undefined;
                 return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
-                    Math.min(terminalEnergy - TERMINAL_ENERGY_TARGET, storageFree, ENERGY_TRANSFER_MAX), energyOpts);
+                    Math.min(terminalEnergy - energyTarget, storageFree, ENERGY_TRANSFER_MAX), energyOpts);
             }
         }
 
@@ -1159,21 +1174,21 @@ class RoleLabTech {
         // Congestion relief: top up terminal export reserve from storage surplus
         // only when storage itself is full (cannot hold more bulk).
         if (this.isStructureNearFull(storage) && !this.isStructureNearFull(terminal)
-            && storageEnergy > STORAGE_ENERGY_RESERVE + ENERGY_TRANSFER_MAX && terminalEnergy < TERMINAL_ENERGY_LOW) {
+            && storageEnergy > STORAGE_ENERGY_RESERVE + ENERGY_TRANSFER_MAX && terminalEnergy < energyLow) {
             if (terminalFree > BALANCE_MIN_TRANSFER) {
                 return this.makeBalanceTask(storage, terminal, RESOURCE_ENERGY,
                     Math.min(storageEnergy - STORAGE_ENERGY_RESERVE, terminalFree,
-                        TERMINAL_ENERGY_TARGET - terminalEnergy, ENERGY_TRANSFER_MAX));
+                        energyTarget - terminalEnergy, ENERGY_TRANSFER_MAX));
             }
         }
 
         // Maintain terminal export reserve from storage — only after storage has met its reserve
         // and storage is not the right place for more (has free capacity still OK for small reserve).
         if (!this.isStructureNearFull(terminal) && !this.isStructureNearFull(storage)
-            && terminalEnergy < TERMINAL_ENERGY_LOW
-            && storageEnergy > STORAGE_ENERGY_RESERVE + TERMINAL_ENERGY_TARGET) {
+            && terminalEnergy < energyLow
+            && storageEnergy > STORAGE_ENERGY_RESERVE + energyTarget) {
             return this.makeBalanceTask(storage, terminal, RESOURCE_ENERGY,
-                Math.min(TERMINAL_ENERGY_TARGET - terminalEnergy, storageEnergy - STORAGE_ENERGY_RESERVE,
+                Math.min(energyTarget - terminalEnergy, storageEnergy - STORAGE_ENERGY_RESERVE,
                     terminalFree, ENERGY_TRANSFER_MAX));
         }
 
@@ -1194,9 +1209,9 @@ class RoleLabTech {
         }
 
         // Consolidate terminal excess above the export ceiling into storage bulk.
-        if (terminalEnergy > TERMINAL_ENERGY_HIGH && storageFree >= BALANCE_MIN_TRANSFER) {
+        if (terminalEnergy > energyHigh && storageFree >= BALANCE_MIN_TRANSFER) {
             return this.makeBalanceTask(terminal, storage, RESOURCE_ENERGY,
-                Math.min(terminalEnergy - TERMINAL_ENERGY_HIGH, storageFree, ENERGY_TRANSFER_MAX));
+                Math.min(terminalEnergy - energyHigh, storageFree, ENERGY_TRANSFER_MAX));
         }
 
         return null;
@@ -1421,8 +1436,8 @@ class RoleLabTech {
             if (inStorage < BALANCE_MIN_TRANSFER) continue;
 
             // Normal: only move above storage retain target, capped by terminal export ceiling.
-            // Storage full: ignore export ceiling so bulk piles (e.g. 776k K) can enter the
-            // terminal for pressure sends / fire sales. Keep only the local keep floor in storage.
+            // Storage full: ignore export ceiling so bulk can enter the terminal for
+            // pressure sends. Keep only the local keep floor in storage.
             const retain = this.getStorageRetainTarget(resource);
             if (!storageCongested && !retain && !this.getKeepAmount(resource)) continue;
 
@@ -1806,54 +1821,62 @@ class RoleLabTech {
         return null;
     }
 
+    taskAmount(task) {
+        return task.amount == null ? Infinity : task.amount;
+    }
+
+    dropTask(task) {
+        if (!this.creep.memory.tasks) return;
+        this.creep.memory.tasks = this.creep.memory.tasks.filter(t => t !== task);
+        if (!this.creep.memory.tasks.length) this.creep.memory.tasks = undefined;
+    }
+
     executePickup(task) {
         const withdrawTarget = Game.getObjectById(task.withdrawTarget);
         if (!withdrawTarget) {
-            // Source gone — drop just this task; carry on with the rest.
-            this.creep.memory.tasks = this.creep.memory.tasks.filter(t => t !== task);
+            this.dropTask(task);
             return false;
         }
 
-        this.creep.say(task.resource.slice(0, 3));
+        if (task.resource) this.creep.say(String(task.resource).slice(0, 3));
 
         if (!this.creep.pos.isNearTo(withdrawTarget)) {
             this.creep.shibMove(withdrawTarget);
             return true;
         }
 
-        // Infinity (not 999) so a large-capacity labtech in a high-RCL room
-        // can fill to its actual freeCapacity. Math.min picks the smallest of
-        // the three operands, so the hard cap comes from creep capacity or
-        // available source supply rather than a hardcoded number.
         const amount = Math.min(
-            task.amount || Infinity,
+            this.taskAmount(task),
             this.creep.store.getFreeCapacity(),
-            withdrawTarget.store ? withdrawTarget.store[task.resource] : Infinity
+            withdrawTarget.store ? (withdrawTarget.store[task.resource] || 0) : Infinity
         );
         if (!(amount > 0) && !(withdrawTarget instanceof Resource)) {
-            this.creep.memory.tasks = this.creep.memory.tasks.filter(t => t !== task);
+            this.dropTask(task);
             return false;
         }
         const result = withdrawTarget instanceof Resource
             ? this.creep.pickup(withdrawTarget)
             : this.creep.withdraw(withdrawTarget, task.resource, amount);
 
-        if (result === OK) {
-            task.pickedUp = true;
-            // Prefer ANY remaining pickup over starting deliveries — for fill
-            // batches the next pickup is at the same source (no-op move), for
-            // empty batches it's the next lab to drain. Only switch to delivery
-            // once everything is loaded.
-            const nextPickup = this.creep.memory.tasks.find(t => !t.pickedUp);
-            if (nextPickup) {
-                const target = Game.getObjectById(nextPickup.withdrawTarget);
+        if (result !== OK) {
+            this.dropTask(task);
+            return false;
+        }
+
+        task.pickedUp = true;
+        // Prefer ANY remaining pickup over starting deliveries — for fill
+        // batches the next pickup is at the same source (no-op move), for
+        // empty batches it's the next lab to drain. Only switch to delivery
+        // once everything is loaded.
+        const nextPickup = this.creep.memory.tasks && this.creep.memory.tasks.find(t => !t.pickedUp);
+        if (nextPickup) {
+            const target = Game.getObjectById(nextPickup.withdrawTarget);
+            if (target) this.creep.shibMove(target);
+        } else if (this.creep.memory.tasks) {
+            const nextDelivery = this.creep.memory.tasks.find(t => t.pickedUp);
+            if (nextDelivery) {
+                const target = Game.getObjectById(nextDelivery.deliveryTarget);
                 if (target) this.creep.shibMove(target);
-            } else {
-                const nextDelivery = this.creep.memory.tasks.find(t => t.pickedUp);
-                if (nextDelivery) {
-                    const target = Game.getObjectById(nextDelivery.deliveryTarget);
-                    if (target) this.creep.shibMove(target);
-                }
             }
         }
         return true;
@@ -1864,39 +1887,42 @@ class RoleLabTech {
         const labBlocked = deliveryTarget
             && deliveryTarget.structureType === STRUCTURE_LAB
             && !this.labCanAcceptResource(deliveryTarget, task.resource);
-        if (!deliveryTarget
-            || labBlocked
-            || (deliveryTarget.store && deliveryTarget.store.getFreeCapacity(task.resource) <= 0)) {
-            // Destination is gone, full, or holds a different mineral — drop this
-            // task and sort residual carry via fallback (usually storage/terminal).
-            this.creep.memory.tasks = this.creep.memory.tasks.filter(t => t !== task);
+        const destFree = deliveryTarget && deliveryTarget.store
+            ? deliveryTarget.store.getFreeCapacity(task.resource)
+            : 0;
+        if (!deliveryTarget || labBlocked || destFree <= 0) {
+            this.dropTask(task);
             return this.fallbackDelivery();
         }
 
-        this.creep.say(task.resource.slice(0, 3));
+        if (task.resource) this.creep.say(String(task.resource).slice(0, 3));
 
         if (!this.creep.pos.isNearTo(deliveryTarget)) {
             this.creep.shibMove(deliveryTarget);
             return true;
         }
 
-        // Bound the transfer to this task's amount so two empty tasks sharing
-        // the same resource don't have the first flush all of it, leaving the
-        // second stranded with nothing to deliver.
         const transferAmount = Math.min(
-            task.amount || Infinity,
-            this.creep.store[task.resource]
+            this.taskAmount(task),
+            this.creep.store[task.resource] || 0,
+            destFree
         );
+        if (!(transferAmount > 0)) {
+            this.dropTask(task);
+            return this.fallbackDelivery();
+        }
         if (this.creep.transfer(deliveryTarget, task.resource, transferAmount) === OK) {
-            this.creep.memory.tasks = this.creep.memory.tasks.filter(t => t !== task);
-            // Same-tick head toward next delivery in the batch.
-            const next = this.creep.memory.tasks.find(t => t.pickedUp && this.creep.store[t.resource] > 0);
+            this.dropTask(task);
+            const next = this.creep.memory.tasks
+                && this.creep.memory.tasks.find(t => t.pickedUp && this.creep.store[t.resource] > 0);
             if (next) {
                 const target = Game.getObjectById(next.deliveryTarget);
                 if (target) this.creep.shibMove(target);
             }
+            return true;
         }
-        return true;
+        this.dropTask(task);
+        return this.fallbackDelivery();
     }
 
     fallbackDelivery() {
