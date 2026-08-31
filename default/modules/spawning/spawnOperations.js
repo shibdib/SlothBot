@@ -155,7 +155,6 @@ function generatedBodyMissingBoosts(room, body, creepInfo) {
 
     if (missing(nb.boostPart, nb.boost, nb.amount)) return true;
     if (missing(TOUGH, nb.toughBoost, nb.toughCount)) return true;
-    if (missing(MOVE, nb.moveBoost)) return true;
     return false;
 }
 
@@ -412,12 +411,6 @@ function isUncommittedWaitForCreep(c, target) {
     return !!(c.memory.misc && c.memory.misc.waitFor > 1);
 }
 
-function isQueuedWaitForWave(entry) {
-    if (!entry || !entry.misc || !(entry.misc.waitFor > 1)) return false;
-    const role = entry.role || '';
-    return role === 'longbowSquad' || role === 'longbow';
-}
-
 function hasInflightOpCreeps(target, operation) {
     const matches = (c) => {
         if (!c || !c.my || !c.memory) return false;
@@ -484,43 +477,6 @@ function hasUncommittedWaitForWave(target) {
             const spawning = room.spawns[i].spawning;
             if (!spawning) continue;
             if (isUncommittedWaitForCreep(Game.creeps[spawning.name], target)) return true;
-        }
-    }
-    return false;
-}
-
-// Origin is still producing this waitFor wave (egg in a spawn or a queue
-// still wants more). Forming stall must not shrink/recycle the pad while
-// the rest of the quad is waiting on energy.
-function waitForWaveStillFilling(target, home) {
-    if (!target) return false;
-    const op = Memory.targetRooms[target] || Memory.auxiliaryTargets[target];
-    if (op && op.assignedRoom && home && op.assignedRoom !== home) return false;
-    if (!hasUncommittedWaitForWave(target)) return false;
-
-    const spawnRooms = [];
-    if (op && op.assignedRoom && Game.rooms[op.assignedRoom]) spawnRooms.push(Game.rooms[op.assignedRoom]);
-    else if (home && Game.rooms[home]) spawnRooms.push(Game.rooms[home]);
-    for (let r = 0; r < spawnRooms.length; r++) {
-        const spawns = spawnRooms[r].spawns || [];
-        for (let i = 0; i < spawns.length; i++) {
-            const spawning = spawns[i].spawning;
-            if (!spawning) continue;
-            if (isUncommittedWaitForCreep(Game.creeps[spawning.name], target)) return true;
-        }
-    }
-
-    const caches = [CREEP_QUEUES['global']];
-    if (home && CREEP_QUEUES[home]) caches.push(CREEP_QUEUES[home]);
-    if (op && op.assignedRoom && CREEP_QUEUES[op.assignedRoom]) caches.push(CREEP_QUEUES[op.assignedRoom]);
-    for (let i = 0; i < caches.length; i++) {
-        const cache = caches[i];
-        if (!cache) continue;
-        for (const key in cache) {
-            const e = cache[key];
-            if (!isQueuedWaitForWave(e)) continue;
-            if (entryTarget(e) !== target) continue;
-            return true;
         }
     }
     return false;
@@ -902,6 +858,5 @@ module.exports = {
     generatedBodyMissingBoosts,
     getPriority,
     hasUncommittedWaitForWave,
-    waitForWaveStillFilling,
 };
 

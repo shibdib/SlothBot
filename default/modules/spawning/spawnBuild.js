@@ -215,16 +215,16 @@ const WAVE_FALLBACK_ROLES = new Set(['hauler', 'stationaryHarvester', 'shuttle']
 const ENERGY_HOLD_ROLES = new Set(['SKAttacker']);
 const ENERGY_HOLD_FALLBACK = new Set(['stationaryHarvester', 'hauler', 'shuttle', 'defender']);
 
-function idleReserveCount(room, availableCount, owned, demand, busyWave, waitFor) {
+function idleReserveCount(room, availableCount, owned, demand, busyWave, waitFor, waveStarted) {
     const cap = maxMilitaryReserve(owned, waitFor);
     let idleCap = Math.min(cap, demand) - busyWave;
     if (idleCap < 0) idleCap = 0;
-    // State 1 is getting by, not stable — at most one locked spawn.
-    if (spawnEnergyState(room) < 2) idleCap = Math.min(idleCap, 1);
-    const energyOk = spawnEnergyState(room) >= 2;
-    // Healthy rooms can put both spawns on a quad. Leaving one free used
-    // to serialize the wave (600 ticks) and dump TTL on the first pair.
-    const leaveOneFree = owned >= 2 && !(waitFor >= 4 && energyOk);
+    const energyState = spawnEnergyState(room);
+    // A waitFor-4 already on the pad keeps both spawns even in state 1.
+    // One lock serializes 4 × 150 ticks and the first body hits the boost floor.
+    const dualQuad = waitFor >= 4 && (energyState >= 2 || waveStarted);
+    if (energyState < 2 && !dualQuad) idleCap = Math.min(idleCap, 1);
+    const leaveOneFree = owned >= 2 && !dualQuad;
     if (leaveOneFree) {
         idleCap = Math.min(idleCap, Math.max(0, availableCount - 1));
     } else {
@@ -408,7 +408,7 @@ function processBuildQueue(room) {
     const canReserve = formingWave && reservationAllowed(room, waveStarted);
     const demand = canReserve ? waveSpawnDemand(waitFor) : 0;
     const reserveCount = canReserve
-        ? idleReserveCount(room, availableSpawns.length, owned, demand, busyWave, waitFor)
+        ? idleReserveCount(room, availableSpawns.length, owned, demand, busyWave, waitFor, waveStarted)
         : 0;
 
     const reservedSpawns = availableSpawns.slice(0, reserveCount);

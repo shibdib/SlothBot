@@ -16,14 +16,17 @@
  * both sources at 100% and leftover ticks for extensions/tower/spawn.
  */
 
-const powerManager = require('module.powerManager');
 const {
     SPECIALTY_ECO,
     SPECIALTY_LAB,
     SPECIALTY_FACTORY,
     SPECIALTY_GENERALIST,
     isEcoCover,
-} = powerManager;
+    getSparePowerLevels,
+    getLowestMyOperator,
+    needMoreEcoOperators,
+    needMoreLabOperators,
+} = require('powerSpec');
 
 const SOURCE_REFRESH = 40;
 const LAB_REFRESH = 80;
@@ -501,13 +504,13 @@ function upgradePlan(powerCreep) {
 }
 
 function canUpgrade(powerCreep) {
-    if (powerManager.getSparePowerLevels() === 0 || powerCreep.level >= 25) return false;
-    const lowest = powerManager.getLowestMyOperator();
+    if (getSparePowerLevels() === 0 || powerCreep.level >= 25) return false;
+    const lowest = getLowestMyOperator();
     if (lowest.id && lowest.id !== powerCreep.id) return false;
     const spec = powerCreep.memory.specialty;
     if (powerCreep.level >= 11) {
-        if ((spec === SPECIALTY_ECO || spec === SPECIALTY_GENERALIST) && powerManager.needMoreEcoOperators()) return false;
-        if (spec === SPECIALTY_LAB && powerManager.needMoreLabOperators()) return false;
+        if ((spec === SPECIALTY_ECO || spec === SPECIALTY_GENERALIST) && needMoreEcoOperators()) return false;
+        if (spec === SPECIALTY_LAB && needMoreLabOperators()) return false;
     }
     return true;
 }

@@ -203,6 +203,8 @@ function copyQueueEntry(entry, cacheKey) {
     copy.misc = Object.assign({}, entry.misc || {});
     if (copy.misc.boosts) copy.misc.boosts = copy.misc.boosts.slice();
     copy.body = undefined;
+    if (copy.waveBody) copy.waveBody = copy.waveBody.slice();
+    if (copy.waveNeededBoosts) copy.waveNeededBoosts = Object.assign({}, copy.waveNeededBoosts);
     copy.cacheKey = entry.cacheKey || cacheKey;
     return copy;
 }
@@ -214,6 +216,37 @@ function clearQueueEntry(cacheKey) {
         if (roomName === 'global' || !CREEP_QUEUES[roomName]) continue;
         delete CREEP_QUEUES[roomName][cacheKey];
     }
+}
+
+function markWaitForSpawnBlocked(cacheKey, blocked) {
+    if (!cacheKey) return;
+    const apply = (cache) => {
+        if (!cache || !cache[cacheKey]) return;
+        if (blocked) cache[cacheKey].spawnBlocked = Game.time;
+        else if (cache[cacheKey].spawnBlocked) delete cache[cacheKey].spawnBlocked;
+    };
+    apply(CREEP_QUEUES.global);
+    for (const roomName in CREEP_QUEUES) {
+        if (roomName === 'global') continue;
+        apply(CREEP_QUEUES[roomName]);
+    }
+}
+
+function rawQueueEntry(cacheKey) {
+    if (!cacheKey) return null;
+    if (CREEP_QUEUES.global && CREEP_QUEUES.global[cacheKey]) return CREEP_QUEUES.global[cacheKey];
+    for (const roomName in CREEP_QUEUES) {
+        if (roomName === 'global' || !CREEP_QUEUES[roomName]) continue;
+        if (CREEP_QUEUES[roomName][cacheKey]) return CREEP_QUEUES[roomName][cacheKey];
+    }
+    return null;
+}
+
+function freezeWaitForWaveBody(cacheKey, body, neededBoosts) {
+    const raw = rawQueueEntry(cacheKey);
+    if (!raw || !body || !body.length || raw.waveBody) return;
+    raw.waveBody = body.slice();
+    if (neededBoosts) raw.waveNeededBoosts = Object.assign({}, neededBoosts);
 }
 
 function computeSortPriority(item, room) {
@@ -249,27 +282,39 @@ function prepareQueueItems(merged, room) {
             ? creep.other.assignment
             : creep.destination);
 
-        const generatedInfo = new generator(room.level, creep.role, room, creep).generateBody();
-        if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
-            releaseAssignmentIfStuck(room, target, 'Unable to generate needed body.', creep);
-            continue;
-        }
-
-        const body = generatedInfo.body;
-        if (!body.length) continue;
-
-        if (generatedInfo.info && generatedInfo.info.neededBoosts) {
-            creep.neededBoosts = generatedInfo.info.neededBoosts;
+        const cacheKey = creep.cacheKey || key;
+        const waitForWave = isWaitForLongbowWave(creep);
+        let body;
+        if (waitForWave && creep.waveBody && creep.waveBody.length) {
+            body = creep.waveBody.slice();
+            if (creep.waveNeededBoosts) creep.neededBoosts = Object.assign({}, creep.waveNeededBoosts);
+        } else {
+            const generatedInfo = new generator(room.level, creep.role, room, creep).generateBody();
+            if (!generatedInfo || !generatedInfo.body || !generatedInfo.body.length) {
+                if (waitForWave) markWaitForSpawnBlocked(cacheKey, true);
+                releaseAssignmentIfStuck(room, target, 'Unable to generate needed body.', creep);
+                continue;
+            }
+            body = generatedInfo.body;
+            if (!body.length) continue;
+            if (generatedInfo.info && generatedInfo.info.neededBoosts) {
+                creep.neededBoosts = generatedInfo.info.neededBoosts;
+            }
         }
         if (generatedBodyMissingBoosts(room, body, creep)) {
+            if (waitForWave) markWaitForSpawnBlocked(cacheKey, true);
             releaseAssignmentIfStuck(room, target, 'Missing required boosts.', creep);
             continue;
         }
 
+        if (waitForWave) {
+            markWaitForSpawnBlocked(cacheKey, false);
+            freezeWaitForWaveBody(cacheKey, body, creep.neededBoosts);
+        }
         creep.body = body;
         creep.sortPriority = computeSortPriority(creep, room);
 
-        if (isWaitForLongbowWave(creep)) {
+        if (waitForWave) {
             const waitFor = creep.misc.waitFor;
             const needed = creep.numberNeeded || waitFor;
             const live = getCreepCount(undefined, creep.role, creep.destination, creep.operation, undefined, undefined, waitFor);

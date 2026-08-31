@@ -1196,26 +1196,46 @@ function isSiegeBoostOp(creep) {
     return op === 'roomDenial' || op === 'stronghold';
 }
 
+function boostPartCovered(c, part, resource) {
+    const boosted = c.memory.hasBoosted || [];
+    if (resource && boosted.includes(resource)) return true;
+    if (!part || !c.body) return !resource;
+    for (let i = 0; i < c.body.length; i++) {
+        if (c.body[i].type === part && c.body[i].boost) return true;
+    }
+    return false;
+}
+
+// Body gen shrinks MOVE when this is set. Leaving without it crawls.
+function creepHasPinnedMoveBoost(c) {
+    if (!c || !c.memory) return false;
+    const nb = c.memory.neededBoosts;
+    if (!nb || !nb.moveBoost) return true;
+    return boostPartCovered(c, MOVE, nb.moveBoost);
+}
+
 function creepHasRequiredSiegeBoosts(c) {
     if (!c || !c.memory) return false;
     const nb = c.memory.neededBoosts;
     if (!nb) return true;
-    const boosted = c.memory.hasBoosted || [];
-    const covered = (part, resource) => {
-        if (resource && boosted.includes(resource)) return true;
-        if (!part || !c.body) return !resource;
-        for (let i = 0; i < c.body.length; i++) {
-            if (c.body[i].type === part && c.body[i].boost) return true;
-        }
-        return false;
-    };
-    if (nb.boost && !isOptionalSiegeBoost(nb.boostPart) && !covered(nb.boostPart, nb.boost)) return false;
-    if (nb.toughBoost && !covered(TOUGH, nb.toughBoost)) return false;
+    if (nb.boost && !isOptionalSiegeBoost(nb.boostPart) && !boostPartCovered(c, nb.boostPart, nb.boost)) return false;
+    if (nb.toughBoost && !boostPartCovered(c, TOUGH, nb.toughBoost)) return false;
+    if (!creepHasPinnedMoveBoost(c)) return false;
+    return true;
+}
+
+function waitForMayFinishBoosting(creep) {
+    if (!creepHasPinnedMoveBoost(creep)) return false;
+    if (isSiegeBoostOp(creep) && !creepHasRequiredSiegeBoosts(creep)) return false;
     return true;
 }
 
 Creep.prototype.hasRequiredSiegeBoosts = function () {
     return creepHasRequiredSiegeBoosts(this);
+};
+
+Creep.prototype.hasPinnedMoveBoost = function () {
+    return creepHasPinnedMoveBoost(this);
 };
 
 function labMineralCap(lab, resource) {
@@ -1635,10 +1655,10 @@ function ensureWaveBoostLab(creep, boostNeeded, amountNeeded, names, excludeIds)
     return bindBoostLab(lab, boostNeeded, amountNeeded, names);
 }
 
-// True when another same-wave body is spawning, still queued, or walking in
-// to formColony (assignment steal). holdForWave must not recycle/commit
-// short while this is true.
-Creep.prototype.waveStillIncoming = function () {
+// True when another same-wave body is spawning, walking to formColony, or
+// queued and spawnable. liveOnly skips the queue (TTL abort must not wait on
+// a body-gen / boost-stock failure that never emits an egg).
+Creep.prototype.waveStillIncoming = function (liveOnly) {
     const waitFor = this.memory.misc && this.memory.misc.waitFor;
     if (!(waitFor > 1)) return false;
     const dest = this.memory.destination || '';
@@ -1662,13 +1682,14 @@ Creep.prototype.waveStillIncoming = function () {
         if (home && theirHome === home && c.room.name !== home) return true;
     }
 
+    if (liveOnly) return false;
     if (typeof CREEP_QUEUES === 'undefined' || !CREEP_QUEUES) return false;
     for (const roomKey in CREEP_QUEUES) {
         const cache = CREEP_QUEUES[roomKey];
         if (!cache) continue;
         for (const k in cache) {
             const e = cache[k];
-            if (!e) continue;
+            if (!e || e.spawnBlocked) continue;
             if ((e.destination || '') !== dest) continue;
             if ((e.operation || '') !== op) continue;
             if (!e.misc || e.misc.waitFor !== waitFor) continue;
@@ -1709,10 +1730,7 @@ Creep.prototype.reserveWaveBoosts = function () {
 Creep.prototype.tryToBoost = function (bodyPart = []) {
     if (this.memory.boostAttempt) return false;
 
-    if (this.ticksToLive < BOOST_TTL_FLOOR) {
-        // WaitFor waves must not stamp boostAttempt here — that permanently
-        // skips labs, then holdForWave stall-recycles the whole quad.
-        if (isWaitForWave(this)) return false;
+    if (this.ticksToLive < BOOST_TTL_FLOOR && !isWaitForWave(this)) {
         finishBoosting(this);
         this.memory.needsRenewal = undefined;
         return false;
@@ -1737,10 +1755,10 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
         }
         if (isWaitForWave(this) && !planCoversExpectedBoosts(this, plan)) {
             // Remaining minerals are not in room.store. Leave with what landed
-            // if required siege HEAL/TOUGH (or any boosts on non-siege) are on
-            // the body; otherwise keep waiting so holdForWave can stall-recycle.
+            // if required siege HEAL/TOUGH (and pinned MOVE) are on the body;
+            // otherwise keep waiting so holdForWave can stall-recycle.
             if (this.memory.hasBoosted && this.memory.hasBoosted.length
-                && (!isSiegeBoostOp(this) || creepHasRequiredSiegeBoosts(this))) {
+                && waitForMayFinishBoosting(this)) {
                 finishBoosting(this);
                 return false;
             }
@@ -1779,8 +1797,8 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
             this.memory.boosts.requestedBoosts = leftover;
             this.memory.boosts.labs = labs;
         } else {
-            if (isWaitForWave(this) && !planCoversExpectedBoosts(this, {})) {
-                if (isSiegeBoostOp(this) && !creepHasRequiredSiegeBoosts(this)) {
+            if (isWaitForWave(this) && (!planCoversExpectedBoosts(this, {}) || !waitForMayFinishBoosting(this))) {
+                if (!waitForMayFinishBoosting(this)) {
                     this.memory.boosts = undefined;
                     return false;
                 }
