@@ -15,7 +15,9 @@ const {
 } = require('spawnQueue');
 
 
-const RENEW_ROLES = new Set(['hauler', 'shuttle', 'stationaryHarvester', 'upgrader']);
+const {spawnDirectionsForRole, hubSlotSpawnDirection} = require('spawnHub');
+
+const RENEW_ROLES = new Set(['hauler', 'shuttle', 'stationaryHarvester', 'upgrader', 'hubManager']);
 const {assessSourceHaulBacklog} = require('bodyEconomic');
 
 function shuttleNeedsRenew(creep) {
@@ -79,8 +81,8 @@ function renewNearbyCreepIfNeeded(room, availableSpawn) {
     const nearbyCreeps = _.filter(room.myCreeps, c => {
         if (!RENEW_ROLES.has(c.memory.role) || _.find(c.body, b => b.boost) || !c.pos.isNearTo(availableSpawn) || c.ticksToLive >= CREEP_LIFE_TIME) return false;
         if (!strict) return true;
-        // In strict/lean: renew income producers and shuttles clearing source backlog
-        return c.memory.role === 'stationaryHarvester' || shuttleNeedsRenew(c);
+        // In strict/lean: renew income producers, the hub manager, and shuttles clearing source backlog
+        return c.memory.role === 'stationaryHarvester' || c.memory.role === 'hubManager' || shuttleNeedsRenew(c);
     });
 
     if (nearbyCreeps.length) {
@@ -257,6 +259,8 @@ function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
         if (fallbackRoles && !WAVE_FALLBACK_ROLES.has(item.role)) continue;
         if (only && item.cacheKey !== only.cacheKey) continue;
         if (excludeKey && item.wave && item.cacheKey === excludeKey) continue;
+        if (item.role === 'hubManager' && opts.spawn && opts.room
+            && !hubSlotSpawnDirection(opts.spawn, opts.room)) continue;
         const left = (item.remaining || 1) - (spawned[item.cacheKey] || 0);
         if (left <= 0) continue;
 
@@ -336,6 +340,8 @@ function spawnQueuedCreep(room, availableSpawn, queuedBuild, body) {
         }
     };
     if (energyStructures) spawnOpts.energyStructures = energyStructures;
+    const dirs = spawnDirectionsForRole(availableSpawn, availableSpawn.room, role);
+    if (dirs && dirs.length) spawnOpts.directions = dirs;
 
     let spawnResult = availableSpawn.spawnCreep(body, name, spawnOpts);
 
@@ -438,7 +444,7 @@ function processBuildQueue(room) {
 
     const spawnWaveFallback = (spawn) => {
         const fallback = pickQueueItem(queue, energyLeft, energyCapacity, {
-            excludeKey: wave.cacheKey, spawned, fallbackRoles: true
+            excludeKey: wave.cacheKey, spawned, fallbackRoles: true, spawn, room
         });
         if (!fallback.item) {
             renewNearbyCreepIfNeeded(room, spawn);
@@ -450,7 +456,12 @@ function processBuildQueue(room) {
     };
 
     for (let i = 0; i < reservedSpawns.length; i++) {
-        const pick = pickQueueItem(queue, energyLeft, energyCapacity, {only: wave, spawned});
+        const pick = pickQueueItem(queue, energyLeft, energyCapacity, {
+            only: wave,
+            spawned,
+            spawn: reservedSpawns[i],
+            room
+        });
         if (pick.item) {
             if (!consume(reservedSpawns[i], pick.item, pick.cost)) {
                 waveEnergyWait = true;
@@ -468,7 +479,12 @@ function processBuildQueue(room) {
 
     for (let i = 0; i < freeSpawns.length; i++) {
         const excludeKey = reserveCount > 0 && wave ? wave.cacheKey : undefined;
-        const pick = pickQueueItem(queue, energyLeft, energyCapacity, {excludeKey, spawned});
+        const pick = pickQueueItem(queue, energyLeft, energyCapacity, {
+            excludeKey,
+            spawned,
+            spawn: freeSpawns[i],
+            room
+        });
         if (!pick.item) {
             renewNearbyCreepIfNeeded(room, freeSpawns[i]);
             continue;

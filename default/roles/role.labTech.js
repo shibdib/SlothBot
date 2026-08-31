@@ -7,6 +7,7 @@ const FactoryControl = require('module.factoryController');
 const {getRoomKeepAmount, getOperationalProtectAmount, getRoomOperationalNeed} = require('termKeep');
 const {isCoreRoom} = require('module.colonyProfile');
 const {roomCanBurnSurplus} = require('spawnFlow');
+const {hasLiveHubManager} = require('spawnHub');
 
 const BALANCE_MIN_TRANSFER = 100;
 const STORAGE_ENERGY_RESERVE = 25000;
@@ -117,7 +118,8 @@ class RoleLabTech {
 
         // 2. Both stores packed — swap/export before lab busywork. Otherwise
         // a 0-space hub stays stuck feeding labs while minerals never reach the terminal.
-        if (storage && terminal
+        // Hub manager sits between storage and terminal and owns warehouse balance.
+        if (storage && terminal && !hasLiveHubManager(this.room)
             && storage.store.getFreeCapacity() < BALANCE_MIN_TRANSFER
             && terminal.store.getFreeCapacity() < BALANCE_MIN_TRANSFER) {
             const stuck = this.findOverflowRelief(storage, terminal);
@@ -248,7 +250,8 @@ class RoleLabTech {
 
         // 11. Nuker energy from overflow only. Filling at energyState 1–2 dumps
         // stockpile into a sink that rawEnergy does not count, so rooms never accrue.
-        if (nuker && roomCanBurnSurplus(this.room)) {
+        // Hub manager sits next to the nuker and owns this when present.
+        if (nuker && !hasLiveHubManager(this.room) && roomCanBurnSurplus(this.room)) {
             const nukerEnergyNeed = nuker.store.getFreeCapacity(RESOURCE_ENERGY);
             if (nukerEnergyNeed > 0 && this.room.rawEnergy >= nukerEnergyNeed + 10000) {
                 const energySupplier = [storage, terminal].find(s => s && (s.store[RESOURCE_ENERGY] || 0) > 10000);
@@ -305,8 +308,9 @@ class RoleLabTech {
         }
 
         // 15. Power spawn energy / power — 50 e/tick, only from overflow.
+        // Hub manager owns energy feed when present; labTech still hauls POWER.
         if (powerSpawn && roomCanBurnSurplus(this.room)) {
-            if (powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000) {
+            if (!hasLiveHubManager(this.room) && powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000) {
                 const energySupplier = this.pickBestSupplier(RESOURCE_ENERGY);
                 if (energySupplier && energySupplier.store[RESOURCE_ENERGY] > 10000) {
                     return {
@@ -1549,6 +1553,9 @@ class RoleLabTech {
 
     findBalancingTask(storage, terminal) {
         if (!storage || !terminal) return null;
+        // Hub manager owns storage↔terminal warehouse (energy, minerals, batteries).
+        if (this.creep && this.creep.memory && this.creep.memory.role === 'labTech'
+            && hasLiveHubManager(this.room)) return null;
 
         const overflowTask = this.findOverflowRelief(storage, terminal);
         if (overflowTask) return overflowTask;

@@ -20,7 +20,7 @@ let globals = function () {
         // idle while extensions filled.
         upgrader: 6, drone: 3, mineralHarvester: 7,
         // Haulers — slightly behind harvesters since they're gated by harvester presence
-        hauler: 2, miscHauler: 7,
+        hauler: 2, hubManager: 2, miscHauler: 7,
         // Remotes — harvesters before haulers (a hauler without a harvester does nothing)
         remoteHarvester: 5, remoteHauler: 4, remoteBuilder: 7, roadBuilder: 7, fuelTruck: 8, reserver: 6,
         // Military

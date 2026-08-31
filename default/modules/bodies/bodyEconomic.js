@@ -276,6 +276,9 @@ const builders = {
         return {carry, halfMove};
     },
     hauler: buildHauler,
+    hubManager() {
+        return {carry: 16, move: 0};
+    },
     shuttle: buildShuttle,
     stationaryHarvester: buildStationaryHarvester,
     mineralHarvester(gen) {

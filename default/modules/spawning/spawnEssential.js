@@ -11,6 +11,7 @@ const {queueCreepIfNeeded} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
 const {planShuttleForSource} = require('bodyEconomic');
 const {roomHasCriticalBuildSites, roomNeedsSpawnReboot} = require('bodyHelpers');
+const {isHubManagerSlotReady, recycleHubSlotIntruder} = require('spawnHub');
 
 function resolveDroneCount(room, ctx) {
     const {
@@ -131,6 +132,14 @@ function essentialCreepQueue(room) {
 
     const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
     if (room.storage || protoStorage) {
+        recycleHubSlotIntruder(room);
+        if (isHubManagerSlotReady(room) && !spawnReboot) {
+            queueCreepIfNeeded({
+                room, role: 'hubManager', priority: PRIORITIES.hubManager,
+                numberNeeded: 1,
+                rebootCondition: !getCreepCount(room, 'hubManager')
+            });
+        }
         const haulerAmount = 1;
         const priority = !getCreepCount(room, 'hauler') ? 1 : PRIORITIES.hauler;
         queueCreepIfNeeded({

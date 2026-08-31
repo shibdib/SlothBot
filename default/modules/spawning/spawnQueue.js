@@ -114,7 +114,12 @@ function queueCreepIfNeeded(spawnInfo) {
     }
     const global = (!spawnInfo.room && spawnInfo.destination) || spawnInfo.global;
 
-    if (count < spawnInfo.numberNeeded || (count <= spawnInfo.numberNeeded && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment, waveWait))) {
+    // 0-MOVE hubManager occupies the hub slot; a replacement cannot land
+    // until it dies. Renew instead of overlapping.
+    const expireReplace = spawnInfo.role !== 'hubManager'
+        && count <= spawnInfo.numberNeeded
+        && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment, waveWait);
+    if (count < spawnInfo.numberNeeded || expireReplace) {
         spawnInfo.other.reboot = spawnInfo.rebootCondition;
         return queueCreep(spawnInfo.room || spawnInfo.colony, spawnInfo.priority + count, {
             role: spawnInfo.role,

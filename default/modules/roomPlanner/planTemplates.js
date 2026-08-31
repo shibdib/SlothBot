@@ -18,7 +18,7 @@ let bunkerTemplate = [
     },
     {
         "structureType": STRUCTURE_OBSERVER,
-        "pos": [{"x": 0, "y": 0}]
+        "pos": [{"x": 5, "y": 5}]
     },
     {
         "structureType": STRUCTURE_FACTORY,
@@ -134,10 +134,9 @@ const labRoadTemplate = offsetsAround(labTemplate);
 // Compact core used when the full bunker template cannot fit.
 // Extensions, towers, labs, and late-game singles (factory, power spawn, nuker, observer)
 // are placed dynamically — see ensureDynamicSpecialStructures (closest hub extension tiles).
-// Observer remains on the hub stamp as a first try; dynamic placement covers misses.
+// Hub (0,0) stays empty for the 0-MOVE hubManager; observer is a dynamic special.
 const coreTemplate = [
     {structureType: STRUCTURE_SPAWN, pos: [{x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}]},
-    {structureType: STRUCTURE_OBSERVER, pos: [{x: 0, y: 0}]},
     {structureType: STRUCTURE_TERMINAL, pos: [{x: -1, y: 0}]},
     {structureType: STRUCTURE_STORAGE, pos: [{x: 1, y: 0}]},
 ];

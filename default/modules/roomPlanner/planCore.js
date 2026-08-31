@@ -204,6 +204,20 @@ function tileIsFreeFor(pos, structureType) {
     return true;
 }
 
+function clearObserverFromHubSlot(room) {
+    const hub = room.hub;
+    const observer = room.observer;
+    if (!hub || !observer) return false;
+    if (observer.pos.x !== hub.x || observer.pos.y !== hub.y) return false;
+    try {
+        if (observer.destroy() !== OK) return false;
+        if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 function freeTileForSpecial(room, pos, structureType) {
     if (!pos.lookFor) return tileIsFreeFor(pos, structureType);
 
@@ -261,6 +275,8 @@ function placeCoreStamps(room, options) {
     }
 
     // Source-adjacent extensions: planExtensions.placeSourceExtensions (siteBudget).
+
+    if (!isPlannerShadow(room)) clearObserverFromHubSlot(room);
 
     const stampPlan = computeCoreStampPlan(room);
     const specialsPlan = computeSpecialsPlan(room);

@@ -530,7 +530,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
             return true;
         }
         const hubLink = Game.getObjectById(room.memory.hubLink);
-        if (hubLink && hubLink.store[RESOURCE_ENERGY] > 0) {
+        const hubManaged = room.myCreeps.some(c => c.memory && c.memory.role === 'hubManager');
+        if (!hubManaged && hubLink && hubLink.store[RESOURCE_ENERGY] > 0) {
             const upgrader = room.myCreeps.find(c => c.memory.role === 'upgrader' && c.memory.other && c.memory.other.stationary);
             const controllerLink = Game.getObjectById(room.memory.controllerLink);
             const controllerEnergy = controllerLink ? controllerLink.store[RESOURCE_ENERGY] : 0;
@@ -588,7 +589,13 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     }
 
     if ((room.energyState || 0) < 2) {
-        potentialEnergy = potentialEnergy.concat(room.links.filter(s => s.store[RESOURCE_ENERGY] > 0));
+        const hubManaged = this.memory.role === 'hauler'
+            && room.myCreeps.some(c => c.memory && c.memory.role === 'hubManager');
+        potentialEnergy = potentialEnergy.concat(room.links.filter(s => {
+            if (!s.store[RESOURCE_ENERGY]) return false;
+            if (hubManaged && s.id === room.memory.hubLink) return false;
+            return true;
+        }));
     }
 
     if (potentialEnergy.length) {
