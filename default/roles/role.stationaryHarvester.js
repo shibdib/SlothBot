@@ -55,7 +55,9 @@ class RoleStationaryHarvester {
                 }
             }
             // If we have a link and container, withdraw overflow from container this tick
-            if (this.creep.store.getFreeCapacity() && source.memory.link && container && container.store[RESOURCE_ENERGY] > 0) {
+            if (this.creep.store.getFreeCapacity() && source.memory.link
+                && source.memory.link !== this.room.memory.hubLink
+                && container && container.store[RESOURCE_ENERGY] > 0) {
                 return this.creep.withdraw(container, RESOURCE_ENERGY);
             }
             // Deposit energy this tick if container is full or we're carrying surplus
@@ -75,20 +77,19 @@ class RoleStationaryHarvester {
                     // Set stationary so we don't get bumped
                     this.creep.memory.other.stationary = true;
                     // Check for a link every 50 ticks if we don't have one, or if we haven't checked yet
-                    if (container && (!this.creep.memory.other.linkCheck || (!source.memory.link && Game.time % 50 === 0))) {
+                    if (container && (!this.creep.memory.other.linkCheck || Game.time % 50 === 0)) {
                         let link = Game.getObjectById(source.memory.link);
+                        if (link && !isSourceDumpLink(this.room, source, link, container)) {
+                            link = undefined;
+                            source.memory.link = undefined;
+                            this.creep.memory.link = undefined;
+                        }
                         if (!link) {
-                            link = _.find(container.pos.findInRange(this.room.links, 1), (s) => s.isActive());
+                            link = _.find(container.pos.findInRange(this.room.links, 1),
+                                (s) => isSourceDumpLink(this.room, source, s, container));
                             if (link) source.memory.link = link.id;
                         }
-                        if (link) {
-                            if (!link.pos.isNearTo(container) || !link.isActive()) {
-                                source.memory.link = undefined;
-                                this.creep.memory.link = undefined;
-                            } else {
-                                this.creep.memory.link = link.id;
-                            }
-                        }
+                        if (link) this.creep.memory.link = link.id;
                         this.creep.memory.other.linkCheck = true;
                     }
                     break;
@@ -119,16 +120,21 @@ function depositEnergy(creep, source, container) {
     // Fill nearby extensions (Critical)
     if (extensionFiller(creep)) return;
 
-    // Prioritize Link
+    // Prioritize a real source/controller dump link. Hub is a receiver — dumping
+    // into it fills the inbound slot and blocks the other source's link.
     const linkId = source.memory.link;
-    if (linkId) {
+    if (linkId && linkId !== creep.room.memory.hubLink) {
         const link = Game.getObjectById(linkId);
-        if (link && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        if (link && isSourceDumpLink(creep.room, source, link, container)
+            && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
             source.memory.link = link.id;
             creep.transfer(link, RESOURCE_ENERGY);
             if (container && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
             return;
         }
+    } else if (linkId) {
+        source.memory.link = undefined;
+        creep.memory.link = undefined;
     }
 
     // Fallback to Container
@@ -163,6 +169,16 @@ function depositEnergy(creep, source, container) {
         delete creep.memory.containerID;
         delete creep.memory.linkID;
     }
+}
+
+function isSourceDumpLink(room, source, link, container) {
+    if (!link || (link.isActive && !link.isActive())) return false;
+    if (room.memory.hubLink && link.id === room.memory.hubLink) return false;
+    if (container && !link.pos.isNearTo(container)) return false;
+    if (room.memory.controllerLink && link.id === room.memory.controllerLink) {
+        return !!(source && room.controller && source.pos.getRangeTo(room.controller) <= 2);
+    }
+    return true;
 }
 
 function extensionFiller(creep) {

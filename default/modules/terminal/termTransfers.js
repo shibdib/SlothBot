@@ -22,6 +22,7 @@ const PRESSURE_SEND_MAX = 25000;
 const RESOURCE_SEND_MIN = 100;
 const BATTERY_SEND_MIN = 50;
 const ENERGY_SEND_MIN = 5000;
+const ENERGY_INBOUND_MIN = 1000;
 const PRESSURE_DEST_FREE_MIN = 5000;
 const PARK_TERMINAL_USED_MAX = 0.5;
 const PARK_STORAGE_FREE_MIN = 0.2;
@@ -372,6 +373,8 @@ function planBatteryTransfers(transfers, profiles) {
         const destRoom = Game.rooms[profile.name];
         if (!destRoom?.terminal || !destRoom.factory || !canUseTerminal(profile.name)) continue;
         if (destRoom.memory.dangerousAttack || !FactoryControl.roomNeedsBatteryInbound(destRoom)) continue;
+        // CRIT dests need energy now; unpack whatever batteries they already have.
+        if ((destRoom.energyState || 0) < 1) continue;
 
         const need = FactoryControl.factoryBatteryInboundNeed(destRoom);
         const destFree = destRoom.terminal.store.getFreeCapacity(RESOURCE_BATTERY);
@@ -430,30 +433,64 @@ function energyRoleBonus(srcRoom, destRoom) {
     return bonus;
 }
 
+function roomSpareIncome(room) {
+    return (room && room.energyInfo && room.energyInfo.spareIncome) || 0;
+}
+
+/** Surplus, or at-target with positive spare. Same gate for own-room fills and ally energy. */
+function canDonateEnergy(room) {
+    if (!room) return false;
+    const srcState = room.energyState || 0;
+    if (srcState >= 3) return true;
+    return srcState >= 2 && roomSpareIncome(room) > 0;
+}
+
+function empireEnergyHungry(profiles) {
+    for (let i = 0; i < profiles.length; i++) {
+        const room = Game.rooms[profiles[i].name];
+        if (!room || !room.terminal) continue;
+        if ((room.energyState || 0) < 2) return true;
+    }
+    return false;
+}
+
+function energyInboundFloor(destRoom) {
+    return (destRoom.energyState || 0) < 1 ? RESOURCE_SEND_MIN : ENERGY_INBOUND_MIN;
+}
+
+function energyFeeCap(destRoom) {
+    return (destRoom.energyState || 0) < 1 ? ALLY_FEE_MAX : 0.25;
+}
+
 function planEnergyTransfers(transfers, profiles) {
+    // One terminal.send per source per run. Reserve the donor after a plan so a
+    // second dest is assigned a different room instead of a duplicate that never fires.
+    const usedSources = Object.create(null);
+
     for (const profile of profiles) {
         const destRoom = Game.rooms[profile.name];
         if (!destRoom?.terminal || !canUseTerminal(profile.name)) continue;
         if (!FactoryControl.needsBatteryUnpack(destRoom) && destRoom.energyState >= 2) continue;
 
         const destFree = destRoom.terminal.store.getFreeCapacity(RESOURCE_ENERGY);
-        if (destFree < ENERGY_SEND_MIN) continue;
+        const inboundFloor = energyInboundFloor(destRoom);
+        if (destFree < inboundFloor) continue;
 
         const energyGap = Math.max(0, FactoryControl.energyTarget(destRoom) - destRoom.rawEnergy);
-        const desired = Math.min(RESOURCE_SEND_MAX * 2, destFree, Math.max(ENERGY_SEND_MIN, Math.floor(energyGap)));
-        const feeCap = destRoom.energyState < 1 ? EMPIRE_FEE_MAX : 0.25;
+        const minSend = destFree >= ENERGY_SEND_MIN ? ENERGY_SEND_MIN : inboundFloor;
+        const desired = Math.min(RESOURCE_SEND_MAX * 2, destFree, Math.max(minSend, Math.floor(energyGap)));
+        const feeCap = energyFeeCap(destRoom);
 
         const candidates = [];
         for (const srcProfile of profiles) {
-            if (srcProfile.name === profile.name) continue;
+            if (srcProfile.name === profile.name || usedSources[srcProfile.name]) continue;
             const srcRoom = Game.rooms[srcProfile.name];
             if (!srcRoom?.terminal || !canUseTerminal(srcProfile.name)) continue;
             if (srcRoom.memory.dangerousAttack) continue;
-            const srcState = srcRoom.energyState || 0;
-            const srcSpare = (srcRoom.energyInfo && srcRoom.energyInfo.spareIncome) || 0;
-            if (srcState < 3 && !(srcState >= 2 && srcSpare > 0)) continue;
+            if (!canDonateEnergy(srcRoom)) continue;
 
-            if (destRoom.factory && FactoryControl.roomNeedsBatteryInbound(destRoom) && srcRoom.terminal.store[RESOURCE_BATTERY]) {
+            if ((destRoom.energyState || 0) >= 1 && destRoom.factory
+                && FactoryControl.roomNeedsBatteryInbound(destRoom) && srcRoom.terminal.store[RESOURCE_BATTERY]) {
                 const bNeed = FactoryControl.factoryBatteryInboundNeed(destRoom);
                 const bAmount = FactoryControl.terminalBatterySendAmount(
                     Math.min(srcRoom.terminal.store[RESOURCE_BATTERY] || 0, bNeed),
@@ -467,14 +504,14 @@ function planEnergyTransfers(transfers, profiles) {
                             resource: RESOURCE_BATTERY,
                             amount: bAmount,
                             kind: 'energy',
-                            score: (destRoom.energyState < 1 ? 3 : 1) + bAmount / (1 + cost),
+                            score: 1 + bAmount / (1 + cost),
                         });
                     }
                 }
             }
 
             const amount = terminalExportableEnergy(srcRoom.terminal, profile.name, desired);
-            if (amount < ENERGY_SEND_MIN) continue;
+            if (amount < minSend) continue;
             const cost = txCost(srcProfile.name, profile.name, amount);
             if (cost > amount * feeCap) continue;
             candidates.push({
@@ -488,7 +525,10 @@ function planEnergyTransfers(transfers, profiles) {
         }
 
         candidates.sort((a, b) => b.score - a.score);
-        if (candidates[0]) addTransfer(transfers, candidates[0]);
+        const best = candidates[0];
+        if (!best) continue;
+        addTransfer(transfers, best);
+        usedSources[best.from] = true;
     }
 }
 
@@ -539,8 +579,11 @@ function planAllyTransfers(transfers, ledger, profiles) {
     const requests = collectAllyTransferRequests();
     if (!requests.length) return;
 
+    const holdEnergy = empireEnergyHungry(profiles);
+
     for (const request of requests) {
         const {username, resourceType, roomName, amount, priority} = request;
+        if (holdEnergy && (resourceType === RESOURCE_ENERGY || resourceType === RESOURCE_BATTERY)) continue;
         const candidates = [];
 
         for (const profile of profiles) {
@@ -548,7 +591,7 @@ function planAllyTransfers(transfers, ledger, profiles) {
             if (!room?.terminal || !canUseTerminal(profile.name) || room.memory.dangerousAttack) continue;
 
             if (resourceType === RESOURCE_ENERGY) {
-                if (room.energyState < 2) continue;
+                if (!canDonateEnergy(room)) continue;
                 const sendAmount = terminalExportableEnergy(
                     room.terminal,
                     roomName,
@@ -569,7 +612,7 @@ function planAllyTransfers(transfers, ledger, profiles) {
             }
 
             if (resourceType === RESOURCE_BATTERY) {
-                if (room.energyState < 2) continue;
+                if (!canDonateEnergy(room)) continue;
                 const available = getAllyExportable(room, resourceType, ledger);
                 const sendAmount = Math.min(available, RESOURCE_SEND_MAX, amount);
                 if (sendAmount < BATTERY_SEND_MIN) continue;
@@ -826,12 +869,14 @@ function planPressureTransfers(transfers, profiles) {
             if ((destRoom.energyState || 0) >= 2) continue;
 
             const destFree = destRoom.terminal.store.getFreeCapacity(RESOURCE_ENERGY);
-            if (destFree < ENERGY_SEND_MIN) continue;
+            const inboundFloor = energyInboundFloor(destRoom);
+            if (destFree < inboundFloor) continue;
 
             const sendAmount = Math.min(energySurplus, destFree, PRESSURE_SEND_MAX);
-            if (sendAmount < ENERGY_SEND_MIN) continue;
+            if (sendAmount < inboundFloor) continue;
             const cost = txCost(srcName, profile.name, sendAmount);
-            if (cost > sendAmount * 0.4) continue;
+            const feeCap = (destRoom.energyState || 0) < 1 ? ALLY_FEE_MAX : 0.4;
+            if (cost > sendAmount * feeCap) continue;
             if (cost + sendAmount > inEnergy - 1000) continue;
 
             const hunger = destRoom.energyState < 1 ? 4 : 3;
@@ -946,9 +991,15 @@ function recordTransferEnergyCost(terminal, resource, amount, destRoom) {
 
 function markTerminalsUsed(from, to, resource) {
     state.usedTerminals[from] = {tick: Game.time};
-    // Dest lock matches terminal cooldown so a lab room can receive the second
-    // input 10 ticks later instead of waiting 50.
-    state.usedTerminals[to] = {tick: Game.time + (resource === RESOURCE_BATTERY ? 500 : 10)};
+    // Dest lock matches terminal cooldown (10) so a lab can take a second input
+    // next cycle. Batteries use a longer lock only when the dest is energy-OK
+    // so a CRIT/LOW room is not blocked from energy fills for 500 ticks.
+    let destLock = 10;
+    if (resource === RESOURCE_BATTERY) {
+        const dest = Game.rooms[to];
+        destLock = dest && (dest.energyState || 0) < 2 ? 10 : 500;
+    }
+    state.usedTerminals[to] = {tick: Game.time + destLock};
 }
 
 function executeTransfer(terminal, transfer) {

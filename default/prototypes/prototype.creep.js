@@ -573,7 +573,8 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         if (r.amount >= (myCreepsFilter(r.id) + filterPenalty) * (freeCapacity * 0.25)) potentialEnergy.push(r);
     }
 
-    if (['shuttle', 'remoteHauler', 'drone'].includes(this.memory.role) || !room.storage || room.myCreeps.length < 4) {
+    if (['shuttle', 'remoteHauler', 'drone'].includes(this.memory.role) || !room.storage
+        || room.myCreeps.length < 4 || (room.energyState || 0) < 2) {
         const ctrlContainer = global.resolveControllerContainer(room);
         const containers = room.containers;
         for (let i = 0; i < containers.length; i++) {
@@ -586,7 +587,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         }
     }
 
-    if (room.energyState === 0) {
+    if ((room.energyState || 0) < 2) {
         potentialEnergy = potentialEnergy.concat(room.links.filter(s => s.store[RESOURCE_ENERGY] > 0));
     }
 

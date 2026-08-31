@@ -141,8 +141,14 @@ function essentialCreepQueue(room) {
     }
 
     for (const source of room.sources) {
-        const sourceLink = source.memory.link && Game.getObjectById(source.memory.link);
+        let sourceLink = source.memory.link && Game.getObjectById(source.memory.link);
         if (!sourceLink && source.memory.link) source.memory.link = undefined;
+        // Hub is a receiver, not a harvest dump. A near-hub source that bound the
+        // hub link still needs a shuttle (planner skipped a dedicated source link).
+        if (sourceLink && room.memory.hubLink && sourceLink.id === room.memory.hubLink) {
+            source.memory.link = undefined;
+            sourceLink = undefined;
+        }
         // Source link + any receiver (hub or controller) is cheaper than a shuttle.
         if (sourceLink && (room.memory.hubLink || room.memory.controllerLink)) continue;
         const plan = planShuttleForSource(room, source, {trend, spareIncome});

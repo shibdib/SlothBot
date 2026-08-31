@@ -117,11 +117,12 @@ class LinkControl {
             });
             if (!target) continue;
             const amount = link.store[RESOURCE_ENERGY];
-            if (target === hubLink && amount > hubFreeRemaining) continue;
-            if (link.transferEnergy(target) !== OK) continue;
+            const sendAmount = target === hubLink ? Math.min(amount, hubFreeRemaining) : amount;
+            if (sendAmount <= 0) continue;
+            if (link.transferEnergy(target, sendAmount) !== OK) continue;
             if (target === hubLink) {
                 hubInboundThisTick = true;
-                hubFreeRemaining = Math.max(0, hubFreeRemaining - amount);
+                hubFreeRemaining = Math.max(0, hubFreeRemaining - sendAmount);
             }
         }
 
@@ -142,7 +143,7 @@ class LinkControl {
         const allowHubInbound = options.allowHubInbound !== false;
         const hubFill = hubLink ? (LINK_CAPACITY - hFree) / LINK_CAPACITY : 0;
         const hubSaturated = hubFill >= HUB_OVERFLOW_RATIO;
-        const canSendToHub = allowHubInbound && hubLink && hubLink.id !== link.id && hFree >= carrying;
+        const canSendToHub = allowHubInbound && hubLink && hubLink.id !== link.id && hFree > 0;
         const canSendToController = controllerLink && cFree >= carrying && cEnergy < policy.controllerTarget;
 
         if (!room.energyState) {

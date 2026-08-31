@@ -620,11 +620,14 @@ function buildSourceLink(room, source) {
         || Game.getObjectById(source.memory && source.memory.container);
     if (!sourceContainer) return {ok: false, reason: 'no-container'};
 
-    const existingLink = sourceContainer.pos.findInRange(room.links, 1)[0];
+    if (source.memory.link && source.memory.link === room.memory.hubLink) {
+        source.memory.link = undefined;
+    }
+    const existingLink = sourceContainer.pos.findInRange(room.links, 1)
+        .find(l => l.id !== room.memory.hubLink);
     if (existingLink) {
         source.memory.link = existingLink.id;
-        if (isControllerNeighborSource(source, room) && isControllerLinkPos(existingLink.pos, room)
-            && existingLink.id !== room.memory.hubLink) {
+        if (isControllerNeighborSource(source, room) && isControllerLinkPos(existingLink.pos, room)) {
             room.memory.controllerLink = existingLink.id;
             return {ok: false, reason: 'shared-controller'};
         }
