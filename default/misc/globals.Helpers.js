@@ -275,17 +275,23 @@ let helpers = function () {
             let history = Game.market.getHistory(resource);
             if (Array.isArray(history) && history.length > 0) {
                 const prices = history.map(entry => entry.avgPrice);
+                const chronological = prices.slice();
                 const totalVolume = history.reduce((sum, entry) => sum + entry.volume, 0);
-                const median = prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)];
+                const lastNAvg = (n) => {
+                    const slice = chronological.slice(-n);
+                    return slice.reduce((sum, price) => sum + price, 0) / slice.length;
+                };
+                const lastPrice = chronological.length ? chronological[chronological.length - 1] : 0;
+                const sorted = prices.slice().sort((a, b) => a - b);
+                const median = sorted[Math.floor(sorted.length / 2)];
                 const mean = prices.reduce((sum, price) => sum + price, 0) / prices.length;
                 const variance = prices.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / prices.length;
                 const stdDev = Math.sqrt(variance);
-                const mode = prices.sort((a, b) =>
+                const mode = prices.slice().sort((a, b) =>
                     prices.filter(v => v === a).length
                     - prices.filter(v => v === b).length
                 ).pop();
                 const range = Math.max(...prices) - Math.min(...prices);
-                const lastPrice = prices.length > 0 ? prices[prices.length - 1].toFixed(2) : '0.00';
                 const entries = history.length;
 
                 MARKET_HISTORY[resource] = {
@@ -293,11 +299,11 @@ let helpers = function () {
                         avg: mean.toFixed(2),
                         highest: Math.max(...prices).toFixed(2),
                         lowest: Math.min(...prices).toFixed(2),
-                        trend: (prices[prices.length - 1] - prices[0]).toFixed(2),
-                        trend5: (prices.slice(-5).reduce((sum, price) => sum + price, 0) / Math.min(5, prices.length)).toFixed(2),
-                        trend10: (prices.slice(-10).reduce((sum, price) => sum + price, 0) / Math.min(10, prices.length)).toFixed(2),
-                        trend20: (prices.slice(-20).reduce((sum, price) => sum + price, 0) / Math.min(20, prices.length)).toFixed(2),
-                        last: lastPrice,
+                        trend: (lastPrice - chronological[0]).toFixed(2),
+                        trend5: lastNAvg(5).toFixed(2),
+                        trend10: lastNAvg(10).toFixed(2),
+                        trend20: lastNAvg(20).toFixed(2),
+                        last: lastPrice.toFixed(2),
                         totalVolume: totalVolume,
                         median: median.toFixed(2),
                         stdDev: stdDev.toFixed(2),

@@ -45,8 +45,8 @@ Object.assign(TerminalControl.prototype, {
         else getLedger();
 
         const hub = isMarketHub(roomName);
-        const globalOrders = hub ? this.getGlobalOrders() : null;
-        const myOrders = hub ? getCachedMyOrders() : null;
+        const globalOrders = this.getGlobalOrders();
+        const myOrders = getCachedMyOrders();
 
         if (hub) {
             this.pruneNonHubOrders(myOrders);
@@ -55,27 +55,33 @@ Object.assign(TerminalControl.prototype, {
 
         const terminal = this.room.terminal;
 
-        // Overfull rooms: evacuate via planned pressure sends first.
-        // Fire-sale is hub-only so stuffed satellites do not parse the market.
-        // Sell orders do not consume the terminal action — list first so a
-        // 4.5k-energy terminal can still shed stock while also sending/dealing.
+        // Overfull rooms: list sell orders (no cooldown), then evacuate, then fire-sale.
         if (pressured) {
-            if (hub) this.placePressureSellOrders(terminal, myOrders);
+            this.placePressureSellOrders(terminal, myOrders);
             if (this.relieveStoragePressure(terminal)) return;
-            if (hub && runActiveMarket(this, globalOrders)) return;
+            if (runActiveMarket(this, globalOrders)) return;
         }
 
-        // Internal network before market — route empire stock first.
+        const NETWORK_PRIORITY = ['urgent', 'pressure', 'battery', 'energy', 'ally'];
         const planned = state.ledger?.plannedTransfers || [];
         const hasPriorityOutbound = planned.some(t =>
-            t.from === roomName && ['urgent', 'pressure', 'battery', 'energy', 'resource', 'ally'].includes(t.kind)
+            t.from === roomName && NETWORK_PRIORITY.concat('resource').includes(t.kind)
         );
         if (this.emergencyEnergy(terminal)) return;
         if (!hub && !hasPriorityOutbound && this.executePlannedTransfers(terminal, {kinds: ['hub']})) return;
+        if (this.executePlannedTransfers(terminal, {kinds: NETWORK_PRIORITY})) return;
+
+        // Hub surplus sells before keep-fills so the tick is not spent restocking satellites.
+        if (hub && this.hasSellableSurplus(terminal)) {
+            if (runActiveMarket(this, globalOrders, {skipBuys: true})) return;
+            runPassiveMarket(this, globalOrders, myOrders);
+            return;
+        }
+
         if (this.executePlannedTransfers(terminal)) return;
 
-        if (hub && runActiveMarket(this, globalOrders)) return;
-        if (hub && runPassiveMarket(this, globalOrders, myOrders)) return;
+        if (runActiveMarket(this, globalOrders)) return;
+        if (runPassiveMarket(this, globalOrders, myOrders)) return;
     },
 
     getGlobalOrders() {

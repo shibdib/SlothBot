@@ -91,6 +91,24 @@ Object.assign(TerminalControl.prototype, {
     },
 
     /**
+     * True when this terminal holds at least one stack we would actually list or deal.
+     * Used to skip keep-fill sends so surplus stays put for the market.
+     */
+    hasSellableSurplus(terminal) {
+        if (!terminal) return false;
+        for (const resource of Object.keys(terminal.store)) {
+            if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) continue;
+            if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) {
+                if (!this.allowEnergySell(terminal)) continue;
+                if (resource === RESOURCE_ENERGY && terminal.room.energyState < 3) continue;
+            }
+            if ((!SELL_BOOSTS || terminal.room.level < 8) && ALL_BOOSTS.includes(resource)) continue;
+            if (this.computeSellableAmount(terminal, resource) >= 100) return true;
+        }
+        return false;
+    },
+
+    /**
      * Amount safe to dump when storage/terminal are under capacity pressure.
      * Uses room-level surplus (not empire keep) so a non-hub can clear local piles
      * like hundreds of thousands of UH even if empire stock looks "under target".

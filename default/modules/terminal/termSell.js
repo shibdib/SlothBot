@@ -4,9 +4,7 @@
  * Market sell orders and quick liquidation.
  */
 
-const {getEffectiveSupply} = require('termNetwork');
-const {isMarketHub} = require('termMarket');
-const {hasRoomOrder, recordCreatedOrder} = require('termCache');
+const {hasRoomOrder, hasEmpireOrder, recordCreatedOrder} = require('termCache');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
 const {recordTransferEnergyCost, markTerminalsUsed} = require('termTransfers');
 const {getRoomKeepAmount} = require('termKeep');
@@ -14,6 +12,7 @@ const {getRoomKeepAmount} = require('termKeep');
 const TerminalControl = require('termClass');
 
 const FIRE_SALE_MIN = 100;
+const MIN_SALE_PROFIT = 100;
 
 Object.assign(TerminalControl.prototype, {
 
@@ -34,6 +33,7 @@ Object.assign(TerminalControl.prototype, {
             return (terminal.store[b] || 0) - (terminal.store[a] || 0);
         });
 
+        let listed = false;
         for (const resource of sorted) {
             if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) continue;
             if ((resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY)
@@ -60,46 +60,33 @@ Object.assign(TerminalControl.prototype, {
             if (Game.market.createOrder(spec) === OK) {
                 recordCreatedOrder(spec);
                 log.w(`Pressure Sell Order: ${sellAmount} ${resource} at/per ${price} in ${roomLink(terminal.room.name)}`, "Market: ");
-                return true;
+                listed = true;
             }
         }
-        return false;
+        return listed;
     },
 
     placeSellOrders(terminal, globalOrders, myOrders) {
-        if (!isMarketHub(terminal.room.name)) return false;
         if (Game.market.credits <= 0) return false;
 
+        let listed = false;
         for (let resource of Object.keys(terminal.store)) {
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) {
                 if (!this.allowEnergySell(terminal)) continue;
                 if (resource === RESOURCE_ENERGY && terminal.room.energyState < 3) continue;
             }
 
-            if (this.empireLabPipelineReserve(resource) > 0) continue;
-            if (MY_ROOMS.some(name => {
-                const room = Game.rooms[name];
-                if (!room) return false;
-                if (room.memory.neededCommodity === resource) return true;
-                if (room.memory.producingBoost === resource) return true;
-                return (room.labs || []).some(lab =>
-                    lab.memory?.itemNeeded === resource || lab.memory?.neededBoost === resource
-                );
-            })) continue;
-            if (hasRoomOrder(myOrders, terminal.pos.roomName, resource, ORDER_BUY)) continue;
-            if (hasRoomOrder(myOrders, terminal.pos.roomName, resource, ORDER_SELL)) continue;
+            // One empire listing per resource. Surplus is already pipeline/keep-adjusted.
+            if (hasEmpireOrder(myOrders, resource, ORDER_BUY)) continue;
+            if (hasEmpireOrder(myOrders, resource, ORDER_SELL)) continue;
             if ((!SELL_BOOSTS || terminal.room.level < 8) && ALL_BOOSTS.includes(resource)) continue;
 
-            if (COMPRESSED_COMMODITIES.includes(resource) && !this.canEmpireSell(resource)) continue;
-            if (ALL_BOOSTS.includes(resource) && getEffectiveSupply(resource) < this.getEmpireKeepAmount(resource) * 1.5) continue;
-
             let sellAmount = this.computeSellableAmount(terminal, resource);
-            if (BASE_MINERALS.includes(resource) && sellAmount < REACTION_AMOUNT * 0.5) continue;
-            if (sellAmount < 100) continue;
+            if (sellAmount < FIRE_SALE_MIN) continue;
 
             let price = this.calculatePrice(ORDER_SELL, resource);
             if (resource === RESOURCE_ENERGY) {
-                const energyFloor = this.getEnergyValue(globalOrders) * 0.95;
+                const energyFloor = this.getEnergyValue(globalOrders || this.getGlobalOrders()) * 0.95;
                 if (price < energyFloor) price = energyFloor;
             }
 
@@ -107,9 +94,9 @@ Object.assign(TerminalControl.prototype, {
             if (cost > Game.market.credits) {
                 sellAmount = Math.floor(Game.market.credits / (price * 0.05));
             }
-            if (sellAmount < 100) continue;
+            if (sellAmount < FIRE_SALE_MIN) continue;
 
-            if (createSellOrder(terminal, resource, price, sellAmount)) return true;
+            if (createSellOrder(terminal, resource, price, sellAmount)) listed = true;
         }
 
         function createSellOrder(terminal, resourceType, price, sellAmount) {
@@ -129,6 +116,95 @@ Object.assign(TerminalControl.prototype, {
             return false;
         }
 
+        return listed;
+    },
+
+    /**
+     * Deal surplus into live buy orders when net credits beat energy cost.
+     * Runs on healthy rooms — do not wait for storage to overflow.
+     */
+    sellSurplus(terminal, globalOrders) {
+        if (!globalOrders || !globalOrders.length) return false;
+
+        const from = terminal.pos.roomName;
+        const energy = terminal.store[RESOURCE_ENERGY] || 0;
+        const energyPrice = this.getEnergyValue(globalOrders);
+
+        const maxAffordable = (destRoom) => {
+            const factor = 1 - Math.exp(-Game.map.getRoomLinearDistance(from, destRoom) / 30);
+            if (factor <= 0) return energy;
+            return Math.floor(energy / factor);
+        };
+        const isHostile = roomName => INTEL[roomName] && HOSTILES.includes(INTEL[roomName].user);
+
+        const netProfit = (order, amount) => {
+            const fee = Game.market.calcTransactionCost(amount, from, order.roomName);
+            return amount * order.price - fee * energyPrice;
+        };
+
+        const sortedKeys = Object.keys(terminal.store).sort((a, b) => {
+            const rank = (r) => (r === RESOURCE_ENERGY ? 2 : r === RESOURCE_BATTERY ? 1 : 0);
+            const ra = rank(a);
+            const rb = rank(b);
+            if (ra !== rb) return ra - rb;
+            return (terminal.store[b] || 0) - (terminal.store[a] || 0);
+        });
+
+        for (const resource of sortedKeys) {
+            if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) continue;
+            if ((resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY)
+                && !this.allowEnergySell(terminal)) continue;
+            if ((!SELL_BOOSTS || terminal.room.level < 8) && ALL_BOOSTS.includes(resource)) continue;
+
+            let sellAmount = this.computeSellableAmount(terminal, resource);
+            if (sellAmount < FIRE_SALE_MIN) continue;
+
+            const orders = globalOrders.filter(o => {
+                if (o.resourceType !== resource || o.type !== ORDER_BUY) return false;
+                if (o.roomName === from || MY_ROOMS.includes(o.roomName)) return false;
+                if (isHostile(o.roomName)) return false;
+                const affordable = Math.min(sellAmount, o.remainingAmount, maxAffordable(o.roomName));
+                return affordable >= FIRE_SALE_MIN;
+            });
+            if (!orders.length) continue;
+
+            let best = null;
+            let bestNet = MIN_SALE_PROFIT;
+            for (let i = 0; i < orders.length; i++) {
+                const o = orders[i];
+                const amount = Math.min(sellAmount, o.remainingAmount, maxAffordable(o.roomName));
+                const net = netProfit(o, amount);
+                if (net > bestNet) {
+                    best = o;
+                    bestNet = net;
+                }
+            }
+            if (!best) continue;
+
+            let amount = Math.min(sellAmount, best.remainingAmount);
+            if (resource === RESOURCE_ENERGY) {
+                while (amount >= FIRE_SALE_MIN) {
+                    const fee = Game.market.calcTransactionCost(amount, from, best.roomName);
+                    if (amount + fee <= energy) break;
+                    amount = Math.floor(amount * 0.75);
+                }
+            } else if (Game.market.calcTransactionCost(amount, from, best.roomName) > energy) {
+                amount = maxAffordable(best.roomName);
+            }
+            if (amount < FIRE_SALE_MIN) continue;
+            if (amount * best.price < 5) continue;
+
+            const txCost = Game.market.calcTransactionCost(amount, from, best.roomName);
+            if (!canAffordSend(txCost)) continue;
+            if (Game.market.deal(best.id, amount, from) !== OK) continue;
+
+            recordMarketEnergyCost(terminal.room.name, txCost);
+            const credits = best.price * amount;
+            log.w(`Surplus sell: ${amount} ${resource} for ${credits} credits from ${roomLink(terminal.room.name)}`, "Market: ");
+            if (Memory._banker) Memory._banker.spendingAccount += credits * 0.75;
+            this.recordBankerDeal('sell', resource, amount, credits);
+            return true;
+        }
         return false;
     },
 

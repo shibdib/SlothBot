@@ -13,11 +13,14 @@ const state = require('termState');
 const {buildEquivalenceMap} = require('termNetwork');
 
 
+const GLOBAL_ORDERS_TTL = 10;
+
 function getCachedGlobalOrders() {
-    if (state.globalOrdersCache.tick !== Game.time) {
-        state.globalOrdersCache.tick = Game.time;
-        state.globalOrdersCache.orders = Game.market.getAllOrders();
+    if (state.globalOrdersCache.orders && state.globalOrdersCache.tick + GLOBAL_ORDERS_TTL > Game.time) {
+        return state.globalOrdersCache.orders;
     }
+    state.globalOrdersCache.tick = Game.time;
+    state.globalOrdersCache.orders = Game.market.getAllOrders();
     return state.globalOrdersCache.orders;
 }
 
@@ -40,6 +43,19 @@ function hasRoomOrder(myOrders, roomName, resourceType, type) {
     for (const id in orders) {
         const order = orders[id];
         if (order && order.roomName === roomName && order.resourceType === resourceType && order.type === type) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function hasEmpireOrder(myOrders, resourceType, type) {
+    const orders = myOrders || getCachedMyOrders();
+    if (!orders) return false;
+    for (const id in orders) {
+        const order = orders[id];
+        if (order && order.resourceType === resourceType && order.type === type
+            && order.roomName && MY_ROOMS.includes(order.roomName)) {
             return true;
         }
     }
@@ -105,6 +121,8 @@ module.exports = {
     getCachedMyOrders,
 
     hasRoomOrder,
+
+    hasEmpireOrder,
 
     recordCreatedOrder,
 

@@ -131,8 +131,8 @@ Object.assign(TerminalControl.prototype, {
             const order = myOrders[orderId];
             if (!order || isPendingOrder(order)) continue;
             if (_.includes(MY_ROOMS, order.roomName) && order.roomName !== marketHub
-                && (order.type === ORDER_BUY || order.type === ORDER_SELL)) {
-                this.cancelOrder(order, 'Passive orders centralized on market hub');
+                && order.type === ORDER_BUY) {
+                this.cancelOrder(order, 'Buy orders centralized on market hub');
             }
         }
     },
@@ -242,6 +242,42 @@ Object.assign(TerminalControl.prototype, {
                         if (dup.id !== keeper.id) {
                             this.cancelOrder(dup, 'Duplicate order detected');
                             cancelled.add(dup.id);
+                        }
+                    }
+                }
+            }
+            if (cancelled.has(order.id)) continue;
+
+            // One sell listing per resource empire-wide so satellites do not stack duplicates.
+            if (order.type === ORDER_SELL) {
+                const empireSellKey = `empire|${ORDER_SELL}|${order.resourceType}`;
+                if (!seenGroups.has(empireSellKey)) {
+                    seenGroups.add(empireSellKey);
+                    const group = [];
+                    for (const id in myOrders) {
+                        const other = myOrders[id];
+                        if (!other || isPendingOrder(other) || cancelled.has(other.id) || !other.active) continue;
+                        if (other.type === ORDER_SELL && other.resourceType === order.resourceType
+                            && other.roomName && MY_ROOMS.includes(other.roomName)) {
+                            group.push(other);
+                        }
+                    }
+                    if (group.length > 1) {
+                        let keeper = group[0];
+                        for (let i = 1; i < group.length; i++) {
+                            const candidate = group[i];
+                            if (candidate.price < keeper.price) {
+                                keeper = candidate;
+                                continue;
+                            }
+                            if (candidate.price > keeper.price) continue;
+                            if ((candidate.remainingAmount || 0) > (keeper.remainingAmount || 0)) keeper = candidate;
+                        }
+                        for (const dup of group) {
+                            if (dup.id !== keeper.id) {
+                                this.cancelOrder(dup, 'Empire already listing this resource');
+                                cancelled.add(dup.id);
+                            }
                         }
                     }
                 }
@@ -363,36 +399,34 @@ Object.assign(TerminalControl.prototype, {
             !MY_ROOMS.includes(o.roomName)
         );
 
-        let avgPrice = parseFloat(marketHistory.avg) || 1;
-        // Set dynamic floors/ceilings
-        let minAcceptable = Math.max(avgPrice * 0.70, 0.05); // Don't sell below 70% of avg
+        const avgPrice = parseFloat(marketHistory.avg) || 1;
+        const lastDay = parseFloat(marketHistory.last) || avgPrice;
+        const trend5 = parseFloat(marketHistory.trend5) || lastDay;
         let maxAcceptable = avgPrice * 1.5; // Don't pay more than 150% of avg
 
         if (orderType === ORDER_SELL) {
-            let activeSells = competitors.filter(o => o.type === ORDER_SELL).sort((a, b) => a.price - b.price);
+            const activeSells = competitors.filter(o => o.type === ORDER_SELL).sort((a, b) => a.price - b.price);
+            const activeBuys = competitors.filter(o => o.type === ORDER_BUY).sort((a, b) => b.price - a.price);
+            const bestBuy = activeBuys.length ? activeBuys[0].price : 0;
+            // Live book, not the 14-day mean. Never undercut the best bid; 50% of last-day is the dump floor.
+            const minAcceptable = Math.max(bestBuy, lastDay * 0.5, 0.001);
 
             if (activeSells.length > 0) {
-                let lowestCompetitor = activeSells[0].price;
+                const lowestCompetitor = activeSells[0].price;
 
                 if (currentPrice !== null && currentPrice <= lowestCompetitor) {
-                    // We are currently the lowest. Check if we're wasting margin against the next guy.
                     if (lowestCompetitor - currentPrice > 0.05 * currentPrice) {
                         return Math.max(lowestCompetitor - 0.001, minAcceptable);
                     }
-                    return currentPrice; // Hold our position
+                    return currentPrice;
                 }
 
-                // Not the lowest. Try to undercut if it's above our floor.
                 if (lowestCompetitor > minAcceptable) {
                     return lowestCompetitor - 0.001;
-                } else {
-                    // Dumpers detected. Price at our floor and wait.
-                    return Math.max(minAcceptable, marketHistory.trend5 || avgPrice);
                 }
-            } else {
-                // No competition
-                return marketHistory.trend5 ? Math.max(marketHistory.trend5, avgPrice * 1.05) : avgPrice * 1.05;
+                return Math.max(minAcceptable, Math.min(trend5, lowestCompetitor));
             }
+            return Math.max(minAcceptable, trend5 || lastDay);
         } else { // ORDER_BUY
             let activeBuys = competitors.filter(o => o.type === ORDER_BUY).sort((a, b) => b.price - a.price); // Descending
 

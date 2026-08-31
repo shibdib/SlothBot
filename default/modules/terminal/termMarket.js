@@ -299,28 +299,28 @@ function runHousekeeping(ctrl, globalOrders, myOrders) {
     }
 }
 
-function runActiveMarket(ctrl, globalOrders) {
+function runActiveMarket(ctrl, globalOrders, options = {}) {
     const terminal = ctrl.room.terminal;
-    // Fire sales must run even when MY_MINERALS is empty (cache lag / early empire).
+    // Fire sales and surplus deals must run even when MY_MINERALS is empty.
     if (ctrl.quickSell(terminal, globalOrders)) return true;
-    // Don't buy into a stuffed room. Orders are listed from termRun so they
-    // share the tick with a send/deal.
-    if (ctrl.isCapacityPressured(ctrl.room)) return false;
+    if (ctrl.sellSurplus(terminal, globalOrders)) return true;
+    // Don't buy into a stuffed room. Skip bargain buys when we have surplus to sell.
+    if (options.skipBuys || ctrl.isCapacityPressured(ctrl.room)) return false;
+    if (!isMarketHub(ctrl.room.name)) return false;
     if (!_.size(MY_MINERALS)) return false;
     return ctrl.dealFinder(terminal, globalOrders);
 }
 
-function runPassiveMarket(ctrl, globalOrders, myOrders) {
+function runPassiveMarket(ctrl, globalOrders, myOrders, options = {}) {
     const terminal = ctrl.room.terminal;
     // Pressure orders first, and never buy into an already-stuffed room.
-    // Also run when MY_MINERALS is empty (cache lag) so a full hub can still list stock.
     if (ctrl.isCapacityPressured(ctrl.room)) {
         return ctrl.placePressureSellOrders(terminal, myOrders)
             || ctrl.placeSellOrders(terminal, globalOrders, myOrders);
     }
-    if (!_.size(MY_MINERALS)) return false;
-    return ctrl.placeSellOrders(terminal, globalOrders, myOrders)
-        || ctrl.placeBuyOrders(terminal, globalOrders, myOrders);
+    const listed = ctrl.placeSellOrders(terminal, globalOrders, myOrders);
+    if (options.skipBuys || !isMarketHub(ctrl.room.name) || !_.size(MY_MINERALS)) return listed;
+    return listed || ctrl.placeBuyOrders(terminal, globalOrders, myOrders);
 }
 
 profiler.registerObject({
