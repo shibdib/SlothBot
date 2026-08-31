@@ -324,7 +324,11 @@ function globalCreepQueue() {
                 operation.boosts = SIEGE_REQUIRED_BOOSTS.slice();
                 operation.optionalBoosts = SIEGE_OPTIONAL_BOOSTS.slice();
                 const shTowers = (intel && intel.towers) || 0;
-                const shWaitFor = shTowers >= 2 ? 4 : 2;
+                const shDamage = getSiegeTowerDamage(intel) || shTowers * 600;
+                // Auto-open is 1–3 towers at RCL 8 T3. A duo tanks 1800 dump
+                // (3×600); only 4+ or operated 3-tower dumps need a quad.
+                const shWaitFor = (shTowers >= 4 || shDamage > 1800) ? 4 : 2;
+                if (shWaitFor < 4) clearOpQueueRole('longbowSquad', key, 'stronghold');
                 queueCreepIfNeeded({
                     role: 'longbowSquad',
                     priority,
