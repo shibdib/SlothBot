@@ -1,9 +1,11 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * 0-MOVE bunker-center balancer. Spawns onto hub (0,0) and never walks.
+ * 0-MOVE bunker/dynamic-center balancer. Spawns onto hub (0,0) and never walks.
  * Owns hub-link drain, adjacent spawns, storage↔terminal warehouse
- * (energy + minerals), and surplus nuker / power-spawn energy.
+ * (energy, minerals, batteries), and surplus nuker / power-spawn energy
+ * when those structures are in range. Dynamic rooms often place nuker and
+ * power spawn off the hub; skip those feeds instead of walking.
  */
 
 const profiler = require('tools.profiler');
@@ -48,21 +50,27 @@ class RoleHubManager {
     }
 
     warehouseTask() {
-        const storage = this.room.storage;
-        const terminal = this.room.terminal;
-        if (!storage || !terminal) return null;
-        const carry = this.creep.store.getCapacity() || 0;
-        const proxy = Object.create(RoleLabTech.prototype);
-        proxy.room = this.room;
-        proxy.creep = {store: {getCapacity: () => carry}};
-        const task = proxy.findBalancingTask(storage, terminal);
-        if (!task) return null;
-        task.amount = Math.min(task.amount || carry, carry);
+        return RoleLabTech.planWarehouseTask(this.room, this.creep.store.getCapacity() || 0);
+    }
+
+    liveWarehouseTask() {
+        const task = this.creep.memory.warehouse;
+        if (!task || !task.resource) return null;
+        const src = Game.getObjectById(task.withdrawTarget);
+        const dest = Game.getObjectById(task.deliveryTarget);
+        if (!src || !dest) {
+            this.creep.memory.warehouse = undefined;
+            return null;
+        }
+        if (!(src.store[task.resource] > 0) && !(this.creep.store[task.resource] > 0)) {
+            this.creep.memory.warehouse = undefined;
+            return null;
+        }
         return task;
     }
 
     deliverCargo() {
-        const task = this.creep.memory.warehouse;
+        const task = this.liveWarehouseTask();
         if (task && (this.creep.store[task.resource] || 0) > 0) {
             const dest = Game.getObjectById(task.deliveryTarget);
             if (dest && dest.store.getFreeCapacity(task.resource) > 0) {
@@ -104,26 +112,22 @@ class RoleHubManager {
             return;
         }
 
-        const terminal = this.room.terminal;
+        // Storage is the bulk warehouse. Terminal topping is a planned
+        // warehouse withdraw from storage, not a default dump of hub energy.
         const storage = this.room.storage;
-        const termE = terminal ? (terminal.store[RESOURCE_ENERGY] || 0) : 0;
-        const termFree = terminal ? terminal.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
-        const termTarget = terminalEnergyTarget();
-        if (terminal && termE < termTarget && termFree > 0) {
-            this.creep.transfer(terminal, RESOURCE_ENERGY);
-            return;
-        }
+        const terminal = this.room.terminal;
         if (storage && storage.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
             this.creep.transfer(storage, RESOURCE_ENERGY);
             return;
         }
-        if (terminal && termFree > 0) this.creep.transfer(terminal, RESOURCE_ENERGY);
+        if (terminal && terminal.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+            this.creep.transfer(terminal, RESOURCE_ENERGY);
+        }
     }
 
     pickup() {
         const hubLink = Game.getObjectById(this.room.memory.hubLink);
         if (hubLink && (hubLink.store[RESOURCE_ENERGY] || 0) > 0) {
-            this.creep.memory.warehouse = undefined;
             this.creep.withdraw(hubLink, RESOURCE_ENERGY);
             return;
         }
@@ -144,19 +148,9 @@ class RoleHubManager {
             return false;
         };
 
-        if (this.spawnNeed().length && pullEnergy()) {
-            this.creep.memory.warehouse = undefined;
-            return;
-        }
+        if (this.spawnNeed().length && pullEnergy()) return;
 
-        let task = this.creep.memory.warehouse;
-        if (task) {
-            const src = Game.getObjectById(task.withdrawTarget);
-            if (!src || !(src.store[task.resource] > 0)) {
-                this.creep.memory.warehouse = undefined;
-                task = null;
-            }
-        }
+        let task = this.liveWarehouseTask();
         if (!task) {
             task = this.warehouseTask();
             if (task) this.creep.memory.warehouse = task;
@@ -164,8 +158,12 @@ class RoleHubManager {
         if (task) {
             const src = Game.getObjectById(task.withdrawTarget);
             if (src && src.store[task.resource] > 0) {
-                this.creep.withdraw(src, task.resource, Math.min(task.amount, src.store[task.resource],
-                    this.creep.store.getFreeCapacity()));
+                const amount = Math.min(
+                    task.amount || this.creep.store.getFreeCapacity(),
+                    src.store[task.resource],
+                    this.creep.store.getFreeCapacity()
+                );
+                if (amount > 0) this.creep.withdraw(src, task.resource, amount);
                 return;
             }
             this.creep.memory.warehouse = undefined;

@@ -1,9 +1,11 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * Hub-manager spawn geometry. Bunker (0,0) is boxed in at RCL 8
- * (spawns / storage / terminal / link / nuker / power spawn). A 0-MOVE
- * creep can spawn onto that tile; any other creep landing there is stuck.
+ * Hub-manager spawn geometry. Bunker and dynamic cores both leave (0,0)
+ * empty at RCL 8: adjacent storage, terminal, hub link, and north spawns.
+ * Nuker / power spawn are optional (bunker diagonals; dynamic specials
+ * are often out of range). A 0-MOVE creep can spawn onto that tile; any
+ * other creep landing there is stuck.
  */
 
 const DIR_BY_DELTA = {
@@ -36,6 +38,15 @@ function isHubManagerSlotReady(room) {
     if (!room || !room.hub || !room.storage || !room.terminal) return false;
     if (!room.controller || room.controller.level < 8) return false;
     if (!room.memory.hubLink || !Game.getObjectById(room.memory.hubLink)) return false;
+    const spawns = room.spawns || [];
+    let adjacentSpawn = false;
+    for (let i = 0; i < spawns.length; i++) {
+        if (hubSlotSpawnDirection(spawns[i], room)) {
+            adjacentSpawn = true;
+            break;
+        }
+    }
+    if (!adjacentSpawn) return false;
     const pos = new RoomPosition(room.hub.x, room.hub.y, room.name);
     const structs = pos.lookFor(LOOK_STRUCTURES) || [];
     for (let i = 0; i < structs.length; i++) {

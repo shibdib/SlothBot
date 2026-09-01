@@ -7,7 +7,7 @@
  * Act: siteBudget under layers `core` and `specials`.
  */
 
-const {bunkerTemplate, coreTemplate} = require('planTemplates');
+const {bunkerTemplate, coreTemplate, hubLinkOffset, reservedHubTileKeys} = require('planTemplates');
 const {
     isAttackRecoveryMode,
     shouldSkipStructure,
@@ -18,6 +18,8 @@ const {
     shouldDeferDynamicSpecials,
     getExtensionDeficit,
     DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE,
+    DYNAMIC_SPECIAL_SITE_TYPES,
+    isHubRelativeExtensionParity,
 } = require('planGeomExtensions');
 
 const {ensurePlan, getPlan, pushFailure, FailureCodes, packTiles} = require('planDoc');
@@ -135,17 +137,15 @@ function computeSpecialsPlan(room) {
     if (!room.memory.dynamicLayout || !room.controller) {
         return {assignments: [], deferred: false, reason: 'not-dynamic'};
     }
-    if (shouldDeferDynamicSpecials(room)) {
-        return {
-            assignments: [],
-            deferred: true,
-            reason: 'extension-deficit',
-            deficit: getExtensionDeficit(room),
-            gate: DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE,
-        };
-    }
     const assignments = getDynamicSpecialAssignments(room) || [];
-    return {assignments, deferred: false, reason: assignments.length ? null : 'no-slots'};
+    const deferred = shouldDeferDynamicSpecials(room);
+    return {
+        assignments,
+        deferred,
+        reason: assignments.length ? (deferred ? 'extension-deficit' : null) : 'no-slots',
+        deficit: deferred ? getExtensionDeficit(room) : undefined,
+        gate: DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE,
+    };
 }
 
 function syncCorePlanToDoc(room, stampPlan, specialsPlan) {
@@ -204,18 +204,175 @@ function tileIsFreeFor(pos, structureType) {
     return true;
 }
 
-function clearObserverFromHubSlot(room) {
-    const hub = room.hub;
-    const observer = room.observer;
-    if (!hub || !observer) return false;
-    if (observer.pos.x !== hub.x || observer.pos.y !== hub.y) return false;
-    try {
-        if (observer.destroy() !== OK) return false;
-        if (room._invalidateStructureCaches) room._invalidateStructureCaches();
-        return true;
-    } catch (e) {
-        return false;
+const BUNKER_OBSERVER_CORNERS = [
+    {x: 5, y: 5}, {x: 5, y: -5}, {x: -5, y: 5}, {x: -5, y: -5},
+];
+
+function isReservedHubTile(hub, x, y) {
+    return !!(hub && reservedHubTileKeys(hub).has(`${x},${y}`));
+}
+
+function scoreObserverDest(room, pos, hub) {
+    if (!pos || isReservedHubTile(hub, pos.x, pos.y)) return -1;
+    if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) return -1;
+    if (pos.checkForWall && pos.checkForWall()) return -1;
+    const structs = pos.lookFor(LOOK_STRUCTURES) || [];
+    let reclaimable = false;
+    for (let i = 0; i < structs.length; i++) {
+        const type = structs[i].structureType;
+        if (type === STRUCTURE_OBSERVER) return 100;
+        if (type === STRUCTURE_ROAD || type === STRUCTURE_RAMPART) continue;
+        if (type === STRUCTURE_EXTENSION || type === STRUCTURE_CONTAINER) {
+            reclaimable = true;
+            continue;
+        }
+        return -1;
     }
+    const sites = pos.lookFor(LOOK_CONSTRUCTION_SITES) || [];
+    for (let i = 0; i < sites.length; i++) {
+        if (sites[i].structureType === STRUCTURE_OBSERVER) return 90;
+        if (sites[i].structureType === STRUCTURE_ROAD || sites[i].structureType === STRUCTURE_RAMPART) continue;
+        if (sites[i].structureType === STRUCTURE_EXTENSION || sites[i].structureType === STRUCTURE_CONTAINER) {
+            reclaimable = true;
+            continue;
+        }
+        return -1;
+    }
+    return reclaimable ? 1 : 2;
+}
+
+function nearbyDynamicObserverTiles(room, hub) {
+    const tiles = [];
+    const seen = reservedHubTileKeys(hub);
+    const assignments = getDynamicSpecialAssignments(room) || [];
+    for (let i = 0; i < assignments.length; i++) {
+        const a = assignments[i];
+        if (a.structureType !== STRUCTURE_OBSERVER) {
+            seen.add(a.x + ',' + a.y);
+            continue;
+        }
+        seen.add(a.x + ',' + a.y);
+        tiles.push(new RoomPosition(a.x, a.y, room.name));
+    }
+    for (let r = 1; r <= 4; r++) {
+        for (let dx = -r; dx <= r; dx++) {
+            for (let dy = -r; dy <= r; dy++) {
+                if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+                const x = hub.x + dx;
+                const y = hub.y + dy;
+                const key = x + ',' + y;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+                if (!isHubRelativeExtensionParity(hub, x, y)) continue;
+                tiles.push(new RoomPosition(x, y, room.name));
+            }
+        }
+    }
+    return tiles;
+}
+
+function plannedObserverPos(room) {
+    const hub = room.hub;
+    if (!hub) return null;
+    const candidates = room.memory.dynamicLayout
+        ? nearbyDynamicObserverTiles(room, hub)
+        : BUNKER_OBSERVER_CORNERS.map(off => new RoomPosition(hub.x + off.x, hub.y + off.y, room.name));
+    let best = null;
+    let bestScore = 0;
+    for (let i = 0; i < candidates.length; i++) {
+        const score = scoreObserverDest(room, candidates[i], hub);
+        if (score > bestScore) {
+            bestScore = score;
+            best = candidates[i];
+        }
+    }
+    return best;
+}
+
+/**
+ * Move the RCL8 observer off bunker (0,0) so a 0-MOVE hub manager can spawn there.
+ * Finished rooms never show an observer deficit (they already have one), so the
+ * normal core stamp pass will not do this on its own.
+ */
+function relocateHubObserver(room) {
+    if (!room || !room.controller || !room.controller.my || room.controller.level < 8) {
+        return {ok: false, reason: 'rcl'};
+    }
+    if (isPlannerShadow(room)) return {ok: false, reason: 'shadow'};
+    const hub = room.hub;
+    if (!hub) return {ok: false, reason: 'no-hub'};
+
+    reclaimHubCollarTile(room, new RoomPosition(hub.x + hubLinkOffset.x, hub.y + hubLinkOffset.y, room.name), STRUCTURE_LINK);
+
+    const dest = plannedObserverPos(room);
+    if (!dest) return {ok: false, reason: 'no-dest'};
+
+    const observer = room.observer;
+    if (observer && observer.pos.x === dest.x && observer.pos.y === dest.y) {
+        return {ok: true, reason: 'already'};
+    }
+
+    const freed = freeTileForSpecial(room, dest, STRUCTURE_OBSERVER);
+    const destReady = freed === true || (freed && freed.already);
+    if (!destReady && (!freed || freed.ok === false)) {
+        return {ok: false, reason: 'dest-blocked'};
+    }
+
+    if (observer) {
+        try {
+            if (observer.destroy() !== OK) return {ok: false, reason: 'destroy-fail'};
+            if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+        } catch (e) {
+            return {ok: false, reason: 'destroy-fail'};
+        }
+        if (destReady) return {ok: true, reason: 'ready'};
+    } else if (destReady) {
+        return {ok: true, reason: 'already'};
+    }
+
+    const placed = dest.createConstructionSite(STRUCTURE_OBSERVER);
+    if (placed === OK) {
+        if (typeof log !== 'undefined' && log.a) {
+            log.a(`${room.name} relocated observer off hub to (${dest.x},${dest.y})`, 'PLANNER');
+        }
+        return {ok: true, reason: 'placed', x: dest.x, y: dest.y};
+    }
+    return {ok: false, reason: 'place-fail', result: placed, x: dest.x, y: dest.y};
+}
+
+const HUB_COLLAR_RECLAIM = [STRUCTURE_EXTENSION, STRUCTURE_CONTAINER, STRUCTURE_TOWER]
+    .concat(DYNAMIC_SPECIAL_SITE_TYPES);
+
+function reclaimHubCollarTile(room, pos, keepType) {
+    if (!room || !pos || !pos.lookFor || isPlannerShadow(room)) return {ok: false, reason: 'skip'};
+    const sites = pos.lookFor(LOOK_CONSTRUCTION_SITES) || [];
+    for (let i = 0; i < sites.length; i++) {
+        if (keepType && sites[i].structureType === keepType) continue;
+        try {
+            sites[i].remove();
+        } catch (e) { /* ignore */
+        }
+    }
+    let destroyed = 0;
+    const structs = pos.lookFor(LOOK_STRUCTURES) || [];
+    for (let i = 0; i < structs.length; i++) {
+        const s = structs[i];
+        if (keepType && s.structureType === keepType) continue;
+        if (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART) continue;
+        if (!HUB_COLLAR_RECLAIM.includes(s.structureType)) continue;
+        try {
+            if (s.destroy() !== OK) return {ok: false, destroyed, reason: 'destroy-fail', type: s.structureType};
+            destroyed++;
+            if (typeof log !== 'undefined' && log.a) {
+                log.a(`${room.name} cleared ${s.structureType} off hub collar (${pos.x},${pos.y})`, 'PLANNER');
+            }
+        } catch (e) {
+            return {ok: false, destroyed, reason: 'destroy-fail'};
+        }
+    }
+    if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+    return {ok: true, destroyed};
 }
 
 function freeTileForSpecial(room, pos, structureType) {
@@ -236,7 +393,9 @@ function freeTileForSpecial(room, pos, structureType) {
         const s = structs[i];
         if (s.structureType === structureType) return {ok: true, destroyed: 0, already: true};
         if (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART) continue;
-        if (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_CONTAINER) {
+        if (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_CONTAINER
+            || (isReservedHubTile(room.hub, pos.x, pos.y)
+                && (DYNAMIC_SPECIAL_SITE_TYPES.includes(s.structureType) || s.structureType === STRUCTURE_TOWER))) {
             try {
                 if (s.destroy() !== OK) return {ok: false, destroyed};
                 destroyed++;
@@ -276,7 +435,7 @@ function placeCoreStamps(room, options) {
 
     // Source-adjacent extensions: planExtensions.placeSourceExtensions (siteBudget).
 
-    if (!isPlannerShadow(room)) clearObserverFromHubSlot(room);
+    if (!isPlannerShadow(room)) relocateHubObserver(room);
 
     const stampPlan = computeCoreStampPlan(room);
     const specialsPlan = computeSpecialsPlan(room);
@@ -344,7 +503,8 @@ function placeCoreStamps(room, options) {
 
                 // Storage/terminal unlock roads + economy — clear extension/container
                 // blockers the way dynamic specials do (live only).
-                const isCriticalStamp = type === STRUCTURE_STORAGE || type === STRUCTURE_TERMINAL;
+                const isCriticalStamp = type === STRUCTURE_STORAGE || type === STRUCTURE_TERMINAL
+                    || type === STRUCTURE_OBSERVER || type === STRUCTURE_LINK;
                 if (isCriticalStamp && !shadow) {
                     const freed = freeTileForSpecial(room, pos, type);
                     if (freed && freed.already) {
@@ -431,12 +591,12 @@ function placeSpecials(room, options) {
     const max = opts.max != null ? opts.max : MAX_SPECIAL_SITES_PER_TICK;
     const specialsPlan = computeSpecialsPlan(room);
 
-    if (specialsPlan.deferred || specialsPlan.reason === 'not-dynamic' || !specialsPlan.assignments.length) {
+    if (specialsPlan.reason === 'not-dynamic' || !specialsPlan.assignments.length) {
         return {
             placed: 0,
             destroyedExtensions: 0,
             details: [],
-            skipped: specialsPlan.reason || (specialsPlan.deferred ? 'extension-deficit' : 'none'),
+            skipped: specialsPlan.reason || 'none',
             deficit: specialsPlan.deficit,
             gate: specialsPlan.gate,
         };
@@ -470,6 +630,14 @@ function placeSpecials(room, options) {
         }
 
         const pos = new RoomPosition(a.x, a.y, room.name);
+        if (specialsPlan.deferred) {
+            const hasExt = (pos.lookFor(LOOK_STRUCTURES) || [])
+                .some(s => s.structureType === STRUCTURE_EXTENSION);
+            if (hasExt) {
+                details.push({type: a.structureType, x: a.x, y: a.y, status: 'defer-extension'});
+                continue;
+            }
+        }
 
         // Shadow: never remove/destroy blockers — only report readiness.
         if (shadow) {
@@ -596,6 +764,7 @@ module.exports = {
     placeCoreStamps,
     placeSpecials,
     placeCoreAndSpecials,
+    relocateHubObserver,
     inspectCore,
     MAX_CORE_SITES_PER_TICK,
     MAX_SPECIAL_SITES_PER_TICK,

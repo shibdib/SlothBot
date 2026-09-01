@@ -11,7 +11,7 @@
 
 const {extensionPositionCache, dynamicLayoutCache} = require('planState');
 
-const {bunkerTemplate, coreTemplate} = require('planTemplates');
+const {bunkerTemplate, coreTemplate, reservedHubTileKeys} = require('planTemplates');
 
 const {
     roomConstructionSiteBudget,
@@ -29,7 +29,8 @@ const EXTENSION_SPAWN_CLEARANCE = 1;
 // Legacy alias used by older call sites / audits.
 const EXTENSION_ANCHOR_CLEARANCE = EXTENSION_SOURCE_CLEARANCE;
 // v6: per-anchor clearances + spawn apron.
-const EXTENSION_LAYOUT_VERSION = 6;
+// v7: hub-relative checkerboard (diagonals from hub) + reserved specials ring.
+const EXTENSION_LAYOUT_VERSION = 7;
 
 /** C4: plan.anchors.hub first, then room.hub / legacy bunkerHub. */
 function resolveHubXY(room) {
@@ -58,8 +59,9 @@ const DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE = 5;
 
 /**
  * Late-game singles for dynamic (non-bunker) rooms.
- * Assigned to the N closest checkerboard tiles to the hub (replacing extension slots).
- * Order is stable so rebuilds keep the same tiles. Factory is first (RCL 7).
+ * Assigned to a reserved Chebyshev ring around the hub (not the closest
+ * extension tiles). Order is stable so rebuilds keep the same tiles.
+ * Factory is first (RCL 7). Hub collar (0,0) / hub-link (0,1) is excluded.
  */
 const DYNAMIC_SPECIAL_STRUCTURES = [
     {structureType: STRUCTURE_FACTORY, minRcl: 7},
@@ -144,7 +146,7 @@ function buildLayoutExcluded(room, hubOverride) {
     const hub = hubOverride || resolveHubXY(room);
     if (!hub || hub.x === undefined) return new Set();
     const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-    const excluded = new Set([`${hub.x},${hub.y}`]);
+    const excluded = room.memory.dynamicLayout ? reservedHubTileKeys(hub) : new Set([`${hub.x},${hub.y}`]);
     for (const entry of tmpl) {
         if (entry.structureType === STRUCTURE_EXTENSION) continue;
         for (const {x, y} of entry.pos) {
@@ -285,6 +287,12 @@ function clearDynamicLayoutMemory(room) {
     }
 }
 
+/** True for the extension color: diagonals from the hub, never hub cardinals. */
+function isHubRelativeExtensionParity(hub, x, y) {
+    if (!hub) return ((x + y) & 1) === 0;
+    return (((x - hub.x) + (y - hub.y)) & 1) === 0;
+}
+
 function countOwnedOrSites(room, structureType) {
     let n = 0;
     for (const s of room.structures) {
@@ -306,57 +314,80 @@ function structureExistsElsewhere(room, structureType, x, y) {
     return false;
 }
 
+function specialsExcludedSet(hub) {
+    const excluded = reservedHubTileKeys(hub);
+    for (const entry of coreTemplate) {
+        if (entry.structureType === STRUCTURE_EXTENSION) continue;
+        for (const {x, y} of entry.pos) excluded.add(`${hub.x + x},${hub.y + y}`);
+    }
+    return excluded;
+}
+
+function isUsableSpecialTile(room, x, y, hub, excluded) {
+    if (x < 2 || x > 47 || y < 2 || y > 47) return false;
+    if (excluded.has(`${x},${y}`)) return false;
+    if (!isHubRelativeExtensionParity(hub, x, y)) return false;
+    const pos = new RoomPosition(x, y, room.name);
+    if (pos.checkForWall && pos.checkForWall()) return false;
+    if (isWithinExitClearance(pos)) return false;
+    if (isWithinAnchorClearance(room, pos)) return false;
+    const structs = pos.lookFor(LOOK_STRUCTURES) || [];
+    for (let i = 0; i < structs.length; i++) {
+        const type = structs[i].structureType;
+        if (type === STRUCTURE_ROAD || type === STRUCTURE_RAMPART) continue;
+        if (type === STRUCTURE_EXTENSION || type === STRUCTURE_CONTAINER) continue;
+        if (DYNAMIC_SPECIAL_SITE_TYPES.includes(type)) continue;
+        return false;
+    }
+    return true;
+}
+
+function findExistingSpecialPos(room, structureType) {
+    const structs = room.structures || [];
+    for (let i = 0; i < structs.length; i++) {
+        if (structs[i].structureType === structureType) {
+            return {x: structs[i].pos.x, y: structs[i].pos.y};
+        }
+    }
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        if (sites[i].structureType === structureType) {
+            return {x: sites[i].pos.x, y: sites[i].pos.y};
+        }
+    }
+    return null;
+}
+
 /**
- * Pick the N closest extension-pattern tiles to the hub for late-game specials.
- * Uses the same flood as dynamic extensions (walkable, not core-template reserved).
+ * Reserved Chebyshev ring around the hub for factory / power spawn / nuker /
+ * observer. Hub-relative extension color only; hub collar and core stamps
+ * are never candidates. Returns more tiles than types so a blocked slot
+ * can fall through to the next ring tile.
  */
 function computeDynamicSpecialSlotTiles(room) {
     const hub = resolveHubXY(room);
     if (!hub || hub.x === undefined) return [];
-    const hubPos = room.hub || new RoomPosition(hub.x, hub.y, room.name);
-    // Exclude core template only — do not call buildLayoutExcluded (would recurse into specials).
-    const tmpl = coreTemplate;
-    const excluded = new Set([`${hub.x},${hub.y}`]);
-    for (const entry of tmpl) {
-        if (entry.structureType === STRUCTURE_EXTENSION) continue;
-        for (const {x, y} of entry.pos) excluded.add(`${hub.x + x},${hub.y + y}`);
-    }
-    const terrain = Game.map.getRoomTerrain(room.name);
+    const excluded = specialsExcludedSet(hub);
     const candidates = [];
-    const visited = new Set([`${hub.x},${hub.y}`]);
-    const queue = [{x: hub.x, y: hub.y}];
-    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    const seen = new Set(excluded);
+    seen.add(`${hub.x},${hub.y}`);
 
-    while (queue.length && candidates.length < 40) {
-        const {x, y} = queue.shift();
-        for (const [dx, dy] of dirs) {
-            const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
-            if (visited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
-            visited.add(key);
-            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
-            queue.push({x: nx, y: ny});
-            if (excluded.has(key)) continue;
-            if ((nx + ny) % 2 !== 0) continue; // same checkerboard as extensions
-            const pos = new RoomPosition(nx, ny, room.name);
-            // Allow tiles that currently have an extension (we will replace them).
-            if (pos.checkForWall()) continue;
-            if (isWithinExitClearance(pos)) continue;
-            if (isWithinAnchorClearance(room, pos)) continue;
-            const blocking = pos.lookFor(LOOK_STRUCTURES).find(s =>
-                s.structureType !== STRUCTURE_ROAD &&
-                s.structureType !== STRUCTURE_RAMPART &&
-                s.structureType !== STRUCTURE_EXTENSION &&
-                s.structureType !== STRUCTURE_CONTAINER);
-            if (blocking) continue;
-            candidates.push({
-                x: nx, y: ny,
-                range: pos.getRangeTo(hubPos),
-            });
+    for (let r = 1; r <= 8 && candidates.length < 12; r++) {
+        for (let dx = -r; dx <= r; dx++) {
+            for (let dy = -r; dy <= r; dy++) {
+                if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+                const x = hub.x + dx;
+                const y = hub.y + dy;
+                const key = `${x},${y}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                if (!isUsableSpecialTile(room, x, y, hub, excluded)) continue;
+                candidates.push({x, y, range: r});
+            }
         }
     }
-
     candidates.sort((a, b) => a.range - b.range || a.y - b.y || a.x - b.x);
-    return candidates.slice(0, DYNAMIC_SPECIAL_STRUCTURES.length).map(c => ({x: c.x, y: c.y}));
+    return candidates.map(c => ({x: c.x, y: c.y}));
 }
 
 function persistDynamicSpecialPacks(room, packed) {
@@ -381,41 +412,85 @@ function persistDynamicSpecialPacks(room, packed) {
     }
 }
 
+function dropHubSpecialTiles(room, tiles) {
+    const hub = resolveHubXY(room);
+    if (!hub || !tiles || !tiles.length) return tiles || [];
+    const reserved = reservedHubTileKeys(hub);
+    return tiles.filter(t => t && !reserved.has(`${t.x},${t.y}`));
+}
+
+function filterUsableSpecialTiles(room, tiles) {
+    const hub = resolveHubXY(room);
+    if (!hub || !tiles || !tiles.length) return [];
+    const excluded = specialsExcludedSet(hub);
+    return tiles.filter(t => isUsableSpecialTile(room, t.x, t.y, hub, excluded));
+}
+
 function getDynamicSpecialSlotTiles(room) {
     if (!room.memory.dynamicLayout) return [];
     const plan = room.memory.plan;
     const specials = plan && plan.layers && plan.layers.specials;
     if (specials && specials.packed && specials.packed.length
         && specials.rev === EXTENSION_LAYOUT_VERSION) {
-        const tiles = unpackPackedTiles(specials.packed);
-        if (tiles.length >= DYNAMIC_SPECIAL_STRUCTURES.length) return tiles.slice(0, DYNAMIC_SPECIAL_STRUCTURES.length);
+        const tiles = filterUsableSpecialTiles(room, dropHubSpecialTiles(room, unpackPackedTiles(specials.packed)));
+        if (tiles.length >= DYNAMIC_SPECIAL_STRUCTURES.length) return tiles;
     }
     if (room.memory.dynamicSpecialPacked && room.memory.dynamicSpecialVersion === EXTENSION_LAYOUT_VERSION) {
-        const tiles = unpackPackedTiles(room.memory.dynamicSpecialPacked);
-        if (tiles.length >= DYNAMIC_SPECIAL_STRUCTURES.length) return tiles.slice(0, DYNAMIC_SPECIAL_STRUCTURES.length);
+        const tiles = filterUsableSpecialTiles(room, dropHubSpecialTiles(room, unpackPackedTiles(room.memory.dynamicSpecialPacked)));
+        if (tiles.length >= DYNAMIC_SPECIAL_STRUCTURES.length) return tiles;
     }
-    const tiles = computeDynamicSpecialSlotTiles(room);
+    const tiles = filterUsableSpecialTiles(room, dropHubSpecialTiles(room, computeDynamicSpecialSlotTiles(room)));
     if (tiles.length) persistDynamicSpecialPacks(room, packTiles(tiles));
     return tiles;
 }
 
 /**
- * Assign each special type to a reserved tile. If that type already exists elsewhere
- * (e.g. observer on hub from coreTemplate), the tile is not reserved for extensions.
+ * Assign each special type to a reserved ring tile. Keep an already-built
+ * special on its tile when that tile is valid; otherwise take the next
+ * unused ring slot so a blocked power-spawn assignment cannot stall forever.
  */
 function getDynamicSpecialAssignments(room) {
     if (!room.memory.dynamicLayout) return [];
+    const hub = resolveHubXY(room);
+    if (!hub) return [];
     const tiles = getDynamicSpecialSlotTiles(room);
+    const excluded = specialsExcludedSet(hub);
+    const reserved = reservedHubTileKeys(hub);
+    const used = new Set();
     const assignments = [];
+
     for (let i = 0; i < DYNAMIC_SPECIAL_STRUCTURES.length; i++) {
         const def = DYNAMIC_SPECIAL_STRUCTURES[i];
-        const tile = tiles[i];
-        if (!tile) break;
+        const existing = findExistingSpecialPos(room, def.structureType);
+        if (existing) {
+            const key = `${existing.x},${existing.y}`;
+            if (!reserved.has(key) && !used.has(key)
+                && isUsableSpecialTile(room, existing.x, existing.y, hub, excluded)) {
+                used.add(key);
+                assignments.push({
+                    structureType: def.structureType,
+                    minRcl: def.minRcl,
+                    x: existing.x,
+                    y: existing.y,
+                });
+                continue;
+            }
+        }
+        let picked = null;
+        for (let t = 0; t < tiles.length; t++) {
+            const key = `${tiles[t].x},${tiles[t].y}`;
+            if (used.has(key)) continue;
+            if (!isUsableSpecialTile(room, tiles[t].x, tiles[t].y, hub, excluded)) continue;
+            picked = tiles[t];
+            break;
+        }
+        if (!picked) continue;
+        used.add(`${picked.x},${picked.y}`);
         assignments.push({
             structureType: def.structureType,
             minRcl: def.minRcl,
-            x: tile.x,
-            y: tile.y,
+            x: picked.x,
+            y: picked.y,
         });
     }
     return assignments;
@@ -424,10 +499,10 @@ function getDynamicSpecialAssignments(room) {
 function getDynamicSpecialReservedKeys(room) {
     const keys = new Set();
     if (!room.memory.dynamicLayout) return keys;
-    // During extension recovery, do not hold hub tiles for specials that are not needed yet.
-    if (shouldDeferDynamicSpecials(room)) return keys;
+    // Always hold the ring so the RCL8 50→60 extension fill cannot eat
+    // power-spawn / nuker / observer tiles. Placement may still refuse to
+    // destroy an extension for a special while deficit is high.
     for (const a of getDynamicSpecialAssignments(room)) {
-        // Already built/sited elsewhere — free this slot for extensions.
         if (structureExistsElsewhere(room, a.structureType, a.x, a.y)) continue;
         keys.add(`${a.x},${a.y}`);
     }
@@ -542,7 +617,7 @@ function findExtensionCandidatesNearHub(room) {
             if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
             queue.push({x: nx, y: ny});
             if (excluded.has(key)) continue;
-            if ((nx + ny) % 2 !== 0) continue;
+            if (!isHubRelativeExtensionParity(hub, nx, ny)) continue;
             const pos = new RoomPosition(nx, ny, room.name);
             if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
             extensions.push({x: nx, y: ny});
@@ -990,7 +1065,7 @@ function computeDynamicLayoutTiles(room) {
     const seeds = collectLayoutPathSeeds(room, terrain, blocked);
     const activeGroups = filterCurrentlyReachableGroups(seeds, blocked, groups);
 
-    // Gather candidates via flood (checkerboard keeps natural corridors on odd tiles).
+    // Gather candidates via flood (hub-relative checkerboard keeps corridors on cardinals).
     const candidates = [];
     const floodVisited = new Set([tileKey(hub.x, hub.y)]);
     const queue = [{x: hub.x, y: hub.y}];
@@ -1003,8 +1078,9 @@ function computeDynamicLayoutTiles(room) {
             if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
             queue.push({x: nx, y: ny});
             if (excluded.has(key)) continue;
-            // Checkerboard: leave odd tiles as default corridor lattice.
-            if ((nx + ny) % 2 !== 0) continue;
+            // Hub-relative checkerboard: diagonals from the hub are buildings;
+            // cardinals stay the corridor lattice (so (0,1) is never an extension).
+            if (!isHubRelativeExtensionParity(hub, nx, ny)) continue;
             const pos = new RoomPosition(nx, ny, room.name);
             if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
             candidates.push({x: nx, y: ny});
@@ -1205,7 +1281,9 @@ module.exports = {
     EXTENSION_SPAWN_CLEARANCE,
     EXTENSION_ANCHOR_CLEARANCE,
     DYNAMIC_SPECIAL_STRUCTURES,
+    DYNAMIC_SPECIAL_SITE_TYPES,
     DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE,
+    isHubRelativeExtensionParity,
 
     resolveHubXY,
     buildLayoutExcluded,

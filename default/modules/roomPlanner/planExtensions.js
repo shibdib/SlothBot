@@ -156,21 +156,15 @@ function ensureDynamicSpecialStructures(room) {
     if (!room.memory.dynamicLayout || !room.controller) {
         return {placed: 0, destroyedExtensions: 0, details: [], skipped: 'not-dynamic'};
     }
-    // Wipe recovery: never place specials or destroy extensions for them until capacity is close.
-    if (shouldDeferDynamicSpecials(room)) {
-        return {
-            placed: 0,
-            destroyedExtensions: 0,
-            details: [],
-            skipped: 'extension-deficit',
-            deficit: getExtensionDeficit(room),
-            gate: DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE,
-        };
-    }
+    const deferred = shouldDeferDynamicSpecials(room);
     const level = room.controller.level;
     const assignments = getDynamicSpecialAssignments(room);
     if (!assignments.length) {
-        return {placed: 0, destroyedExtensions: 0, details: [], skipped: 'no-slots'};
+        return {
+            placed: 0, destroyedExtensions: 0, details: [], skipped: 'no-slots',
+            deferred, deficit: deferred ? getExtensionDeficit(room) : undefined,
+            gate: DYNAMIC_SPECIAL_EXTENSION_DEFICIT_GATE,
+        };
     }
 
     let placed = 0;
@@ -192,6 +186,10 @@ function ensureDynamicSpecialStructures(room) {
 
         const pos = new RoomPosition(a.x, a.y, room.name);
         const beforeExt = pos.lookFor(LOOK_STRUCTURES).filter(s => s.structureType === STRUCTURE_EXTENSION).length;
+        if (deferred && beforeExt) {
+            details.push({type: a.structureType, x: a.x, y: a.y, status: 'defer-extension'});
+            continue;
+        }
         if (!freeTileForDynamicSpecial(room, pos, a.structureType)) {
             details.push({type: a.structureType, x: a.x, y: a.y, status: 'blocked'});
             continue;

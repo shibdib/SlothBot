@@ -165,7 +165,8 @@ class RoleLabTech {
 
         // 5. Either store under headroom — drain/overflow before nuker/factory
         // pack the last free slot. Dual-zero swap stays at 2.
-        if (storage && terminal && this.needsBalanceSpace(storage, terminal)) {
+        // Hub manager owns storage↔terminal warehouse when it is sitting on (0,0).
+        if (storage && terminal && !hasLiveHubManager(this.room) && this.needsBalanceSpace(storage, terminal)) {
             const spaceTask = this.findBalancingTask(storage, terminal);
             if (spaceTask) return spaceTask;
         }
@@ -335,8 +336,10 @@ class RoleLabTech {
         }
 
         // 16. Routine storage/terminal balance (keep split, energy, export slices)
-        const balancingTask = this.findBalancingTask(storage, terminal);
-        if (balancingTask) return balancingTask;
+        if (!hasLiveHubManager(this.room)) {
+            const balancingTask = this.findBalancingTask(storage, terminal);
+            if (balancingTask) return balancingTask;
+        }
 
         // 17. Lab energy refill for reaction labs (boost labs are filled in #3).
         const energySupplier = this.pickBestSupplier(RESOURCE_ENERGY);
@@ -1553,9 +1556,6 @@ class RoleLabTech {
 
     findBalancingTask(storage, terminal) {
         if (!storage || !terminal) return null;
-        // Hub manager owns storage↔terminal warehouse (energy, minerals, batteries).
-        if (this.creep && this.creep.memory && this.creep.memory.role === 'labTech'
-            && hasLiveHubManager(this.room)) return null;
 
         const overflowTask = this.findOverflowRelief(storage, terminal);
         if (overflowTask) return overflowTask;
@@ -1962,4 +1962,24 @@ class RoleLabTech {
 }
 
 profiler.registerClass(RoleLabTech, 'LabTech');
+
+RoleLabTech.planWarehouseTask = function (room, carry) {
+    if (!room || !room.storage || !room.terminal) return null;
+    const cap = carry || 0;
+    const planner = Object.create(RoleLabTech.prototype);
+    planner.room = room;
+    planner.creep = {
+        memory: {role: 'hubManager'},
+        store: {
+            getCapacity: () => cap,
+            getFreeCapacity: () => cap,
+            getUsedCapacity: () => 0,
+        },
+    };
+    const task = planner.findBalancingTask(room.storage, room.terminal);
+    if (!task) return null;
+    if (task.amount) task.amount = Math.min(task.amount, cap);
+    return task;
+};
+
 module.exports = RoleLabTech;

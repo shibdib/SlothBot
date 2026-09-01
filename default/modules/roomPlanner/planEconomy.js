@@ -18,7 +18,7 @@
  *     controller container keeps off the shared-link tile.
  */
 
-const {labTemplate} = require('planTemplates');
+const {labTemplate, hubLinkOffset} = require('planTemplates');
 const {
     findBestContainerPos,
     isControllerContainerPos,
@@ -888,7 +888,7 @@ function placeLinks(room) {
 
     // 3. Hub link (dynamic only ad hoc; bunker stamp owns (0,1))
     if (placed < MAX_SITES_PER_SUBPHASE && (!room.memory.hubLink || !Game.getObjectById(room.memory.hubLink))) {
-        const hubLinkPos = new RoomPosition(room.hub.x, room.hub.y + 1, room.name);
+        const hubLinkPos = new RoomPosition(room.hub.x + hubLinkOffset.x, room.hub.y + hubLinkOffset.y, room.name);
         const existingLink = (hubLinkPos.lookFor(LOOK_STRUCTURES) || []).find(s => s.structureType === STRUCTURE_LINK);
         if (existingLink) {
             room.memory.hubLink = existingLink.id;
@@ -900,12 +900,22 @@ function placeLinks(room) {
                 return {placed, details, reason: 'hub-site'};
             }
             if (room.memory.dynamicLayout) {
-                const extension = (hubLinkPos.lookFor(LOOK_STRUCTURES) || []).find(s => s.structureType === STRUCTURE_EXTENSION);
-                if (extension && !isPlannerShadow(room)) {
-                    try {
-                        extension.destroy();
-                    } catch (e) { /* ignore */
+                const blockers = (hubLinkPos.lookFor(LOOK_STRUCTURES) || []).filter(s =>
+                    s.structureType === STRUCTURE_EXTENSION
+                    || s.structureType === STRUCTURE_CONTAINER
+                    || s.structureType === STRUCTURE_FACTORY
+                    || s.structureType === STRUCTURE_POWER_SPAWN
+                    || s.structureType === STRUCTURE_NUKER
+                    || s.structureType === STRUCTURE_OBSERVER
+                    || s.structureType === STRUCTURE_TOWER);
+                if (blockers.length && !isPlannerShadow(room)) {
+                    for (let i = 0; i < blockers.length; i++) {
+                        try {
+                            blockers[i].destroy();
+                        } catch (e) { /* ignore */
+                        }
                     }
+                    if (room._invalidateStructureCaches) room._invalidateStructureCaches();
                 }
                 const res = tryPlace(room, 'links', hubLinkPos, STRUCTURE_LINK);
                 if (res.ok) {

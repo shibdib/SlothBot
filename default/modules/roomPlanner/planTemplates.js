@@ -133,17 +133,31 @@ const labRoadTemplate = offsetsAround(labTemplate);
 
 // Compact core used when the full bunker template cannot fit.
 // Extensions, towers, labs, and late-game singles (factory, power spawn, nuker, observer)
-// are placed dynamically — see ensureDynamicSpecialStructures (closest hub extension tiles).
-// Hub (0,0) stays empty for the 0-MOVE hubManager; observer is a dynamic special.
+// are placed dynamically — see ensureDynamicSpecialStructures (reserved hub ring).
+// Hub (0,0) stays empty for the 0-MOVE hubManager; (0,1) is the hub link
+// (same offset as the bunker stamp). Observer is a dynamic special.
+const hubLinkOffset = {x: 0, y: 1};
+
 const coreTemplate = [
     {structureType: STRUCTURE_SPAWN, pos: [{x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}]},
     {structureType: STRUCTURE_TERMINAL, pos: [{x: -1, y: 0}]},
     {structureType: STRUCTURE_STORAGE, pos: [{x: 1, y: 0}]},
+    {structureType: STRUCTURE_LINK, pos: [hubLinkOffset]},
 ];
+
+function reservedHubTileKeys(hub) {
+    if (!hub || hub.x === undefined || hub.y === undefined) return new Set();
+    return new Set([
+        `${hub.x},${hub.y}`,
+        `${hub.x + hubLinkOffset.x},${hub.y + hubLinkOffset.y}`,
+    ]);
+}
 
 module.exports = {
     bunkerTemplate,
     coreTemplate,
+    hubLinkOffset,
+    reservedHubTileKeys,
     labTemplate,
     labHubPairTemplate,
     labRoadTemplate,

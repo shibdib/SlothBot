@@ -533,9 +533,9 @@ let globals = function () {
             },
             dynamicPositions: positions.length,
             samplePositions: positions.slice(0, 5).map(p => `${p.x},${p.y}`),
-            // All plan tiles should be (x+y) even on current generator — visual still “checkerboard”.
-            planParityEven: positions.length
-                ? positions.filter(p => (p.x + p.y) % 2 === 0).length
+            // Hub-relative even (diagonals from hub) on v7+ generator.
+            planParityHubRelative: positions.length && room.hub
+                ? positions.filter(p => (((p.x - room.hub.x) + (p.y - room.hub.y)) & 1) === 0).length
                 : 0,
             planner: tickTracker[roomName],
             ...auditExtensionPlacement(room),
