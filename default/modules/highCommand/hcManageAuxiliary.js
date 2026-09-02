@@ -147,6 +147,9 @@ function manageAuxiliary() {
                 }
                 break;
 
+            case 'reactor':
+                break;
+
             case 'claim':
             case 'claimClear':
                 if (Game.gcl.level === MY_ROOMS.length) {

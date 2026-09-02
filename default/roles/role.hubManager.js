@@ -1,11 +1,12 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * 0-MOVE bunker/dynamic-center balancer. Spawns onto hub (0,0) and never walks.
- * Owns hub-link drain, adjacent spawns, storage↔terminal warehouse
- * (energy, minerals, batteries), and surplus nuker / power-spawn energy
- * when those structures are in range. Dynamic rooms often place nuker and
- * power spawn off the hub; skip those feeds instead of walking.
+ * 0-MOVE bunker/dynamic-center balancer. Spawns onto hub (0,0) once the
+ * hub link is built and never walks. Owns hub-link drain, adjacent spawns,
+ * storage↔terminal warehouse (energy, minerals, batteries) when a terminal
+ * exists, and surplus nuker / power-spawn energy when those structures are
+ * in range. Dynamic rooms often place nuker and power spawn off the hub;
+ * skip those feeds instead of walking.
  */
 
 const profiler = require('tools.profiler');
@@ -63,6 +64,11 @@ class RoleHubManager {
             return null;
         }
         if (!(src.store[task.resource] > 0) && !(this.creep.store[task.resource] > 0)) {
+            this.creep.memory.warehouse = undefined;
+            return null;
+        }
+        const carrying = (this.creep.store[task.resource] || 0) > 0;
+        if (!carrying && !task.swapReverse && dest.store.getFreeCapacity(task.resource) < 100) {
             this.creep.memory.warehouse = undefined;
             return null;
         }
@@ -128,6 +134,8 @@ class RoleHubManager {
     pickup() {
         const hubLink = Game.getObjectById(this.room.memory.hubLink);
         if (hubLink && (hubLink.store[RESOURCE_ENERGY] || 0) > 0) {
+            const task = this.creep.memory.warehouse;
+            if (task && task.resource === RESOURCE_ENERGY) this.creep.memory.warehouse = undefined;
             this.creep.withdraw(hubLink, RESOURCE_ENERGY);
             return;
         }

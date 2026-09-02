@@ -282,6 +282,14 @@ const builders = {
     shuttle: buildShuttle,
     stationaryHarvester: buildStationaryHarvester,
     mineralHarvester(gen) {
+        const other = gen.creepInfo && gen.creepInfo.other;
+        const thorium = other && other.thorium;
+        if (thorium) {
+            const pair = BODYPART_COST[WORK] + BODYPART_COST[CARRY] + BODYPART_COST[MOVE];
+            let n = Math.floor(gen.energyAmount / pair) || 1;
+            n = Math.min(n, 16);
+            return {work: n, carry: Math.max(2, Math.ceil(n / 2))};
+        }
         let work = Math.floor(gen.energyAmount / BODYPART_COST[WORK]) || 1;
         work = Math.min(work, 50);
         if (!gen.room.energyState) {

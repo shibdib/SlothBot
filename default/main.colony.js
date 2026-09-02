@@ -207,16 +207,6 @@ class Colony {
 
         if (shouldRecycleUnguardedSkCreep(minion)) return minion.recycleCreep();
 
-        // Seasonal handling
-        if (Game.shard.name === 'shardSeason' && minion.memory.scoreTarget) {
-            const score = Game.getObjectById(minion.memory.scoreTarget);
-            if (score) {
-                return minion.shibMove(score, {range: 0});
-            } else {
-                minion.memory.scoreTarget = undefined;
-            }
-        }
-
         // Return if idle
         if (minion.idle) return;
 

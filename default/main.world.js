@@ -15,9 +15,10 @@ const StateManager = require('module.stateManager');
 const energyTracker = require('module.energyTracker');
 const profiler = require('tools.profiler');
 const {sortCreepsForMovement} = require('pathTraffic');
-const {needsTow, stripLegacyShibMemory} = require('pathUtils');
+const {stripLegacyShibMemory} = require('pathUtils');
 const planner = require('module.roomPlanner');
 const {refreshColonyProfiles} = require('module.colonyProfile');
+const season = require('module.season');
 let tickTracker = {};
 let errorCount = {};
 
@@ -63,10 +64,8 @@ class World {
         rollEnergyExpense('nuke', 'prevTickNukeEnergyExpense', 'nukeEnergyExpense');
         rollEnergyExpense('factory', 'prevTickFactoryEnergyExpense', 'factoryEnergyExpense');
 
-        // Handle seasonal score assignment
-        if (Game.time % 25 === 0 && Game.shard.name === 'shardSeason') {
-            seasonalScoreFinder();
-        }
+        // Season 11 Thorium/reactor pipeline (no-op off shardSeason).
+        season.run();
 
         // Owned-room roles (core / frontier / launch) before energy and terminals.
         refreshColonyProfiles();
@@ -285,15 +284,6 @@ function minionController(minion) {
         minion.notifyWhenAttacked(false);
         minion.memory.notifyDisabled = true;
     }
-    // Seasonal handling
-    if (Game.shard.name === 'shardSeason' && minion.memory.scoreTarget) {
-        const score = Game.getObjectById(minion.memory.scoreTarget);
-        if (score) {
-            return minion.shibMove(score, {range: 0});
-        } else {
-            minion.memory.scoreTarget = undefined;
-        }
-    }
     // Handle idle
     if (minion.idle) {
         return;
@@ -332,21 +322,4 @@ function minionController(minion) {
     }
 
     new Role(minion);
-}
-
-function seasonalScoreFinder() {
-    _.filter(Game.rooms).forEach(room => {
-        const score = room.find(FIND_SCORES);
-        if (score.length > 0) {
-            for (const s of score) {
-                const assignedCreep = room.myCreeps.find(c => c.memory.scoreTarget === s.id);
-                if (!assignedCreep) {
-                    const scorer = s.pos.findClosestByRange(room.myCreeps, {filter: (c) => !c.memory.scoreTarget && !needsTow(c)});
-                    if (scorer) {
-                        scorer.memory.scoreTarget = s.id;
-                    }
-                }
-            }
-        }
-    })
 }

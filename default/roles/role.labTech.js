@@ -963,6 +963,13 @@ class RoleLabTech {
         return floor - BALANCE_KEEP_HYSTERESIS - (structure.store[resource] || 0);
     }
 
+    /** Single terminal high-water for a mineral/boost. Drain and fill must share this. */
+    getTerminalStockTarget(resource) {
+        if (resource === RESOURCE_ENERGY) return terminalEnergyTarget();
+        if (resource === RESOURCE_BATTERY) return this.getTerminalBatteryTarget();
+        return this.getTerminalRetainFloor(resource) || IDLE_TERMINAL_SLICE;
+    }
+
     findNetworkBoostExport(storage, terminal) {
         if (!storage || !terminal) return null;
         if (this.isStructureNearFull(terminal)) return null;
@@ -1000,11 +1007,13 @@ class RoleLabTech {
             if (remoteNeed < BALANCE_MIN_TRANSFER) continue;
             const inTerminal = terminal.store[resource] || 0;
             if (inTerminal >= remoteNeed) continue;
+            const cap = Math.min(this.getTerminalStockTarget(resource), TERMINAL_EXPORT_CEILING);
+            if (inTerminal >= cap) continue;
             const want = Math.min(
                 remoteNeed - inTerminal,
                 spare,
                 inStorage,
-                TERMINAL_EXPORT_CEILING,
+                cap - inTerminal,
                 terminalFree
             );
             if (want > bestWant) {
@@ -1454,7 +1463,7 @@ class RoleLabTech {
             const inTerminal = terminal.store[resource] || 0;
             let maxToTerminal = terminalFree;
             if (!storageCongested) {
-                const exportCeiling = Math.max(this.getTerminalRetainFloor(resource), TERMINAL_EXPORT_CEILING);
+                const exportCeiling = this.getTerminalStockTarget(resource);
                 if (inTerminal >= exportCeiling) continue;
                 maxToTerminal = Math.min(maxToTerminal, exportCeiling - inTerminal);
             }
@@ -1517,10 +1526,11 @@ class RoleLabTech {
             const inStorage = storage.store[resource] || 0;
             if (inStorage < BALANCE_MIN_TRANSFER) continue;
             const inTerminal = terminal.store[resource] || 0;
-            if (inTerminal >= TERMINAL_EXPORT_CEILING) continue;
+            const target = this.getTerminalStockTarget(resource);
+            if (inTerminal >= target) continue;
             const amount = Math.min(
                 inStorage,
-                TERMINAL_EXPORT_CEILING - inTerminal,
+                target - inTerminal,
                 5000,
                 terminalFree
             );

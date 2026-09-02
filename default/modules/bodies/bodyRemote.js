@@ -34,6 +34,14 @@ const builders = {
         return {claim: 1, move: 2};
     },
 
+    reactorClaimer(gen) {
+        if (gen.creepInfo?.destination &&
+            !routeWithinClaimTTL(gen.room.name, gen.creepInfo.destination, CREEP_CLAIM_LIFE_TIME - 10)) {
+            return false;
+        }
+        return {claim: 1, move: 2};
+    },
+
     reserver(gen) {
         if (gen.creepInfo?.destination &&
             !routeWithinClaimTTL(gen.room.name, gen.creepInfo.destination, CREEP_CLAIM_LIFE_TIME - 10)) {

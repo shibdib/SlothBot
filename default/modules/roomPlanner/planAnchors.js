@@ -11,7 +11,7 @@
  * Dual-write of anchor coords to bunkerHub/towerHubs/labHub removed (C5).
  */
 
-const {coreTemplate, bunkerTemplate, labTemplate} = require('planTemplates');
+const {coreTemplate, bunkerTemplate, labTemplate, hubLinkOffset} = require('planTemplates');
 
 const {
     getUndefendedExits,
@@ -177,7 +177,16 @@ function validateHubExtensionCapacity(room) {
     return findCoreHub(room);
 }
 
+function hubLinkTileBuildable(room, hub) {
+    if (!room || !hub) return false;
+    const x = hub.x + hubLinkOffset.x;
+    const y = hub.y + hubLinkOffset.y;
+    if (x < 1 || x > 48 || y < 1 || y > 48) return false;
+    return Game.map.getRoomTerrain(room.name).get(x, y) !== TERRAIN_MASK_WALL;
+}
+
 function isValidHubPosition(pos, room, sources) {
+    if (!hubLinkTileBuildable(room, pos)) return false;
     const layoutTemplate = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
     for (let t = 0; t < layoutTemplate.length; t++) {
         const type = layoutTemplate[t];
@@ -201,6 +210,7 @@ function findCoreHub(room) {
         for (let y = 3; y <= 46; y++) {
             const hub = new RoomPosition(x, y, room.name);
             if (hub.checkForImpassible()) continue;
+            if (!hubLinkTileBuildable(room, hub)) continue;
             let valid = true;
             outer: for (let e = 0; e < coreTemplate.length; e++) {
                 const entry = coreTemplate[e];
@@ -259,21 +269,16 @@ function findHub(room, isHubCheck) {
         }
 
         const spawn = room.spawns && room.spawns.find(s => s.name !== 'auto');
-        if (room.terminal) {
-            commitCoreHub(room, {x: room.terminal.pos.x + 1, y: room.terminal.pos.y});
-            if (typeof log !== 'undefined' && log.a) log.a(room.name + ' hub recovered from terminal.');
-            validateHubExtensionCapacity(room);
-            return true;
-        }
-        if (room.storage) {
-            commitCoreHub(room, {x: room.storage.pos.x - 1, y: room.storage.pos.y});
-            if (typeof log !== 'undefined' && log.a) log.a(room.name + ' hub recovered from storage.');
-            validateHubExtensionCapacity(room);
-            return true;
-        }
-        if (spawn) {
-            commitCoreHub(room, {x: spawn.pos.x + 1, y: spawn.pos.y + 1});
-            if (typeof log !== 'undefined' && log.a) log.a(room.name + ' hub recovered from spawn.');
+        const recovered = room.terminal
+            ? {x: room.terminal.pos.x + 1, y: room.terminal.pos.y, from: 'terminal'}
+            : room.storage
+                ? {x: room.storage.pos.x - 1, y: room.storage.pos.y, from: 'storage'}
+                : spawn
+                    ? {x: spawn.pos.x + 1, y: spawn.pos.y + 1, from: 'spawn'}
+                    : null;
+        if (recovered && hubLinkTileBuildable(room, recovered)) {
+            commitCoreHub(room, {x: recovered.x, y: recovered.y});
+            if (typeof log !== 'undefined' && log.a) log.a(room.name + ' hub recovered from ' + recovered.from + '.');
             validateHubExtensionCapacity(room);
             return true;
         }
@@ -349,17 +354,26 @@ function ensureCoreHub(room, options) {
     const existed = !!before;
 
     if (existed) {
-        // Existing hub: capacity validate only (cooldown inside). No re-search / mass-destroy.
+        // Existing hub: capacity validate only (cooldown inside). No re-search / mass-destroy
+        // unless the hub-link tile is a terrain wall and the room has not committed storage.
         findHub(room);
+        let after = resolveHub(room);
+        if (after && !hubLinkTileBuildable(room, after) && !room.storage && !room.terminal) {
+            if (typeof log !== 'undefined' && log.a) {
+                log.a(room.name + ' hub (' + after.x + ',' + after.y
+                    + ') has terrain wall at hub-link (0,1); re-searching dynamic hub.');
+            }
+            findCoreHub(room);
+            after = resolveHub(room);
+        }
         syncAnchorsToPlan(room);
-        const after = resolveHub(room);
         const switched = after && before
             && (after.x !== before.x || after.y !== before.y);
         return {
             ok: !!after,
             hub: after,
             existed: true,
-            source: switched ? 'capacity-switch' : 'existing',
+            source: switched ? 'hub-link-wall' : 'existing',
             switched: switched || undefined,
             validateCooldownUntil: room.memory.hubExtensionValidateTick || null,
         };

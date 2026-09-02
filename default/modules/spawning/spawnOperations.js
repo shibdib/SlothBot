@@ -19,7 +19,7 @@ const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 const {scoreOriginMinLevel, empireDistance, empirePriority} = require('hcUtils');
 const {getColonyRole} = require('module.colonyProfile');
 
-const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver']);
+const CLAIM_ROLES = new Set(['claimer', 'claimAttacker', 'reserver', 'reactorClaimer']);
 const HELPER_ROLES = new Set(['cleaner', 'claimAttacker', 'remoteHauler']);
 const HELPER_LEVEL = 4;
 const INVISIBLE_ASSIGNMENT_TIMEOUT = 50;

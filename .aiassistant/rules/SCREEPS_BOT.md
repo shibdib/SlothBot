@@ -314,26 +314,32 @@ points = 1 + Math.floor(Math.log10(ticksOfContinuousOperation))
 6. **Do not assume:** market buys, portal travel, regenerating Thorium, or GCL CPU. Gate season code so MMO shards are
    unaffected.
 
-#### Unknowns until shard / docs-season are live
+#### Confirmed from live `docs-season.screeps.com` + Season 5 engine (2026-09-02)
 
-Exact deposit amounts, density-by-latitude formula, reactor store capacity this season, and whether Thorium still
-appears in **every** controller room. Verify on `docs-season.screeps.com` before hard-coding numbers.
+- `FIND_REACTORS` = `10051`. `LOOK_REACTORS` = `"reactor"`. Reactors are **custom objects**, not `FIND_STRUCTURES`.
+- `RESOURCE_THORIUM` = `"T"`. Reactor store capacity **1,000**.
+- `Creep.claimReactor(reactor)` — CLAIM part, adjacent. Instant ownership flip; no GCL cost. Cannot withdraw Thorium
+  from a reactor.
+- Thorium is a **second mineral** in every controller room, spawned in a wall with at least one walkable neighbor. When
+  mined out the mineral object is **removed**.
+- Season 5 density table (Season 11 amounts may be lower, but same shape): 10k / 22k / 45k / 67k.
 
 ## Current Implementation Status
 
 **To be filled as we map the current codebase:**
 
-| System                   | Status | Notes                                                                                 |
-|--------------------------|--------|---------------------------------------------------------------------------------------|
-| Core roles               | TBD    | Many roles exist in reference (harvester, upgrader, hauler, defender, siegeDuo, etc.) |
-| Colony management        | TBD    | `main.colony.js` with traffic management                                              |
-| World operations         | TBD    | `main.world.js`                                                                       |
-| Economy / Harvesting     | TBD    |                                                                                       |
-| Defense systems          | TBD    |                                                                                       |
-| Duo combat               | TBD    | Reference has `role.siegeDuo.js`                                                      |
-| Quad combat              | TBD    | Listed as in-progress in original project                                             |
-| CPU / Traffic management | TBD    | Recent improvements in colony logic                                                   |
-| Prototypes & Modules     | TBD    | `prototypes/` and `modules/` folders exist                                            |
+| System                   | Status | Notes                                                                                                                                                               |
+|--------------------------|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Core roles               | TBD    | Many roles exist in reference (harvester, upgrader, hauler, defender, siegeDuo, etc.)                                                                               |
+| Colony management        | TBD    | `main.colony.js` with traffic management                                                                                                                            |
+| World operations         | TBD    | `main.world.js`                                                                                                                                                     |
+| Economy / Harvesting     | TBD    |                                                                                                                                                                     |
+| Defense systems          | TBD    |                                                                                                                                                                     |
+| Duo combat               | TBD    | Reference has `role.siegeDuo.js`                                                                                                                                    |
+| Quad combat              | TBD    | Listed as in-progress in original project                                                                                                                           |
+| CPU / Traffic management | TBD    | Recent improvements in colony logic                                                                                                                                 |
+| Prototypes & Modules     | TBD    | `prototypes/` and `modules/` folders exist                                                                                                                          |
+| Season 11 Thorium        | Live   | Season 10 score pickup removed. `module.season.js` claims/feeds reactors, mines Thorium without containers, terminals route to a feeder room. Gated by `IS_SEASON`. |
 
 ## Development Notes
 
@@ -355,7 +361,11 @@ appears in **every** controller room. Verify on `docs-season.screeps.com` before
   Seasonal Specific information.
 - **2026-08-27** — Documented colony room roles (core / frontier / launch / outpost) and the market-hub job. No extra
   role types; hub is a job on a core, warehouse is core, combat pad is launch.
+- **2026-09-02** — Season 11 implementation: removed Season 10 `FIND_SCORES` / `scoreTarget` pickup. Added Thorium
+  mining (no container), reactor claim/feed pipeline, northern expansion bias, season market skip, no portal jumps.
+- **2026-09-02** — Aligned to live docs-season: `FIND_REACTORS` 10051 (not structures), reactor cap 1000, Thorium as a
+  second wall mineral, `claimReactor` adjacent CLAIM, no reactor withdraw.
 
 ---
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-09-02

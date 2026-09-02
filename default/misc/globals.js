@@ -65,6 +65,16 @@ let globals = function () {
     // Spread heavy room intel (tower grids, areExitsReachable) � one room per slot, not all at once.
     global.POST_RESET_HEAVY_INTEL_SPREAD = 150;
 
+    // Season 11 (Thorium Reactors). False on persistent-world shards.
+    // Live docs: FIND_REACTORS 10051, LOOK_REACTORS "reactor", RESOURCE_THORIUM "T",
+    // reactor store 1000. Reactors are custom objects, not FIND_STRUCTURES.
+    global.IS_SEASON = !!(Game.shard && Game.shard.name === 'shardSeason');
+    if (typeof RESOURCE_THORIUM === 'undefined') global.RESOURCE_THORIUM = 'T';
+    if (typeof STRUCTURE_REACTOR === 'undefined') global.STRUCTURE_REACTOR = 'reactor';
+    if (typeof REACTOR_THORIUM_CAPACITY === 'undefined') global.REACTOR_THORIUM_CAPACITY = 1000;
+    if (typeof FIND_REACTORS === 'undefined') global.FIND_REACTORS = 10051;
+    if (typeof LOOK_REACTORS === 'undefined') global.LOOK_REACTORS = 'reactor';
+
     global.isPostResetDangerWindow = function () {
         return global.ticksSinceLastGlobalReset() <= global.POST_RESET_DANGER_TICKS;
     };
@@ -1672,6 +1682,8 @@ let globals = function () {
         [STRUCTURE_PORTAL]: "" // TODO: Add icon for portal
         ,
         [STRUCTURE_POWER_BANK]: "" // TODO: Add icon for power bank
+        ,
+        [STRUCTURE_REACTOR]: "\u2622"
         ,
         source: "" // TODO: Add icon for source
         ,

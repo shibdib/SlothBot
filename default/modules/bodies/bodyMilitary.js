@@ -235,6 +235,12 @@ const builders = {
         carry = Math.min(carry, 25);
         return {carry};
     },
+
+    thoriumHauler(gen) {
+        let carry = Math.floor(gen.energyAmount / (BODYPART_COST[CARRY] + BODYPART_COST[MOVE])) || 1;
+        carry = Math.min(carry, 25);
+        return {carry};
+    },
 };
 
 function build(role, gen) {

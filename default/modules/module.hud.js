@@ -668,6 +668,7 @@ class HUD {
         try {
             this.renderOwnedLive(myRooms);
             this.renderOpsLive(currentTime);
+            if (typeof IS_SEASON !== 'undefined' && IS_SEASON && underBudget()) this.renderSeasonLive(currentTime);
         } catch (e) {
             logMapError('live-core', e);
             return;
@@ -692,6 +693,11 @@ class HUD {
             mapText('R' + room.controller.level, 25, 22, roomName, RCL_TEXT);
             if (room.mineral && room.mineral.mineralType) {
                 mapText(room.mineral.mineralType, 5, 8, roomName, MINERAL_TEXT);
+            }
+            if (typeof IS_SEASON !== 'undefined' && IS_SEASON && room.thorium && room.thorium.mineralAmount) {
+                mapText('T' + Math.floor(room.thorium.mineralAmount / 1000) + 'k', 5, 14, roomName, {
+                    color: '#e8d44d', fontSize: 3.2, align: 'center'
+                });
             }
         }
     }
@@ -752,6 +758,34 @@ class HUD {
             this.renderAgeDot(roomName, intel, now);
             drawn++;
         });
+    }
+
+    renderSeasonLive(currentTime) {
+        const mem = Memory.season;
+        if (!mem) return;
+        const reactors = mem.reactors || {};
+        for (const roomName in reactors) {
+            if (!VALID_ROOM_NAME.test(roomName)) continue;
+            const rec = reactors[roomName];
+            const mine = rec.my;
+            const color = mine ? '#e8d44d' : (rec.owner ? '#ff6666' : '#aaaaaa');
+            mapCircle(25, 25, roomName, {
+                radius: 10, fill: color, opacity: 0.16, stroke: color, strokeWidth: 1.2
+            });
+            const store = rec.store != null ? rec.store : 0;
+            const work = rec.continuousWork || 0;
+            mapText(mine ? 'RX ' + store : 'RX', 25, 8, roomName, {
+                color, fontSize: 4, align: 'center', backgroundColor: '#111'
+            });
+            if (mine && work) {
+                mapText(work + 't', 25, 42, roomName, {color, fontSize: 3.2, align: 'center'});
+            }
+        }
+        if (mem.targetReactor && VALID_ROOM_NAME.test(mem.targetReactor)) {
+            mapText('FEED', 25, 46, mem.targetReactor, {
+                color: '#e8d44d', fontSize: 3.4, align: 'center'
+            });
+        }
     }
 
     renderOpsLive(currentTime) {

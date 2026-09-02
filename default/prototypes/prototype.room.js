@@ -164,13 +164,43 @@ let mineralCache = {};
 Object.defineProperty(Room.prototype, 'mineral', {
     get: function () {
         if (!this._mineral) {
-            if (!mineralCache[this.name]) {
+            const t = (typeof IS_SEASON !== 'undefined' && IS_SEASON)
+                ? (typeof RESOURCE_THORIUM !== 'undefined' ? RESOURCE_THORIUM : 'T')
+                : null;
+            let id = mineralCache[this.name];
+            let obj = id ? Game.getObjectById(id) : null;
+            if (!obj || (t && obj.mineralType === t)) {
                 const minerals = this.find(FIND_MINERALS);
-                mineralCache[this.name] = minerals[0]?.id;
+                obj = null;
+                for (let i = 0; i < minerals.length; i++) {
+                    if (t && minerals[i].mineralType === t) continue;
+                    obj = minerals[i];
+                    break;
+                }
+                mineralCache[this.name] = obj ? obj.id : undefined;
             }
-            this._mineral = Game.getObjectById(mineralCache[this.name]);
+            this._mineral = obj;
         }
         return this._mineral;
+    },
+});
+
+Object.defineProperty(Room.prototype, 'thorium', {
+    get: function () {
+        if (!(typeof IS_SEASON !== 'undefined' && IS_SEASON)) return null;
+        if (this._thorium === undefined) {
+            const t = typeof RESOURCE_THORIUM !== 'undefined' ? RESOURCE_THORIUM : 'T';
+            const minerals = this.find(FIND_MINERALS);
+            let found = null;
+            for (let i = 0; i < minerals.length; i++) {
+                if (minerals[i].mineralType === t) {
+                    found = minerals[i];
+                    break;
+                }
+            }
+            this._thorium = found;
+        }
+        return this._thorium;
     },
 });
 
@@ -932,6 +962,20 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     } else {
         delete roomIntel.mineral;
         delete roomIntel.mineralAmount;
+    }
+    if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+        const thorium = this.thorium;
+        roomIntel.thoriumAmount = thorium ? thorium.mineralAmount : 0;
+        const season = require('module.season');
+        const reactors = season.findReactors(this);
+        if (reactors.length) {
+            const r = reactors[0];
+            roomIntel.reactor = true;
+            roomIntel.reactorOwner = r.owner && r.owner.username;
+            roomIntel.reactorMy = !!r.my;
+            roomIntel.reactorStore = (r.store && r.store[season.thoriumType()]) || 0;
+            roomIntel.reactorWork = r.continuousWork || 0;
+        }
     }
 
     // Controller data

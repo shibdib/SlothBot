@@ -150,6 +150,24 @@ function globalCreepQueue() {
             case 'power':
                 queuePowerOperation(operation, key, priority);
                 break;
+            case 'reactor':
+                if (operation.claim) {
+                    queueCreepIfNeeded({
+                        role: 'reactorClaimer', priority, numberNeeded: 1, destination: key,
+                        closestRoom: true, operation: 'reactor'
+                    });
+                }
+                if (operation.haulers) {
+                    queueCreepIfNeeded({
+                        role: 'thoriumHauler',
+                        priority: operation.priority != null ? operation.priority : priority,
+                        numberNeeded: operation.haulers,
+                        destination: key,
+                        closestRoom: true,
+                        operation: 'reactor'
+                    });
+                }
+                break;
             case 'remoteDenial':
                 const remotes = _.filter(_.map(Game.map.describeExits(key)), function (r) {
                     return (!INTEL[r] || !INTEL[r].owner) && Object.values(Game.map.describeExits(r)).length > 1;

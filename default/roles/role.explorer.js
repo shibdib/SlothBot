@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const season = require('module.season');
 
 const DEST_SEARCH_INTERVAL = 15;
 const HIGH_VALUE_SEARCH_INTERVAL = 25;
@@ -88,7 +89,8 @@ class RoleExplorer {
 
         if (!this.creep.memory.other) this.creep.memory.other = {};
 
-        if (!this.creep.memory.usedPortal && this.creep.room.portals.length) {
+        if (!(typeof IS_SEASON !== 'undefined' && IS_SEASON)
+            && !this.creep.memory.usedPortal && this.creep.room.portals.length) {
             const portal = Game.getObjectById(this.creep.memory.portal) ||
                 this.creep.pos.findClosestByRange(_.filter(this.creep.room.portals, s => !s.destination.shard));
 
@@ -187,6 +189,10 @@ class RoleExplorer {
             let s = intel ? (intel.lastObservation || 0) : 0;
             s += explorerAssigned(n) * 10000;
             s += explorerScatterScore(this.creep, n);
+            if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+                s -= season.roomNorthValue(n) * 30;
+                if (typeof isSectorCenterRoomName === 'function' && isSectorCenterRoomName(n)) s -= 8000;
+            }
             return s;
         });
 
@@ -228,6 +234,11 @@ class RoleExplorer {
             if (intel.threatLevel && intel.threatLevel > 1) score -= 320;
             if (intel.isHighway) score -= 180;
             if (intel.cached && intel.cached + 2500 < currentTime) score -= 120;
+            if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+                if (intel.reactor) score -= 700;
+                score -= season.roomNorthValue(roomName);
+                if (typeof isSectorCenterRoomName === 'function' && isSectorCenterRoomName(roomName)) score -= 600;
+            }
 
             if (!intel.cached) {
                 if (dist < 15) score -= 850;
@@ -272,6 +283,10 @@ class RoleExplorer {
 
                     if (!intel) {
                         score -= 600;
+                        if (typeof IS_SEASON !== 'undefined' && IS_SEASON
+                            && typeof isSectorCenterRoomName === 'function' && isSectorCenterRoomName(neighbor)) {
+                            score -= 500;
+                        }
                     } else {
                         const age = intel.lastObservation ? currentTime - intel.lastObservation : 99999;
                         if (age > 8000) score -= 280;
@@ -282,6 +297,11 @@ class RoleExplorer {
                         if (intel.isHighway) score -= 160;
                         if (intel.threatLevel && intel.threatLevel > 0) score -= 80;
                         if (age < 800) score += 400;
+                        if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+                            if (intel.reactor) score -= 500;
+                            score -= season.roomNorthValue(neighbor);
+                            if (typeof isSectorCenterRoomName === 'function' && isSectorCenterRoomName(neighbor)) score -= 500;
+                        }
                     }
 
                     score += assigned * 5000;

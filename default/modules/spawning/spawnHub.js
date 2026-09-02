@@ -1,11 +1,12 @@
 /*
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
- * Hub-manager spawn geometry. Bunker and dynamic cores both leave (0,0)
- * empty at RCL 8: adjacent storage, terminal, hub link, and north spawns.
- * Nuker / power spawn are optional (bunker diagonals; dynamic specials
- * are often out of range). A 0-MOVE creep can spawn onto that tile; any
- * other creep landing there is stuck.
+ * Hub-manager spawn geometry. Bunker and dynamic cores leave (0,0) empty
+ * once the hub link is up: adjacent storage, hub link, and north spawn(s).
+ * Terminal / nuker / power spawn are optional. A 0-MOVE creep can spawn
+ * onto that tile; any other creep landing there is stuck once the collar
+ * closes, so other roles exclude that spawn direction as soon as the
+ * hub link exists.
  */
 
 const DIR_BY_DELTA = {
@@ -35,8 +36,7 @@ function hubSlotSpawnDirection(spawn, room) {
 }
 
 function isHubManagerSlotReady(room) {
-    if (!room || !room.hub || !room.storage || !room.terminal) return false;
-    if (!room.controller || room.controller.level < 8) return false;
+    if (!room || !room.hub || !room.storage) return false;
     if (!room.memory.hubLink || !Game.getObjectById(room.memory.hubLink)) return false;
     const spawns = room.spawns || [];
     let adjacentSpawn = false;
@@ -58,10 +58,11 @@ function isHubManagerSlotReady(room) {
 }
 
 function spawnDirectionsForRole(spawn, room, role) {
-    if (!room || !room.controller || room.controller.level < 8) return undefined;
     const hubDir = hubSlotSpawnDirection(spawn, room);
     if (!hubDir) return undefined;
     if (role === 'hubManager') return [hubDir];
+    const hubLink = room && room.memory && room.memory.hubLink && Game.getObjectById(room.memory.hubLink);
+    if (!hubLink) return undefined;
     return ALL_SPAWN_DIRS.filter(d => d !== hubDir);
 }
 

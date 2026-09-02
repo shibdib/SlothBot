@@ -81,7 +81,7 @@ function computeCoreStampPlan(room) {
     const tmpl = getTemplate(room);
     const skipTypes = room.memory.dynamicLayout
         ? LAYOUT_SKIP_TYPES.concat(LAYER_OWNED_TYPES)
-        : (level < 6
+        : (level < 5
             ? LAYOUT_SKIP_TYPES.concat(LAYER_OWNED_TYPES, [STRUCTURE_LINK])
             : LAYOUT_SKIP_TYPES.concat(LAYER_OWNED_TYPES));
 
@@ -100,15 +100,30 @@ function computeCoreStampPlan(room) {
         const allowed = CONTROLLER_STRUCTURES[type] ? (CONTROLLER_STRUCTURES[type][level] || 0) : 0;
         if (allowed <= 0) continue;
         const have = counts[type] || 0;
-        if (have >= allowed) continue;
 
         const tiles = [];
-        for (let p = 0; p < entry.pos.length; p++) {
-            const off = entry.pos[p];
-            const x = hub.x + off.x;
-            const y = hub.y + off.y;
-            if (x < 1 || x > 48 || y < 1 || y > 48) continue;
-            tiles.push({x, y});
+        if (type === STRUCTURE_LINK) {
+            // Hub receiver is one specific tile. Other links must not satisfy the stamp.
+            const lx = hub.x + hubLinkOffset.x;
+            const ly = hub.y + hubLinkOffset.y;
+            if (lx < 1 || lx > 48 || ly < 1 || ly > 48) continue;
+            const hubPos = new RoomPosition(lx, ly, room.name);
+            const onTile = (hubPos.lookFor(LOOK_STRUCTURES) || [])
+                    .some(s => s.structureType === STRUCTURE_LINK)
+                || (hubPos.lookFor(LOOK_CONSTRUCTION_SITES) || [])
+                    .some(s => s.structureType === STRUCTURE_LINK);
+            if (onTile) continue;
+            if (have >= allowed) continue;
+            tiles.push({x: lx, y: ly});
+        } else {
+            if (have >= allowed) continue;
+            for (let p = 0; p < entry.pos.length; p++) {
+                const off = entry.pos[p];
+                const x = hub.x + off.x;
+                const y = hub.y + off.y;
+                if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+                tiles.push({x, y});
+            }
         }
         if (!tiles.length) continue;
         plan.push({
@@ -341,7 +356,7 @@ function relocateHubObserver(room) {
     return {ok: false, reason: 'place-fail', result: placed, x: dest.x, y: dest.y};
 }
 
-const HUB_COLLAR_RECLAIM = [STRUCTURE_EXTENSION, STRUCTURE_CONTAINER, STRUCTURE_TOWER]
+const HUB_COLLAR_RECLAIM = [STRUCTURE_EXTENSION, STRUCTURE_CONTAINER, STRUCTURE_TOWER, STRUCTURE_WALL]
     .concat(DYNAMIC_SPECIAL_SITE_TYPES);
 
 function reclaimHubCollarTile(room, pos, keepType) {
@@ -395,7 +410,9 @@ function freeTileForSpecial(room, pos, structureType) {
         if (s.structureType === STRUCTURE_ROAD || s.structureType === STRUCTURE_RAMPART) continue;
         if (s.structureType === STRUCTURE_EXTENSION || s.structureType === STRUCTURE_CONTAINER
             || (isReservedHubTile(room.hub, pos.x, pos.y)
-                && (DYNAMIC_SPECIAL_SITE_TYPES.includes(s.structureType) || s.structureType === STRUCTURE_TOWER))) {
+                && (DYNAMIC_SPECIAL_SITE_TYPES.includes(s.structureType)
+                    || s.structureType === STRUCTURE_TOWER
+                    || s.structureType === STRUCTURE_WALL))) {
             try {
                 if (s.destroy() !== OK) return {ok: false, destroyed};
                 destroyed++;

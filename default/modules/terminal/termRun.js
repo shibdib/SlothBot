@@ -45,10 +45,11 @@ Object.assign(TerminalControl.prototype, {
         else getLedger();
 
         const hub = isMarketHub(roomName);
-        const globalOrders = this.getGlobalOrders();
-        const myOrders = getCachedMyOrders();
+        const seasonNoMarket = typeof IS_SEASON !== 'undefined' && IS_SEASON;
+        const globalOrders = seasonNoMarket ? [] : this.getGlobalOrders();
+        const myOrders = seasonNoMarket ? {} : getCachedMyOrders();
 
-        if (hub) {
+        if (hub && !seasonNoMarket) {
             this.pruneNonHubOrders(myOrders);
             runHousekeeping(this, globalOrders, myOrders);
         }
@@ -57,9 +58,9 @@ Object.assign(TerminalControl.prototype, {
 
         // Overfull rooms: list sell orders (no cooldown), then evacuate, then fire-sale.
         if (pressured) {
-            this.placePressureSellOrders(terminal, myOrders);
+            if (!seasonNoMarket) this.placePressureSellOrders(terminal, myOrders);
             if (this.relieveStoragePressure(terminal)) return;
-            if (runActiveMarket(this, globalOrders)) return;
+            if (!seasonNoMarket && runActiveMarket(this, globalOrders)) return;
         }
 
         const NETWORK_PRIORITY = ['urgent', 'pressure', 'battery', 'energy', 'ally'];
@@ -72,7 +73,7 @@ Object.assign(TerminalControl.prototype, {
         if (this.executePlannedTransfers(terminal, {kinds: NETWORK_PRIORITY})) return;
 
         // Hub surplus sells before keep-fills so the tick is not spent restocking satellites.
-        if (hub && this.hasSellableSurplus(terminal)) {
+        if (!seasonNoMarket && hub && this.hasSellableSurplus(terminal)) {
             if (runActiveMarket(this, globalOrders, {skipBuys: true})) return;
             runPassiveMarket(this, globalOrders, myOrders);
             return;
@@ -80,6 +81,7 @@ Object.assign(TerminalControl.prototype, {
 
         if (this.executePlannedTransfers(terminal)) return;
 
+        if (seasonNoMarket) return;
         if (runActiveMarket(this, globalOrders)) return;
         if (runPassiveMarket(this, globalOrders, myOrders)) return;
     },

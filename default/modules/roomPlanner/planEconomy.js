@@ -18,7 +18,7 @@
  *     controller container keeps off the shared-link tile.
  */
 
-const {labTemplate, hubLinkOffset} = require('planTemplates');
+const {labTemplate, hubLinkOffset, coreTemplate, reservedHubTileKeys} = require('planTemplates');
 const {
     findBestContainerPos,
     isControllerContainerPos,
@@ -710,18 +710,123 @@ function isControllerLinkSkippedNearHub(room, level) {
     return base.pos.getRangeTo(room.hub) <= 5;
 }
 
-function placeLinks(room) {
-    const level = room.level != null ? room.level : (room.controller && room.controller.level);
-    if (level < 5) return {placed: 0, reason: 'rcl'};
-    if (!room.hub) return {placed: 0, reason: 'no-hub'};
-    // Caller (placeEconomy / V1 aux) gates on storage; keep defensive no-op note only.
+function controllerRcl(room) {
+    return (room.controller && room.controller.level) || 0;
+}
 
-    const linkLimit = CONTROLLER_STRUCTURES[STRUCTURE_LINK][level] || 0;
-    const currentLinks = (room.links ? room.links.length : 0) +
-        (room.constructionSites || []).filter(s => s.structureType === STRUCTURE_LINK).length;
+function countLinksAndSites(room) {
+    return (room.links ? room.links.length : 0)
+        + (room.constructionSites || []).filter(s => s.structureType === STRUCTURE_LINK).length;
+}
+
+function hubLinkPreferredPos(room) {
+    return new RoomPosition(room.hub.x + hubLinkOffset.x, room.hub.y + hubLinkOffset.y, room.name);
+}
+
+function hubLinkCandidatePositions(room) {
+    const hub = room.hub;
+    const list = [hubLinkPreferredPos(room)];
+    const blocked = reservedHubTileKeys(hub);
+    for (const entry of coreTemplate) {
+        if (entry.structureType === STRUCTURE_LINK) continue;
+        for (let i = 0; i < entry.pos.length; i++) {
+            blocked.add(`${hub.x + entry.pos[i].x},${hub.y + entry.pos[i].y}`);
+        }
+    }
+    const ring = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
+    for (let i = 0; i < ring.length; i++) {
+        const x = hub.x + ring[i][0];
+        const y = hub.y + ring[i][1];
+        if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+        if (blocked.has(`${x},${y}`)) continue;
+        list.push(new RoomPosition(x, y, room.name));
+    }
+    return list;
+}
+
+const HUB_LINK_RECLAIM = [
+    STRUCTURE_EXTENSION, STRUCTURE_CONTAINER, STRUCTURE_TOWER, STRUCTURE_WALL,
+    STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER,
+];
+
+function ensureHubLink(room) {
+    if (!room.hub) return {ok: false, reason: 'no-hub'};
+    if (controllerRcl(room) < 5) return {ok: false, reason: 'rcl'};
+    const remembered = Game.getObjectById(room.memory.hubLink);
+    if (remembered) return {ok: false, reason: 'have'};
+
+    const candidates = hubLinkCandidatePositions(room);
+    for (let i = 0; i < candidates.length; i++) {
+        const existing = (candidates[i].lookFor(LOOK_STRUCTURES) || [])
+            .find(s => s.structureType === STRUCTURE_LINK);
+        if (existing) {
+            room.memory.hubLink = existing.id;
+            return {ok: false, reason: 'found', x: candidates[i].x, y: candidates[i].y};
+        }
+    }
+
+    const cap = CONTROLLER_STRUCTURES[STRUCTURE_LINK][controllerRcl(room)] || 0;
+    if (countLinksAndSites(room) >= cap) return {ok: false, reason: 'cap'};
+
+    for (let i = 0; i < candidates.length; i++) {
+        const pos = candidates[i];
+        if (pos.checkForWall && pos.checkForWall()) continue;
+        const sites = pos.lookFor(LOOK_CONSTRUCTION_SITES) || [];
+        let linkSite = false;
+        for (let s = 0; s < sites.length; s++) {
+            if (sites[s].structureType === STRUCTURE_LINK) {
+                linkSite = true;
+                continue;
+            }
+            if (!isPlannerShadow(room)) {
+                try {
+                    sites[s].remove();
+                } catch (e) { /* ignore */
+                }
+            }
+        }
+        if (linkSite) return {ok: false, reason: 'site', busy: true, x: pos.x, y: pos.y};
+
+        if (!isPlannerShadow(room)) {
+            const structs = pos.lookFor(LOOK_STRUCTURES) || [];
+            for (let b = 0; b < structs.length; b++) {
+                if (HUB_LINK_RECLAIM.indexOf(structs[b].structureType) === -1) continue;
+                try {
+                    structs[b].destroy();
+                } catch (e) { /* ignore */
+                }
+            }
+            if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+        }
+
+        const res = tryPlace(room, 'links', pos, STRUCTURE_LINK);
+        if (res.ok) {
+            noteLayerTile(room, 'links', pos);
+            try {
+                invalidateRampartSpots(room);
+            } catch (e) { /* optional */
+            }
+            return {ok: true, x: pos.x, y: pos.y, shadow: res.shadow};
+        }
+        if (res.code === FailureCodes.SITE_BUDGET_ROOM
+            || res.code === FailureCodes.SITE_BUDGET_GLOBAL
+            || res.code === FailureCodes.BUDGET_RESERVED_FOR_HIGHER) {
+            return {ok: false, reason: 'no-budget', code: res.code};
+        }
+    }
+    return {ok: false, reason: 'fail'};
+}
+
+function placeLinks(room) {
+    const rcl = controllerRcl(room);
+    if (rcl < 5) return {placed: 0, reason: 'rcl'};
+    if (!room.hub) return {placed: 0, reason: 'no-hub'};
+
+    const linkLimit = CONTROLLER_STRUCTURES[STRUCTURE_LINK][rcl] || 0;
+    const currentLinks = countLinksAndSites(room);
     const details = [];
     let placed = 0;
-    const skipControllerNearHub = isControllerLinkSkippedNearHub(room, level);
+    const skipControllerNearHub = isControllerLinkSkippedNearHub(room, rcl);
 
     const sortedSources = _.sortBy(room.sources || [], s => -(room.hub ? s.pos.getRangeTo(room.hub) : 0));
     const neighborSource = getControllerNeighborSource(room);
@@ -731,24 +836,33 @@ function placeLinks(room) {
         return shareWithNeighbor && source && neighborSource && source.id === neighborSource.id;
     }
 
-    // 1. Farthest source link (defer the controller-adjacent source so one shared
+    const hubMissing = () => !room.memory.hubLink || !Game.getObjectById(room.memory.hubLink);
+    const slotsLeft = () => linkLimit - currentLinks - placed;
+    const canPlaceNonHub = () => !hubMissing() || slotsLeft() > 1;
+
+    // 1. Hub receiver first. Source+controller already filled many RCL7 bunkers
+    // because this used to run after them and skip (0,1) when a wall sat on it.
+    if (placed < MAX_SITES_PER_SUBPHASE && hubMissing()) {
+        const r = ensureHubLink(room);
+        details.push(Object.assign({step: 'hub'}, r));
+        if (r.ok) placed++;
+    }
+
+    // 2. Farthest source link (defer the controller-adjacent source so one shared
     // link can sit next to both instead of two links on opposite sides).
-    if (placed < MAX_SITES_PER_SUBPHASE && currentLinks + placed < linkLimit && sortedSources.length > 0) {
+    if (placed < MAX_SITES_PER_SUBPHASE && canPlaceNonHub()
+        && currentLinks + placed < linkLimit && sortedSources.length > 0) {
         if (deferNeighborSourceLink(sortedSources[0])) {
             details.push({step: 'source0', reason: 'defer-shared'});
         } else {
             const r = buildSourceLink(room, sortedSources[0]);
             details.push(Object.assign({step: 'source0'}, r));
             if (r.ok) placed++;
-            // V1: in-progress site → return true (do not place lower-priority links this tick)
-            if (r.busy) {
-                return {placed, details, reason: 'source0-site'};
-            }
         }
     }
 
-    // 2. Controller link
-    if (placed < MAX_SITES_PER_SUBPHASE) {
+    // 3. Controller link
+    if (placed < MAX_SITES_PER_SUBPHASE && canPlaceNonHub()) {
         const rememberedControllerLink = Game.getObjectById(room.memory.controllerLink);
         if (!rememberedControllerLink || !isControllerAreaLink(rememberedControllerLink, room)) {
             if (room.memory.controllerLink) room.memory.controllerLink = undefined;
@@ -783,7 +897,7 @@ function placeLinks(room) {
                     }
                     if (!site) {
                         const controllerContainer = resolveControllerContainer(room);
-                        const base = level === 8 ? room.controller : controllerContainer || room.controller;
+                        const base = rcl === 8 ? room.controller : controllerContainer || room.controller;
                         const range = room.controller && base && base.id === room.controller.id ? 2 : 1;
                         if (base && base.pos) {
                             site = _.find(
@@ -856,25 +970,10 @@ function placeLinks(room) {
         }
     }
 
-    // Need a controller link (or near-hub skip) before hub / secondary / remote.
-    if (!room.memory.controllerLink && !skipControllerNearHub) {
-        if (shareWithNeighbor && placed < 1 && currentLinks < linkLimit) {
-            const r = buildSourceLink(room, neighborSource);
-            details.push(Object.assign({step: 'source-shared-fallback'}, r));
-            if (r.ok) placed++;
-            if (r.busy) {
-                return {placed, details, reason: 'source-shared-site'};
-            }
-        }
-        if (!room.memory.controllerLink) {
-            return {placed, details, reason: placed ? undefined : 'no-controller-link'};
-        }
-    }
-
     // Neighbor source uses the controller link when it is adjacent to the
     // harvest pad; otherwise place a dedicated source link.
     if (shareWithNeighbor && neighborSource && placed < MAX_SITES_PER_SUBPHASE
-        && currentLinks + placed < linkLimit) {
+        && canPlaceNonHub() && currentLinks + placed < linkLimit) {
         const bound = neighborSource.memory.link && Game.getObjectById(neighborSource.memory.link);
         if (!bound) {
             const r = buildSourceLink(room, neighborSource);
@@ -886,56 +985,11 @@ function placeLinks(room) {
         }
     }
 
-    // 3. Hub link (dynamic only ad hoc; bunker stamp owns (0,1))
-    if (placed < MAX_SITES_PER_SUBPHASE && (!room.memory.hubLink || !Game.getObjectById(room.memory.hubLink))) {
-        const hubLinkPos = new RoomPosition(room.hub.x + hubLinkOffset.x, room.hub.y + hubLinkOffset.y, room.name);
-        const existingLink = (hubLinkPos.lookFor(LOOK_STRUCTURES) || []).find(s => s.structureType === STRUCTURE_LINK);
-        if (existingLink) {
-            room.memory.hubLink = existingLink.id;
-            details.push({step: 'hub', reason: 'found'});
-        } else {
-            const site = (hubLinkPos.lookFor(LOOK_CONSTRUCTION_SITES) || []).find(s => s.structureType === STRUCTURE_LINK);
-            if (site) {
-                details.push({step: 'hub', reason: 'site', busy: true});
-                return {placed, details, reason: 'hub-site'};
-            }
-            if (room.memory.dynamicLayout) {
-                const blockers = (hubLinkPos.lookFor(LOOK_STRUCTURES) || []).filter(s =>
-                    s.structureType === STRUCTURE_EXTENSION
-                    || s.structureType === STRUCTURE_CONTAINER
-                    || s.structureType === STRUCTURE_FACTORY
-                    || s.structureType === STRUCTURE_POWER_SPAWN
-                    || s.structureType === STRUCTURE_NUKER
-                    || s.structureType === STRUCTURE_OBSERVER
-                    || s.structureType === STRUCTURE_TOWER);
-                if (blockers.length && !isPlannerShadow(room)) {
-                    for (let i = 0; i < blockers.length; i++) {
-                        try {
-                            blockers[i].destroy();
-                        } catch (e) { /* ignore */
-                        }
-                    }
-                    if (room._invalidateStructureCaches) room._invalidateStructureCaches();
-                }
-                const res = tryPlace(room, 'links', hubLinkPos, STRUCTURE_LINK);
-                if (res.ok) {
-                    placed++;
-                    noteLayerTile(room, 'links', hubLinkPos);
-                    details.push({step: 'hub', status: 'placed', shadow: res.shadow});
-                } else {
-                    details.push({step: 'hub', reason: 'fail', code: res.code});
-                }
-            } else {
-                // Bunker: stamp places hub link via core; nothing ad hoc.
-                details.push({step: 'hub', reason: 'bunker-stamp'});
-            }
-        }
-    }
-
     // 4. Second source link. RCL7+ has the 4th slot; at RCL6 the slot is free when
     // the controller link is skipped (near-hub), so take it for harvest instead of waiting.
-    if (placed < MAX_SITES_PER_SUBPHASE && currentLinks + placed < linkLimit && sortedSources.length > 1
-        && (level >= 7 || skipControllerNearHub)) {
+    if (placed < MAX_SITES_PER_SUBPHASE && canPlaceNonHub() && currentLinks + placed < linkLimit
+        && sortedSources.length > 1
+        && (rcl >= 7 || skipControllerNearHub)) {
         if (deferNeighborSourceLink(sortedSources[1])) {
             details.push({step: 'source1', reason: 'defer-shared'});
         } else {
@@ -949,7 +1003,7 @@ function placeLinks(room) {
     }
 
     // 5. Remote exit links (RCL 8 only — V1 comment; V1 code had no RCL gate)
-    if (placed < MAX_SITES_PER_SUBPHASE && currentLinks + placed < linkLimit && level >= 8) {
+    if (placed < MAX_SITES_PER_SUBPHASE && canPlaceNonHub() && currentLinks + placed < linkLimit && rcl >= 8) {
         const neighboring = Object.values(Game.map.describeExits(room.name) || {});
         for (let n = 0; n < neighboring.length && placed < MAX_SITES_PER_SUBPHASE; n++) {
             const neighbor = neighboring[n];
@@ -1075,14 +1129,30 @@ function placeLabs(room) {
 // Mineral
 // ---------------------------------------------------------------------------
 
+function isThoriumMineral(mineral) {
+    return typeof IS_SEASON !== 'undefined' && IS_SEASON
+        && mineral && typeof RESOURCE_THORIUM !== 'undefined'
+        && mineral.mineralType === RESOURCE_THORIUM;
+}
+
+function extractorOn(pos) {
+    if (!pos) return null;
+    const structs = pos.lookFor(LOOK_STRUCTURES);
+    for (let i = 0; i < structs.length; i++) {
+        if (structs[i].structureType === STRUCTURE_EXTRACTOR) return structs[i];
+    }
+    return null;
+}
+
 function placeMineral(room) {
     const level = room.level != null ? room.level : (room.controller && room.controller.level);
     // V1 mineralBuilder has no RCL gate; aux only calls at room.level >= 6.
     if (level < 6) return {placed: 0, reason: 'rcl'};
     if (!room.mineral) return {placed: 0, reason: 'no-mineral'};
 
-    const extractor = room.extractor;
-    if (!extractor) {
+    const skipContainer = isThoriumMineral(room.mineral);
+    let extractor = extractorOn(room.mineral.pos) || (skipContainer ? null : room.extractor);
+    if (!extractorOn(room.mineral.pos)) {
         if (!room.mineral.pos.checkForAllStructure() && !room.mineral.pos.checkForConstructionSites()) {
             const res = tryPlace(room, 'mineral', room.mineral.pos, STRUCTURE_EXTRACTOR);
             if (res.ok) {
@@ -1091,8 +1161,24 @@ function placeMineral(room) {
             }
             return {placed: 0, kind: 'extractor', reason: 'fail', code: res.code};
         }
-        return {placed: 0, reason: 'extractor-blocked'};
+        if (!skipContainer) return {placed: 0, reason: 'extractor-blocked'};
     }
+
+    const thorium = room.thorium;
+    if (thorium && (!room.mineral || thorium.id !== room.mineral.id) && !extractorOn(thorium.pos)) {
+        if (!thorium.pos.checkForAllStructure() && !thorium.pos.checkForConstructionSites()) {
+            const res = tryPlace(room, 'mineral', thorium.pos, STRUCTURE_EXTRACTOR);
+            if (res.ok) {
+                noteLayerTile(room, 'mineral', thorium.pos);
+                return {placed: 1, kind: 'thorium-extractor', shadow: res.shadow};
+            }
+            return {placed: 0, kind: 'thorium-extractor', reason: 'fail', code: res.code};
+        }
+    }
+
+    extractor = extractorOn(room.mineral.pos) || room.extractor;
+    if (!extractor) return {placed: 0, reason: 'extractor-blocked'};
+    if (skipContainer) return {placed: 0, reason: 'thorium-no-container'};
 
     let extractorContainer = Game.getObjectById(room.memory.extractorContainer);
     if (!extractorContainer) {

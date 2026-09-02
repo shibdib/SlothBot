@@ -969,6 +969,9 @@ function planTransfers(ledger) {
 
     planAllyTransfers(transfers, ledger, profiles);
     planHubConsolidation(transfers, ledger, profiles);
+    if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+        require('module.season').planThoriumTransfers(transfers, profiles);
+    }
 
     transfers.sort((a, b) => {
         const rank = (PRIORITY_RANK[a.kind] || 9) - (PRIORITY_RANK[b.kind] || 9);

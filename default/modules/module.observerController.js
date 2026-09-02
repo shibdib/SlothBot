@@ -296,9 +296,20 @@ class ObserverControl {
         ]) {
             const op = Memory.targetRooms[room] || Memory.auxiliaryTargets[room];
             if (!op) continue;
-            if (op.type === 'scout' || op.type === 'claim') add(room, 66);
+            if (op.type === 'reactor') add(room, 86);
+            else if (op.type === 'scout' || op.type === 'claim') add(room, 66);
             else if (isIntelStale(INTEL[room], currentTime)) add(room, 60);
             else if (needsHeavyIntel(INTEL[room], currentTime)) add(room, 62);
+        }
+
+        if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+            const season = require('module.season');
+            for (const home of owned) {
+                const centers = season.nearbySectorCenters(home, 1);
+                for (let i = 0; i < centers.length; i++) {
+                    add(centers[i], isIntelStale(INTEL[centers[i]], currentTime) ? 86 : 70);
+                }
+            }
         }
 
         // Fill map toward owned rooms: only *background* stale neighbors get low priority.

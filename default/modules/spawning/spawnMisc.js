@@ -20,7 +20,11 @@ function colonyIntelFresh(room) {
 }
 
 function getExplorerNeededCount(room) {
-    if (Game.shard.name === 'shardSeason') return 20;
+    if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+        if (MAX_LEVEL >= 7) return colonyIntelFresh(room) ? 2 : 4;
+        if (MAX_LEVEL >= 5) return 6;
+        return 8;
+    }
     if (MAX_LEVEL >= 8 || !MAX_LEVEL) return 0;
     if (room.level >= 7) return colonyIntelFresh(room) ? 1 : 2;
     return 10 - room.level;
@@ -61,7 +65,7 @@ function miscCreepQueue(room) {
 
     const explorerCount = getExplorerNeededCount(room);
     if (explorerCount > 0) {
-        const explorerPriority = Game.shard.name === 'shardSeason' ? 1 : PRIORITIES.medium;
+        const explorerPriority = (typeof IS_SEASON !== 'undefined' && IS_SEASON) ? 1 : PRIORITIES.medium;
         queueCreepIfNeeded({
             colony: room,
             role: 'explorer',
@@ -70,15 +74,33 @@ function miscCreepQueue(room) {
         });
     }
 
-    if (room.storage && room.level >= 6 && room.memory.extractorContainer && room.mineral.mineralAmount
+    if (room.storage && room.level >= 6
         && room.storage.store.getFreeCapacity() >= STORAGE_CAPACITY * 0.1) {
         const {flowStressed} = getFlowContext(room);
         if (energyState >= 1 && !flowStressed) {
-            queueCreepIfNeeded({
-                room, role: 'mineralHarvester', priority: PRIORITIES.mineralHarvester,
-                numberNeeded: 1, misc: {boosts: [WORK]},
-                other: {assignedMineral: room.mineral.id}
-            });
+            const thoriumType = typeof RESOURCE_THORIUM !== 'undefined' ? RESOURCE_THORIUM : 'T';
+            const mineral = room.mineral;
+            const isThoriumMineral = typeof IS_SEASON !== 'undefined' && IS_SEASON
+                && mineral && mineral.mineralType === thoriumType;
+            if (mineral && mineral.mineralAmount && !isThoriumMineral && room.memory.extractorContainer) {
+                queueCreepIfNeeded({
+                    room, role: 'mineralHarvester', priority: PRIORITIES.mineralHarvester,
+                    numberNeeded: 1, misc: {boosts: [WORK]},
+                    assignment: mineral.id,
+                    other: {assignedMineral: mineral.id, source: mineral.id}
+                });
+            }
+            if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+                const thorium = room.thorium;
+                if (thorium && thorium.mineralAmount > 0) {
+                    queueCreepIfNeeded({
+                        room, role: 'mineralHarvester', priority: PRIORITIES.mineralHarvester,
+                        numberNeeded: 1, misc: {boosts: [WORK]},
+                        assignment: thorium.id,
+                        other: {assignedMineral: thorium.id, thorium: true, source: thorium.id}
+                    });
+                }
+            }
         }
     }
 

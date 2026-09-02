@@ -126,6 +126,11 @@ function roomUsesResource(room, resource) {
 }
 
 function getRoomKeepAmount(room, resource) {
+    if (typeof IS_SEASON !== 'undefined' && IS_SEASON
+        && typeof RESOURCE_THORIUM !== 'undefined' && resource === RESOURCE_THORIUM) {
+        const {getFeederKeep} = require('module.season');
+        return getFeederKeep(room && room.name);
+    }
     if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) return 0;
     if (resource === RESOURCE_ENERGY) return 0;
     if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource)) {

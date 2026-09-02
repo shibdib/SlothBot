@@ -5,6 +5,7 @@
 const profiler = require("tools.profiler");
 const {findRoute} = require('pathRoute');
 const {canSpareCpuForRoom} = require('hcReadiness');
+const season = require('module.season');
 
 let _lastRun = 0;
 let _lastRejectLog = 0;
@@ -479,6 +480,13 @@ class ExpansionControl {
             score += this.getMineralBonus(room.mineral);
         } else {
             score *= 0.5;
+        }
+
+        if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+            score += season.roomNorthValue(room.name) * 150;
+            const thoriumAmt = room.thoriumAmount || (room.mineral === RESOURCE_THORIUM ? room.mineralAmount : 0) || 0;
+            if (thoriumAmt > 0) score += Math.min(thoriumAmt / 10, 4000);
+            else score -= 2000;
         }
 
         if (myRoomInSectorCheck(room.name)) score += 7000;
