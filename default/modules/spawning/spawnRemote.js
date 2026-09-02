@@ -738,6 +738,8 @@ function handleInvaderCore(room, remoteName) {
 function remoteCreepQueue(room) {
     if (typeof REMOTE_MINING !== 'undefined' && !REMOTE_MINING) return;
     if (!spawnState.throttleReady(spawnState.remoteTick, room.name, 5)) return;
+    // Fresh rooms need the spawn + energy for local extensions/storage, not remotes.
+    if (!room.storage && room.controller && room.controller.level < 5) return;
     const energyState = spawnEnergyState(room);
     room.memory.borderPatrol = undefined;
 

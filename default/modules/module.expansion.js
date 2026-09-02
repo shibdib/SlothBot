@@ -551,7 +551,8 @@ class ExpansionControl {
         const forceClaim = !!(FORCE_CLAIM && roomName === FORCE_CLAIM);
         const cpu = forceClaim ? {ok: true} : canSpareCpuForRoom();
 
-        if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && !Memory.auxiliaryTargets[roomName] && cpu.ok) {
+        const hasStorage = MY_ROOMS.some(r => Game.rooms[r] && Game.rooms[r].storage);
+        if (limit > MY_ROOMS.length && MAX_LEVEL >= 4 && hasStorage && !Memory.auxiliaryTargets[roomName] && cpu.ok) {
             Memory.claimTarget = {};
             Memory.auxiliaryTargets[roomName] = {
                 tick: Game.time,

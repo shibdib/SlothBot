@@ -376,7 +376,10 @@ function processBuildQueue(room) {
     if (!formingWave && !_.size(queue)) return;
 
     const currentTick = Game.time;
-    if (!formingWave && !spawnState.throttleReady(spawnState.buildTick, room.name, 5)) return;
+    // Early rooms need the spawn every time it is free; 5-tick idle between
+    // 12-tick drone eggs is a large RCL 1–4 tax.
+    const earlyRush = !room.storage && room.controller && room.controller.level <= 5;
+    if (!formingWave && !earlyRush && !spawnState.throttleReady(spawnState.buildTick, room.name, 5)) return;
     spawnState.buildTick[room.name] = currentTick;
 
     const lastSpawn = spawnState.lastBuilt[room.name];

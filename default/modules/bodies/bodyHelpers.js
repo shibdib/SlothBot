@@ -79,6 +79,24 @@ function roomHasCriticalBuildSites(room) {
     return _.some(room.constructionSites, s => CRITICAL_BUILD_STRUCTURE_TYPES.includes(s.structureType));
 }
 
+function isCriticalBuildStructureType(structureType) {
+    return !!structureType && CRITICAL_BUILD_STRUCTURE_TYPES.includes(structureType);
+}
+
+/** Built + sited extensions still short of this RCL's cap. */
+function getOwnedExtensionDeficit(room) {
+    if (!room || !room.controller) return 0;
+    const table = typeof CONTROLLER_STRUCTURES !== 'undefined' ? CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION] : null;
+    const need = table ? (table[room.controller.level] || 0) : 0;
+    if (!need) return 0;
+    let have = (room.extensions || []).length;
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        if (sites[i].structureType === STRUCTURE_EXTENSION) have++;
+    }
+    return Math.max(0, need - have);
+}
+
 function ownedSpawnCount(room) {
     if (!room) return 1;
     if (global.roomMySpawns) {
@@ -107,6 +125,20 @@ function creepRoleInRoom(room, role) {
     return false;
 }
 
+/** Live (not spawning) drone/shuttle/hauler that can pull a 0-MOVE harvester. */
+function roomHasLiveTowTruck(room) {
+    const creeps = room && room.myCreeps;
+    if (!creeps || !creeps.length) return false;
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c || c.spawning || !c.memory) continue;
+        const role = c.memory.role;
+        if (role !== 'drone' && role !== 'shuttle' && role !== 'hauler') continue;
+        if (c.hasActiveBodyparts && c.hasActiveBodyparts(MOVE)) return true;
+    }
+    return false;
+}
+
 function roomUsesDedicatedHauler(room) {
     return !!(room && (room.storage || (room.memory && room.memory.protoStorage)));
 }
@@ -120,11 +152,12 @@ function recoverySpawnEnergy(room) {
     return Math.min(capacity, SPAWN_ENERGY_CAPACITY);
 }
 
-/** Haulers refill extensions. A shuttle only counts if energy is already above regen. */
+/** Haulers refill extensions. Pre-storage drones haul spawn energy themselves. */
 function roomHasExtensionFiller(room) {
     if (!room) return false;
     if (creepRoleInRoom(room, 'hauler')) return true;
     if (roomUsesDedicatedHauler(room)) return false;
+    if (creepRoleInRoom(room, 'drone')) return true;
     if (!creepRoleInRoom(room, 'shuttle')) return false;
     const regen = recoverySpawnEnergy(room);
     return (room.energyAvailable || 0) > regen + 100;
@@ -137,7 +170,9 @@ function roomHasExtensionFiller(room) {
 function roomNeedsSpawnReboot(room, creepInfo) {
     if (!room) return false;
     if (creepInfo && creepInfo.other && creepInfo.other.reboot) return true;
-    if (room.myCreeps && room.myCreeps.length <= 3) return true;
+    // A live drone can fill the spawn. <=3 used to keep every RCL 1–2 room
+    // on 300-energy bodies even with 550 capacity.
+    if (!creepRoleInRoom(room, 'drone') && room.myCreeps && room.myCreeps.length <= 3) return true;
     if (roomHasExtensionFiller(room)) return false;
     const regen = recoverySpawnEnergy(room);
     const capacity = room.energyCapacityAvailable || 0;
@@ -288,6 +323,8 @@ module.exports = {
     maxBodyNonMoveParts,
     clampWorkCarryPair,
     roomHasCriticalBuildSites,
+    isCriticalBuildStructureType,
+    getOwnedExtensionDeficit,
     roomUsesDedicatedHauler,
     roomHasExtensionFiller,
     roomNeedsSpawnReboot,
@@ -295,6 +332,7 @@ module.exports = {
     roomInSpawnRecovery,
     recoverySpawnEnergy,
     isColonyEarlyRush,
+    roomHasLiveTowTruck,
     harvesterWorkCapUnlocked,
     routeHasBuiltRoads,
     getHaulersBySource,

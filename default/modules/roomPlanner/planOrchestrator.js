@@ -554,7 +554,7 @@ function runRoomPhases(room, lastRun, ctx, report) {
     // When storage/terminal still missing, do not soft-hold the whole room budget
     // for extensions — core needs a real placement chance this tick.
     if (extDeficit > 0 && !criticalCore) {
-        siteBudget.reserve(room, 'extensions', Math.min(extDeficit, 5));
+        siteBudget.reserve(room, 'extensions', Math.min(extDeficit, 10));
     } else if (extDeficit > 0 && criticalCore) {
         // Keep a modest extension hold so towers/spawn still outrank them, but
         // leave most of the room budget free for storage/terminal stamps.
@@ -584,7 +584,11 @@ function runRoomPhases(room, lastRun, ctx, report) {
     report.needsEarlyEconomy = earlyEconomyNeed;
     let earlyEconomyRan = false;
     const hasBuiltSpawn = !!(room.spawns && room.spawns.length);
-    if (earlyEconomyNeed && (hasBuiltSpawn || shadow)) {
+    // Extension deficit is the RCL 2–4 bottleneck. A controller container first
+    // would spend a site slot (and drone time) before the 5/10/20 extensions.
+    const deferEconomyForExtensions = !!(room.controller && room.controller.level <= 4
+        && !room.storage && extDeficit > 0);
+    if (earlyEconomyNeed && (hasBuiltSpawn || shadow) && !deferEconomyForExtensions) {
         // Drop unused soft holds so container layers see real remaining budget.
         releaseLayoutSoftReserves(room);
         safeRun(PHASE.ECONOMY, () => {

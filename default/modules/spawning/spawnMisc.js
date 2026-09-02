@@ -21,8 +21,11 @@ function colonyIntelFresh(room) {
 
 function getExplorerNeededCount(room) {
     if (MAX_LEVEL >= 8 || !MAX_LEVEL) return 0;
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    // 10 - RCL explorers on a fresh spawn (9 at RCL 1) lock the only spawn.
+    if (rcl < 4) return 1;
     if (room.level >= 7) return colonyIntelFresh(room) ? 1 : 2;
-    return 10 - room.level;
+    return Math.min(3, 10 - room.level);
 }
 
 function miscCreepQueue(room) {
@@ -60,7 +63,9 @@ function miscCreepQueue(room) {
 
     const explorerCount = getExplorerNeededCount(room);
     if (explorerCount > 0) {
-        const explorerPriority = (typeof IS_SEASON !== 'undefined' && IS_SEASON) ? 1 : PRIORITIES.medium;
+        const rcl = (room.controller && room.controller.level) || room.level || 0;
+        const explorerPriority = (typeof IS_SEASON !== 'undefined' && IS_SEASON && rcl >= 4)
+            ? 1 : PRIORITIES.medium;
         queueCreepIfNeeded({
             colony: room,
             role: 'explorer',

@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {isCriticalBuildStructureType, roomHasCriticalBuildSites} = require('bodyHelpers');
 
 class RoleDrone {
     constructor(creep) {
@@ -81,6 +82,20 @@ class RoleDrone {
         if (controllerDowngradeUrgent(this.room) && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
             if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') clearDroneTaskForUpgrade(this.creep);
             if (this.upgrading(true)) return;
+        }
+
+        if (roomHasCriticalBuildSites(this.room) && !controllerDowngradeUrgent(this.room)) {
+            if (this.creep.memory.task === 'upgrade') {
+                delete this.creep.memory.task;
+            }
+            if (this.creep.memory.constructionSite) {
+                const current = Game.getObjectById(this.creep.memory.constructionSite);
+                if (current && !isCriticalBuildStructureType(current.structureType)) {
+                    delete this.creep.memory.constructionSite;
+                    delete this.creep.memory.task;
+                    delete this.creep.memory.sitePos;
+                }
+            }
         }
 
         if (this.creep.memory.task && this.taskedOut()) return;
@@ -412,8 +427,13 @@ function selectBestDroneSource(creep, sources) {
     let best = null, bestScore = -Infinity;
     for (const source of sources) {
         const empty = source.energy === 0;
-        const stationaryHarvester = creep.room.myCreeps.find(c => c.memory.role === 'stationaryHarvester' && c.memory.source === source.id);
-        if (stationaryHarvester) continue; // Don't compete with stationary harvesters
+        const stationaryHarvester = creep.room.myCreeps.find(c => {
+            if (c.memory.role !== 'stationaryHarvester') return false;
+            const assigned = (c.memory.other && c.memory.other.source) || c.memory.source;
+            if (assigned !== source.id) return false;
+            return c.memory.onContainer || c.pos.isNearTo(source);
+        });
+        if (stationaryHarvester) continue;
         const adjacentDrones = source.pos.findInRange(FIND_MY_CREEPS, 1).filter(c => c.id !== creep.id).length;
         const distance = creep.pos.getRangeTo(source);
         // Heavy penalty for empty sources; moderate penalty per adjacent drone; mild penalty for distance

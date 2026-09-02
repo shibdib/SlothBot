@@ -564,6 +564,9 @@ function economySiteReserve(room) {
     if (!room || !room.controller) return 0;
     const level = room.controller.level;
     if (level < 2) return 0;
+    // Incomplete extension cap is the RCL 2–4 bottleneck. Do not hold a site
+    // slot for a container while drones still need every extension tile.
+    if (!room.storage && level <= 4 && getExtensionDeficit(room) > 0) return 0;
 
     let need = 0;
     if (level >= 2 && level < 8) {

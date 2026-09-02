@@ -9,18 +9,25 @@ const {
     roomHasCriticalBuildSites,
     roomInSpawnRecovery,
     roomSpawnEnergyStuck,
+    isColonyEarlyRush,
+    roomHasLiveTowTruck,
 } = require('bodyHelpers');
 const {getRegenSourceOperatorForRoom} = require('module.powerManager');
 
 function buildRoadDroneWaller(gen) {
     const leanColony = gen.room.level >= 7 && !gen.creepInfo.destination;
+    const earlyBootstrap = gen.role === 'drone' && isColonyEarlyRush(gen.room);
     const halfMove = !gen.creepInfo.destination
         && !['remoteBuilder', 'roadBuilder', 'waller'].includes(gen.role)
         && colonyRoadsBuilt(gen.room.name);
 
     const maxNonMove = maxBodyNonMoveParts(halfMove);
-    const workShare = halfMove ? (leanColony ? 0.45 : 0.40) : (leanColony ? 0.32 : 0.28);
-    const carryShare = halfMove ? (leanColony ? 0.35 : 0.32) : (leanColony ? 0.25 : 0.22);
+    // Pre-storage drones were using the late-game road-repair mix (28% WORK),
+    // so a 550-energy RCL2 drone was 1W. Bootstrap needs WORK on the site.
+    const workShare = earlyBootstrap ? 0.40
+        : (halfMove ? (leanColony ? 0.45 : 0.40) : (leanColony ? 0.32 : 0.28));
+    const carryShare = earlyBootstrap ? 0.20
+        : (halfMove ? (leanColony ? 0.35 : 0.32) : (leanColony ? 0.25 : 0.22));
     let workCap = leanColony ? Math.max(1, Math.floor(maxNonMove * 0.6)) : (halfMove ? 25 : 20);
     let carryCap = leanColony ? (maxNonMove - workCap) : (halfMove ? 20 : 16);
     if (workCap + carryCap > maxNonMove) carryCap = Math.max(1, maxNonMove - workCap);
@@ -28,22 +35,26 @@ function buildRoadDroneWaller(gen) {
     let work = Math.min(Math.floor(gen.energyAmount * workShare / BODYPART_COST[WORK]) || 1, workCap);
     let carry = Math.min(Math.floor(gen.energyAmount * carryShare / BODYPART_COST[CARRY]) || 1, carryCap);
 
-    if (!gen.room.energyState) {
-        work *= leanColony ? 0.25 : 0.15;
-        carry *= leanColony ? 0.1 : 0.05;
-    } else if ((gen.role === 'remoteBuilder' || gen.role === 'roadBuilder') && gen.room.energyState < 3) {
-        work *= 0.4;
-        carry *= 0.3;
-    } else if (!leanColony && (gen.room.energyState < 3 ||
-        (gen.room.energyState === 3 && ['drone', 'waller'].includes(gen.role)))) {
-        const criticalBootstrap = gen.role === 'drone' && roomHasCriticalBuildSites(gen.room);
-        const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.3, 15);
-        work *= scale;
-        carry *= scale;
-    } else if (leanColony && (gen.room.energyState < 2 || gen.trend < 0 || gen.spareIncome < 0)) {
-        const scale = gen.flowScale(0.5, 15);
-        work *= scale;
-        carry *= scale;
+    // EVENT_BUILD is expense, so spareIncome is often <= 0 while extensions go
+    // up. Skip flowScale for bootstrap drones or it shrinks the builders.
+    if (!earlyBootstrap) {
+        if (!gen.room.energyState) {
+            work *= leanColony ? 0.25 : 0.15;
+            carry *= leanColony ? 0.1 : 0.05;
+        } else if ((gen.role === 'remoteBuilder' || gen.role === 'roadBuilder') && gen.room.energyState < 3) {
+            work *= 0.4;
+            carry *= 0.3;
+        } else if (!leanColony && (gen.room.energyState < 3 ||
+            (gen.room.energyState === 3 && ['drone', 'waller'].includes(gen.role)))) {
+            const criticalBootstrap = gen.role === 'drone' && roomHasCriticalBuildSites(gen.room);
+            const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.3, 15);
+            work *= scale;
+            carry *= scale;
+        } else if (leanColony && (gen.room.energyState < 2 || gen.trend < 0 || gen.spareIncome < 0)) {
+            const scale = gen.flowScale(0.5, 15);
+            work *= scale;
+            carry *= scale;
+        }
     }
     ({work, carry} = clampWorkCarryPair(work, carry, maxNonMove));
     return {work, carry, halfMove};
@@ -165,7 +176,9 @@ function planShuttleForSource(room, source, flow = {}) {
     const backlog = assessSourceHaulBacklog(source, room);
 
     let count = 1;
-    if (room.level < 5 && !room.storage) count = 2;
+    // Two shuttles/source before containers exist just occupies the spawn.
+    // Ramp to 2 once the room can actually store harvest (RCL3+ / containers).
+    if (room.level < 5 && !room.storage) count = room.level >= 3 ? 2 : 1;
     if (backlog.haulUrgent) count = Math.max(count, 2);
     if (backlog.haulCritical) count = Math.min(count + 1, 3);
     const maxCount = room.level >= 7 ? 2 : 3;
@@ -241,8 +254,12 @@ function buildShuttle(gen) {
 
 function buildStationaryHarvester(gen) {
     const maxWork = Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]));
+    // 0-MOVE needs a truck. An empty-room reboot used to spawn a 2W/1C/0M
+    // harvester that sat on the pad until it died.
+    const move = roomHasLiveTowTruck(gen.room) ? 0 : 1;
     if (roomInSpawnRecovery(gen.room, gen.creepInfo) || gen.room.level < 2) {
-        return {work: maxWork, carry: 1, move: 0};
+        const work = move ? Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY] - BODYPART_COST[MOVE]) / BODYPART_COST[WORK])) : maxWork;
+        return {work, carry: 1, move};
     }
     const isHealthy = (gen.room.energyState >= 2 || gen.spareIncome > 3 || gen.trend >= 0);
     const additionalWork = gen.room.controller.level >= 7 ? (isHealthy ? 9 : 2) : 0;
@@ -256,7 +273,11 @@ function buildStationaryHarvester(gen) {
         work = Math.min(maxWork, baseSaturation) + additionalWork;
     }
     work = Math.min(Math.max(baseSaturation, work), maxWork);
-    return {work, carry: 1, move: 0};
+    if (move) {
+        const walkMax = Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY] - BODYPART_COST[MOVE]) / BODYPART_COST[WORK]));
+        work = Math.min(work, walkMax);
+    }
+    return {work, carry: 1, move};
 }
 
 const builders = {

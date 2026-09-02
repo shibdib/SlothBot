@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {roomHasLiveTowTruck} = require('bodyHelpers');
 
 class RoleStationaryHarvester {
     constructor(creep) {
@@ -95,6 +96,10 @@ class RoleStationaryHarvester {
                     break;
             }
         } else {
+            if (!this.creep.hasActiveBodyparts(MOVE) && this.creep.pos.getRangeTo(source) > 1
+                && !roomHasLiveTowTruck(this.room)) {
+                return this.creep.recycleCreep();
+            }
             let container = global.resolveSourceContainer(source, this.room);
             let containerSite = !container ? global.resolveSourceContainerSite(source) : null;
             const standPos = container || containerSite;

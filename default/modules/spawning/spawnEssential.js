@@ -10,7 +10,7 @@ const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
 const {planShuttleForSource} = require('bodyEconomic');
-const {roomHasCriticalBuildSites, roomNeedsSpawnReboot} = require('bodyHelpers');
+const {roomHasCriticalBuildSites, roomNeedsSpawnReboot, getOwnedExtensionDeficit, roomHasLiveTowTruck} = require('bodyHelpers');
 const {isHubManagerSlotReady, recycleHubSlotIntruder} = require('spawnHub');
 const {relocateHubObserver} = require('planCore');
 
@@ -46,8 +46,11 @@ function resolveDroneCount(room, ctx) {
     }
 
     if (count <= 1) return count;
+    // Pre-storage drones are the economy (harvest, haul, build, upgrade).
+    // spareIncome is often negative while they build — do not cap them.
+    if (earlyRush) return count;
 
-    const droneBudget = earlyRush ? 6 : (room.level >= 7 ? 12 : 8);
+    const droneBudget = room.level >= 7 ? 12 : 8;
     if (!flowHealthy || spareIncome < droneBudget) {
         return (hasCriticalBuilds || heavyRoadRepair) ? Math.min(count, 2) : 1;
     }
@@ -87,7 +90,8 @@ function essentialCreepQueue(room) {
     // bootstrap builders even if energyState is temporarily low (common right after
     // an upgrade that depleted reserves; these structures are exactly what improve
     // energy capacity/income). Matches the "always build" priority in constructionWork.
-    const hasCriticalBuilds = roomHasCriticalBuildSites(room);
+    const extensionDeficit = getOwnedExtensionDeficit(room);
+    const hasCriticalBuilds = roomHasCriticalBuildSites(room) || extensionDeficit > 0;
 
     const spawnReboot = roomNeedsSpawnReboot(room);
 
@@ -95,13 +99,14 @@ function essentialCreepQueue(room) {
         earlyRush, importantBuilds, hasCriticalBuilds, hasRoadMaintenance,
         flowHealthy, spareIncome,
     });
-    if (spawnReboot) droneCount = Math.min(droneCount, 1);
-    // Income creeps first while the room can only spend spawn regen.
-    const dronePriority = spawnReboot ? PRIORITIES.drone : (earlyRush ? 1 : PRIORITIES.drone);
+    // Income creeps first while the room can only spend spawn regen — except
+    // early rush, where drones *are* the income/build/upgrade crew.
+    const dronePriority = earlyRush ? 1 : PRIORITIES.drone;
 
     queueCreepIfNeeded({
         room, role: 'drone', priority: dronePriority + getCreepCount(room, 'drone'),
-        numberNeeded: droneCount, rebootCondition: spawnReboot || room.friendlyCreeps.length < 5
+        numberNeeded: droneCount,
+        rebootCondition: spawnReboot
     });
 
     if (room.level >= BUNKER_LEVEL) {
@@ -124,12 +129,16 @@ function essentialCreepQueue(room) {
         }
     }
 
-    queueCreepIfNeeded({
-        room, role: 'stationaryHarvester',
-        priority: PRIORITIES.stationaryHarvester,
-        numberNeeded: room.sources.length,
-        rebootCondition: spawnReboot || !getCreepCount(room, 'stationaryHarvester')
-    });
+    // Wait until 5 extensions (room.level 2 / 550 cap) so the harvester is 5W
+    // and a drone is free to tow. Until then drones harvest themselves.
+    if (room.level >= 2 && roomHasLiveTowTruck(room)) {
+        queueCreepIfNeeded({
+            room, role: 'stationaryHarvester',
+            priority: PRIORITIES.stationaryHarvester,
+            numberNeeded: room.sources.length,
+            rebootCondition: spawnReboot || !getCreepCount(room, 'stationaryHarvester')
+        });
+    }
 
     const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;
     if (room.storage || protoStorage) {
@@ -151,33 +160,40 @@ function essentialCreepQueue(room) {
         });
     }
 
-    for (const source of room.sources) {
-        let sourceLink = source.memory.link && Game.getObjectById(source.memory.link);
-        if (!sourceLink && source.memory.link) source.memory.link = undefined;
-        // Hub is a receiver, not a harvest dump. A near-hub source that bound the
-        // hub link still needs a shuttle (planner skipped a dedicated source link).
-        if (sourceLink && room.memory.hubLink && sourceLink.id === room.memory.hubLink) {
-            source.memory.link = undefined;
-            sourceLink = undefined;
+    // Shuttles empty stationary harvesters. Until those exist, drones haul.
+    if (harvesterCount) {
+        for (const source of room.sources) {
+            let sourceLink = source.memory.link && Game.getObjectById(source.memory.link);
+            if (!sourceLink && source.memory.link) source.memory.link = undefined;
+            // Hub is a receiver, not a harvest dump. A near-hub source that bound the
+            // hub link still needs a shuttle (planner skipped a dedicated source link).
+            if (sourceLink && room.memory.hubLink && sourceLink.id === room.memory.hubLink) {
+                source.memory.link = undefined;
+                sourceLink = undefined;
+            }
+            // Source link + any receiver (hub or controller) is cheaper than a shuttle.
+            if (sourceLink && (room.memory.hubLink || room.memory.controllerLink)) continue;
+            const plan = planShuttleForSource(room, source, {trend, spareIncome});
+            const hasShuttle = getCreepCount(room, 'shuttle', undefined, undefined, undefined, source.id);
+            const shuttlePriority = spawnReboot
+                ? PRIORITIES.hauler + (hasShuttle ? 1 : 0)
+                : (!hasShuttle ? 1 : (plan.other.haulUrgent ? PRIORITIES.hauler * 0.75 : PRIORITIES.hauler));
+            queueCreepIfNeeded({
+                room, role: 'shuttle', priority: shuttlePriority,
+                numberNeeded: plan.count,
+                rebootCondition: spawnReboot || room.myCreeps.length < 4 || plan.reboot,
+                other: plan.other,
+                assignment: source.id
+            });
         }
-        // Source link + any receiver (hub or controller) is cheaper than a shuttle.
-        if (sourceLink && (room.memory.hubLink || room.memory.controllerLink)) continue;
-        const plan = planShuttleForSource(room, source, {trend, spareIncome});
-        const hasShuttle = getCreepCount(room, 'shuttle', undefined, undefined, undefined, source.id);
-        const shuttlePriority = spawnReboot
-            ? PRIORITIES.hauler + (hasShuttle ? 1 : 0)
-            : (!hasShuttle ? 1 : (plan.other.haulUrgent ? PRIORITIES.hauler * 0.75 : PRIORITIES.hauler));
-        queueCreepIfNeeded({
-            room, role: 'shuttle', priority: shuttlePriority,
-            numberNeeded: plan.count,
-            rebootCondition: spawnReboot || room.myCreeps.length < 4 || plan.reboot,
-            other: plan.other,
-            assignment: source.id
-        });
     }
 
     let upgraderAmount = 1;
-    if (room.controller.level !== 8 && energyState) {
+    // Drones already dump leftover energy into the controller below RCL 4.
+    // A dedicated upgrader during an extension deficit starves the builders.
+    if (earlyRush && (room.controller.level < 3 || extensionDeficit > 0)) {
+        upgraderAmount = 0;
+    } else if (room.controller.level !== 8 && energyState) {
         const container = global.resolveControllerContainer(room);
         if (container && room.controller.level < 8) {
             const trend = (energyInfo && energyInfo.trend) || 0;
@@ -192,14 +208,16 @@ function essentialCreepQueue(room) {
             upgraderAmount = Math.max(upgraderAmount, 2);
         }
     }
-    const fastTrack = (energyState > 1 && room.storage && trendOk) ||
-        (earlyRush && harvesterCount && energyState >= 2);
-    const priority = fastTrack ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
-    queueCreepIfNeeded({
-        room, role: 'upgrader', priority,
-        numberNeeded: upgraderAmount, misc: {boosts: [WORK]},
-        rebootCondition: spawnReboot || !getCreepCount(room, 'upgrader') || !energyState
-    });
+    if (upgraderAmount > 0) {
+        const fastTrack = (energyState > 1 && room.storage && trendOk) ||
+            (earlyRush && harvesterCount && energyState >= 2);
+        const priority = fastTrack ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
+        queueCreepIfNeeded({
+            room, role: 'upgrader', priority,
+            numberNeeded: upgraderAmount, misc: {boosts: [WORK]},
+            rebootCondition: spawnReboot || !getCreepCount(room, 'upgrader') || !energyState
+        });
+    }
 }
 
 module.exports = {essentialCreepQueue};

@@ -267,8 +267,13 @@ function getExtensionDeficit(room) {
 }
 
 function getExtensionBatchMax(room) {
-    if (!room || room.storage || !room.controller) return EXTENSION_BATCH_MAX;
-    if (room.controller.level > 5) return EXTENSION_BATCH_MAX;
+    if (!room || !room.controller) return EXTENSION_BATCH_MAX;
+    // RCL 2–4: site the whole remaining cap so drones do not idle on other
+    // work between 3-site batches. Placement still mins against room budget.
+    if (!room.storage && room.controller.level <= 4) {
+        return Math.max(EXTENSION_BATCH_RUSH, getExtensionDeficit(room));
+    }
+    if (room.storage || room.controller.level > 5) return EXTENSION_BATCH_MAX;
     return getExtensionDeficit(room) > 5 ? EXTENSION_BATCH_RUSH : EXTENSION_BATCH_MAX;
 }
 

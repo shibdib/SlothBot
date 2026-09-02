@@ -687,7 +687,7 @@ Creep.prototype.haulerDelivery = function () {
         } else {
             delete this.memory.haulerGroup;
         }
-        this.memory.storageDestination = _.max(targets, s => this.pos.getRangeTo(s)).id;
+        this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
         return true;
     }
 
