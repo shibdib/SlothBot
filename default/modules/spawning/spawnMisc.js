@@ -20,11 +20,6 @@ function colonyIntelFresh(room) {
 }
 
 function getExplorerNeededCount(room) {
-    if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
-        if (MAX_LEVEL >= 7) return colonyIntelFresh(room) ? 2 : 4;
-        if (MAX_LEVEL >= 5) return 6;
-        return 8;
-    }
     if (MAX_LEVEL >= 8 || !MAX_LEVEL) return 0;
     if (room.level >= 7) return colonyIntelFresh(room) ? 1 : 2;
     return 10 - room.level;
