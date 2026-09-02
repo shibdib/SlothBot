@@ -82,6 +82,14 @@ function recycleHubSlotIntruder(room) {
     const creeps = pos.lookFor(LOOK_CREEPS) || [];
     const creep = creeps[0];
     if (!creep || !creep.my || (creep.memory && creep.memory.role === 'hubManager')) return false;
+    const role = creep.memory && creep.memory.role;
+    // Drones (and anything that can walk) stepped onto the hub while filling
+    // spawn/storage. Recycle/suicide here is how early rooms lose builders.
+    if (role === 'drone' || (creep.hasActiveBodyparts && creep.hasActiveBodyparts(MOVE))) {
+        const dirs = [TOP, TOP_RIGHT, RIGHT, BOTTOM_RIGHT, BOTTOM, BOTTOM_LEFT, LEFT, TOP_LEFT];
+        creep.move(dirs[(Game.time + creep.pos.x + creep.pos.y) % 8]);
+        return false;
+    }
     const spawns = room.spawns || [];
     for (let i = 0; i < spawns.length; i++) {
         const spawn = spawns[i];

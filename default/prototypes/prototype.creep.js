@@ -1834,6 +1834,10 @@ Creep.prototype.clearBoostLabs = function () {
 };
 
 Creep.prototype.recycleCreep = function () {
+    if (this.memory && this.memory.role === 'drone') {
+        this.memory.recycling = undefined;
+        return false;
+    }
     this.clearBoostLabs();
     if (!this.hasActiveBodyparts(MOVE) && !MY_ROOMS.includes(this.room.name)) return this.suicide();
     this.memory.recycling = true;
