@@ -15,6 +15,8 @@ const {bunkerTemplate, coreTemplate, reservedHubTileKeys} = require('planTemplat
 
 const {
     roomConstructionSiteBudget,
+    roomMinerals,
+    isNearAnyMineral,
 } = require('planUtils');
 
 const EXTENSION_BATCH_MAX = 3;
@@ -188,7 +190,7 @@ function getAnchorClearanceViolation(room, pos) {
     if (room.controller && pos.getRangeTo(room.controller) <= EXTENSION_CONTROLLER_CLEARANCE) {
         return 'nearController';
     }
-    if (room.mineral && pos.getRangeTo(room.mineral) <= EXTENSION_MINERAL_CLEARANCE) {
+    if (isNearAnyMineral(pos, room, EXTENSION_MINERAL_CLEARANCE)) {
         return 'nearMineral';
     }
     for (const source of room.sources || []) {
@@ -700,10 +702,12 @@ function collectCriticalAccessGroups(room, terrain, blocked) {
         if (tiles.length) groups.push({id: 'source:' + s.id, tiles});
     }
 
-    if (room.mineral) {
+    const minerals = roomMinerals(room);
+    for (let i = 0; i < minerals.length; i++) {
+        const m = minerals[i];
         const tiles = [];
-        addWalkableAdjacents(tiles, terrain, blocked, room.mineral.pos.x, room.mineral.pos.y);
-        if (tiles.length) groups.push({id: 'mineral', tiles});
+        addWalkableAdjacents(tiles, terrain, blocked, m.pos.x, m.pos.y);
+        if (tiles.length) groups.push({id: 'mineral:' + (m.id || i), tiles});
     }
 
     // One group per open exit edge so every neighbouring room stays reachable.

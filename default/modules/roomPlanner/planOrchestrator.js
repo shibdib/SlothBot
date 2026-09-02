@@ -482,6 +482,13 @@ function runRoomPhases(room, lastRun, ctx, report) {
         }, report);
         if (!hasBunkerHub(room)) {
             report.stopped = 'no_hub';
+            if (room.controller.level >= 2 && actors.hasSpawnOrSpawnSite(room)) {
+                safeRun(PHASE.EXTENSIONS, () => {
+                    const extRes = extLayer.placeExtensions(room);
+                    report.extensionsDetail = extRes;
+                    report.extensionsPlaced = placedCount(extRes);
+                }, report);
+            }
             return;
         }
     } else {

@@ -17,6 +17,7 @@ const {
     getUndefendedExits,
     determineTowerDamage,
     isCoreHubTileValid,
+    isNearAnyMineral,
     safeStructureOwner,
     countRoomConstructionSitesOfType,
     countRoomConstructionSites,
@@ -185,7 +186,36 @@ function hubLinkTileBuildable(room, hub) {
     return Game.map.getRoomTerrain(room.name).get(x, y) !== TERRAIN_MASK_WALL;
 }
 
+function isOpenHubTile(room, x, y) {
+    if (x < 2 || x > 47 || y < 2 || y > 47) return false;
+    return Game.map.getRoomTerrain(room.name).get(x, y) !== TERRAIN_MASK_WALL;
+}
+
+function pickHubNearSpawn(room, spawn) {
+    if (!room || !spawn) return null;
+    const sx = spawn.pos.x;
+    const sy = spawn.pos.y;
+    const preferred = [
+        {x: sx + 1, y: sy + 1}, {x: sx - 1, y: sy + 1},
+        {x: sx + 1, y: sy - 1}, {x: sx - 1, y: sy - 1},
+        {x: sx, y: sy + 1}, {x: sx + 1, y: sy},
+        {x: sx - 1, y: sy}, {x: sx, y: sy - 1},
+    ];
+    for (let i = 0; i < preferred.length; i++) {
+        const p = preferred[i];
+        if (isOpenHubTile(room, p.x, p.y) && hubLinkTileBuildable(room, p)) {
+            return {hub: p, dynamic: false};
+        }
+    }
+    for (let i = 0; i < preferred.length; i++) {
+        const p = preferred[i];
+        if (isOpenHubTile(room, p.x, p.y)) return {hub: p, dynamic: true};
+    }
+    return null;
+}
+
 function isValidHubPosition(pos, room, sources) {
+    if (!isOpenHubTile(room, pos.x, pos.y)) return false;
     if (!hubLinkTileBuildable(room, pos)) return false;
     const layoutTemplate = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
     for (let t = 0; t < layoutTemplate.length; t++) {
@@ -196,7 +226,7 @@ function isValidHubPosition(pos, room, sources) {
             if (sp.x < 1 || sp.x > 48 || sp.y < 1 || sp.y > 48) return false;
             if (sp.checkForImpassible()) return false;
             if (sp.isNearTo(room.controller)) return false;
-            if (room.mineral && sp.isNearTo(room.mineral)) return false;
+            if (isNearAnyMineral(sp, room, 1)) return false;
             if (sources.some(src => sp.isNearTo(src))) return false;
         }
     }
@@ -268,17 +298,31 @@ function findHub(room, isHubCheck) {
             }
         }
 
-        const spawn = room.spawns && room.spawns.find(s => s.name !== 'auto');
-        const recovered = room.terminal
-            ? {x: room.terminal.pos.x + 1, y: room.terminal.pos.y, from: 'terminal'}
-            : room.storage
-                ? {x: room.storage.pos.x - 1, y: room.storage.pos.y, from: 'storage'}
-                : spawn
-                    ? {x: spawn.pos.x + 1, y: spawn.pos.y + 1, from: 'spawn'}
-                    : null;
-        if (recovered && hubLinkTileBuildable(room, recovered)) {
-            commitCoreHub(room, {x: recovered.x, y: recovered.y});
-            if (typeof log !== 'undefined' && log.a) log.a(room.name + ' hub recovered from ' + recovered.from + '.');
+        const spawn = room.spawns && (room.spawns.find(s => s.name !== 'auto') || room.spawns[0]);
+        let recovered = null;
+        let recoveredDynamic = false;
+        let recoveredFrom = null;
+        if (room.terminal) {
+            recovered = {x: room.terminal.pos.x + 1, y: room.terminal.pos.y};
+            recoveredFrom = 'terminal';
+        } else if (room.storage) {
+            recovered = {x: room.storage.pos.x - 1, y: room.storage.pos.y};
+            recoveredFrom = 'storage';
+        } else if (spawn) {
+            const near = pickHubNearSpawn(room, spawn);
+            if (near) {
+                recovered = near.hub;
+                recoveredDynamic = near.dynamic;
+                recoveredFrom = 'spawn';
+            }
+        }
+        if (recovered && isOpenHubTile(room, recovered.x, recovered.y)) {
+            if (!hubLinkTileBuildable(room, recovered)) recoveredDynamic = true;
+            commitCoreHub(room, {x: recovered.x, y: recovered.y}, recoveredDynamic ? {dynamicLayout: true} : undefined);
+            if (typeof log !== 'undefined' && log.a) {
+                log.a(room.name + ' hub recovered from ' + recoveredFrom
+                    + (recoveredDynamic ? ' (dynamic)' : '') + '.');
+            }
             validateHubExtensionCapacity(room);
             return true;
         }
@@ -358,12 +402,18 @@ function ensureCoreHub(room, options) {
         // unless the hub-link tile is a terrain wall and the room has not committed storage.
         findHub(room);
         let after = resolveHub(room);
-        if (after && !hubLinkTileBuildable(room, after) && !room.storage && !room.terminal) {
+        const hubUnusable = after && !room.storage && !room.terminal
+            && (!isOpenHubTile(room, after.x, after.y) || !hubLinkTileBuildable(room, after));
+        if (hubUnusable) {
             if (typeof log !== 'undefined' && log.a) {
                 log.a(room.name + ' hub (' + after.x + ',' + after.y
-                    + ') has terrain wall at hub-link (0,1); re-searching dynamic hub.');
+                    + ') is unusable (wall hub or hub-link); re-searching dynamic hub.');
             }
-            findCoreHub(room);
+            if (!findCoreHub(room)) {
+                const spawn = room.spawns && (room.spawns.find(s => s.name !== 'auto') || room.spawns[0]);
+                const near = pickHubNearSpawn(room, spawn);
+                if (near) commitCoreHub(room, near.hub, {dynamicLayout: true});
+            }
             after = resolveHub(room);
         }
         syncAnchorsToPlan(room);

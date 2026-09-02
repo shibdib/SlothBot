@@ -803,6 +803,35 @@ function placeFromCandidates(room, positions, limit) {
  * Fallback near-hub flood (same idea as planExtensions.findExtensionCandidatesNearHub).
  * Kept local so we do not depend on a non-exported helper.
  */
+function findSpawnAdjacentExtensionCandidates(room) {
+    const spawn = (room.spawns && room.spawns[0])
+        || (room.constructionSites || []).find(s => s.structureType === STRUCTURE_SPAWN);
+    if (!spawn) return [];
+    const origin = spawn.pos;
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const extensions = [];
+    const visited = new Set([`${origin.x},${origin.y}`]);
+    const queue = [{x: origin.x, y: origin.y}];
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    while (queue.length && extensions.length < 20) {
+        const cur = queue.shift();
+        for (let d = 0; d < dirs.length; d++) {
+            const nx = cur.x + dirs[d][0];
+            const ny = cur.y + dirs[d][1];
+            const key = `${nx},${ny}`;
+            if (visited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
+            visited.add(key);
+            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
+            queue.push({x: nx, y: ny});
+            const pos = new RoomPosition(nx, ny, room.name);
+            if (pos.getRangeTo(origin) > 6) continue;
+            if (classifyExtensionTile(room, pos) !== 'ok') continue;
+            extensions.push({x: nx, y: ny});
+        }
+    }
+    return extensions;
+}
+
 function findFallbackCandidates(room) {
     // C4: room.hub is plan-first; getHub fallback.
     const hub = room.hub || (() => {
@@ -969,6 +998,15 @@ function placeExtensions(room, options) {
                 placed += more;
                 method = method ? 'bunker+fallback' : 'fallback';
             }
+        }
+    }
+
+    if (!placed && deficit > 0 && placed < limit) {
+        const spawnFallback = findSpawnAdjacentExtensionCandidates(room);
+        const more = placeFromCandidates(room, spawnFallback, limit);
+        if (more) {
+            placed += more;
+            method = 'spawn-adjacent';
         }
     }
 

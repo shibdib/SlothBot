@@ -872,11 +872,36 @@ function determineTowerDamage(range) {
 }
 
 
+function roomMinerals(room) {
+    if (!room) return [];
+    if (room._mineralsTick === Game.time && room._minerals) return room._minerals;
+    let list;
+    try {
+        list = room.find(FIND_MINERALS) || [];
+    } catch (e) {
+        list = [];
+        if (room.mineral) list.push(room.mineral);
+        if (room.thorium && (!room.mineral || room.thorium.id !== room.mineral.id)) list.push(room.thorium);
+    }
+    room._minerals = list;
+    room._mineralsTick = Game.time;
+    return list;
+}
+
+function isNearAnyMineral(pos, room, range = 1) {
+    if (!pos || !room) return false;
+    const minerals = roomMinerals(room);
+    for (let i = 0; i < minerals.length; i++) {
+        if (pos.getRangeTo(minerals[i]) <= range) return true;
+    }
+    return false;
+}
+
 function isCoreHubTileValid(pos, room) {
     if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) return false;
     const src = pos.findClosestByRange(FIND_SOURCES);
     if (pos.checkForImpassible() || pos.isNearTo(room.controller)) return false;
-    if (room.mineral && pos.isNearTo(room.mineral)) return false;
+    if (isNearAnyMineral(pos, room, 1)) return false;
     return !(src && pos.isNearTo(src));
 }
 
@@ -898,7 +923,7 @@ function isAssignedSourceContainer(structure, room) {
 }
 
 function isSourceOrMineralPad(pos, room) {
-    if (room.mineral && pos.isNearTo(room.mineral)) return true;
+    if (isNearAnyMineral(pos, room, 1)) return true;
     return isNearAnySource(pos, room, 1);
 }
 
@@ -1275,6 +1300,8 @@ module.exports = {
     determineTowerDamage,
 
     isCoreHubTileValid,
+    roomMinerals,
+    isNearAnyMineral,
 
     safeStructureOwner,
 
