@@ -10,7 +10,6 @@ const {
     roomInSpawnRecovery,
     roomSpawnEnergyStuck,
     isColonyEarlyRush,
-    roomHasLiveTowTruck,
 } = require('bodyHelpers');
 const {getRegenSourceOperatorForRoom} = require('module.powerManager');
 
@@ -254,11 +253,13 @@ function buildShuttle(gen) {
 
 function buildStationaryHarvester(gen) {
     const maxWork = Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY]) / BODYPART_COST[WORK]));
-    // 0-MOVE needs a truck. An empty-room reboot used to spawn a 2W/1C/0M
-    // harvester that sat on the pad until it died.
-    const move = roomHasLiveTowTruck(gen.room) ? 0 : 1;
+    // Early drones (2–4 MOVE) cannot pull a 5W harvester. 0-MOVE only after
+    // storage, when real trucks exist. Walk until then.
+    const move = isColonyEarlyRush(gen.room) ? 1 : 0;
     if (roomInSpawnRecovery(gen.room, gen.creepInfo) || gen.room.level < 2) {
-        const work = move ? Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY] - BODYPART_COST[MOVE]) / BODYPART_COST[WORK])) : maxWork;
+        const work = move
+            ? Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY] - BODYPART_COST[MOVE]) / BODYPART_COST[WORK]))
+            : maxWork;
         return {work, carry: 1, move};
     }
     const isHealthy = (gen.room.energyState >= 2 || gen.spareIncome > 3 || gen.trend >= 0);
