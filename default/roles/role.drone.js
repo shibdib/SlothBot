@@ -48,6 +48,9 @@ class RoleDrone {
             delete this.creep.memory.targetWallHits;
         }
 
+        // Dump into an adjacent spawn/extension while walking. Free, even with a shuttle.
+        if (this.creep.store[RESOURCE_ENERGY] && this.creep.opportunisticFill()) return true;
+
         // If damaged move to safety
         if (this.creep.hits < this.creep.hitsMax && (!this.creep.hasActiveBodyparts(WORK) || !this.creep.hasActiveBodyparts(CARRY))) return this.creep.goToHub();
         
@@ -98,14 +101,24 @@ class RoleDrone {
             }
         }
 
+        if (shouldInterruptForSpawnFill(this.creep, this.room)) {
+            delete this.creep.memory.task;
+            delete this.creep.memory.constructionSite;
+            delete this.creep.memory.sitePos;
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.targetWallHits;
+        }
+
         if (this.creep.memory.task && this.taskedOut()) return;
+
+        // Fill spawn/extensions before sites until a live shuttle or hauler exists.
+        if (this.hauling()) return;
 
         const hasBuilderWork = this.room.constructionSites.some(s =>
             s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
         if (hasBuilderWork && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0 && this.building()) return;
 
         if ((threatLevel || this.creep.memory.currentTarget) && (!this.room.controller || !this.room.controller.safeMode) && this.walling()) return;
-        if (this.hauling()) return;
         if (this.building()) return;
         if (this.upgrading()) return;
         if ((shouldLeftoverUpgrade(this.room) || this.creep.memory.destination) && this.upgrading(true)) return;
@@ -278,34 +291,43 @@ class RoleDrone {
 
     hauling() {
         if (this.creep.memory.task && this.creep.memory.task !== 'haul') return false;
-        const spawn = global.roomMySpawns ? global.roomMySpawns(this.room)[0] : this.room.find(FIND_MY_SPAWNS)[0];
-        if (!this.room.controller || !this.room.controller.my || !spawn) return false;
-
-        const needsHaul = !this.room.myCreeps.some(c => c.memory.role === 'shuttle' || c.memory.role === 'hauler');
-
-        if (this.creep.memory.task === 'haul' || (this.creep.isFull && needsHaul)) {
-            this.creep.memory.task = 'haul';
-            this.creep.say('Haul!', true);
-            if (this.creep.memory.storageDestination || this.creep.haulerDelivery()) {
-                const storageItem = Game.getObjectById(this.creep.memory.storageDestination);
-                if (!storageItem) {
-                    delete this.creep.memory.storageDestination;
-                    return false;
-                }
-                const result = this.creep.transfer(storageItem, RESOURCE_ENERGY);
-                if (result === OK) {
-                    delete this.creep.memory.storageDestination;
-                    this.creep.clearShibMove();
-                } else if (result === ERR_NOT_IN_RANGE) {
-                    this.creep.shibMove(storageItem);
-                } else {
-                    delete this.creep.memory.storageDestination;
-                }
-                return true;
-            } else {
+        if (!this.room.controller || !this.room.controller.my) return false;
+        if (hasLiveHauler(this.room)) {
+            if (this.creep.memory.task === 'haul') {
                 delete this.creep.memory.task;
+                delete this.creep.memory.storageDestination;
             }
+            return false;
         }
+        if (!this.creep.store.getUsedCapacity(RESOURCE_ENERGY)) return false;
+        if (!spawnEnergyNeedsFill(this.room)) {
+            if (this.creep.memory.task === 'haul') {
+                delete this.creep.memory.task;
+                delete this.creep.memory.storageDestination;
+            }
+            return false;
+        }
+
+        const target = pickSpawnFillTarget(this.creep);
+        if (!target) {
+            delete this.creep.memory.task;
+            delete this.creep.memory.storageDestination;
+            return false;
+        }
+
+        this.creep.memory.task = 'haul';
+        this.creep.say('Haul!', true);
+        const result = this.creep.transfer(target, RESOURCE_ENERGY);
+        if (result === OK) {
+            delete this.creep.memory.storageDestination;
+            this.creep.clearShibMove();
+            return true;
+        }
+        if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(target);
+            return true;
+        }
+        delete this.creep.memory.storageDestination;
         return false;
     }
 
@@ -403,6 +425,52 @@ class RoleDrone {
 
 profiler.registerClass(RoleDrone, 'Drone');
 module.exports = RoleDrone;
+
+function hasLiveHauler(room) {
+    const creeps = room.myCreeps || [];
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c || c.spawning || !c.memory) continue;
+        if (c.memory.role === 'shuttle' || c.memory.role === 'hauler') return true;
+    }
+    return false;
+}
+
+function spawnEnergyNeedsFill(room) {
+    const cap = room.energyCapacityAvailable || 0;
+    const avail = room.energyAvailable || 0;
+    return avail < cap;
+}
+
+function pickSpawnFillTarget(creep) {
+    const destId = creep.memory.storageDestination;
+    if (destId) {
+        const dest = Game.getObjectById(destId);
+        if (dest && dest.store && dest.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+            && (dest.structureType === STRUCTURE_SPAWN || dest.structureType === STRUCTURE_EXTENSION)) {
+            return dest;
+        }
+        delete creep.memory.storageDestination;
+    }
+    const sinks = (creep.room.spawns || []).concat(creep.room.extensions || []);
+    const open = [];
+    for (let i = 0; i < sinks.length; i++) {
+        const s = sinks[i];
+        if (s && s.my && s.store && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0) open.push(s);
+    }
+    if (!open.length) return null;
+    const closest = creep.pos.findClosestByRange(open);
+    if (closest) creep.memory.storageDestination = closest.id;
+    return closest;
+}
+
+function shouldInterruptForSpawnFill(creep, room) {
+    if (hasLiveHauler(room)) return false;
+    if (!creep.store.getUsedCapacity(RESOURCE_ENERGY)) return false;
+    if (!spawnEnergyNeedsFill(room)) return false;
+    const task = creep.memory.task;
+    return task === 'build' || task === 'repair' || task === 'upgrade' || task === 'waller';
+}
 
 function shouldLeftoverUpgrade(room) {
     if (!room || !room.controller || !room.controller.my) return false;
