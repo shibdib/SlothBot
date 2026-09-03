@@ -20,6 +20,29 @@ const {
 const {isHubManagerSlotReady, recycleHubSlotIntruder} = require('spawnHub');
 const {relocateHubObserver} = require('planCore');
 
+const SECOND_WALLER_WORK = 30;
+
+function roomNeedsRampartBootstrap(room) {
+    const floor = typeof RAMPART_BOOTSTRAP_HITS === 'number' ? RAMPART_BOOTSTRAP_HITS : 3000;
+    let work = 0;
+    const ramparts = room.ramparts || [];
+    for (let i = 0; i < ramparts.length; i++) {
+        if (ramparts[i].hits < floor) {
+            work++;
+            if (work >= SECOND_WALLER_WORK) return true;
+        }
+    }
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const t = sites[i].structureType;
+        if (t === STRUCTURE_RAMPART || t === STRUCTURE_WALL) {
+            work++;
+            if (work >= SECOND_WALLER_WORK) return true;
+        }
+    }
+    return false;
+}
+
 function resolveDroneCount(room, ctx) {
     const {
         earlyRush, importantBuilds, hasCriticalBuilds, hasRoadMaintenance,
@@ -126,7 +149,10 @@ function essentialCreepQueue(room) {
         // This prevents completely abandoning wall/rampart building in low-but-not-zero energy rooms.
         // Previously gated strictly at >=2; drones still only do "energy rich" walling at >=3.
         if (energyState >= 1 && flowHealthy && spareIncome >= 4) {
-            wallerCount = room.level >= 7 ? 1 : (energyState >= 3 && room.level >= 8 ? 2 : 1);
+            wallerCount = 1;
+            // Second waller only while the seal is still going up: many sub-floor
+            // ramparts or queued barrier sites. Drops back to 1 once floored.
+            if (energyState >= 2 && roomNeedsRampartBootstrap(room)) wallerCount = 2;
             if (room.level < 7) {
                 wallerCount = Math.max(1, Math.min(wallerCount, Math.floor(spareIncome / 10)));
             }

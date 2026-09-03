@@ -12,6 +12,10 @@ let wallerTargetCache = {};
 let urgentTick = -1;
 const urgentCache = {};
 
+function bootstrapHits() {
+    return typeof RAMPART_BOOTSTRAP_HITS === 'number' ? RAMPART_BOOTSTRAP_HITS : 3000;
+}
+
 function roomRcl(room) {
     return room && room.controller && room.controller.level != null ? room.controller.level : (room && room.level) || 0;
 }
@@ -82,22 +86,38 @@ function getWallerTargetIds(roomName) {
     return wallerTargetCache[roomName] || null;
 }
 
-function barriersNeedUrgentRepair(room) {
-    if (!room.controller || !room.controller.my) return false;
+function getRampartRepairState(room) {
+    if (!room.controller || !room.controller.my) return {urgent: false, bootstrap: false};
     if (urgentTick !== Game.time) {
         urgentTick = Game.time;
         for (const key in urgentCache) delete urgentCache[key];
     }
     if (urgentCache[room.name] !== undefined) return urgentCache[room.name];
 
-    let urgent = room.ramparts.some((s) => s.hits < SAFE_RAMPART_HITS);
+    const floor = bootstrapHits();
+    const ramparts = room.ramparts || [];
+    let belowFloor = 0;
+    for (let i = 0; i < ramparts.length; i++) {
+        if (ramparts[i].hits < floor) belowFloor++;
+    }
+    const bootstrap = belowFloor > 0;
+    let urgent = bootstrap;
     if (!urgent) {
         const threatLevel = (INTEL[room.name] && INTEL[room.name].threatLevel) || 0;
         if (threatLevel) urgent = room.barriers.some((s) => s.hits < 25000);
         if (!urgent) urgent = room.barriers.some((s) => s.structureType === STRUCTURE_WALL && s.hits < 5000);
     }
-    urgentCache[room.name] = urgent;
-    return urgent;
+    const state = {urgent, bootstrap, belowFloor};
+    urgentCache[room.name] = state;
+    return state;
+}
+
+function barriersNeedUrgentRepair(room) {
+    return getRampartRepairState(room).urgent;
+}
+
+function rampartsNeedBootstrap(room) {
+    return getRampartRepairState(room).bootstrap;
 }
 
 class RoleWaller {
@@ -169,6 +189,7 @@ class RoleWaller {
         switch (this.creep.memory.task) {
             case 'build':
             case 'repair':
+                if (rampartsNeedBootstrap(this.room)) return false;
                 return this.continueBuild();
             case 'haul':
                 return this.continueHaul();
@@ -214,12 +235,23 @@ class RoleWaller {
 
         this.creep.memory.task = 'waller';
         const rcl = roomRcl(this.room);
+        const floor = bootstrapHits();
+        const bootstrap = target.structureType === STRUCTURE_RAMPART && rampartsNeedBootstrap(this.room);
+        // This tile is already floored; others are not — drop and retarget.
+        if (bootstrap && target.hits >= floor) {
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.targetWallHits;
+            delete this.creep.memory.task;
+            return false;
+        }
         if (target.structureType === STRUCTURE_WALL && isQuadTripwire(this.room, target.pos)) {
             this.creep.memory.targetWallHits = 20000;
+        } else if (bootstrap) {
+            this.creep.memory.targetWallHits = floor;
+        } else if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
+            this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
         } else if (!this.creep.memory.targetWallHits) {
-            if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
-                this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
-            } else if (target.structureType === STRUCTURE_WALL) {
+            if (target.structureType === STRUCTURE_WALL) {
                 this.creep.memory.targetWallHits = Math.min(
                     target.hits + 50000,
                     this.barrierRepairCap(maintenance),
@@ -360,30 +392,41 @@ class RoleWaller {
         const barrierStructures = this.barriersNeedingRepair(maintenance);
 
         if (barrierStructures.length && this.room.controller && this.room.controller.my) {
+            const floor = bootstrapHits();
+            const bootstrap = rampartsNeedBootstrap(this.room);
+            let pool = barrierStructures;
+            if (bootstrap) {
+                const dying = barrierStructures.filter((s) =>
+                    s.structureType === STRUCTURE_RAMPART && s.hits < floor);
+                if (dying.length) pool = dying;
+            } else {
+                const belowSafe = barrierStructures.filter((s) =>
+                    s.structureType === STRUCTURE_RAMPART && s.hits < SAFE_RAMPART_HITS);
+                if (belowSafe.length) pool = belowSafe;
+            }
+
             let target;
             if (threatLevel) {
-                target = _.min(barrierStructures, 'hits');
+                target = _.min(pool, 'hits');
             } else {
                 const claimed = getWallerTargetIds(this.room.name);
-                const available = barrierStructures.filter((s) =>
+                const available = pool.filter((s) =>
                     !claimed || !claimed.has(s.id) || this.creep.memory.currentTarget === s.id
                 );
-
-                if (available.length) {
-                    const minHits = _.min(available, 'hits').hits;
-                    const jitterThreshold = maintenance ? 100000 : 25000;
-                    const candidates = available.filter((s) => s.hits <= minHits + jitterThreshold);
-                    target = this.creep.pos.findClosestByRange(candidates);
-                } else {
-                    target = _.min(barrierStructures, 'hits');
-                }
+                const pickFrom = available.length ? available : pool;
+                const minHits = _.min(pickFrom, 'hits').hits;
+                const jitterThreshold = bootstrap ? 500 : (maintenance ? 100000 : 25000);
+                const candidates = pickFrom.filter((s) => s.hits <= minHits + jitterThreshold);
+                target = this.creep.pos.findClosestByRange(candidates);
             }
 
             if (target) {
                 this.creep.memory.currentTarget = target.id;
                 this.creep.memory.task = 'waller';
-                if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
-                    this.creep.memory.targetWallHits = SAFE_RAMPART_HITS * 2;
+                if (target.structureType === STRUCTURE_RAMPART && target.hits < floor) {
+                    this.creep.memory.targetWallHits = floor;
+                } else if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
+                    this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
                 } else if (maintenance) {
                     this.creep.memory.targetWallHits = target.hits + 100000;
                 } else {

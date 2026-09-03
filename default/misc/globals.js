@@ -1516,7 +1516,9 @@ let globals = function () {
     global.PATHFINDER_VERSION = 1;
     global.INTEL_VERSION = 5;
     global.RAMPART_VERSION = 3;
-    global.SAFE_RAMPART_HITS = 10000; // Minimum rampart HP before wallers move on to other barriers
+    global.SAFE_RAMPART_HITS = 10000; // Seal is actually safe; thicken after every tile is floored
+    global.RAMPART_BOOTSTRAP_HITS = 3000; // Decay-safe floor: raise all tiles here before dumping into one
+    global.RAMPART_TOWER_SAVE_HITS = 1000; // Towers only fire if a rampart would vanish before a waller arrives
 
     let controllerContainerCacheTick = -1;
     const controllerContainerCache = {};

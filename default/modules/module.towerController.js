@@ -10,6 +10,7 @@ const drainState = {};
 const DRAIN_BLACKLIST_TICKS = 50;
 const DRAIN_NO_PROGRESS_SHOTS = 4;
 const COMBAT_BARRIER_RANGE = 8;
+const TOWER_SAVE_RESERVE = 700;
 
 // Tower repair is ~80 HP/energy at optimal and 20 at falloff — strictly worse than a
 // WORK creep (~100 HP/energy). Only fire when a creep won't make it in time.
@@ -65,11 +66,23 @@ module.exports.towerController = function (room) {
 
         const injuredFriendlies = room.friendlyCreeps.filter(c => c.hits < c.hitsMax);
 
+        let dyingRamparts = [];
+        if (!hasHostiles) {
+            const saveHits = typeof RAMPART_TOWER_SAVE_HITS === 'number' ? RAMPART_TOWER_SAVE_HITS : 1000;
+            const claimed = wallerClaimedTargetIds(room);
+            const ramparts = room.ramparts || [];
+            for (let i = 0; i < ramparts.length; i++) {
+                const r = ramparts[i];
+                if (r && r.hits > 0 && r.hits < saveHits && !claimed.has(r.id)) dyingRamparts.push(r);
+            }
+        }
+
         towerCache[cacheKey] = {
             tick: currentTime,
             hostiles,
             criticalStructures,
             combatBarriers,
+            dyingRamparts,
             injuredFriendlies,
             hasHostiles
         };
@@ -113,10 +126,20 @@ module.exports.towerController = function (room) {
         }
         if (currentTime % 200 === 0) cleanupDrainState(roomDrain, currentTime);
     } else {
+        const dyingRamparts = (cache.dyingRamparts || []).slice().sort((a, b) => a.hits - b.hits);
         const damagedCriticalStructures = cache.criticalStructures.filter(s => s.hits < s.hitsMax);
-        let repairCandidates = cache.combatBarriers.length
-            ? cache.combatBarriers.slice().sort((a, b) => a.hits - b.hits)
-            : damagedCriticalStructures.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
+        const towersCanSave = dyingRamparts.length && towers.some(t =>
+            (t.store[RESOURCE_ENERGY] || 0) >= TOWER_SAVE_RESERVE);
+        let repairCandidates;
+        let minEnergy = TOWER_ENERGY_COST;
+        if (towersCanSave) {
+            repairCandidates = dyingRamparts;
+            minEnergy = TOWER_SAVE_RESERVE;
+        } else if (cache.combatBarriers.length) {
+            repairCandidates = cache.combatBarriers.slice().sort((a, b) => a.hits - b.hits);
+        } else {
+            repairCandidates = damagedCriticalStructures.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
+        }
         // Road repair is a discretionary 10-energy/tower sink — only when overflowing.
         if (!repairCandidates.length && repairAllowed) {
             repairCandidates = room.structures.filter((s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5).sort(
@@ -129,13 +152,23 @@ module.exports.towerController = function (room) {
             // throughput while other barriers continue dropping.
             let i = 0;
             for (const tower of towers) {
-                if (tower.store[RESOURCE_ENERGY] < TOWER_ENERGY_COST) continue;
+                if (tower.store[RESOURCE_ENERGY] < minEnergy) continue;
                 tower.repair(repairCandidates[i % repairCandidates.length]);
                 i++;
             }
         }
     }
 };
+
+function wallerClaimedTargetIds(room) {
+    const ids = new Set();
+    const creeps = room.myCreeps || [];
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (c.memory && c.memory.role === 'waller' && c.memory.currentTarget) ids.add(c.memory.currentTarget);
+    }
+    return ids;
+}
 
 function findBestTarget(room, towers, hostiles, roomDrain) {
     const currentTime = Game.time;
