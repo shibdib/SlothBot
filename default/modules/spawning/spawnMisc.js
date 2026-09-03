@@ -20,10 +20,11 @@ function colonyIntelFresh(room) {
 }
 
 function getExplorerNeededCount(room) {
-    if (MAX_LEVEL >= 8 || !MAX_LEVEL) return 0;
     const rcl = (room.controller && room.controller.level) || room.level || 0;
-    // 10 - RCL explorers on a fresh spawn (9 at RCL 1) lock the only spawn.
-    if (rcl < 4) return 1;
+    // Pre-storage / RCL5: one explorer so exits get INTEL.sources. Do not skip
+    // just because some other owned room is already RCL8.
+    if (!room.storage || rcl <= 5) return 1;
+    if (MAX_LEVEL >= 8 || !MAX_LEVEL) return 0;
     if (room.level >= 7) return colonyIntelFresh(room) ? 1 : 2;
     return Math.min(3, 10 - room.level);
 }

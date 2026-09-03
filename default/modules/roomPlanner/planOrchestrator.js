@@ -550,7 +550,16 @@ function runRoomPhases(room, lastRun, ctx, report) {
     if (needsSpawnSite(room) || actors.needsSpawnSite(room)) {
         siteBudget.reserve(room, 'spawn', 1);
     }
-    if (towerDef > 0) siteBudget.reserve(room, 'towers', Math.min(towerDef, 3));
+    const intel = typeof INTEL !== 'undefined' ? INTEL[room.name] : null;
+    const towerFirst = typeof TOWER_FIRST !== 'undefined' && TOWER_FIRST;
+    // RCL3: last extensions unlock 800-energy 5W bodies. A 3k tower first
+    // delays that unless we are under threat or TOWER_FIRST is set.
+    const deferTowerForExtensions = !towerFirst
+        && !!(room.controller && room.controller.level === 3 && !room.storage && extDeficit > 0)
+        && !(intel && intel.threatLevel);
+    report.deferTowerForExtensions = deferTowerForExtensions;
+
+    if (towerDef > 0 && !deferTowerForExtensions) siteBudget.reserve(room, 'towers', Math.min(towerDef, 3));
     // When storage/terminal still missing, do not soft-hold the whole room budget
     // for extensions — core needs a real placement chance this tick.
     if (extDeficit > 0 && !criticalCore) {
@@ -563,7 +572,7 @@ function runRoomPhases(room, lastRun, ctx, report) {
 
     // Towers → spawn always first. Core (storage/terminal) before extensions when
     // critical stamps are missing; otherwise extensions → core (wipe recovery).
-    if (towerDef > 0) {
+    if (towerDef > 0 && !deferTowerForExtensions) {
         safeRun(PHASE.TOWERS, () => {
             const towerRes = actors.placeTowerSites(room, 1);
             report.towersDetail = towerRes;

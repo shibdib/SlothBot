@@ -19,6 +19,33 @@ const siegeBoosts = require('bodySiegeBoosts');
 let bodyCache = {};
 let _bodyCacheTick = -1;
 
+const INCOME_BODY_ROLES = {
+    drone: true,
+    stationaryHarvester: true,
+    shuttle: true,
+    hauler: true,
+    remoteHarvester: true,
+    remoteHauler: true,
+};
+const AVAILABLE_ENERGY_IDLE_TICKS = 30;
+
+function shouldSpawnAtAvailableEnergy(room, role) {
+    if (!room || !INCOME_BODY_ROLES[role]) return false;
+    const cap = room.energyCapacityAvailable || 0;
+    const avail = room.energyAvailable || 0;
+    if (avail >= cap - 50) return false;
+    if (avail < SPAWN_ENERGY_CAPACITY) return false;
+    let last;
+    try {
+        last = require('spawnState').lastBuilt[room.name];
+    } catch (e) {
+        last = undefined;
+    }
+    // Wait for shuttles to refill unless the spawn has been sitting idle.
+    if (!last || Game.time - last < AVAILABLE_ENERGY_IDLE_TICKS) return false;
+    return true;
+}
+
 /**
  * Generates Creep Bodies.
  * @constructor
@@ -59,8 +86,13 @@ class ModuleBodyGenerator {
         const operation = this.creepInfo && this.creepInfo.operation;
         if (roomInSpawnRecovery(this.room, this.creepInfo) && !operation) {
             this.energyAmount = recoverySpawnEnergy(this.room);
-        } else if (!this.creepInfo || !this.creepInfo.military) {
+            return;
+        }
+        if (!this.creepInfo || !this.creepInfo.military) {
             this.energyAmount = this.room.energyCapacityAvailable;
+            if (shouldSpawnAtAvailableEnergy(this.room, this.role)) {
+                this.energyAmount = Math.min(this.energyAmount, this.room.energyAvailable);
+            }
         }
     }
 

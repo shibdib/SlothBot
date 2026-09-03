@@ -192,7 +192,7 @@ function planShuttleForSource(room, source, flow = {}) {
             haulUrgent: backlog.haulUrgent,
             containerFill: Math.round(backlog.containerFill * 100) / 100,
         },
-        reboot: roomSpawnEnergyStuck(room) || !room.energyState,
+        reboot: roomSpawnEnergyStuck(room),
     };
 }
 

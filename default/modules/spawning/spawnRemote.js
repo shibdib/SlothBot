@@ -8,7 +8,12 @@ const spawnState = require('spawnState');
 const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount, creepExpiringSoon, haulerCarryCapacity} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
-const {routeHasBuiltRoads, countQueuedHaulersForSource} = require('bodyHelpers');
+const {
+    routeHasBuiltRoads,
+    countQueuedHaulersForSource,
+    roomNeedsSpawnReboot,
+    getOwnedExtensionDeficit
+} = require('bodyHelpers');
 const {remoteBuildersNeeded, colonyNeedsRoadWork} = require('planGeomRoads');
 const remoteMining = require('remoteMining');
 
@@ -263,10 +268,53 @@ function maybeScoutRemoteCandidate(room, rName) {
     queueCreepIfNeeded({
         room,
         role: 'scout',
-        priority: PRIORITIES.secondary,
+        priority: PRIORITIES.remoteHarvester,
         numberNeeded: 1,
         destination: rName,
     });
+    return true;
+}
+
+/**
+ * First-visit scout for an adjacent room that has no INTEL.sources yet.
+ * remoteIntelEligible / maybeScoutRemoteCandidate never see those rooms.
+ */
+function maybeScoutUnknownExits(room) {
+    const exits = Game.map.describeExits(room.name);
+    if (!exits) return false;
+    for (const dir in exits) {
+        const rName = exits[dir];
+        if (!rName || Game.rooms[rName]) continue;
+        if (typeof roomStatus === 'function' && roomStatus(rName) === 'closed') continue;
+        if (MY_ROOMS && MY_ROOMS.includes(rName)) continue;
+        const intel = INTEL[rName];
+        if (intel && (intel.owner || intel.sources)) continue;
+        if (remoteMining.isSkRoomName(rName) && !skMiningAllowed(room)) continue;
+        if (getCreepCount(undefined, 'scout', rName) || countQueuedRole(room.name, 'scout', rName)) return true;
+        if (getCreepCount(undefined, 'explorer', rName)) return true;
+        queueCreepIfNeeded({
+            room,
+            role: 'scout',
+            priority: PRIORITIES.remoteHarvester,
+            numberNeeded: 1,
+            destination: rName,
+        });
+        return true;
+    }
+    return false;
+}
+
+/** Local harvest is staffed enough that one adjacent remote will not starve the spawn. */
+function roomReadyForRemotes(room) {
+    if (room.storage) return true;
+    if (!room.controller) return false;
+    if (room.level < 2) return false;
+    const sources = (room.sources && room.sources.length) || 0;
+    if (!sources) return false;
+    if (room.controller.level <= 2 && getOwnedExtensionDeficit(room) > 0) return false;
+    if (getCreepCount(room, 'stationaryHarvester') < sources) return false;
+    if (!getCreepCount(room, 'shuttle') && !getCreepCount(room, 'hauler')) return false;
+    if (roomNeedsSpawnReboot(room)) return false;
     return true;
 }
 
@@ -738,8 +786,11 @@ function handleInvaderCore(room, remoteName) {
 function remoteCreepQueue(room) {
     if (typeof REMOTE_MINING !== 'undefined' && !REMOTE_MINING) return;
     if (!spawnState.throttleReady(spawnState.remoteTick, room.name, 5)) return;
-    // Fresh rooms need the spawn + energy for local extensions/storage, not remotes.
-    if (!room.storage && room.controller && room.controller.level < 5) return;
+    // Vision for exits does not need a staffed harvest line — 1 MOVE, one at a time.
+    maybeScoutUnknownExits(room);
+    // Local 5W harvesters + a filler first. One adjacent remote after that;
+    // storage is not required (RCL 5 used to hide remotes for the whole 405k upgrade).
+    if (!roomReadyForRemotes(room)) return;
     const energyState = spawnEnergyState(room);
     room.memory.borderPatrol = undefined;
 

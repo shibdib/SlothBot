@@ -7,7 +7,7 @@
 const spawnState = require('spawnState');
 const {spawnEnergyState} = require('spawnFlow');
 const {getCreepCount} = require('spawnCounts');
-const {ownedSpawnCount} = require('bodyHelpers');
+const {ownedSpawnCount, isColonyEarlyRush} = require('bodyHelpers');
 const {
     getQueue, generateCreepName, queueCacheKey,
     isWaitForLongbowWave, pickActiveWave, waveSpawnDemand, maxMilitaryReserve,
@@ -378,20 +378,9 @@ function processBuildQueue(room) {
     const currentTick = Game.time;
     // Early rooms need the spawn every time it is free; 5-tick idle between
     // 12-tick drone eggs is a large RCL 1–4 tax.
-    const earlyRush = !room.storage && room.controller && room.controller.level <= 5;
+    const earlyRush = isColonyEarlyRush(room);
     if (!formingWave && !earlyRush && !spawnState.throttleReady(spawnState.buildTick, room.name, 5)) return;
     spawnState.buildTick[room.name] = currentTick;
-
-    const lastSpawn = spawnState.lastBuilt[room.name];
-    if (lastSpawn && lastSpawn + 500 < currentTick && room.energyAvailable >= 300) {
-        // A closestRoom quad lives on the global queue. Wiping the room
-        // cache because that wave is forming deleted haulers/drones.
-        if (!formingWave) {
-            CREEP_QUEUES[room.name] = {};
-            spawnState.lastBuilt[room.name] = currentTick;
-            return;
-        }
-    }
 
     const totalSpawns = room.spawns || [];
     const owned = ownedSpawnCount(room);

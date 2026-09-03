@@ -108,7 +108,7 @@ class RoleDrone {
         if (this.hauling()) return;
         if (this.building()) return;
         if (this.upgrading()) return;
-        if ((this.room.level < 4 || this.creep.memory.destination) && this.upgrading(true)) return;
+        if ((shouldLeftoverUpgrade(this.room) || this.creep.memory.destination) && this.upgrading(true)) return;
         this.creep.memory.task = undefined;
         this.creep.idleFor(5);
     }
@@ -318,8 +318,8 @@ class RoleDrone {
         if (!force) {
             if (!controllerDowngradeUrgent(this.room) && !this.creep.memory.task) return false;
 
-            // Drones should not upgrade if a specialized upgrader exists
-            if (this.room.myCreeps.some(c => c.memory.role === 'upgrader')) {
+            // Ignore reboot / 1W upgraders — they starve the 405k RCL4→5 dump.
+            if (hasDedicatedUpgrader(this.room)) {
                 if (this.creep.memory.task === 'upgrade') delete this.creep.memory.task;
                 return false;
             }
@@ -403,6 +403,26 @@ class RoleDrone {
 
 profiler.registerClass(RoleDrone, 'Drone');
 module.exports = RoleDrone;
+
+function shouldLeftoverUpgrade(room) {
+    if (!room || !room.controller || !room.controller.my) return false;
+    if (room.storage) return false;
+    return room.controller.level < 6;
+}
+
+function hasDedicatedUpgrader(room) {
+    const container = global.resolveControllerContainer && global.resolveControllerContainer(room);
+    const link = room.memory && room.memory.controllerLink && Game.getObjectById(room.memory.controllerLink);
+    if (!container && !link) return false;
+    const creeps = room.myCreeps || [];
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c || c.spawning || !c.memory || c.memory.role !== 'upgrader') continue;
+        const work = c.getActiveBodyparts ? c.getActiveBodyparts(WORK) : 0;
+        if (work >= 5) return true;
+    }
+    return false;
+}
 
 function controllerDowngradeUrgent(room) {
     const controller = room.controller;

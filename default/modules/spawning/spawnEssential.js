@@ -10,7 +10,13 @@ const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
 const {planShuttleForSource} = require('bodyEconomic');
-const {roomHasCriticalBuildSites, roomNeedsSpawnReboot, getOwnedExtensionDeficit, roomHasLiveTowTruck} = require('bodyHelpers');
+const {
+    roomHasCriticalBuildSites,
+    roomNeedsSpawnReboot,
+    getOwnedExtensionDeficit,
+    roomHasLiveTowTruck,
+    isColonyEarlyRush
+} = require('bodyHelpers');
 const {isHubManagerSlotReady, recycleHubSlotIntruder} = require('spawnHub');
 const {relocateHubObserver} = require('planCore');
 
@@ -84,7 +90,7 @@ function essentialCreepQueue(room) {
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
     const hasRoadMaintenance = _.filter(room.structures, s => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
     const harvesterCount = getCreepCount(room, 'stationaryHarvester');
-    const earlyRush = !room.storage && room.level < 5;
+    const earlyRush = isColonyEarlyRush(room);
 
     // Critical structures (esp. ones newly unlocked on controller level-up) should
     // bootstrap builders even if energyState is temporarily low (common right after
@@ -215,7 +221,7 @@ function essentialCreepQueue(room) {
         queueCreepIfNeeded({
             room, role: 'upgrader', priority,
             numberNeeded: upgraderAmount, misc: {boosts: [WORK]},
-            rebootCondition: spawnReboot || !getCreepCount(room, 'upgrader') || !energyState
+            rebootCondition: spawnReboot || !getCreepCount(room, 'upgrader')
         });
     }
 }

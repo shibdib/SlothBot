@@ -301,7 +301,16 @@ Object.defineProperty(Room.prototype, 'energyState', {
                 : Math.max(this.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));
         }
 
-        if (energy > target * 1.5 || (!this.storage && !this.terminal && this.level < 4)) this._energyState = 3;
+        // Pre-storage rooms cannot hit the 125k stockpile target. Score spawn fill
+        // so shuttles/upgraders are not reboot-capped the tick 20 extensions finish.
+        if (!this.storage && !this.terminal) {
+            const cap = this.energyCapacityAvailable || SPAWN_ENERGY_CAPACITY;
+            const avail = this.energyAvailable || 0;
+            if (avail >= cap * 0.9 || cap <= SPAWN_ENERGY_CAPACITY) this._energyState = 3;
+            else if (avail >= cap * 0.5) this._energyState = 2;
+            else if (avail >= SPAWN_ENERGY_CAPACITY) this._energyState = 1;
+            else this._energyState = 0;
+        } else if (energy > target * 1.5) this._energyState = 3;
         else if (energy >= target) this._energyState = 2;
         else if (energy > target * 0.5) this._energyState = 1;
         else this._energyState = 0;
@@ -739,7 +748,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     // === LIGHT UPDATE (every ~150 ticks) ===
     if (!roomIntel.microUpdate || roomIntel.microUpdate + 150 < currentTime) {
         const structures = this.structures;
-        const deposits = this.sources.length === 0 ? this.find(FIND_DEPOSITS) : [];
+        // Remote eligibility / unownedSources key off INTEL.sources. Heavy intel
+        // is 1 slot/tick and 7500 TTL for unowned rooms — stamp it here.
+        roomIntel.sources = this.sources.length;
+        roomIntel.isHighway = roomIntel.sources === 0;
+        const deposits = roomIntel.sources === 0 ? this.find(FIND_DEPOSITS) : [];
 
         // Invader Core — collapse tick is attackable life; invuln is stored separately
         // so planners can refuse to launch while the core takes no damage.
@@ -1153,15 +1166,19 @@ function updateRemoteSourceData(room, roomName, source, distance) {
     if (existing) {
         existing.room = room.name;
         existing.score = distance;
-    } else if (!remoteTargets.some(s => s.room === room.name)) {
-        return;
     } else {
+        // First source for a new remote used to return here, so vision never
+        // claimed a room — ingest on the 150-tick refresh was the only path.
         remoteTargets.push({room: room.name, source: source.id, score: distance});
     }
     ROOM_REMOTE_TARGETS[roomName] = remoteTargets;
 
     const colonyRoom = Game.rooms[roomName];
-    if (colonyRoom) getRemoteMining().pruneRoomRemoteTargets(roomName, colonyRoom);
+    if (colonyRoom) {
+        const mining = getRemoteMining();
+        mining.claimRemoteForColony(roomName, room.name);
+        mining.pruneRoomRemoteTargets(roomName, colonyRoom);
+    }
 }
 
 const MAX_HEAVY_INTEL_PER_TICK = 1;
