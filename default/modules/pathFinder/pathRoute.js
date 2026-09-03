@@ -76,6 +76,65 @@ function isRoomBlocked(roomName, origin, destination, options) {
     return false;
 }
 
+const SAME_ROOM_DETOUR_OPS = 4000;
+const SAME_ROOM_LONG_PATH = 40;
+
+function allowSameRoomDetour(options, origin, target) {
+    if (!options || !origin || !target) return false;
+    if (origin.roomName !== target.roomName) return false;
+    if (options.flee || options.portal) return false;
+    if (options.hopGoals && options.hopGoals.length) return false;
+    if (options.hopExitDir) return false;
+    // Caller pinned a 1-room search (exit hops, hide, road planner).
+    if (options.maxRooms === 1) return false;
+    return true;
+}
+
+function sameRoomDetourRooms(originRoom, options = {}) {
+    const exits = Game.map.describeExits(originRoom);
+    const rooms = [originRoom];
+    if (!exits) return rooms;
+    const dirs = Object.keys(exits);
+    for (let i = 0; i < dirs.length; i++) {
+        const neighbor = exits[dirs[i]];
+        if (!neighbor) continue;
+        if (isRoomBlocked(neighbor, originRoom, originRoom, options)) continue;
+        rooms.push(neighbor);
+    }
+    return filterAvoidedRooms(rooms, options, [originRoom]);
+}
+
+function sameRoomSearchNeedsDetour(origin, target, result) {
+    if (!result || result.incomplete) return true;
+    if (!result.path || !result.path.length) return true;
+    const range = origin.getRangeTo(target);
+    return result.path.length > Math.max(SAME_ROOM_LONG_PATH, range * 3);
+}
+
+function betterPathResult(current, candidate) {
+    if (!candidate || candidate.incomplete || !candidate.path || !candidate.path.length) return current;
+    if (!current || current.incomplete || !current.path || !current.path.length) return candidate;
+    if (candidate.cost != null && current.cost != null && candidate.cost !== current.cost) {
+        return candidate.cost < current.cost ? candidate : current;
+    }
+    return candidate.path.length < current.path.length ? candidate : current;
+}
+
+/**
+ * Same-room dest that is cheaper (or only reachable) via a neighboring room.
+ * Cheap 1-room search stays the default; this retries through exits only when
+ * that search is incomplete or far longer than Chebyshev.
+ * searchFn(rooms, maxOps) must run PathFinder with that allow-list.
+ */
+function applySameRoomDetour(origin, target, result, options, searchFn) {
+    if (!allowSameRoomDetour(options, origin, target)) return result;
+    if (!sameRoomSearchNeedsDetour(origin, target, result)) return result;
+    const rooms = sameRoomDetourRooms(origin.roomName, options);
+    if (rooms.length < 2) return result;
+    const detour = searchFn(rooms, Math.max((options && options.maxOps) || 0, SAME_ROOM_DETOUR_OPS));
+    return betterPathResult(result, detour);
+}
+
 function roomCost(roomName, origin, destination, options) {
     if (roomName === origin || roomName === destination) return 1;
     if (isRoomBlocked(roomName, origin, destination, options)) return Infinity;
@@ -531,6 +590,10 @@ module.exports = {
     onExitToward,
 
     preferredExitAlong,
+
+    applySameRoomDetour,
+
+    SAME_ROOM_DETOUR_OPS,
 
     ROUTE_TTL,
 

@@ -20,7 +20,13 @@ const {
     roomNeedsMazeOps
 } = require('pathUtils');
 
-const {findRoute, attachStagingAvoid, filterAvoidedRooms, preferredExitAlong} = require('pathRoute');
+const {
+    findRoute,
+    attachStagingAvoid,
+    filterAvoidedRooms,
+    preferredExitAlong,
+    applySameRoomDetour
+} = require('pathRoute');
 
 const {serializePath} = require('pathPathCache');
 
@@ -373,9 +379,20 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
         ? options.hopGoals
         : {pos: searchTarget, range: options.range};
     let result = PathFinder.search(origin, goals, Object.assign({maxOps}, searchOpts));
+    const detourSearch = (rooms, detourOps) => PathFinder.search(origin, goals, {
+        maxOps: detourOps,
+        maxRooms: rooms.length,
+        heuristicWeight: 1,
+        roomCallback: roomName => rooms.includes(roomName)
+            ? getSquadMatrix(roomName, orientation, squadSize) : false,
+    });
+    options.maxOps = Math.max(options.maxOps || 0, maxOps);
+    result = applySameRoomDetour(origin, searchTarget, result, options, detourSearch);
     if (result.incomplete && maxOps < MAZE_MAXOPS) {
         maxOps = MAZE_MAXOPS;
         result = PathFinder.search(origin, goals, Object.assign({maxOps}, searchOpts));
+        options.maxOps = maxOps;
+        result = applySameRoomDetour(origin, searchTarget, result, options, detourSearch);
     }
 
     if (!result.path.length) {

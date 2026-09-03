@@ -28,7 +28,8 @@ const {
     exitHopTarget,
     onExitToward,
     attachStagingAvoid,
-    filterAvoidedRooms
+    filterAvoidedRooms,
+    applySameRoomDetour,
 } = require('pathRoute');
 
 const {isSquadCreep, wouldEnterDest, posAfterMove} = require('pathFormation');
@@ -275,15 +276,23 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
             allowedRooms = [origin.roomName];
         }
         allowedRooms = filterAvoidedRooms(allowedRooms, options, [origin.roomName, target.roomName]);
-        return PathFinder.search(origin, {pos: target, range: options.range || 1}, {
-            maxOps: options.maxOps || DEFAULT_MAXOPS,
-            maxRooms: allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 16),
+        const pathOnlyGoals = {pos: target, range: options.range || 1};
+        const pathOnlySearch = (rooms, maxOps, maxRooms) => PathFinder.search(origin, pathOnlyGoals, {
+            maxOps,
+            maxRooms,
             heuristicWeight: options.heuristicWeight || 1,
             roomCallback: (roomName) => {
-                if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
+                if (rooms.length && !rooms.includes(roomName)) return false;
                 return getMatrix(roomName, creep, options);
             },
         });
+        let result = pathOnlySearch(
+            allowedRooms,
+            options.maxOps || DEFAULT_MAXOPS,
+            allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 16),
+        );
+        return applySameRoomDetour(origin, target, result, options, (rooms, maxOps) =>
+            pathOnlySearch(rooms, maxOps, rooms.length));
     }
 
     if (creep.spawning) return false;
@@ -533,19 +542,28 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     const goals = options.hopGoals && options.hopGoals.length
         ? options.hopGoals
         : {pos: target, range: options.range};
-    const result = PathFinder.search(origin, goals, {
-        maxOps: options.maxOps,
-        // Same-room searches never need to leave. Multi-room: never cap below
-        // the allowed list (Math.min with maxRooms=7 used to abort 8+ room trips).
-        maxRooms: origin.roomName === target.roomName
-            ? 1
-            : (allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 1)),
+    const runSearch = (rooms, maxOps, maxRooms) => PathFinder.search(origin, goals, {
+        maxOps,
+        maxRooms,
         heuristicWeight: 1,
         roomCallback: (roomName) => {
-            if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
+            if (rooms.length && !rooms.includes(roomName)) return false;
             return getMatrix(roomName, creep, options);
         }
     });
+    // Same-room: stay in-room first. Neighbor corridors are a retry in
+    // applySameRoomDetour (incomplete or far longer than Chebyshev).
+    // Multi-room: never cap below the allowed list (Math.min with maxRooms=7
+    // used to abort 8+ room trips).
+    let result = runSearch(
+        allowedRooms,
+        options.maxOps,
+        origin.roomName === target.roomName
+            ? 1
+            : (allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 1)),
+    );
+    result = applySameRoomDetour(origin, target, result, options, (rooms, maxOps) =>
+        runSearch(rooms, maxOps, rooms.length));
 
     if (!result.incomplete) {
         pathInfo.target = {x: target.x, y: target.y, roomName: target.roomName};
