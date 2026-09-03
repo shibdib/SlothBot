@@ -243,7 +243,7 @@ class StateManager {
         // nothing was destroyed and the room can still spawn — that is not a
         // rebuild. Empire drones only when there is no active spawn, or the
         // room is still a baby vs empire max.
-        room.memory.buildersNeeded = !hasSpawn || (room.level < MAX_LEVEL * 0.5);
+        room.memory.buildersNeeded = !hasSpawn || (room.level < 3);
     }
 
     funnelRequest(room) {
