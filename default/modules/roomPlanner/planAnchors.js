@@ -11,13 +11,13 @@
  * Dual-write of anchor coords to bunkerHub/towerHubs/labHub removed (C5).
  */
 
-const {coreTemplate, bunkerTemplate, labTemplate, hubLinkOffset} = require('planTemplates');
+const {coreTemplate, bunkerTemplate, labTemplate, hubLinkOffset, reservedHubTileKeys} = require('planTemplates');
 
 const {
-    getUndefendedExits,
     determineTowerDamage,
     isCoreHubTileValid,
     isNearAnyMineral,
+    isAttackRecoveryMode,
     safeStructureOwner,
     countRoomConstructionSitesOfType,
     countRoomConstructionSites,
@@ -29,6 +29,8 @@ const {
     assessHubExtensionCapacity,
     clearDynamicLayoutMemory,
     countPlaceableBunkerExtensionsAt,
+    getDynamicSpecialAssignments,
+    isHubRelativeExtensionParity,
 } = require('planGeomExtensions');
 
 const {
@@ -49,11 +51,23 @@ const LAB_HUB_SEARCH_COOLDOWN = 500;
 const LAB_HUB_SEARCH_CPU_RESERVE = 10;
 const LAB_HUB_PATH_MAX_OPS = 4000;
 const HUB_EXTENSION_VALIDATE_COOLDOWN = 500;
-const TOWER_HUB_MIN_DIST = 6;
-const TOWER_HUB_MAX_DIST = 10;
-const TOWER_LAYOUT_VERSION = 1;
+const HUB_SEARCH_MIN = 7;
+const HUB_SEARCH_MAX = 42;
+const HUB_SEAL_CANDIDATE_CAP = 8;
+const HUB_SEAL_WEIGHT = 4;
+const HUB_SECTOR_WEIGHT = 10;
+// Fallback ring around the hub when no seal exists yet (RCL < bunker).
+const TOWER_HUB_MIN_DIST = 2;
+const TOWER_HUB_MAX_DIST = 5;
+// Sit just inside the seal so each wall tile is in high tower damage.
+const TOWER_SEAL_BAND_MIN = 1;
+const TOWER_SEAL_BAND_MAX = 5;
+const TOWER_SEAL_BAND_WIDEN = 10;
+const TOWER_LAYOUT_VERSION = 3;
 const MAX_TOWER_HUBS = 6;
-const TOWER_HUB_SEPARATION = 4;
+const TOWER_HUB_SEPARATION = 2;
+const TOWER_EXIT_CLEARANCE = 5;
+const TOWER_ANCHOR_CLEARANCE = 3;
 const LAB_HUB_INPUT_INDICES = [0, 1];
 
 // ---------------------------------------------------------------------------
@@ -223,7 +237,7 @@ function isValidHubPosition(pos, room, sources) {
         for (let i = 0; i < type.pos.length; i++) {
             const s = type.pos[i];
             const sp = new RoomPosition(pos.x + s.x, pos.y + s.y, room.name);
-            if (sp.x < 1 || sp.x > 48 || sp.y < 1 || sp.y > 48) return false;
+            if (sp.x < 2 || sp.x > 47 || sp.y < 2 || sp.y > 47) return false;
             if (sp.checkForImpassible()) return false;
             if (sp.isNearTo(room.controller)) return false;
             if (isNearAnyMineral(sp, room, 1)) return false;
@@ -233,9 +247,69 @@ function isValidHubPosition(pos, room, sources) {
     return true;
 }
 
-function findCoreHub(room) {
-    let bestPos = null;
+function hubEconomyParts(room, p, sources) {
+    const pos = p.pos || new RoomPosition(p.x, p.y, room.name);
+    let nearest = Infinity;
+    const list = sources || [];
+    for (let i = 0; i < list.length; i++) {
+        const src = list[i];
+        if (!src) continue;
+        const d = pos.getRangeTo(src);
+        if (d < nearest) nearest = d;
+    }
+    const sourceDist = (nearest === Infinity ? 25 : nearest) * 2;
+    const controllerDist = room.controller ? pos.getRangeTo(room.controller) * 1.5 : 0;
+    const edgeBonus = Math.min(p.x, 49 - p.x, p.y, 49 - p.y) * 0.3;
+    return {
+        sourceDist,
+        controllerDist,
+        edgeBonus,
+        economy: sourceDist + controllerDist - edgeBonus,
+    };
+}
+
+/**
+ * Rank hub candidates by stamp-seal size (dead ends / terrain pockets first),
+ * then source + controller distance. Full bunker fit is selected by the caller;
+ * this only ranks within a candidate set.
+ */
+function pickDefensibleHub(room, candidates, template, sources) {
+    if (!candidates || !candidates.length) return null;
+    const geom = require('planGeomRamparts');
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const radius = geom.templateStampRadius(template);
+    for (let i = 0; i < candidates.length; i++) {
+        const p = candidates[i];
+        const eco = hubEconomyParts(room, p, sources);
+        p._ring = geom.countOpenStampRing(terrain, p.x, p.y, radius);
+        p._sectors = geom.countOpenExitSectors(terrain, p.x, p.y);
+        p._pre = p._sectors * HUB_SECTOR_WEIGHT + p._ring * HUB_SEAL_WEIGHT + eco.economy;
+        p._economy = eco.economy;
+    }
+    candidates.sort((a, b) => a._pre - b._pre || a.x - b.x || a.y - b.y);
+    const cpuHot = typeof Game !== 'undefined' && Game.cpu && Game.cpu.getUsed
+        && Game.cpu.getUsed() > (Game.cpu.tickLimit || 500) - 25;
+    if (cpuHot) return candidates[0];
+    const limit = Math.min(candidates.length, HUB_SEAL_CANDIDATE_CAP);
+    let best = candidates[0];
     let bestScore = Infinity;
+    for (let i = 0; i < limit; i++) {
+        const p = candidates[i];
+        const seal = geom.estimateHubSealCost(room, p, template);
+        const score = seal * HUB_SEAL_WEIGHT + (p._economy != null ? p._economy : hubEconomyParts(room, p, sources).economy);
+        p._seal = seal;
+        p._score = score;
+        if (score < bestScore || (score === bestScore && p._ring < (best._ring || Infinity))) {
+            bestScore = score;
+            best = p;
+        }
+    }
+    return best;
+}
+
+function findCoreHub(room) {
+    const sources = room.sources && room.sources.length ? room.sources : room.find(FIND_SOURCES);
+    const possiblePos = [];
     for (let x = 3; x <= 46; x++) {
         for (let y = 3; y <= 46; y++) {
             const hub = new RoomPosition(x, y, room.name);
@@ -259,18 +333,17 @@ function findCoreHub(room) {
             if (sourceDist < 6) continue;
             const controllerDist = hub.getRangeTo(room.controller) * 1.5;
             if (controllerDist < 4) continue;
-            const edgeBonus = Math.min(x, 49 - x, y, 49 - y) * 0.3;
-            const score = sourceDist + controllerDist - edgeBonus;
-            if (score < bestScore) {
-                bestScore = score;
-                bestPos = {x, y};
-            }
+            possiblePos.push({x, y, pos: hub});
         }
     }
+    const bestPos = pickDefensibleHub(room, possiblePos, coreTemplate, sources);
     if (!bestPos) return false;
     commitCoreHub(room, bestPos, {dynamicLayout: true});
     if (typeof log !== 'undefined' && log.a) {
-        log.a(room.name + ' cannot fit full bunker — using dynamic layout at (' + bestPos.x + ', ' + bestPos.y + ')');
+        log.a(room.name + ' cannot fit full bunker — using dynamic layout at (' + bestPos.x + ', ' + bestPos.y
+            + ') seal=' + (bestPos._seal != null ? bestPos._seal : '?')
+            + ' ring=' + (bestPos._ring != null ? bestPos._ring : '?')
+            + ' sectors=' + (bestPos._sectors != null ? bestPos._sectors : '?'));
     }
     return true;
 }
@@ -331,13 +404,13 @@ function findHub(room, isHubCheck) {
     const sources = room.find(FIND_SOURCES);
     const possiblePos = [];
 
-    for (let y = 10; y <= 40; y++) {
-        for (let x = 10; x <= 40; x++) {
+    for (let y = HUB_SEARCH_MIN; y <= HUB_SEARCH_MAX; y++) {
+        for (let x = HUB_SEARCH_MIN; x <= HUB_SEARCH_MAX; x++) {
             const pos = new RoomPosition(x, y, room.name);
             if (pos.checkForImpassible()) continue;
             if (!isValidHubPosition(pos, room, sources)) continue;
             if (isHubCheck) return true;
-            possiblePos.push({x, y});
+            possiblePos.push({x, y, pos});
         }
     }
 
@@ -354,17 +427,14 @@ function findHub(room, isHubCheck) {
             log.a(room.name + ' hub search: ' + possiblePos.length + ' candidates, best extension fit '
                 + maxPlaceable + '/' + extensionTotal);
         }
-        const choice = _.min(tier, p => {
-            const pos = new RoomPosition(p.x, p.y, room.name);
-            const sourceDist = pos.getRangeTo(_.min(sources, s => pos.getRangeTo(s))) * 2;
-            const controllerDist = pos.getRangeTo(room.controller) * 1.5;
-            const edgeBonus = Math.min(p.x, 49 - p.x, p.y, 49 - p.y) * 0.3;
-            return sourceDist + controllerDist - edgeBonus;
-        });
+        const choice = pickDefensibleHub(room, tier, bunkerTemplate, sources) || tier[0];
         commitCoreHub(room, {x: choice.x, y: choice.y});
         if (typeof log !== 'undefined' && log.a) {
             log.a('Hub at (' + choice.x + ', ' + choice.y + ') in ' + room.name
-                + ' — ' + choice.placeable + ' bunker extension slots');
+                + ' — ' + choice.placeable + ' bunker extension slots'
+                + ' seal=' + (choice._seal != null ? choice._seal : '?')
+                + ' ring=' + (choice._ring != null ? choice._ring : '?')
+                + ' sectors=' + (choice._sectors != null ? choice._sectors : '?'));
         }
         return true;
     }
@@ -526,6 +596,10 @@ function buildLabSearchContext(room, allowWalls) {
         }
     }
     addWorldBlockedTiles(room, blocked, !!allowWalls);
+    const towerHubs = resolveTowerHubs(room);
+    for (let i = 0; i < towerHubs.length; i++) {
+        blocked.add(towerHubs[i].x + ',' + towerHubs[i].y);
+    }
     if (controller) blocked.add(controller.pos.x + ',' + controller.pos.y);
     if (room.mineral) blocked.add(room.mineral.pos.x + ',' + room.mineral.pos.y);
     for (let i = 0; i < sources.length; i++) {
@@ -802,11 +876,286 @@ function ensureLabHub(room) {
 }
 
 // ---------------------------------------------------------------------------
-// Tower hubs
+// Tower hubs — interior band along the min-cut seal.
+// Greedy maximin of tower damage on every seal tile so firepower is even.
+// Bump TOWER_LAYOUT_VERSION to migrate; off-plan towers are destroyed.
 // ---------------------------------------------------------------------------
 
 function cheby(ax, ay, bx, by) {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+}
+
+function towerTileKey(x, y) {
+    return x + ',' + y;
+}
+
+/** Core/lab/special stamps a tower must not occupy. Roads are allowed (share the tile). */
+function collectTowerBlockedKeys(room, hubX, hubY) {
+    const blocked = reservedHubTileKeys({x: hubX, y: hubY});
+    const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+    for (let e = 0; e < tmpl.length; e++) {
+        const entry = tmpl[e];
+        if (!entry || entry.structureType === STRUCTURE_ROAD || entry.structureType === STRUCTURE_EXTENSION) {
+            continue;
+        }
+        const pos = entry.pos || [];
+        for (let i = 0; i < pos.length; i++) {
+            blocked.add(towerTileKey(hubX + pos[i].x, hubY + pos[i].y));
+        }
+    }
+    const lab = resolveLabHub(room);
+    if (lab && lab.hub && labTemplate) {
+        for (let i = 0; i < labTemplate.length; i++) {
+            blocked.add(towerTileKey(lab.hub.x + labTemplate[i].x, lab.hub.y + labTemplate[i].y));
+        }
+    }
+    if (room.memory.dynamicLayout) {
+        const assignments = getDynamicSpecialAssignments(room) || [];
+        for (let i = 0; i < assignments.length; i++) {
+            blocked.add(towerTileKey(assignments[i].x, assignments[i].y));
+        }
+    }
+    return blocked;
+}
+
+function collectExtensionStampKeys(room, hubX, hubY) {
+    const keys = new Set();
+    if (room.memory.dynamicLayout) return keys;
+    for (let e = 0; e < bunkerTemplate.length; e++) {
+        const entry = bunkerTemplate[e];
+        if (!entry || entry.structureType !== STRUCTURE_EXTENSION) continue;
+        const pos = entry.pos || [];
+        for (let i = 0; i < pos.length; i++) {
+            keys.add(towerTileKey(hubX + pos[i].x, hubY + pos[i].y));
+        }
+    }
+    return keys;
+}
+
+function isTowerTileBlockedByWorld(room, x, y) {
+    const pos = new RoomPosition(x, y, room.name);
+    if (!pos.lookFor) return false;
+    const structs = pos.lookFor(LOOK_STRUCTURES) || [];
+    for (let i = 0; i < structs.length; i++) {
+        const t = structs[i].structureType;
+        if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
+        if (t === STRUCTURE_EXTENSION || t === STRUCTURE_CONTAINER || t === STRUCTURE_WALL) continue;
+        if (t === STRUCTURE_TOWER) continue;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Tiles the towers must cover: planned hub seal if it exists, otherwise the
+ * walkable cheby ring just outside the stamp (proxy for hub walls/ramparts).
+ */
+function sampleHubWallTiles(room, hubX, hubY, terrain) {
+    try {
+        if (typeof ROOM_RAMPART_SPOTS !== 'undefined' && ROOM_RAMPART_SPOTS[room.name]) {
+            const raw = ROOM_RAMPART_SPOTS[room.name];
+            const spots = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            if (Array.isArray(spots) && spots.length) {
+                return spots.map(function (p) {
+                    return {x: p.x, y: p.y};
+                });
+            }
+        }
+    } catch (e) { /* fall through to stamp ring */
+    }
+
+    const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+    let radius = 5;
+    try {
+        radius = require('planGeomRamparts').templateStampRadius(tmpl) || 5;
+    } catch (e) { /* default bunker ring */
+    }
+    const r = radius + 1;
+    const samples = [];
+    for (let dx = -r; dx <= r; dx++) {
+        for (let dy = -r; dy <= r; dy++) {
+            if (cheby(dx, dy, 0, 0) !== r) continue;
+            const x = hubX + dx;
+            const y = hubY + dy;
+            if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            samples.push({x, y});
+        }
+    }
+    return samples;
+}
+
+function collectExitTiles(room) {
+    const neighboring = Game.map.describeExits(room.name);
+    const dirToFind = {'1': FIND_EXIT_TOP, '3': FIND_EXIT_RIGHT, '5': FIND_EXIT_BOTTOM, '7': FIND_EXIT_LEFT};
+    const tiles = [];
+    for (const dir in dirToFind) {
+        if (!neighboring[dir]) continue;
+        const exits = room.find(dirToFind[dir]) || [];
+        for (let i = 0; i < exits.length; i++) tiles.push(exits[i]);
+    }
+    return tiles;
+}
+
+function minExitDist(x, y, exitTiles) {
+    let min = Infinity;
+    for (let i = 0; i < exitTiles.length; i++) {
+        const d = cheby(x, y, exitTiles[i].x, exitTiles[i].y);
+        if (d < min) min = d;
+    }
+    return min;
+}
+
+function floodInteriorBehindSeal(hubXY, sealSet, terrain) {
+    const interior = new Set();
+    if (!hubXY || !terrain) return interior;
+    const start = towerTileKey(hubXY.x, hubXY.y);
+    if (sealSet && sealSet.has(start)) {
+        interior.add(start);
+        return interior;
+    }
+    interior.add(start);
+    const q = [hubXY.x, hubXY.y];
+    let qi = 0;
+    const oct = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+    while (qi < q.length) {
+        const x = q[qi++];
+        const y = q[qi++];
+        for (let i = 0; i < 8; i++) {
+            const nx = x + oct[i][0];
+            const ny = y + oct[i][1];
+            if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
+            const key = towerTileKey(nx, ny);
+            if (interior.has(key) || (sealSet && sealSet.has(key))) continue;
+            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
+            interior.add(key);
+            q.push(nx, ny);
+        }
+    }
+    return interior;
+}
+
+function candidateAllowed(room, x, y, blocked, srcPos, ctrlPos, extensionStamp, hubXY, skipExit) {
+    if (x < 2 || x > 47 || y < 2 || y > 47) return null;
+    const terrain = Game.map.getRoomTerrain(room.name);
+    if (terrain.get(x, y) === TERRAIN_MASK_WALL) return null;
+    const key = towerTileKey(x, y);
+    if (blocked.has(key)) return null;
+    if (isTowerTileBlockedByWorld(room, x, y)) return null;
+    for (let i = 0; i < srcPos.length; i++) {
+        if (cheby(x, y, srcPos[i].x, srcPos[i].y) < TOWER_ANCHOR_CLEARANCE) return null;
+    }
+    if (ctrlPos && cheby(x, y, ctrlPos.x, ctrlPos.y) < TOWER_ANCHOR_CLEARANCE) return null;
+    if (isNearAnyMineral(new RoomPosition(x, y, room.name), room, TOWER_ANCHOR_CLEARANCE - 1)) return null;
+    if (!skipExit) {
+        const exitTiles = collectExitTiles(room);
+        if (exitTiles.length && minExitDist(x, y, exitTiles) < TOWER_EXIT_CLEARANCE) return null;
+    }
+    const extensionTile = extensionStamp.has(key)
+        || (room.memory.dynamicLayout && isHubRelativeExtensionParity(hubXY, x, y));
+    return {x, y, key, soft: extensionTile ? 1 : 0};
+}
+
+function collectSealBandCandidates(room, hubXY, walls, sealSet, interior, blocked, srcPos, ctrlPos, extensionStamp) {
+    const candidates = [];
+    const seen = new Set();
+    const addAt = (x, y, sealDist) => {
+        const key = towerTileKey(x, y);
+        if (seen.has(key)) return;
+        if (sealSet.has(key)) return;
+        if (interior && interior.size && !interior.has(key)) return;
+        const c = candidateAllowed(room, x, y, blocked, srcPos, ctrlPos, extensionStamp, hubXY, true);
+        if (!c) return;
+        seen.add(key);
+        c.sealDist = sealDist;
+        c.hubDist = cheby(x, y, hubXY.x, hubXY.y);
+        candidates.push(c);
+    };
+    const fillBand = (maxDist) => {
+        for (let w = 0; w < walls.length; w++) {
+            const wx = walls[w].x;
+            const wy = walls[w].y;
+            for (let r = TOWER_SEAL_BAND_MIN; r <= maxDist; r++) {
+                forEachChebyshevRing(wx, wy, r, 2, 47, 2, 47, function (x, y) {
+                    addAt(x, y, r);
+                });
+            }
+        }
+    };
+    fillBand(TOWER_SEAL_BAND_MAX);
+    if (candidates.length < MAX_TOWER_HUBS * 3) fillBand(TOWER_SEAL_BAND_WIDEN);
+    return candidates;
+}
+
+function collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensionStamp) {
+    const candidates = [];
+    for (let r = TOWER_HUB_MIN_DIST; r <= TOWER_HUB_MAX_DIST; r++) {
+        forEachChebyshevRing(hubXY.x, hubXY.y, r, 2, 47, 2, 47, function (x, y) {
+            const c = candidateAllowed(room, x, y, blocked, srcPos, ctrlPos, extensionStamp, hubXY, false);
+            if (!c) return;
+            c.sealDist = r;
+            c.hubDist = r;
+            candidates.push(c);
+        });
+    }
+    return candidates;
+}
+
+/** Greedy maximin coverage of seal tiles, then total damage, then closer to the wall. */
+function pickEvenSealTowers(candidates, walls) {
+    const selected = [];
+    const used = new Set();
+    const wallDmg = [];
+    for (let w = 0; w < walls.length; w++) wallDmg.push(0);
+
+    while (selected.length < MAX_TOWER_HUBS) {
+        let best = null;
+        let bestMin = -1;
+        let bestSum = -1;
+        let bestSeal = 99;
+        let bestSoft = 2;
+        for (let i = 0; i < candidates.length; i++) {
+            const c = candidates[i];
+            const key = towerTileKey(c.x, c.y);
+            if (used.has(key)) continue;
+            let ok = true;
+            for (let j = 0; j < selected.length; j++) {
+                if (cheby(c.x, c.y, selected[j].x, selected[j].y) < TOWER_HUB_SEPARATION) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (!ok) continue;
+
+            let min = walls.length ? Infinity : 0;
+            let sum = 0;
+            for (let w = 0; w < walls.length; w++) {
+                const d = wallDmg[w] + determineTowerDamage(cheby(c.x, c.y, walls[w].x, walls[w].y));
+                if (d < min) min = d;
+                sum += d;
+            }
+            const sealDist = c.sealDist != null ? c.sealDist : 99;
+            const better = !best
+                || min > bestMin
+                || (min === bestMin && sum > bestSum)
+                || (min === bestMin && sum === bestSum && sealDist < bestSeal)
+                || (min === bestMin && sum === bestSum && sealDist === bestSeal && c.soft < bestSoft);
+            if (better) {
+                best = c;
+                bestMin = min;
+                bestSum = sum;
+                bestSeal = sealDist;
+                bestSoft = c.soft;
+            }
+        }
+        if (!best) break;
+        selected.push(best);
+        used.add(towerTileKey(best.x, best.y));
+        for (let w = 0; w < walls.length; w++) {
+            wallDmg[w] += determineTowerDamage(cheby(best.x, best.y, walls[w].x, walls[w].y));
+        }
+    }
+    return selected;
 }
 
 function selectTowerHubs(room) {
@@ -817,76 +1166,30 @@ function selectTowerHubs(room) {
 
     const hubX = coreHub.x;
     const hubY = coreHub.y;
-    const neighboring = Game.map.describeExits(room.name);
-    const dirToFind = {'1': FIND_EXIT_TOP, '3': FIND_EXIT_RIGHT, '5': FIND_EXIT_BOTTOM, '7': FIND_EXIT_LEFT};
-    const undefendedExits = getUndefendedExits(room.name);
-
-    const threatPoints = [];
-    const allExitTiles = [];
-    for (const dir in dirToFind) {
-        if (!neighboring[dir]) continue;
-        if (undefendedExits.includes(dirToFind[dir])) continue;
-        const exits = room.find(dirToFind[dir]);
-        if (!exits.length) continue;
-        for (let i = 0; i < exits.length; i++) allExitTiles.push(exits[i]);
-        threatPoints.push(
-            exits[Math.floor(exits.length * 0.25)],
-            exits[Math.floor(exits.length * 0.5)],
-            exits[Math.floor(exits.length * 0.75)]
-        );
-    }
-
-    if (!threatPoints.length) {
-        return {hubs: [], reason: 'no_threat_exits'};
-    }
-
+    const hubXY = {x: hubX, y: hubY};
     const terrain = Game.map.getRoomTerrain(room.name);
+    const blocked = collectTowerBlockedKeys(room, hubX, hubY);
+    const extensionStamp = collectExtensionStampKeys(room, hubX, hubY);
     const srcPos = (room.sources || []).map(s => s.pos);
-    const ctrlPos = room.controller.pos;
-    const minPos = room.mineral ? room.mineral.pos : null;
+    const ctrlPos = room.controller ? room.controller.pos : null;
+    const walls = sampleHubWallTiles(room, hubX, hubY, terrain);
 
-    const candidates = [];
-    for (let x = 4; x <= 45; x++) {
-        for (let y = 4; y <= 45; y++) {
-            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
-            const hubDist = cheby(x, y, hubX, hubY);
-            if (hubDist < TOWER_HUB_MIN_DIST || hubDist > TOWER_HUB_MAX_DIST) continue;
-            if (srcPos.some(p => cheby(x, y, p.x, p.y) < 3)) continue;
-            if (cheby(x, y, ctrlPos.x, ctrlPos.y) < 3) continue;
-            if (minPos && cheby(x, y, minPos.x, minPos.y) < 3) continue;
-            let minEdge = Infinity;
-            for (let i = 0; i < allExitTiles.length; i++) {
-                const e = allExitTiles[i];
-                const d = cheby(x, y, e.x, e.y);
-                if (d < minEdge) minEdge = d;
-            }
-            if (minEdge < 5) continue;
-
-            let score = 0;
-            for (let i = 0; i < threatPoints.length; i++) {
-                const tp = threatPoints[i];
-                score += determineTowerDamage(cheby(x, y, tp.x, tp.y));
-            }
-            candidates.push({x, y, score});
-        }
+    let candidates;
+    if (walls.length) {
+        const sealSet = new Set();
+        for (let i = 0; i < walls.length; i++) sealSet.add(towerTileKey(walls[i].x, walls[i].y));
+        const interior = floodInteriorBehindSeal(hubXY, sealSet, terrain);
+        candidates = collectSealBandCandidates(
+            room, hubXY, walls, sealSet, interior, blocked, srcPos, ctrlPos, extensionStamp);
+    } else {
+        candidates = collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensionStamp);
     }
 
-    candidates.sort((a, b) => b.score - a.score);
-    const selected = [];
-    for (let i = 0; i < candidates.length; i++) {
-        if (selected.length >= MAX_TOWER_HUBS) break;
-        const c = candidates[i];
-        let ok = true;
-        for (let j = 0; j < selected.length; j++) {
-            if (cheby(c.x, c.y, selected[j].x, selected[j].y) < TOWER_HUB_SEPARATION) {
-                ok = false;
-                break;
-            }
-        }
-        if (ok) selected.push({x: c.x, y: c.y});
-    }
-
-    return {hubs: selected, candidateCount: candidates.length};
+    const picked = pickEvenSealTowers(candidates, walls);
+    const selected = picked.map(function (c) {
+        return {x: c.x, y: c.y};
+    });
+    return {hubs: selected, candidateCount: candidates.length, alongSeal: walls.length > 0};
 }
 
 function recoverTowerHubsFromWorld(room) {
@@ -920,25 +1223,160 @@ function refreshPerimeterAfterTowerHubs(room) {
     }
 }
 
+function perimeterRevForTowers() {
+    try {
+        return require('planGeomRamparts').PERIMETER_PLAN_REV;
+    } catch (e) {
+        return 0;
+    }
+}
+
+function currentSealKey(room) {
+    const hub = resolveHub(room);
+    if (!hub) return 'none';
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const walls = sampleHubWallTiles(room, hub.x, hub.y, terrain);
+    if (!walls.length) return 'none';
+    let sx = 0;
+    let sy = 0;
+    for (let i = 0; i < walls.length; i++) {
+        sx += walls[i].x;
+        sy += walls[i].y;
+    }
+    return walls.length + ':' + Math.round(sx / walls.length) + ':' + Math.round(sy / walls.length);
+}
+
+function sealKeyDrifted(prev, next) {
+    if (!prev || prev === 'none') return next !== 'none';
+    if (!next || next === 'none') return false;
+    const a = prev.split(':');
+    const b = next.split(':');
+    const n0 = Number(a[0]);
+    const n1 = Number(b[0]);
+    if (!n0 || !n1) return true;
+    if (Math.abs(n0 - n1) > Math.max(4, n0 * 0.2)) return true;
+    if (Math.abs(Number(a[1]) - Number(b[1])) >= 4) return true;
+    if (Math.abs(Number(a[2]) - Number(b[2])) >= 4) return true;
+    return false;
+}
+
+function towerLayoutStale(room) {
+    if (!room || !room.memory) return true;
+    if (room.memory.towerLayoutVersion !== TOWER_LAYOUT_VERSION) return true;
+    const rev = perimeterRevForTowers();
+    if (rev && room.memory.towerSealRev !== rev) return true;
+    return sealKeyDrifted(room.memory.towerSealKey, currentSealKey(room));
+}
+
+function hubsMatch(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    const set = new Set();
+    for (let i = 0; i < a.length; i++) set.add(towerTileKey(a[i].x, a[i].y));
+    for (let i = 0; i < b.length; i++) {
+        if (!set.has(towerTileKey(b[i].x, b[i].y))) return false;
+    }
+    return true;
+}
+
+function roomUnsafeForTowerMove(room) {
+    if (!room) return true;
+    try {
+        if (isAttackRecoveryMode(room)) return true;
+    } catch (e) { /* ignore */
+    }
+    if (room.memory && room.memory.dangerousAttack) return true;
+    const intel = typeof INTEL !== 'undefined' ? INTEL[room.name] : null;
+    if (intel && intel.threatLevel) return true;
+    const hostiles = room.hostileCreeps || [];
+    for (let i = 0; i < hostiles.length; i++) {
+        const c = hostiles[i];
+        if (!c) continue;
+        if (c.hasActiveBodyparts && (c.hasActiveBodyparts(ATTACK)
+            || c.hasActiveBodyparts(RANGED_ATTACK) || c.hasActiveBodyparts(WORK))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function relocateOffPlanTowers(room, hubs) {
+    const hubSet = new Set();
+    for (let i = 0; i < (hubs || []).length; i++) {
+        hubSet.add(towerTileKey(hubs[i].x, hubs[i].y));
+    }
+    let destroyed = 0;
+    let sitesRemoved = 0;
+    const liveTowers = getLiveTowerStructures(room);
+    for (let i = 0; i < liveTowers.length; i++) {
+        const t = liveTowers[i];
+        if (!t || !t.pos) continue;
+        if (hubSet.has(towerTileKey(t.pos.x, t.pos.y))) continue;
+        try {
+            if (t.destroy() === OK) destroyed++;
+        } catch (e) { /* ignore */
+        }
+    }
+    const liveSites = getLiveTowerSites(room);
+    for (let i = 0; i < liveSites.length; i++) {
+        const s = liveSites[i];
+        if (!s || !s.pos) continue;
+        if (hubSet.has(towerTileKey(s.pos.x, s.pos.y))) continue;
+        try {
+            s.remove();
+            sitesRemoved++;
+        } catch (e) { /* ignore */
+        }
+    }
+    if (destroyed || sitesRemoved) invalidateRoomCaches(room);
+    return {destroyed, sitesRemoved};
+}
+
+function ensureTowerRamparts(room, hubs) {
+    if (!hubs || !hubs.length || isPlannerShadow(room)) return 0;
+    let placed = 0;
+    for (let i = 0; i < hubs.length; i++) {
+        const pos = new RoomPosition(hubs[i].x, hubs[i].y, room.name);
+        if (pos.checkForRampart && pos.checkForRampart()) continue;
+        const sites = pos.lookFor ? pos.lookFor(LOOK_CONSTRUCTION_SITES) : [];
+        if (sites.some(s => s.structureType === STRUCTURE_RAMPART)) continue;
+        const structs = pos.lookFor ? pos.lookFor(LOOK_STRUCTURES) : [];
+        const hasTower = structs.some(s => s.structureType === STRUCTURE_TOWER)
+            || sites.some(s => s.structureType === STRUCTURE_TOWER);
+        if (!hasTower) continue;
+        try {
+            const res = siteBudget.tryPlace(room, 'ramparts', pos, STRUCTURE_RAMPART);
+            if (res && res.ok) placed++;
+        } catch (e) { /* optional */
+        }
+    }
+    return placed;
+}
+
+function stampTowerLayout(room) {
+    room.memory.towerLayoutVersion = TOWER_LAYOUT_VERSION;
+    room.memory.towerSealRev = perimeterRevForTowers();
+    room.memory.towerSealKey = currentSealKey(room);
+}
+
 function ensureTowerHubs(room, options) {
     const opts = options || {};
     if (!resolveHub(room)) {
         return {ok: false, hubs: [], reason: 'no_hub'};
     }
 
-    if (!opts.forceSearch) {
+    const stale = opts.forceSearch || towerLayoutStale(room);
+    if (!stale) {
         const existing = resolveTowerHubs(room);
         if (existing.length) {
-            // C5: no legacy hydrate — plan is enough for readers.
+            ensureTowerRamparts(room, existing);
             return {ok: true, hubs: existing.slice(), reason: 'existing'};
         }
-    }
-
-    if (!opts.forceSearch) {
         const recovered = recoverTowerHubsFromWorld(room);
         if (recovered.length) {
             commitTowerHubs(room, recovered);
+            stampTowerLayout(room);
             refreshPerimeterAfterTowerHubs(room);
+            ensureTowerRamparts(room, recovered);
             if (typeof log !== 'undefined' && log.a) {
                 log.a(room.name + ': recovered ' + recovered.length + ' tower hub(s) from existing towers', 'PLANNER');
             }
@@ -946,17 +1384,50 @@ function ensureTowerHubs(room, options) {
         }
     }
 
+    if (stale && !opts.forceSearch && roomUnsafeForTowerMove(room)) {
+        const existing = resolveTowerHubs(room);
+        if (existing.length) {
+            return {ok: true, hubs: existing.slice(), reason: 'defer_relocate'};
+        }
+    }
+
+    try {
+        const geom = require('planGeomRamparts');
+        if (room.memory.perimeterPlanRev !== geom.PERIMETER_PLAN_REV
+            && room.controller && room.controller.level >= (typeof BUNKER_LEVEL === 'number' ? BUNKER_LEVEL : 6)) {
+            require('planRamparts').recalculateRampartsForRoom(room, undefined, {destroyOffPlan: true});
+            room.memory.perimeterPlanRev = geom.PERIMETER_PLAN_REV;
+        }
+    } catch (e) { /* optional */
+    }
+
     const selected = selectTowerHubs(room);
-    commitTowerHubs(room, selected.hubs);
-    refreshPerimeterAfterTowerHubs(room);
-    if (typeof log !== 'undefined' && log.a) {
-        log.a(room.name + ': ' + selected.hubs.length + ' tower hubs placed (anchors)', 'PLANNER');
+    const existing = resolveTowerHubs(room);
+    const same = hubsMatch(existing, selected.hubs);
+    if (!same) commitTowerHubs(room, selected.hubs);
+    stampTowerLayout(room);
+
+    let relocated = null;
+    if (!same && !isPlannerShadow(room) && !roomUnsafeForTowerMove(room)) {
+        relocated = relocateOffPlanTowers(room, selected.hubs);
+        if (relocated.destroyed && typeof log !== 'undefined' && log.a) {
+            log.a(room.name + ': moved towers — destroyed ' + relocated.destroyed
+                + ' off-plan tower(s), ' + relocated.sitesRemoved + ' site(s)', 'PLANNER');
+        }
+        refreshPerimeterAfterTowerHubs(room);
+    }
+    placeTowerSites(room, 2);
+    ensureTowerRamparts(room, selected.hubs);
+    if (typeof log !== 'undefined' && log.a && !same) {
+        log.a(room.name + ': ' + selected.hubs.length + ' tower hubs along seal (anchors)', 'PLANNER');
     }
     return {
         ok: true,
         hubs: selected.hubs.slice(),
-        reason: selected.reason || 'search',
+        reason: same ? 'researched_same' : (selected.reason || 'search'),
         candidateCount: selected.candidateCount,
+        alongSeal: selected.alongSeal,
+        relocated,
     };
 }
 
@@ -1112,6 +1583,10 @@ function placeTowerSites(room, maxPerCall) {
             if (res.ok) {
                 placed++;
                 didPlace = true;
+                try {
+                    siteBudget.tryPlace(room, 'ramparts', pos, STRUCTURE_RAMPART);
+                } catch (e) { /* protective pass retries */
+                }
                 break;
             }
             if (res.code === FailureCodes.SITE_BUDGET_GLOBAL
@@ -1268,7 +1743,8 @@ function resetTowerLayoutForRoom(room) {
         ramparts = {error: (e && e.message) || String(e)};
     }
 
-    room.memory.towerLayoutVersion = TOWER_LAYOUT_VERSION;
+    stampTowerLayout(room);
+    ensureTowerRamparts(room, resolveTowerHubs(room));
     if (typeof log !== 'undefined' && log.a) {
         log.a(room.name + ' tower layout reset: destroyed ' + wiped.towers + ' tower(s), '
             + wiped.sites + ' site(s), hubs ' + oldTowerHubs + '->' + newTowerHubs

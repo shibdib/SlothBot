@@ -261,6 +261,12 @@ function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
         if (excludeKey && item.wave && item.cacheKey === excludeKey) continue;
         if (item.role === 'hubManager' && opts.spawn && opts.room
             && !hubSlotSpawnDirection(opts.spawn, opts.room)) continue;
+        // Stale shuttle queue entries outlive dead harvesters, and a cheap
+        // shuttle body wins the energy skip over a 5W harvester.
+        if (item.role === 'shuttle' && opts.room) {
+            const needed = (opts.room.sources && opts.room.sources.length) || 0;
+            if (!needed || getCreepCount(opts.room, 'stationaryHarvester') < needed) continue;
+        }
         const left = (item.remaining || 1) - (spawned[item.cacheKey] || 0);
         if (left <= 0) continue;
 

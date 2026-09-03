@@ -12,6 +12,33 @@ let wallerTargetCache = {};
 let urgentTick = -1;
 const urgentCache = {};
 
+function roomRcl(room) {
+    return room && room.controller && room.controller.level != null ? room.controller.level : (room && room.level) || 0;
+}
+
+function isQuadTripwire(room, pos) {
+    if (!room || !pos || !room.memory) return false;
+    const key = `${pos.x},${pos.y}`;
+    const traps = room.memory.quadTrapWalls;
+    if (!traps || !traps.length) return false;
+    let onTrap = false;
+    for (let i = 0; i < traps.length; i++) {
+        const p = traps[i];
+        if (p && `${p.x},${p.y}` === key) {
+            onTrap = true;
+            break;
+        }
+    }
+    if (!onTrap) return false;
+    const faces = room.memory.quadTrapCombatFaces;
+    if (!faces || !faces.length) return true;
+    for (let i = 0; i < faces.length; i++) {
+        const p = faces[i];
+        if (p && `${p.x},${p.y}` === key) return false;
+    }
+    return true;
+}
+
 function getBarrierRepairList(room, maintenance) {
     const key = `${room.name}|${maintenance ? 1 : 0}`;
     if (barrierListTick !== Game.time) {
@@ -23,11 +50,11 @@ function getBarrierRepairList(room, maintenance) {
     const quadTrapWalls = new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
     const combatFaces = new Set((room.memory.quadTrapCombatFaces || []).map(p => `${p.x},${p.y}`));
     let targetLimit = 100000;
-    const rcl = room.level;
+    const rcl = roomRcl(room);
     if (rcl >= 8) targetLimit = 10000000;
     else if (rcl >= 6) targetLimit = 5000000;
     if (spawnEnergyState(room) === 1) targetLimit = Math.min(targetLimit, 200000);
-    if (maintenance && rcl === 8) targetLimit = RAMPART_HITS_MAX[rcl];
+    if (maintenance && rcl >= 8) targetLimit = RAMPART_HITS_MAX[rcl] || targetLimit;
 
     barrierListCache[key] = room.barriers.filter((s) => {
         const trapKey = `${s.pos.x},${s.pos.y}`;
@@ -186,17 +213,20 @@ class RoleWaller {
         }
 
         this.creep.memory.task = 'waller';
-        if (!this.creep.memory.targetWallHits) {
+        const rcl = roomRcl(this.room);
+        if (target.structureType === STRUCTURE_WALL && isQuadTripwire(this.room, target.pos)) {
+            this.creep.memory.targetWallHits = 20000;
+        } else if (!this.creep.memory.targetWallHits) {
             if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
                 this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
             } else if (target.structureType === STRUCTURE_WALL) {
                 this.creep.memory.targetWallHits = Math.min(
                     target.hits + 50000,
                     this.barrierRepairCap(maintenance),
-                    RAMPART_HITS_MAX[this.room.level] || 300000000
+                    RAMPART_HITS_MAX[rcl] || 300000000
                 );
             } else {
-                this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[this.room.level] || 300000000);
+                this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[rcl] || 300000000);
             }
         }
 
@@ -283,12 +313,12 @@ class RoleWaller {
     }
 
     barrierRepairCap(maintenance = false) {
-        const rcl = this.room.level;
+        const rcl = roomRcl(this.room);
         let targetLimit = 100000;
         if (rcl >= 8) targetLimit = 10000000;
         else if (rcl >= 6) targetLimit = 5000000;
         if (spawnEnergyState(this.room) === 1) targetLimit = Math.min(targetLimit, 200000);
-        if (maintenance && rcl === 8) targetLimit = RAMPART_HITS_MAX[rcl];
+        if (maintenance && rcl >= 8) targetLimit = RAMPART_HITS_MAX[rcl] || targetLimit;
         return targetLimit;
     }
 

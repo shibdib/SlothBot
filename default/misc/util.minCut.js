@@ -251,6 +251,9 @@ var util_mincut = {
                 }
             }
         }
+        return util_mincut._build_graph(room_array);
+    },
+    _build_graph: function (room_array) {
         let g = new Graph(2 * 50 * 50 + 2);
         let infini = Number.MAX_VALUE;
         let surr = [[0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1]];
@@ -268,7 +271,7 @@ var util_mincut = {
             for (; y < max; y++) {
                 top = y * 50 + x;
                 bot = top + 2500;
-                if (room_array[x][y] === NORMAL) { // normal Tile
+                if (room_array[x][y] === NORMAL) {
                     g.New_edge(top, bot, 1);
                     for (let i = 0; i < 8; i++) {
                         dx = x + surr[i][0];
@@ -276,7 +279,7 @@ var util_mincut = {
                         if (room_array[dx][dy] === NORMAL || room_array[dx][dy] === TO_EXIT)
                             g.New_edge(bot, dy * 50 + dx, infini);
                     }
-                } else if (room_array[x][y] === PROTECTED) { // protected Tile
+                } else if (room_array[x][y] === PROTECTED) {
                     g.New_edge(source, top, infini);
                     g.New_edge(top, bot, 1);
                     for (let i = 0; i < 8; i++) {
@@ -285,12 +288,45 @@ var util_mincut = {
                         if (room_array[dx][dy] === NORMAL || room_array[dx][dy] === TO_EXIT)
                             g.New_edge(bot, dy * 50 + dx, infini);
                     }
-                } else if (room_array[x][y] === TO_EXIT) { // near Exit
+                } else if (room_array[x][y] === TO_EXIT) {
                     g.New_edge(top, sink, infini);
                 }
             }
         }
         return g;
+    },
+    /**
+     * Protect a tile set (not a rectangle). Seeds are unwalkable so the cut
+     * cannot sit on the bunker; walkable 8-neighbors are the source ring.
+     * Whole-room min-cut then sits at terrain chokes, not a box around the hub.
+     */
+    create_graph_from_tiles: function (roomname, tiles, bounds) {
+        bounds = bounds || {x1: 0, y1: 0, x2: 49, y2: 49};
+        if (bounds.x1 >= bounds.x2 || bounds.y1 >= bounds.y2 ||
+            bounds.x1 < 0 || bounds.y1 < 0 || bounds.x2 > 49 || bounds.y2 > 49) {
+            return undefined;
+        }
+        let room_array = room_2d_array(roomname, bounds);
+        const list = tiles || [];
+        const surr = [[0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1]];
+        for (let i = 0; i < list.length; i++) {
+            const t = list[i];
+            if (!t || t.x < 0 || t.x > 49 || t.y < 0 || t.y > 49) continue;
+            const cell = room_array[t.x][t.y];
+            if (cell === EXIT || cell === UNWALKABLE) continue;
+            if (cell !== TO_EXIT) room_array[t.x][t.y] = UNWALKABLE;
+        }
+        for (let i = 0; i < list.length; i++) {
+            const t = list[i];
+            if (!t) continue;
+            for (let k = 0; k < 8; k++) {
+                const x = t.x + surr[k][0];
+                const y = t.y + surr[k][1];
+                if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+                if (room_array[x][y] === NORMAL) room_array[x][y] = PROTECTED;
+            }
+        }
+        return util_mincut._build_graph(room_array);
     },
     delete_tiles_to_dead_ends: function (roomname, cut_tiles_array) {
         let room_array = room_2d_array(roomname);
@@ -329,9 +365,10 @@ var util_mincut = {
             leads_to_exit = false;
             x = cut_tiles_array[i].x;
             y = cut_tiles_array[i].y;
-            for (let i = 0; i < 8; i++) {
-                dx = x + surr[i][0];
-                dy = y + surr[i][1];
+            for (let k = 0; k < 8; k++) {
+                dx = x + surr[k][0];
+                dy = y + surr[k][1];
+                if (dx < 0 || dx > 49 || dy < 0 || dy > 49) continue;
                 if (room_array[dx][dy] === TO_EXIT) {
                     leads_to_exit = true;
                 }
@@ -380,6 +417,41 @@ var util_mincut = {
             for (let i = positions.length - 1; i >= 0; i--) {
                 visual.circle(positions[i].x, positions[i].y, {radius: 0.5, fill: '#ff7722', opacity: 0.9});
             }
+        }
+        return positions;
+    },
+    GetCutTilesFromTiles: function (roomname, tiles, bounds = {
+        x1: 0,
+        y1: 0,
+        x2: 49,
+        y2: 49
+    }) {
+        let graph = util_mincut.create_graph_from_tiles(roomname, tiles, bounds);
+        if (!graph) return undefined;
+        let source = 2 * 50 * 50;
+        let sink = 2 * 50 * 50 + 1;
+        let count = graph.Calcmincut(source, sink);
+        let positions = [];
+        if (count > 0) {
+            let cut_edges = graph.Bfsthecut(source);
+            let u, x, y;
+            let i = 0;
+            const imax = cut_edges.length;
+            const seen = new Set();
+            for (; i < imax; i++) {
+                u = cut_edges[i];
+                if (u >= 2500) u -= 2500;
+                x = u % 50;
+                y = Math.floor(u / 50);
+                if (y >= 50) y -= 50;
+                const key = x + ',' + y;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                positions.push({"x": x, "y": y});
+            }
+        }
+        if (positions.length > 0) {
+            util_mincut.delete_tiles_to_dead_ends(roomname, positions);
         }
         return positions;
     },

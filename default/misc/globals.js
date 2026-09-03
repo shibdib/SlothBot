@@ -820,7 +820,7 @@ let globals = function () {
         return {recalc, purge, placed, debug};
     };
 
-    // Wipe towers, re-search ring hubs (dist 6-10), and recalculate ramparts.
+    // Wipe towers, re-search hubs (closest to core, dist 2-5), and recalculate ramparts.
     // resetAllTowerLayouts() queues one room per planner tick; pass true to run all now.
     global.resetTowerLayout = function (roomName) {
         const room = Game.rooms[roomName];

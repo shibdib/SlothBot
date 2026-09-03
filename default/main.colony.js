@@ -189,7 +189,10 @@ class Colony {
 
     suicideRemoteCreeps() {
         this.creeps
-            .filter(creep => creep.memory.role.includes('remote') || creep.memory.role.includes('SK'))
+            .filter(creep => {
+                const role = creep.memory && creep.memory.role;
+                return !!role && (role.includes('remote') || role.includes('SK'));
+            })
             .forEach(creep => creep.suicide());
     }
 
@@ -237,8 +240,8 @@ class Colony {
             }
         }
 
-        // If no role, the minion should suicide
-        if (!minion.memory.role) return minion.recycleCreep();
+        // If no role, restore from the spawn name when we can; otherwise recycle
+        if (!minion.ensureCreepRole()) return minion.recycleCreep();
 
         // If we're fleeing, continue to do so
         if (minion.memory.runCooldown && Game.time < minion.memory.runCooldown) return minion.fleeHome(true);

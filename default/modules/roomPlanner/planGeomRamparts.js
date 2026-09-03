@@ -3,9 +3,10 @@
  *
  * Rampart / perimeter GEOMETRY library.
  *
- * Perimeter is a single floodfill from the room hub through walkable tiles
- * (never through terrain walls). The contour of that flooded interior is the
- * seal. Placement stays in planRamparts.
+ * Perimeter is the whole-room min-cut of hub protect tiles (stamp, labs,
+ * nearby towers/extensions) to the exits. Terrain walls are free; the seal
+ * sits at chokes instead of boxing the hub. Floodfill contour is fallback
+ * if min-cut fails. Placement stays in planRamparts.
  *
  * RCL5–7 seal: checkerboard wall/rampart.
  * RCL8 fighting layer (not stored in ROOM_RAMPART_SPOTS):
@@ -21,6 +22,7 @@
 const {extensionPositionCache, quadTraps, walkwayCache} = require('planState');
 
 const {bunkerTemplate, coreTemplate, labTemplate} = require('planTemplates');
+const mincut = require('util.minCut');
 
 const {
     canPlaceConstructionSite, tryCreateConstructionSite, canPlaceConstructedWall,
@@ -77,10 +79,9 @@ function resolveLabHubXY(room) {
 }
 
 /**
- * Bump when the perimeter algorithm changes so owned rooms wipe old
- * min-cut rings and rebuild from the hub floodfill.
+ * Bump when the perimeter algorithm changes so owned rooms replan.
  */
-const PERIMETER_PLAN_REV = 9;
+const PERIMETER_PLAN_REV = 11;
 
 function chebyDistance(ax, ay, bx, by) {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -119,28 +120,22 @@ function invalidateRampartSpots(room) {
 }
 
 /**
- * 8-connected flood from hub through non-terrain-wall tiles.
- * Never steps onto a terrain wall, so the protected blob cannot leak
- * through mountains the way min-cut rects did.
+ * 8-connected flood from origin through non-terrain-wall tiles.
+ * Drops mountain-wrap: on open ground 8-connected steps == cheby, so extra
+ * length means the path went around a wall. Those tiles are not "reachable
+ * from the hub" for seal / builder purposes.
  */
-function getHubWalkableFlood(room, maxDist) {
+function floodWalkableFrom(terrain, origin, maxDist) {
     const cap = maxDist != null ? maxDist : PERIMETER_MAX_PATH + PERIMETER_PAD + 2;
-    const cacheKey = '_hubWalk8_' + cap;
-    if (room._hubWalkTick === Game.time && room[cacheKey]) return room[cacheKey];
-    const hub = room.hub;
     const set = new Set();
     const dist = Object.create(null);
-    if (!hub) {
-        const empty = {set, dist};
-        room[cacheKey] = empty;
-        room._hubWalkTick = Game.time;
-        return empty;
-    }
-    const terrain = Game.map.getRoomTerrain(room.name);
-    const q = [hub.x, hub.y];
-    const hubKey = xyKey(hub.x, hub.y);
-    set.add(hubKey);
-    dist[hubKey] = 0;
+    if (!origin || origin.x == null || origin.y == null || !terrain) return {set, dist};
+    const ox = origin.x;
+    const oy = origin.y;
+    const q = [ox, oy];
+    const originKey = xyKey(ox, oy);
+    set.add(originKey);
+    dist[originKey] = 0;
     let qi = 0;
     while (qi < q.length) {
         const x = q[qi++];
@@ -154,15 +149,151 @@ function getHubWalkableFlood(room, maxDist) {
             const key = xyKey(nx, ny);
             if (set.has(key)) continue;
             if (isTerrainWall(terrain, nx, ny)) continue;
+            const nd = d + 1;
+            if (nd > chebyDistance(nx, ny, ox, oy) + PERIMETER_MAX_WRAP) continue;
             set.add(key);
-            dist[key] = d + 1;
+            dist[key] = nd;
             q.push(nx, ny);
         }
     }
-    const result = {set, dist};
+    return {set, dist};
+}
+
+function getHubWalkableFlood(room, maxDist) {
+    const cap = maxDist != null ? maxDist : PERIMETER_MAX_PATH + PERIMETER_PAD + 2;
+    const cacheKey = '_hubWalk8nw_' + cap;
+    if (room._hubWalkTick === Game.time && room[cacheKey]) return room[cacheKey];
+    const hub = room.hub;
+    if (!hub) {
+        const empty = {set: new Set(), dist: Object.create(null)};
+        room[cacheKey] = empty;
+        room._hubWalkTick = Game.time;
+        return empty;
+    }
+    const result = floodWalkableFrom(Game.map.getRoomTerrain(room.name), hub, cap);
     room[cacheKey] = result;
     room._hubWalkTick = Game.time;
     return result;
+}
+
+/** Cheby radius of non-road stamp tiles. Bunker is 5, compact core is 1. */
+function templateStampRadius(template) {
+    let r = 0;
+    if (!template) return 4;
+    for (let i = 0; i < template.length; i++) {
+        const structure = template[i];
+        if (!structure || structure.structureType === STRUCTURE_ROAD) continue;
+        const pos = structure.pos || [];
+        for (let j = 0; j < pos.length; j++) {
+            const cr = chebyDistance(0, 0, pos[j].x, pos[j].y);
+            if (cr > r) r = cr;
+        }
+    }
+    return r || 4;
+}
+
+/**
+ * How many of the 8 octants can walk from the hub to a room edge without
+ * hitting terrain. Dead-end pockets have 1–3; open field has 8.
+ */
+function countOpenExitSectors(terrain, hx, hy) {
+    let open = 0;
+    for (let i = 0; i < 8; i++) {
+        let x = hx;
+        let y = hy;
+        let hitEdge = false;
+        const dx = OCTALS[i][0];
+        const dy = OCTALS[i][1];
+        for (let step = 0; step < 48; step++) {
+            x += dx;
+            y += dy;
+            if (x <= 0 || x >= 49 || y <= 0 || y >= 49) {
+                hitEdge = true;
+                break;
+            }
+            if (isTerrainWall(terrain, x, y)) break;
+        }
+        if (hitEdge) open++;
+    }
+    return open;
+}
+
+/**
+ * Walkable tiles on the cheby ring just outside a stamp. Cheap dead-end
+ * proxy: a pocket backed by terrain has many ring tiles as walls.
+ */
+function countOpenStampRing(terrain, hx, hy, radius) {
+    const r = (radius || 4) + 1;
+    let open = 0;
+    for (let dx = -r; dx <= r; dx++) {
+        for (let dy = -r; dy <= r; dy++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            const x = hx + dx;
+            const y = hy + dy;
+            if (x < PERIMETER_EDGE || x > 49 - PERIMETER_EDGE
+                || y < PERIMETER_EDGE || y > 49 - PERIMETER_EDGE) {
+                open++;
+                continue;
+            }
+            if (!isTerrainWall(terrain, x, y)) open++;
+        }
+    }
+    return open;
+}
+
+function collectTemplateSeeds(hub, template) {
+    const seeds = [];
+    const seen = new Set();
+    if (!hub) return seeds;
+    addSeed(seeds, seen, hub.x, hub.y);
+    if (!template) return seeds;
+    for (let i = 0; i < template.length; i++) {
+        const structure = template[i];
+        if (!structure || structure.structureType === STRUCTURE_ROAD) continue;
+        const pos = structure.pos || [];
+        for (let j = 0; j < pos.length; j++) {
+            addSeed(seeds, seen, hub.x + pos[j].x, hub.y + pos[j].y);
+        }
+    }
+    return seeds;
+}
+
+function filterSeedsWithFlood(hub, seeds, flood) {
+    const valid = [];
+    if (!hub) return valid;
+    for (let i = 0; i < seeds.length; i++) {
+        const s = seeds[i];
+        const cheby = chebyDistance(s.x, s.y, hub.x, hub.y);
+        if (cheby > PERIMETER_MAX_CHEBY) continue;
+        const pathD = minPathDistNear(flood.dist, s.x, s.y);
+        if (pathD === Infinity || pathD > PERIMETER_MAX_PATH) continue;
+        if (pathD > cheby + PERIMETER_MAX_WRAP) continue;
+        valid.push(s);
+    }
+    return valid;
+}
+
+function filterHubReachableSpots(spots, flood) {
+    if (!spots || !spots.length) return spots || [];
+    if (!flood || !flood.set) return [];
+    const out = [];
+    for (let i = 0; i < spots.length; i++) {
+        const p = spots[i];
+        if (touchesHubWalkable(flood.set, p.x, p.y)) out.push(p);
+    }
+    return out;
+}
+
+/**
+ * How many min-cut tiles a hub+stamp would need. Dead-end / one-exit
+ * rooms score a choke; open field scores a larger ring.
+ */
+function estimateHubSealCost(room, hubXY, template) {
+    if (!room || !hubXY) return Infinity;
+    const seeds = collectTemplateSeeds(hubXY, template);
+    const spots = computeMinCutSpots(room.name, seeds.length ? seeds : [hubXY]);
+    if (!spots) return Infinity;
+    return spots.length;
 }
 
 function getHubWalkableSet(room) {
@@ -171,12 +302,18 @@ function getHubWalkableSet(room) {
 
 /** True if (x,y) is walkable-from-hub or cardinally adjacent to that set. */
 function touchesHubWalkable(hubWalkable, x, y) {
+    if (!hubWalkable) return false;
     const key = xyKey(x, y);
     if (hubWalkable.has(key)) return true;
     for (let i = 0; i < 4; i++) {
         if (hubWalkable.has(xyKey(x + CARDINALS[i][0], y + CARDINALS[i][1]))) return true;
     }
     return false;
+}
+
+function isHubReachableTile(room, x, y) {
+    if (!room || !room.hub) return false;
+    return touchesHubWalkable(getHubWalkableSet(room), x, y);
 }
 
 function minPathDistNear(distMap, x, y) {
@@ -336,20 +473,7 @@ function collectProtectSeeds(room, layout) {
 }
 
 function filterValidSeeds(room, seeds, flood) {
-    const hub = room.hub;
-    const valid = [];
-    if (!hub) return valid;
-    for (let i = 0; i < seeds.length; i++) {
-        const s = seeds[i];
-        const cheby = chebyDistance(s.x, s.y, hub.x, hub.y);
-        if (cheby > PERIMETER_MAX_CHEBY) continue;
-        const pathD = minPathDistNear(flood.dist, s.x, s.y);
-        // Unreachable, too far, or only reachable by wrapping around a wall.
-        if (pathD === Infinity || pathD > PERIMETER_MAX_PATH) continue;
-        if (pathD > cheby + PERIMETER_MAX_WRAP) continue;
-        valid.push(s);
-    }
-    return valid;
+    return filterSeedsWithFlood(room.hub, seeds, flood);
 }
 
 /**
@@ -468,11 +592,12 @@ function collectExistingBarrierKeys(room) {
  * Never drop a still-buildable contour tile — replacing P with neighbor N
  * punched 1-tile holes once any adjacent wall existed.
  */
-function snapSpotsToExisting(room, spots, interior, terrain, exterior) {
+function snapSpotsToExisting(room, spots, interior, terrain, exterior, hubWalkable) {
     if (!spots || !spots.length) return spots || [];
     const existing = collectExistingBarrierKeys(room);
     if (!existing.size) return spots;
 
+    const reachable = (x, y) => !hubWalkable || touchesHubWalkable(hubWalkable, x, y);
     const snapped = [];
     const used = new Set();
     const push = (x, y) => {
@@ -484,9 +609,9 @@ function snapSpotsToExisting(room, spots, interior, terrain, exterior) {
 
     for (let i = 0; i < spots.length; i++) {
         const p = spots[i];
-        const k = xyKey(p.x, p.y);
-        const pOk = existing.has(k) || isValidContourTile(p.x, p.y, interior, terrain, exterior);
-        if (pOk) {
+        // Keep P only when it is still a valid hub-reachable contour tile.
+        // Existing off-contour barriers must not pin the plan to an old ring.
+        if (isValidContourTile(p.x, p.y, interior, terrain, exterior) && reachable(p.x, p.y)) {
             push(p.x, p.y);
             continue;
         }
@@ -496,6 +621,7 @@ function snapSpotsToExisting(room, spots, interior, terrain, exterior) {
             const ny = p.y + OCTALS[j][1];
             if (!existing.has(xyKey(nx, ny))) continue;
             if (!isValidContourTile(nx, ny, interior, terrain, exterior)) continue;
+            if (!reachable(nx, ny)) continue;
             push(nx, ny);
             break;
         }
@@ -571,8 +697,126 @@ function stripEdgeInterior(interior, inset, keepKey) {
     for (let i = 0; i < drop.length; i++) interior.delete(drop[i]);
 }
 
+function computeMinCutSpots(roomName, protectTiles) {
+    if (!roomName || !protectTiles || !protectTiles.length) return [];
+    const tiles = [];
+    const seen = new Set();
+    for (let i = 0; i < protectTiles.length; i++) {
+        const t = protectTiles[i];
+        if (!t) continue;
+        if (t.x < 2 || t.x > 47 || t.y < 2 || t.y > 47) continue;
+        const k = xyKey(t.x, t.y);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        tiles.push({x: t.x, y: t.y});
+    }
+    if (!tiles.length) return [];
+    let positions;
+    try {
+        positions = mincut.GetCutTilesFromTiles(roomName, tiles);
+    } catch (e) {
+        return null;
+    }
+    if (!positions) return null;
+    const spots = [];
+    const used = new Set();
+    const edgeMax = 49 - PERIMETER_EDGE;
+    for (let i = 0; i < positions.length; i++) {
+        const p = positions[i];
+        if (!p) continue;
+        if (p.x < PERIMETER_EDGE || p.x > edgeMax || p.y < PERIMETER_EDGE || p.y > edgeMax) continue;
+        const k = xyKey(p.x, p.y);
+        if (used.has(k)) continue;
+        used.add(k);
+        spots.push({x: p.x, y: p.y});
+    }
+    return spots;
+}
+
+function floodInteriorFromHub(terrain, hub, cutSet) {
+    const interior = new Set();
+    if (!hub || !terrain) return interior;
+    const hubKey = xyKey(hub.x, hub.y);
+    if (cutSet && cutSet.has(hubKey)) {
+        interior.add(hubKey);
+        return interior;
+    }
+    interior.add(hubKey);
+    const q = [hub.x, hub.y];
+    let qi = 0;
+    while (qi < q.length) {
+        const x = q[qi++];
+        const y = q[qi++];
+        for (let i = 0; i < 8; i++) {
+            const nx = x + OCTALS[i][0];
+            const ny = y + OCTALS[i][1];
+            if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
+            const key = xyKey(nx, ny);
+            if (interior.has(key) || (cutSet && cutSet.has(key))) continue;
+            if (isTerrainWall(terrain, nx, ny)) continue;
+            interior.add(key);
+            q.push(nx, ny);
+        }
+    }
+    return interior;
+}
+
+function hubLeaksToExit(terrain, hub, spotSet) {
+    if (!hub || !terrain) return true;
+    const seen = new Set([xyKey(hub.x, hub.y)]);
+    const q = [hub.x, hub.y];
+    let qi = 0;
+    while (qi < q.length) {
+        const x = q[qi++];
+        const y = q[qi++];
+        if (x === 0 || y === 0 || x === 49 || y === 49) return true;
+        for (let i = 0; i < 8; i++) {
+            const nx = x + OCTALS[i][0];
+            const ny = y + OCTALS[i][1];
+            if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
+            const key = xyKey(nx, ny);
+            if (seen.has(key) || (spotSet && spotSet.has(key))) continue;
+            if (isTerrainWall(terrain, nx, ny)) continue;
+            if (nx === 0 || ny === 0 || nx === 49 || ny === 49) return true;
+            seen.add(key);
+            q.push(nx, ny);
+        }
+    }
+    return false;
+}
+
+function interiorBounds(interior, hub) {
+    let x1 = hub ? hub.x : 49;
+    let y1 = hub ? hub.y : 49;
+    let x2 = hub ? hub.x : 0;
+    let y2 = hub ? hub.y : 0;
+    for (const key of interior) {
+        const comma = key.indexOf(',');
+        const x = Number(key.slice(0, comma));
+        const y = Number(key.slice(comma + 1));
+        if (x < x1) x1 = x;
+        if (y < y1) y1 = y;
+        if (x > x2) x2 = x;
+        if (y > y2) y2 = y;
+    }
+    return {x1, y1, x2, y2};
+}
+
+function contourFallbackPerimeter(room, hub, valid, flood, terrain) {
+    const wrap = computeSeedWrapInterior(hub, valid, flood, PERIMETER_PAD);
+    const interior = wrap.interior;
+    const exterior = floodExteriorFromExits(terrain, interior);
+    let spots = computeContourSpots(interior, terrain, exterior);
+    spots = filterHubReachableSpots(spots, flood);
+    spots = snapSpotsToExisting(room, spots, interior, terrain, exterior, flood.set);
+    spots = filterPerimeterBarrierSpots(room, spots);
+    spots = filterHubReachableSpots(spots, flood);
+    return {spots, interior, bounds: wrap.bounds, radius: wrap.radius, algorithm: 'hub-floodfill-nowrap'};
+}
+
 /**
- * Hub floodfill → seed-box interior (terrain-clipped) → exit-facing contour → snap.
+ * Whole-room min-cut of protect seeds → hub-side interior → walkway.
+ * Floodfill contour is fallback when min-cut fails or leaks.
  */
 function computeFloodfillPerimeter(room, layout) {
     const hub = room.hub;
@@ -583,23 +827,52 @@ function computeFloodfillPerimeter(room, layout) {
     const flood = getHubWalkableFlood(room, PERIMETER_MAX_PATH + PERIMETER_PAD + 2);
     const seeds = collectProtectSeeds(room, layout);
     const valid = filterValidSeeds(room, seeds, flood);
-    const wrap = computeSeedWrapInterior(hub, valid, flood, PERIMETER_PAD);
-    const interior = wrap.interior;
-    const exterior = floodExteriorFromExits(terrain, interior);
+    const protect = valid.length ? valid : [{x: hub.x, y: hub.y}];
 
-    let spots = computeContourSpots(interior, terrain, exterior);
-    spots = snapSpotsToExisting(room, spots, interior, terrain, exterior);
-    spots = filterPerimeterBarrierSpots(room, spots);
+    let spots = computeMinCutSpots(room.name, protect);
+    let interior = new Set();
+    let bounds = null;
+    let radius = 0;
+    let algorithm = 'mincut-tiles';
+
+    if (spots && spots.length) {
+        const cutSet = new Set();
+        for (let i = 0; i < spots.length; i++) cutSet.add(xyKey(spots[i].x, spots[i].y));
+        interior = floodInteriorFromHub(terrain, hub, cutSet);
+        spots = spots.filter(p => touchesInterior(interior, p.x, p.y));
+        spots = filterPerimeterBarrierSpots(room, spots);
+        const exterior = floodExteriorFromExits(terrain, interior);
+        spots = snapSpotsToExisting(room, spots, interior, terrain, exterior, null);
+        spots = filterPerimeterBarrierSpots(room, spots);
+        const sealed = new Set();
+        for (let i = 0; i < spots.length; i++) sealed.add(xyKey(spots[i].x, spots[i].y));
+        if (!spots.length || hubLeaksToExit(terrain, hub, sealed)) {
+            spots = null;
+        } else {
+            bounds = interiorBounds(interior, hub);
+            radius = Math.max(bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
+        }
+    }
+
+    if (!spots || !spots.length) {
+        const fb = contourFallbackPerimeter(room, hub, valid, flood, terrain);
+        spots = fb.spots;
+        interior = fb.interior;
+        bounds = fb.bounds;
+        radius = fb.radius;
+        algorithm = fb.algorithm;
+    }
+
     const walkway = computeWalkwayTiles(interior, spots, terrain);
-
     return {
         spots,
         walkway,
         interior,
-        radius: wrap.radius,
-        bounds: wrap.bounds,
+        radius,
+        bounds,
         seeds: seeds.length,
         validSeeds: valid.length,
+        algorithm,
     };
 }
 
@@ -1086,10 +1359,11 @@ function shouldComputeBunkerRampartSpots(room) {
 
 function hasPerimeterSpots(roomName) {
     const raw = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[roomName];
-    if (!raw) return false;
+    if (raw == null || raw === '') return false;
     try {
         const spots = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        return Array.isArray(spots) && spots.length > 0;
+        // Empty array is a computed plan (terrain-sealed pocket). Undefined means not computed.
+        return Array.isArray(spots);
     } catch (e) {
         return false;
     }
@@ -1120,7 +1394,7 @@ function auditRampartRecalc(room, layout) {
         hasHub: !!room.hub,
         bunkerHub: room.memory.bunkerHub,
         canCompute: shouldComputeBunkerRampartSpots(room),
-        algorithm: 'hub-floodfill-wrap',
+        algorithm: computed && computed.algorithm ? computed.algorithm : 'mincut-tiles',
         seeds: computed ? computed.seeds : 0,
         validSeeds: computed ? computed.validSeeds : 0,
         radius: computed ? computed.radius : 0,
@@ -1128,12 +1402,15 @@ function auditRampartRecalc(room, layout) {
         interior: computed ? computed.interior.size : 0,
         computedSpots: computed ? computed.spots.length : 0,
         cachedSpots: cached.length,
+        planRev: PERIMETER_PLAN_REV,
     };
 }
 
 function initializeRampartSpots(room, layout, count) {
     ROOM_RAMPART_SPOTS[room.name] = undefined;
     storeWalkwaySpots(room.name, '', []);
+    room._perimeterComputeOk = false;
+    room._perimeterInteriorSize = 0;
     if (!room.hub) {
         log.w(`${room.name} rampart init skipped: no hub`);
         return count ? 0 : undefined;
@@ -1141,25 +1418,28 @@ function initializeRampartSpots(room, layout, count) {
     const tmpl = layout || (room.memory.dynamicLayout ? coreTemplate : bunkerTemplate);
     try {
         const result = computeFloodfillPerimeter(room, tmpl);
-        const spots = result.spots;
-        if (!spots.length) {
-            log.w(`${room.name} rampart flood produced 0 spots (seeds=${result.seeds} valid=${result.validSeeds} r=${result.radius} interior=${result.interior.size}); will retry`);
+        const spots = result.spots || [];
+        room._perimeterComputeOk = true;
+        room._perimeterInteriorSize = result.interior ? result.interior.size : 0;
+        // Cache even when empty — a terrain-sealed pocket needs 0 ramparts.
+        ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(spots);
+        storeWalkwaySpots(room.name, ROOM_RAMPART_SPOTS[room.name], result.walkway);
+        if (!spots.length && room._perimeterInteriorSize < 3) {
+            log.w(`${room.name} rampart flood produced 0 spots (seeds=${result.seeds} valid=${result.validSeeds} r=${result.radius} interior=${room._perimeterInteriorSize}); will retry`);
             ROOM_RAMPART_SPOTS[room.name] = undefined;
             storeWalkwaySpots(room.name, '', []);
-        } else {
-            ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(spots);
-            storeWalkwaySpots(room.name, ROOM_RAMPART_SPOTS[room.name], result.walkway);
-            if (Game.time % 100 === 0) {
-                const b = result.bounds;
-                const box = b ? `${b.x1},${b.y1}-${b.x2},${b.y2}` : '?';
-                const walkN = result.walkway ? result.walkway.length : 0;
-                log.a(`${room.name} hub-flood seal: spots=${spots.length} walkway=${walkN} seeds=${result.validSeeds}/${result.seeds} box=${box}`, 'PLANNER');
-            }
+            room._perimeterComputeOk = false;
+        } else if (Game.time % 100 === 0) {
+            const b = result.bounds;
+            const box = b ? `${b.x1},${b.y1}-${b.x2},${b.y2}` : '?';
+            const walkN = result.walkway ? result.walkway.length : 0;
+            log.a(`${room.name} ${result.algorithm || 'mincut'} seal: spots=${spots.length} walkway=${walkN} seeds=${result.validSeeds}/${result.seeds} box=${box}`, 'PLANNER');
         }
     } catch (e) {
         log.e('Floodfill perimeter error in room ' + room.name);
         log.e(e.stack);
         ROOM_RAMPART_SPOTS[room.name] = undefined;
+        room._perimeterComputeOk = false;
     }
 
     if (count) {
@@ -1323,6 +1603,7 @@ function diagnosePerimeter(room, options = {}) {
         cacheEmptyArray: rawCache === '[]' || rawCache === 'null',
         canCompute: shouldComputeBunkerRampartSpots(room),
         planned: spots.length,
+        unreachable: 0,
         built: 0,
         sites: 0,
         missing: 0,
@@ -1354,6 +1635,7 @@ function diagnosePerimeter(room, options = {}) {
     }
 
     for (const {x, y} of spots) {
+        if (hub && !isHubReachableTile(room, x, y)) summary.unreachable++;
         const pos = new RoomPosition(x, y, room.name);
         const structs = pos.lookFor(LOOK_STRUCTURES);
         const sites = pos.lookFor(LOOK_CONSTRUCTION_SITES);
@@ -1512,7 +1794,7 @@ function diagnosePerimeter(room, options = {}) {
         const sealTxt = summary.sealed === true ? 'SEALED'
             : summary.sealed === false ? 'OPEN' : 'n/a';
         room.visual.text(
-            `plan ${summary.planned} | built ${summary.built} | site ${summary.sites} | miss ${summary.missing} | blk ${summary.blocked} | ${sealTxt}`,
+            `plan ${summary.planned} | built ${summary.built} | site ${summary.sites} | miss ${summary.missing} | blk ${summary.blocked} | unreach ${summary.unreachable} | ${sealTxt}`,
             1, 1, {
                 align: 'left',
                 color: '#fff',
@@ -1610,6 +1892,7 @@ function debugBarriers(room, options = {}) {
         energyState: d.energyState,
         level: d.level,
         planned: d.planned,
+        unreachable: d.unreachable,
         built: d.built,
         sites: d.sites,
         missing: d.missing,
@@ -1676,4 +1959,11 @@ module.exports = {
     getProtectedAreaBounds,
     resolveTowerHubList,
     resolveLabHubXY,
+    estimateHubSealCost,
+    countOpenStampRing,
+    countOpenExitSectors,
+    templateStampRadius,
+    floodWalkableFrom,
+    isHubReachableTile,
+    roomControllerLevel,
 };

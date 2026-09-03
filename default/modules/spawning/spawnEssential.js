@@ -7,7 +7,7 @@
 const spawnState = require('spawnState');
 const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount} = require('spawnCounts');
-const {queueCreepIfNeeded} = require('spawnQueue');
+const {queueCreepIfNeeded, clearRoomRoleQueue} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
 const {planShuttleForSource} = require('bodyEconomic');
 const {
@@ -88,7 +88,11 @@ function essentialCreepQueue(room) {
 
     const {energyInfo, trend, trendOk, flowHealthy, spareIncome} = getFlowContext(room);
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-    const hasRoadMaintenance = _.filter(room.structures, s => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5);
+    const maintainOwnedRoads = !!(room.storage && room.spawns && room.spawns.length
+        && room.level >= (typeof ROAD_LEVEL !== 'undefined' ? ROAD_LEVEL : 4));
+    const hasRoadMaintenance = maintainOwnedRoads
+        ? _.filter(room.structures, s => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5)
+        : [];
     const harvesterCount = getCreepCount(room, 'stationaryHarvester');
     const earlyRush = isColonyEarlyRush(room);
 
@@ -166,8 +170,10 @@ function essentialCreepQueue(room) {
         });
     }
 
-    // Shuttles empty stationary harvesters. Until those exist, drones haul.
-    if (harvesterCount) {
+    // Shuttles empty stationary harvesters. Until every source has one, drones haul.
+    // A cheaper shuttle at priority 1 used to spawn instead of the missing harvester.
+    const sources = (room.sources && room.sources.length) || 0;
+    if (sources && harvesterCount >= sources) {
         for (const source of room.sources) {
             let sourceLink = source.memory.link && Game.getObjectById(source.memory.link);
             if (!sourceLink && source.memory.link) source.memory.link = undefined;
@@ -183,7 +189,7 @@ function essentialCreepQueue(room) {
             const hasShuttle = getCreepCount(room, 'shuttle', undefined, undefined, undefined, source.id);
             const shuttlePriority = spawnReboot
                 ? PRIORITIES.hauler + (hasShuttle ? 1 : 0)
-                : (!hasShuttle ? 1 : (plan.other.haulUrgent ? PRIORITIES.hauler * 0.75 : PRIORITIES.hauler));
+                : (plan.other.haulUrgent ? PRIORITIES.hauler * 0.75 : PRIORITIES.hauler);
             queueCreepIfNeeded({
                 room, role: 'shuttle', priority: shuttlePriority,
                 numberNeeded: plan.count,
@@ -192,6 +198,8 @@ function essentialCreepQueue(room) {
                 assignment: source.id
             });
         }
+    } else {
+        clearRoomRoleQueue(room.name, 'shuttle');
     }
 
     let upgraderAmount = 1;

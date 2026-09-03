@@ -47,6 +47,14 @@ function bumpFormingWaitFor(role, destination, operation, waitFor) {
     return bumped;
 }
 
+function clearRoomRoleQueue(roomName, role) {
+    const cache = roomName && CREEP_QUEUES[roomName];
+    if (!cache) return;
+    for (const key in cache) {
+        if (cache[key] && cache[key].role === role) delete cache[key];
+    }
+}
+
 function clearOpQueueRole(role, destination, operation) {
     const drop = (cache) => {
         if (!cache) return;
@@ -462,6 +470,7 @@ module.exports = {
     queueCacheKey,
     queueCreepIfNeeded,
     queueCreep,
+    clearRoomRoleQueue,
     clearOpQueueRole,
     getQueue,
     generateCreepName,

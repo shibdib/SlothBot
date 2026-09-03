@@ -95,7 +95,7 @@ function wallRepairCap(room, structure) {
     }
     let entry = repairCapCache[room.name];
     if (!entry) {
-        const rcl = room.level;
+        const rcl = room.controller && room.controller.level != null ? room.controller.level : room.level;
         let targetLimit = 100000;
         if (rcl >= 8) targetLimit = 10000000;
         else if (rcl >= 6) targetLimit = 5000000;
@@ -188,6 +188,21 @@ function clearConstructionMemory(creep) {
     creep.memory.task = undefined;
     creep.memory.sitePos = undefined;
     creep.memory.targetHits = undefined;
+}
+
+// Owned roads are not placed until ROAD_LEVEL + storage. Leftover previous-owner
+// roads must not steal RCL1 energy that should go to the controller.
+function ownedRoomRepairsRoads(room) {
+    if (!room || !room.controller || !room.controller.my) return false;
+    if (!room.storage || !(room.spawns && room.spawns.length)) return false;
+    const roadLevel = typeof ROAD_LEVEL !== 'undefined' ? ROAD_LEVEL : 4;
+    return (room.level || 0) >= roadLevel;
+}
+
+function allowRoadMaintenance(room, roadsOnly) {
+    if (roadsOnly) return true;
+    if (!room || !room.controller || !room.controller.my) return true;
+    return ownedRoomRepairsRoads(room);
 }
 
 function isNearRoomSource(creep) {
@@ -823,12 +838,15 @@ Creep.prototype.constructionWork = function (scope) {
     };
 
     const wallBarrierSites = () => sites.barriers.filter(s => s.structureType === STRUCTURE_WALL);
+    const allowRoads = allowRoadMaintenance(room, roadsOnly);
+    const roadSites = allowRoads ? sites.roads : [];
+    const damagedRoads = allowRoads ? damage.roads : [];
 
     if (roadsOnly) {
-        if (sites.roads.length) return buildClosest(sites.roads);
-        site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.5));
+        if (roadSites.length) return buildClosest(roadSites);
+        site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.5));
         if (site) return repair(site, site.hitsMax * 0.8);
-        site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.75));
+        site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
         clearConstructionMemory(this);
         return false;
@@ -862,7 +880,7 @@ Creep.prototype.constructionWork = function (scope) {
             site = repairPool.length ? _.min(repairPool, 'hits') : null;
             if (site) {
                 const targetHits = site.structureType === STRUCTURE_WALL
-                    ? Math.min(site.hits + 50000, RAMPART_HITS_MAX[room.level] || 300000000)
+                    ? Math.min(site.hits + 50000, wallRepairCap(room, site))
                     : site.hitsMax;
                 return repair(site, targetHits);
             }
@@ -889,19 +907,19 @@ Creep.prototype.constructionWork = function (scope) {
     site = available(damage.containers).find(s => s.hits < s.hitsMax * 0.5);
     if (site) return repair(site, site.hitsMax * 0.65);
 
-    site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.5));
+    site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.5));
     if (site) return repair(site, site.hitsMax * 0.8);
 
     const trend = (room.energyInfo && room.energyInfo.trend) || 0;
     const spareIncome = (room.energyInfo && room.energyInfo.spareIncome) || 0;
     if (room.energyState >= 3 || (room.energyState >= 1 && spareIncome > 0 && trend >= 0)) {
         if (sites.misc.length) return buildClosest(sites.misc);
-        if (sites.roads.length) return buildClosest(sites.roads);
-        site = weakestByHitsRatio(available(damage.roads).filter(s => s.hits < s.hitsMax * 0.75));
+        if (roadSites.length) return buildClosest(roadSites);
+        site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
         site = weakestByHitsRatio(available(damage.containers).filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
-        site = available(damage.containers)[0] || available(damage.roads)[0] || available(damage.other)[0];
+        site = available(damage.containers)[0] || available(damagedRoads)[0] || available(damage.other)[0];
         if (site) return repair(site, site.hitsMax);
     }
 
@@ -932,6 +950,15 @@ Creep.prototype.builderFunction = function () {
     }
 
     if (!this.memory.task) this.memory.task = 'build';
+
+    if (construction.structureType === STRUCTURE_ROAD
+        && this.room.controller && this.room.controller.my
+        && !ownedRoomRepairsRoads(this.room)) {
+        clearConstructionMemory(this);
+        return false;
+    }
+
+    if (!this.memory.other) this.memory.other = {};
 
     if (this.memory.task === 'repair') {
         const isWall = construction.structureType === STRUCTURE_WALL;
@@ -1851,9 +1878,55 @@ Creep.prototype.clearBoostLabs = function () {
     finishBoosting(this);
 };
 
+const ROLE_FROM_NAME_PREFIX = {
+    dro: 'drone',
+    hau: 'hauler',
+    shu: 'shuttle',
+    sta: 'stationaryHarvester',
+    upg: 'upgrader',
+    exp: 'explorer',
+    sco: 'scout',
+    wal: 'waller',
+    def: 'defender',
+    hub: 'hubManager',
+    lab: 'labTech',
+    min: 'mineralHarvester',
+};
+
+function inferRoleFromName(name) {
+    if (!name || typeof name !== 'string') return undefined;
+    return ROLE_FROM_NAME_PREFIX[name.slice(0, 3)];
+}
+
+Creep.prototype.ensureCreepRole = function () {
+    if (this.memory && this.memory.role) return this.memory.role;
+    const stored = Memory.creeps && Memory.creeps[this.name];
+    if (stored && stored.role) {
+        if (this.memory) this.memory.role = stored.role;
+        return stored.role;
+    }
+    const role = inferRoleFromName(this.name);
+    if (!role) return undefined;
+    if (this.memory) {
+        this.memory.role = role;
+        if (!this.memory.colony && this.room) this.memory.colony = this.room.name;
+    }
+    if (stored) {
+        stored.role = role;
+        if (!stored.colony && this.room) stored.colony = this.room.name;
+    }
+    log.e(`${this.name} lost memory.role; restored '${role}' from name`, 'MEMORY:');
+    return role;
+};
+
 Creep.prototype.recycleCreep = function () {
-    if (this.memory && this.memory.role === 'drone') {
-        this.memory.recycling = undefined;
+    const role = (this.memory && this.memory.role) || inferRoleFromName(this.name);
+    if (role === 'drone') {
+        if (this.memory) {
+            this.memory.role = 'drone';
+            this.memory.recycling = undefined;
+            if (!this.memory.colony && this.room) this.memory.colony = this.room.name;
+        }
         return false;
     }
     this.clearBoostLabs();

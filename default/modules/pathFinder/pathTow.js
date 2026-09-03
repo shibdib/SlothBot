@@ -58,9 +58,21 @@ function snapshotTowDestination(heading) {
     return undefined;
 }
 
+function serializableTowDestination(heading) {
+    if (!heading) return undefined;
+    if (typeof heading === 'string') return heading;
+    if (heading.id) return heading.id;
+    return snapshotTowDestination(heading);
+}
+
+function serializableTowOptions(options) {
+    const range = options && options.range;
+    return {range: range == null ? 1 : range};
+}
+
 function refreshTowDestination(trailer, heading, options) {
-    trailer.memory.towDestination = heading.id || heading;
-    trailer.memory.towOptions = options;
+    trailer.memory.towDestination = serializableTowDestination(heading);
+    trailer.memory.towOptions = serializableTowOptions(options);
     const snap = snapshotTowDestination(heading);
     if (snap) trailer.memory.towDestinationPos = snap;
 }

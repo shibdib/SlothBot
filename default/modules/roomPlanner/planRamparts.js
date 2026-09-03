@@ -34,8 +34,10 @@ const {
     getRampartWalkCorridors,
     resolveTowerHubList,
     getWalkwaySpots,
+    isWalkwayTile,
     roomAllowsRcl8DefenseLayer,
     roomSafeForSealConversion,
+    roomControllerLevel,
     collectCombatFaceTraps,
     QUAD_TRAP_TRIPWIRE_HITS,
 } = geom;
@@ -311,17 +313,21 @@ function recalculateRampartsForRoom(room, layout, options = {}) {
         initializeRampartSpots(room, tmpl, false);
     }
 
+    const computedOk = !!room._perimeterComputeOk;
+    const interiorSize = room._perimeterInteriorSize || 0;
     let newSpots = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]
         ? JSON.parse(ROOM_RAMPART_SPOTS[room.name])
         : [];
     let restoredFromOld = false;
     let restoreReason;
-    if (!newSpots.length && oldSpots.length) {
+    // Restore the old ring only when compute failed. A successful 0-spot plan
+    // (terrain-sealed pocket) must not pin the old unreachable layout.
+    if (!computedOk && !newSpots.length && oldSpots.length) {
         ROOM_RAMPART_SPOTS[room.name] = JSON.stringify(oldSpots);
         newSpots = oldSpots;
         restoredFromOld = true;
         restoreReason = 'empty_regen';
-        log.w(`${room.name} rampart regen produced 0 spots; restored ${oldSpots.length} cached spots`);
+        log.w(`${room.name} rampart regen failed; restored ${oldSpots.length} cached spots`);
     }
 
     const newSpotSet = new Set(newSpots.map(p => `${p.x},${p.y}`));
@@ -330,12 +336,13 @@ function recalculateRampartsForRoom(room, layout, options = {}) {
     let removedStrays = 0;
     let removedStale = 0;
 
-    // Strip barriers that are not on the new plan whenever we have a valid plan.
-    // Still skip mass destroy when we had to restore the old plan (would open the base).
+    // Strip barriers that are not on the new plan whenever compute succeeded.
+    // 0 spots + real interior = terrain already seals the hub; old rings go.
     // Callers like extension clearance must pass destroyOffPlan:false.
     const canDestroyOffPlan = destroyOffPlan
         && !restoredFromOld
-        && newSpotSet.size > 0
+        && computedOk
+        && (newSpotSet.size > 0 || interiorSize >= 3)
         && shouldComputeBunkerRampartSpots(room);
 
     if (canDestroyOffPlan) {
@@ -376,6 +383,8 @@ function recalculateRampartsForRoom(room, layout, options = {}) {
         removedStale,
         restoredFromOld,
         restoreReason,
+        computedOk,
+        interiorSize,
         destroyOffPlan: !!canDestroyOffPlan,
         audit: auditRampartRecalc(room, tmpl),
     };
@@ -512,20 +521,21 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
             const pos = new RoomPosition(p.x, p.y, room.name);
             const wall = pos.checkForBuiltWall && pos.checkForBuiltWall();
             if (!wall) continue;
-            if (pos.checkForRampart()) continue;
-            if (pos.lookFor(LOOK_CONSTRUCTION_SITES).length) continue;
-            if (!canPlaceConstructionSite(room)) return false;
+            const hasRampart = !!pos.checkForRampart();
+            const sites = pos.lookFor(LOOK_CONSTRUCTION_SITES);
+            const hasRampartSite = sites.some(s => s.structureType === STRUCTURE_RAMPART);
+            if (!hasRampart && !hasRampartSite && sites.length) continue;
+            if (!hasRampart && !hasRampartSite && !canPlaceConstructionSite(room)) return false;
             try {
                 if (wall.destroy() !== OK) continue;
             } catch (e) {
                 continue;
             }
+            room._barrierKeySet = undefined;
+            room._barrierKeySetTick = undefined;
+            if (hasRampart || hasRampartSite) return true;
             const result = placeFn(pos, STRUCTURE_RAMPART);
-            if (result === OK) {
-                room._barrierKeySet = undefined;
-                room._barrierKeySetTick = undefined;
-                return true;
-            }
+            if (result === OK) return true;
             return result === ERR_NOT_OWNER || result === ERR_FULL;
         }
         return false;
@@ -549,7 +559,7 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
     }
 
     function handleBunkerRamparts(room, layout, count) {
-        // "[]" is truthy — must treat empty list as missing or we never recompute.
+        // Undefined cache → compute. Cached [] is a real plan (terrain-sealed).
         if (!hasPerimeterSpots(room.name)) {
             return initializeRampartSpots(room, layout, count);
         }
@@ -572,52 +582,34 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
         if (!ramparts || !ramparts.length) return false;
         let counter = 0;
         if (buildBorderStructureRamparts(room, layout)) return true;
-        // Cheby nearest-plan lookup (O(plan)) instead of findClosestByRange per structure
-        // (engine path × vulnerable count — melted CPU on RCL8 rooms).
-        const planKeys = ramparts;
-        const nearestPlanRange = (x, y) => {
-            let best = Infinity;
-            for (let i = 0; i < planKeys.length; i++) {
-                const p = planKeys[i];
-                const d = Math.max(Math.abs(x - p.x), Math.abs(y - p.y));
-                if (d < best) best = d;
-                if (best === 0) break;
-            }
-            return best;
-        };
         const vulnerableStructures = room.structures.filter((s) =>
             protectedStructureTypes.includes(s.structureType) &&
             !s.pos.checkForRampart() &&
             !s.pos.checkForConstructionSites());
         for (const structure of vulnerableStructures) {
             if (counter >= 3) return true;
-            const rangeFromRampart = nearestPlanRange(structure.pos.x, structure.pos.y);
-            const inBunker = structure.pos.isInBunker();
-            if ((rangeFromRampart <= 3 && inBunker) || !inBunker) {
-                if (!canPlaceConstructionSite(room)) return true;
-                const result = placeFn(structure.pos, STRUCTURE_RAMPART);
-                if (result === OK) counter++;
-                else if (result === ERR_NOT_OWNER || result === ERR_FULL) return true;
-            }
+            if (!canPlaceConstructionSite(room)) return true;
+            const result = placeFn(structure.pos, STRUCTURE_RAMPART);
+            if (result === OK) counter++;
+            else if (result === ERR_NOT_OWNER || result === ERR_FULL) return true;
         }
-        if (room.level >= SPECIAL_RAMPARTS) {
+        const rcl = roomControllerLevel(room);
+        if (rcl >= SPECIAL_RAMPARTS) {
             if (PROTECT_SOURCES) {
                 for (let source of room.sources) {
-                    if (source.pos.isInBunker()) continue;
                     if (counter >= 3) return true;
                     if (buildRampartAround(source.pos)) counter++;
                 }
             }
-            if (PROTECT_MINERAL && !room.mineral.pos.isInBunker()) {
+            if (PROTECT_MINERAL && room.mineral) {
                 if (counter >= 3) return true;
                 if (buildRampartAround(room.mineral.pos)) counter++;
             }
-            if (PROTECT_CONTROLLER && !room.controller.pos.isInBunker()) {
+            if (PROTECT_CONTROLLER && room.controller) {
                 if (counter >= 3) return true;
                 if (buildRampartAround(room.controller.pos)) counter++;
             }
-            // Handle ramparts on protected structures
-            if (PROTECT_STRUCTURES && room.level >= 8) {
+            if (PROTECT_STRUCTURES && rcl >= 8) {
                 for (let structure of room.structures) {
                     if (counter >= 3) return true;
                     if (protectedStructureTypes.includes(structure.structureType)) {
@@ -659,16 +651,21 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
     }
 
     function buildQuadTraps(room) {
+        if (perimeterHasMissingBuilt(room)) return false;
         if (!quadTraps[room.name]) setQuadTraps(room);
         if (!quadTraps[room.name] || !quadTraps[room.name].length) return false;
 
         const QUAD_WALL_CAP = QUAD_TRAP_TRIPWIRE_HITS;
         let counter = 0;
         const newWallPositions = room.memory.quadTrapWalls ? new Set(room.memory.quadTrapWalls.map(p => `${p.x},${p.y}`)) : new Set();
+        const sealSet = new Set(getPerimeterSpots(room.name).map(p => p.x + ',' + p.y));
 
         for (const trap of quadTraps[room.name]) {
             if (counter >= 3) return true;
             const pos = new RoomPosition(trap.x, trap.y, room.name);
+            if (sealSet.has(trap.x + ',' + trap.y)) continue;
+            if (isWalkwayTile(pos, room)) continue;
+            if (pos.isInBunker && pos.isInBunker()) continue;
             if (pos.checkForWall()) continue;
             if (pos.isNearTo(room.controller) || pos.isNearTo(room.mineral) ||
                 room.sources.some(s => pos.isNearTo(s))) continue;
@@ -702,23 +699,50 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
     }
 
     function setQuadTraps(room) {
-        if (!ROOM_RAMPART_SPOTS[room.name]) return false;
-        const ramparts = JSON.parse(ROOM_RAMPART_SPOTS[room.name]);
-        if (!ramparts || !ramparts.length) return;
+        const spots = getPerimeterSpots(room.name);
         const hub = room.hub;
+        if (!spots.length || !hub) {
+            quadTraps[room.name] = [];
+            return false;
+        }
         const terrain = Game.map.getRoomTerrain(room.name);
+        const sealSet = new Set();
+        for (let i = 0; i < spots.length; i++) sealSet.add(spots[i].x + ',' + spots[i].y);
+        const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [-1, 1], [1, -1], [1, 1]];
         const trapLocations = [];
+        const used = new Set();
 
-        for (const {x, y} of ramparts) {
-            // Push one tile outward from the hub (away from centre)
-            const dx = x === hub.x ? 0 : (x < hub.x ? -1 : 1);
-            const dy = y === hub.y ? 0 : (y < hub.y ? -1 : 1);
-            const nx = x + dx, ny = y + dy;
-            if (nx < 1 || nx > 48 || ny < 1 || ny > 48) continue;
-            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
-            const pos = new RoomPosition(nx, ny, room.name);
-            if (pos.lookFor(LOOK_STRUCTURES).some(s => OBSTACLE_OBJECT_TYPES.includes(s.structureType))) continue;
-            trapLocations.push({x: nx, y: ny});
+        for (let i = 0; i < spots.length; i++) {
+            const x = spots[i].x;
+            const y = spots[i].y;
+            const sealDist = Math.max(Math.abs(x - hub.x), Math.abs(y - hub.y));
+            let best = null;
+            let bestDist = -1;
+            for (let d = 0; d < dirs.length; d++) {
+                const nx = x + dirs[d][0];
+                const ny = y + dirs[d][1];
+                if (nx < 1 || nx > 48 || ny < 1 || ny > 48) continue;
+                const key = nx + ',' + ny;
+                if (used.has(key) || sealSet.has(key)) continue;
+                if (terrain.get(nx, ny) & TERRAIN_MASK_WALL) continue;
+                const pos = new RoomPosition(nx, ny, room.name);
+                if (isWalkwayTile(pos, room)) continue;
+                if (pos.isInBunker && pos.isInBunker()) continue;
+                if (pos.lookFor(LOOK_STRUCTURES).some(s =>
+                    s.structureType !== STRUCTURE_ROAD &&
+                    s.structureType !== STRUCTURE_RAMPART &&
+                    OBSTACLE_OBJECT_TYPES.includes(s.structureType))) continue;
+                const dist = Math.max(Math.abs(nx - hub.x), Math.abs(ny - hub.y));
+                if (dist < sealDist) continue;
+                if (dist > bestDist) {
+                    bestDist = dist;
+                    best = {x: nx, y: ny};
+                }
+            }
+            if (best) {
+                used.add(best.x + ',' + best.y);
+                trapLocations.push(best);
+            }
         }
         quadTraps[room.name] = trapLocations;
         try {
@@ -964,18 +988,35 @@ function ensurePerimeterSites(room, options = {}) {
     migrateRampartVersion();
     // Geometry tweaks replan and strip off-plan tiles. Full wipe is RAMPART_VERSION only.
     if (room.memory.perimeterPlanRev !== PERIMETER_PLAN_REV) {
+        let replanOk = false;
         try {
             recalculateRampartsForRoom(room, undefined, {destroyOffPlan: true});
+            replanOk = !!room._perimeterComputeOk;
         } catch (e) {
             if (typeof log !== 'undefined' && log.e) {
                 log.e(`${room.name} perimeter rev replan failed: ${e && e.stack ? e.stack : e}`, 'PLANNER');
             }
         }
-        room.memory.perimeterPlanRev = PERIMETER_PLAN_REV;
+        if (replanOk) room.memory.perimeterPlanRev = PERIMETER_PLAN_REV;
     }
 
     let spots = getPerimeterSpots(room.name);
     if (!spots.length) {
+        if (hasPerimeterSpots(room.name)) {
+            if (options.recordStatus) recordPerimeterPlaceStatus(room, {
+                reason: 'terrain_sealed',
+                placed: 0,
+                planned: 0
+            });
+            if (options.report) {
+                options.report.placed = 0;
+                options.report.missing = 0;
+                options.report.planned = 0;
+                options.report.complete = true;
+                options.report.reason = 'terrain_sealed';
+            }
+            return 0;
+        }
         // Only recompute floodfill when explicitly requested — never on the every-tick path.
         if (!options.allowInit) {
             if (options.recordStatus) recordPerimeterPlaceStatus(room, {reason: 'no_spots', placed: 0});
@@ -989,10 +1030,17 @@ function ensurePerimeterSites(room, options = {}) {
         initializeRampartSpots(room, room.memory.dynamicLayout ? coreTemplate : bunkerTemplate, false);
         spots = getPerimeterSpots(room.name);
         if (!spots.length) {
-            if (options.recordStatus) recordPerimeterPlaceStatus(room, {reason: 'no_spots', placed: 0});
+            const sealed = hasPerimeterSpots(room.name);
+            if (options.recordStatus) recordPerimeterPlaceStatus(room, {
+                reason: sealed ? 'terrain_sealed' : 'no_spots',
+                placed: 0
+            });
             if (options.report) {
                 options.report.placed = 0;
-                options.report.reason = 'no_spots';
+                options.report.missing = 0;
+                options.report.planned = 0;
+                options.report.complete = sealed;
+                options.report.reason = sealed ? 'terrain_sealed' : 'no_spots';
             }
             return 0;
         }
@@ -1021,9 +1069,11 @@ function ensurePerimeterSites(room, options = {}) {
     }
 
     const buildPositions = [];
+    let missingBuilt = 0;
     for (let i = 0; i < spots.length; i++) {
         const p = spots[i];
         const key = p.x + ',' + p.y;
+        if (!built.has(key)) missingBuilt++;
         if (built.has(key) || barrierSiteKeys.has(key)) continue;
         buildPositions.push(new RoomPosition(p.x, p.y, room.name));
     }
@@ -1031,15 +1081,21 @@ function ensurePerimeterSites(room, options = {}) {
         sortPerimeterBuildPositions(room, buildPositions, built, barrierSiteKeys);
     }
     if (!buildPositions.length) {
+        const complete = missingBuilt === 0;
         if (options.recordStatus) {
-            recordPerimeterPlaceStatus(room, {reason: 'nothing_to_build', placed: 0, planned: spots.length});
+            recordPerimeterPlaceStatus(room, {
+                reason: complete ? 'nothing_to_build' : 'sites_pending',
+                placed: 0,
+                planned: spots.length,
+            });
         }
         if (options.report) {
             options.report.placed = 0;
-            options.report.missing = 0;
+            options.report.missing = missingBuilt;
             options.report.planned = spots.length;
-            options.report.complete = true;
-            options.report.reason = 'nothing_to_build';
+            options.report.inBuild = inBuild;
+            options.report.complete = complete;
+            options.report.reason = complete ? 'nothing_to_build' : 'sites_pending';
         }
         return 0;
     }

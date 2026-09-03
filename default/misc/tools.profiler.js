@@ -131,6 +131,8 @@ const functionBlackList = [
     'toJSON', // native Screeps toJSON methods access internal state that can be undefined; wrapping them causes crashes during JSON.stringify
     'owner', // native getter that can cause crashes when wrapped and stringified
     'my', // derived from owner; unsafe during object init or with corrupt runtime data
+    'memory', // native Creep/PowerCreep getter; wrapping detaches writes from Memory.creeps
+    'store',
 ];
 
 const commonProperties = ['length', 'name', 'arguments', 'caller', 'prototype'];

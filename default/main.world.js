@@ -312,7 +312,7 @@ function minionController(minion) {
         }
     }
     // Run role
-    if (!minion.memory.role) return minion.recycleCreep();
+    if (!minion.ensureCreepRole()) return minion.recycleCreep();
 
     // If being recycled do that
     if (minion.memory.recycling) return minion.recycleCreep();

@@ -195,7 +195,8 @@ function buildInsideSet(room, spots, spotsStr) {
 
 RoomPosition.prototype.isInBunker = function () {
     const room = Game.rooms[this.roomName];
-    if (!room || room.level < 5) return false;
+    const rcl = room && room.controller && room.controller.level != null ? room.controller.level : 0;
+    if (!room || rcl < 5) return false;
     // C4: need a hub (plan or legacy).
     let hasHub = false;
     try {

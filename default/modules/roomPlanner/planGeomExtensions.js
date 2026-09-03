@@ -175,6 +175,15 @@ function buildLayoutExcluded(room, hubOverride) {
     if (room.memory.dynamicLayout && !hubOverride) {
         for (const key of getDynamicSpecialReservedKeys(room)) excluded.add(key);
     }
+    if (!hubOverride) {
+        try {
+            const towers = require('planDoc').getTowerHubs(room) || [];
+            for (let i = 0; i < towers.length; i++) {
+                if (towers[i] && towers[i].x != null) excluded.add(`${towers[i].x},${towers[i].y}`);
+            }
+        } catch (e) { /* ignore */
+        }
+    }
     return excluded;
 }
 
