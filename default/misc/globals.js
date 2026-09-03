@@ -1561,23 +1561,42 @@ let globals = function () {
     global.PATHING_DEBUG = false;
 
     // Global cache for roles. `false` = require failed this global (do not retry).
+    // A CPU timeout mid-require leaves the Screeps module stuck; the next require
+    // throws "Circular reference to module". Never require a role that is already
+    // evaluating on this tick, and do not throw — idle that role until the next global.
     global.ROLE_CACHE = {};
     global.loadRole = function (roleName) {
+        if (!roleName) return null;
         const cached = ROLE_CACHE[roleName];
-        if (cached) return cached;
+        if (typeof cached === 'function') return cached;
         if (cached === false) {
             if (Game.time % 50 === 0) {
                 log.e(`loadRole('${roleName}') previously failed this global — creeps of that role are idle`);
             }
             return null;
         }
+        if (!loadRole._inFlight || loadRole._inFlightTick !== Game.time) {
+            loadRole._inFlight = {};
+            loadRole._inFlightTick = Game.time;
+        }
+        if (loadRole._inFlight[roleName]) return null;
+        loadRole._inFlight[roleName] = 1;
         try {
             const Role = require('role.' + roleName);
+            if (typeof Role !== 'function') {
+                ROLE_CACHE[roleName] = false;
+                log.e(`loadRole('${roleName}') did not export a constructor`);
+                return null;
+            }
             ROLE_CACHE[roleName] = Role;
             return Role;
         } catch (e) {
             ROLE_CACHE[roleName] = false;
-            throw e;
+            log.e(`loadRole('${roleName}') failed: ${e}`);
+            if (e && e.stack) log.e(e.stack);
+            return null;
+        } finally {
+            delete loadRole._inFlight[roleName];
         }
     };
 

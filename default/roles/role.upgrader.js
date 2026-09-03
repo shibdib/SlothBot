@@ -22,6 +22,7 @@ class RoleUpgrader {
 
     performRoleActions() {
         if (this.housekeeping()) return;
+        if (!this.creep.memory.other) this.creep.memory.other = {};
         const canStation = !!(this.link || this.container);
         if (canStation && (this.creep.memory.other.noMove || !this.creep.hasActiveBodyparts(MOVE))) {
             this.stationaryUpgrading();

@@ -24,10 +24,44 @@ module.exports.tickLength = function () {
     Memory.tickInfo.tickLength = _.round(average(tickLengthArray), 3);
 }
 
-// Handle cleaning memory for respawn
+// Respawn leftover-Memory wipe. `memCleaned` lives on the heap, so this runs
+// once per global. The old gate required room.memory.bunkerHub, which C5 no
+// longer dual-writes (plan.anchors.hub is authoritative). A code push then
+// looked like "no empire" and deleted Memory.creeps while creeps were alive.
 let memCleaned;
+
+function roomHasEstablishedHub(room) {
+    const mem = room && room.memory;
+    if (!mem) return false;
+    if (mem.praiseRoom) return true;
+    const bunker = mem.bunkerHub;
+    if (bunker && typeof bunker.x === 'number' && typeof bunker.y === 'number') return true;
+    const hub = mem.plan && mem.plan.anchors && mem.plan.anchors.hub;
+    return !!(hub && typeof hub.x === 'number' && typeof hub.y === 'number');
+}
+
+function empireLooksLive() {
+    for (const _n in Game.creeps) return true;
+    for (const name in Game.rooms) {
+        const room = Game.rooms[name];
+        if (!room || !room.controller) continue;
+        let mine = false;
+        let level = 0;
+        try {
+            mine = !!room.controller.my;
+            level = room.controller.level || 0;
+        } catch (e) {
+            continue;
+        }
+        if (!mine) continue;
+        if (level >= 2 || roomHasEstablishedHub(room)) return true;
+    }
+    return false;
+}
+
 module.exports.cleanMemory = function () {
-    if (!memCleaned && !_.filter(Game.rooms, (r) => r.controller && r.controller.owner && r.controller.my && (r.memory.bunkerHub || r.memory.praiseRoom)).length) {
+    if (!memCleaned && !empireLooksLive()) {
+        log.a('cleanMemory: wiping leftover Memory (no creeps and no established rooms)');
         for (let key in Memory) delete Memory[key];
         Memory.spawnIn = Game.time;
     }

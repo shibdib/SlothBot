@@ -33,18 +33,16 @@ function rollEnergyExpense(kind, prevGlobal, leftoverMemoryKey) {
 class World {
     constructor() {
         global.world = this;
-        // Compile before colony work. A timeout mid-require sticks this module at 0.
-        try {
-            loadRole('longbowSquad');
-        } catch (e) {
-            log.e(`Failed to preload role.longbowSquad: ${e}`);
-            if (e.stack) log.e(e.stack);
-        }
-        // Group creeps once per tick to save CPU
+        // Group creeps once per tick to save CPU. Restore role/colony first so
+        // wiped memory does not dump economy creeps into the military loop.
         this.militaryCreeps = [];
         this.colonyCreeps = {};
+        const rolesToLoad = {longbowSquad: true};
         for (const name in Game.creeps) {
             const creep = Game.creeps[name];
+            if (creep.ensureCreepRole) creep.ensureCreepRole();
+            const roleName = creep.memory && (creep.memory.role === 'roadBuilder' ? 'remoteBuilder' : creep.memory.role);
+            if (roleName) rolesToLoad[roleName] = true;
             if (creep.memory.military || !creep.memory.colony) {
                 this.militaryCreeps.push(creep);
             } else {
@@ -53,6 +51,9 @@ class World {
                 this.colonyCreeps[colonyName].push(creep);
             }
         }
+        // Compile before colony work. A timeout mid-require sticks that module
+        // for the rest of the global; loadRole swallows that instead of throwing.
+        for (const roleName in rolesToLoad) loadRole(roleName);
 
         // General housekeeping
         this.houseKeeping();

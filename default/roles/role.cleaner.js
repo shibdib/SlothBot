@@ -23,6 +23,7 @@ class RoleCleaner {
     }
 
     housekeeping() {
+        if (!this.creep.memory.other) this.creep.memory.other = {};
         // Boosting
         if (this.creep.tryToBoost()) return true;
         this.creep.say('NOM!', true);

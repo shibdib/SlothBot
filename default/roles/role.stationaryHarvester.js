@@ -12,6 +12,7 @@ class RoleStationaryHarvester {
     }
 
     performRoleActions() {
+        if (!this.creep.memory.other) this.creep.memory.other = {};
         if (!this.creep.memory.other.source) {
             this.findSource();
         } else {
@@ -24,9 +25,11 @@ class RoleStationaryHarvester {
             // Use myCreeps — room.creeps includes hostiles
             const harvesters = this.room.myCreeps.filter(c => c.memory.role === 'stationaryHarvester' && c.id !== this.creep.id);
             const oldestHarvester = _.min(harvesters.filter(c => c.ticksToLive < 500), 'ticksToLive')
-                || harvesters.find(c => c.memory.other.reboot);
+                || harvesters.find(c => c.memory.other && c.memory.other.reboot);
             if (!oldestHarvester || !oldestHarvester.id) return this.creep.suicide();
-            this.creep.memory.other.source = oldestHarvester.memory.other.source;
+            const inherited = oldestHarvester.memory.other && oldestHarvester.memory.other.source;
+            if (!inherited) return;
+            this.creep.memory.other.source = inherited;
             // Do NOT suicide the old one here. Let it run until natural death (or its own low TTL).
             // This prevents killing a still-productive full-size harvester when the replacement
             // was forced to spawn small (low energy bank) or is still being towed into position.
@@ -114,7 +117,7 @@ class RoleStationaryHarvester {
 
 // Deposit harvested energy into link → container → repair in priority order
 function depositEnergy(creep, source, container) {
-    if (!source) source = Game.getObjectById(creep.memory.other.source);
+    if (!source) source = Game.getObjectById(creep.memory.other && creep.memory.other.source);
     if (!container && source) container = global.resolveSourceContainer(source, creep.room);
 
     // Fill nearby extensions (Critical)

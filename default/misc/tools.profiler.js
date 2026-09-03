@@ -223,24 +223,9 @@ function profileObjectFunctions(object, label) {
 
         const hasAccessor = descriptor.get || descriptor.set;
         if (hasAccessor) {
-            const configurable = descriptor.configurable;
-            if (!configurable) {
-                return;
-            }
-
-            const profileDescriptor = {};
-
-            if (descriptor.get) {
-                const extendedLabelGet = `${extendedLabel}:get`;
-                profileDescriptor.get = profileFunction(descriptor.get, extendedLabelGet);
-            }
-
-            if (descriptor.set) {
-                const extendedLabelSet = `${extendedLabel}:set`;
-                profileDescriptor.set = profileFunction(descriptor.set, extendedLabelSet);
-            }
-
-            Object.defineProperty(objectToWrap, functionName, profileDescriptor);
+            // Native getters (memory, my, owner, store, toJSON) cannot be
+            // invoked via .apply(); wrapping them detaches creep.memory from
+            // Memory.creeps and can make room.memory.bunkerHub look missing.
             return;
         }
 

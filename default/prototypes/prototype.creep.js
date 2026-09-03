@@ -1891,6 +1891,10 @@ const ROLE_FROM_NAME_PREFIX = {
     hub: 'hubManager',
     lab: 'labTech',
     min: 'mineralHarvester',
+    cle: 'cleaner',
+    att: 'attacker',
+    res: 'reserver',
+    sie: 'siegeDuo',
 };
 
 function inferRoleFromName(name) {
@@ -1898,23 +1902,39 @@ function inferRoleFromName(name) {
     return ROLE_FROM_NAME_PREFIX[name.slice(0, 3)];
 }
 
+function resolveCreepMemory(creep) {
+    let mem = creep.memory;
+    if (!mem) {
+        if (!Memory.creeps) Memory.creeps = {};
+        if (!Memory.creeps[creep.name]) Memory.creeps[creep.name] = {};
+        mem = Memory.creeps[creep.name];
+    }
+    if (!mem.other || typeof mem.other !== 'object' || Array.isArray(mem.other)) {
+        mem.other = {};
+    }
+    return mem;
+}
+
 Creep.prototype.ensureCreepRole = function () {
-    if (this.memory && this.memory.role) return this.memory.role;
+    const mem = resolveCreepMemory(this);
+    if (mem.role) {
+        if (!mem.colony && this.room) mem.colony = this.room.name;
+        return mem.role;
+    }
     const stored = Memory.creeps && Memory.creeps[this.name];
-    if (stored && stored.role) {
-        if (this.memory) this.memory.role = stored.role;
-        return stored.role;
+    if (stored && stored !== mem && stored.role) {
+        mem.role = stored.role;
+        if (!mem.colony) mem.colony = stored.colony || (this.room && this.room.name);
+        if (stored.other && typeof stored.other === 'object' && !Array.isArray(stored.other)
+            && !Object.keys(mem.other).length) {
+            mem.other = stored.other;
+        }
+        return mem.role;
     }
     const role = inferRoleFromName(this.name);
     if (!role) return undefined;
-    if (this.memory) {
-        this.memory.role = role;
-        if (!this.memory.colony && this.room) this.memory.colony = this.room.name;
-    }
-    if (stored) {
-        stored.role = role;
-        if (!stored.colony && this.room) stored.colony = this.room.name;
-    }
+    mem.role = role;
+    if (!mem.colony && this.room) mem.colony = this.room.name;
     log.e(`${this.name} lost memory.role; restored '${role}' from name`, 'MEMORY:');
     return role;
 };
