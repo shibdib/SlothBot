@@ -1565,7 +1565,12 @@ let globals = function () {
     global.loadRole = function (roleName) {
         const cached = ROLE_CACHE[roleName];
         if (cached) return cached;
-        if (cached === false) return null;
+        if (cached === false) {
+            if (Game.time % 50 === 0) {
+                log.e(`loadRole('${roleName}') previously failed this global — creeps of that role are idle`);
+            }
+            return null;
+        }
         try {
             const Role = require('role.' + roleName);
             ROLE_CACHE[roleName] = Role;

@@ -8,6 +8,7 @@ const spawnState = require('spawnState');
 const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount, getBodyAbilityPower} = require('spawnCounts');
 const {queueCreepIfNeeded} = require('spawnQueue');
+const {roomHasStableWorkingSet} = require('bodyHelpers');
 
 function colonyIntelFresh(room) {
     const exits = Game.map.describeExits(room.name);
@@ -20,6 +21,7 @@ function colonyIntelFresh(room) {
 }
 
 function getExplorerNeededCount(room) {
+    if (!roomHasStableWorkingSet(room)) return 0;
     const rcl = (room.controller && room.controller.level) || room.level || 0;
     // Pre-storage / RCL5: one explorer so exits get INTEL.sources. Do not skip
     // just because some other owned room is already RCL8.

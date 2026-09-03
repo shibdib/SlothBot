@@ -16,6 +16,7 @@ const {
 } = require('hcReadiness');
 const {spawnEnergyState} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
+const {roomHasStableWorkingSet} = require('bodyHelpers');
 const {scoreOriginMinLevel, empireDistance, empirePriority} = require('hcUtils');
 const {getColonyRole} = require('module.colonyProfile');
 
@@ -346,6 +347,8 @@ function considerGlobalEntry(room, entry) {
     const target = entryTarget(entry);
     const opMemory = Memory.targetRooms[target] || Memory.auxiliaryTargets[target];
     if (!opMemory || opMemory.assignedRoom !== room.name) return null;
+
+    if (entry.role === 'scout' && !roomHasStableWorkingSet(room)) return null;
 
     if (HELPER_ROLES.has(entry.role)) {
         if (room.level < HELPER_LEVEL) return null;
@@ -697,6 +700,7 @@ function evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads
         ? OP_TIER.HARASS
         : getOpTier({type: flags.opType}, creepInfo);
     if (!isRoomReadyForTier(myRoom, tier)) return null;
+    if (flags.isScout && !roomHasStableWorkingSet(myRoom)) return null;
 
     const distance = myRoom.routeDistance(targetRoom, flags.isClaimRole ? {shortest: true} : {});
     if (distance > flags.maxDistance) return null;

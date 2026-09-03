@@ -179,6 +179,16 @@ class LinkControl {
         if (room.memory.controllerLink && !Game.getObjectById(room.memory.controllerLink)) {
             delete room.memory.controllerLink;
         }
+        // Bind hub before controller discovery so a near-hub receiver is not
+        // claimed as controllerLink (isControllerAreaLink keys off this id).
+        let hubLink = Game.getObjectById(room.memory.hubLink);
+        if (!hubLink || hubLink.structureType !== STRUCTURE_LINK || !hubLink.store) {
+            try {
+                require('planEconomy').bindHubLinkMemory(room);
+            } catch (e) { /* ignore */
+            }
+            hubLink = Game.getObjectById(room.memory.hubLink);
+        }
 
         let controllerLink = Game.getObjectById(room.memory.controllerLink);
         if (controllerLink && room.controller &&
@@ -200,7 +210,6 @@ class LinkControl {
             }
         }
 
-        const hubLink = Game.getObjectById(room.memory.hubLink);
         return {hubLink, controllerLink};
     }
 }

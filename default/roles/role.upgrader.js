@@ -22,8 +22,13 @@ class RoleUpgrader {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (this.creep.memory.other.noMove || !this.creep.hasActiveBodyparts(MOVE) || this.link || this.container) {
+        const canStation = !!(this.link || this.container);
+        if (canStation && (this.creep.memory.other.noMove || !this.creep.hasActiveBodyparts(MOVE))) {
             this.stationaryUpgrading();
+        } else if (!canStation && !this.creep.hasActiveBodyparts(MOVE)) {
+            // 0-MOVE body spawned against a stale container/link. Recycle so
+            // a mobile replacement can dump energy.
+            this.creep.recycleCreep();
         } else {
             this.mobileUpgrading();
         }

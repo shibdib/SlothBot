@@ -395,12 +395,10 @@ function runTowTruck(truck) {
         return true;
     }
 
-    truck.memory.pullFailStreak = (truck.memory.pullFailStreak || 0) + 1;
-    if (truck.memory.pullFailStreak >= PULL_FAIL_LIMIT) {
-        endTow(truck, trailer);
-        return false;
-    }
-    return true;
+    // NOT_IN_RANGE is the only retry. Other results (unsupported pull, tired
+    // trailer) used to skip the truck's role for 3 ticks, then re-pair forever.
+    endTow(truck, trailer);
+    return false;
 }
 
 module.exports = {

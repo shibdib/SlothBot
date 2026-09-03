@@ -271,7 +271,9 @@ const ENERGY_STATE_CACHE = {};
 const ENERGY_STATE_CACHE_TTL = 25;
 Object.defineProperty(Room.prototype, 'energyState', {
     get: function () {
-        if (this._spawnEnergyState !== undefined) return this._spawnEnergyState;
+        if (this._spawnEnergyState !== undefined && this._spawnEnergyStateTick === Game.time) {
+            return this._spawnEnergyState;
+        }
         if (this._energyStateTick === Game.time) return this._energyStateCached;
 
         const spawn = global.roomMySpawns
@@ -514,7 +516,10 @@ Object.defineProperty(Room.prototype, 'ruins', {
 
 Object.defineProperty(Room.prototype, 'level', {
     get: function () {
-        if (this._level === undefined) this._level = getLevel(this);
+        if (this._levelTick !== Game.time) {
+            this._level = getLevel(this);
+            this._levelTick = Game.time;
+        }
         return this._level;
     },
     enumerable: false,

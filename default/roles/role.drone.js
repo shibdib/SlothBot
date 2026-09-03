@@ -15,15 +15,20 @@ class RoleDrone {
     performRoleActions() {
         this.creep.say('🤖', true);
         if (this.houseKeeping()) return;
-        if (!this.creep.memory.working) {
-            if (this.creep.isFull) {
-                this.creep.memory.working = true;
-                return this.jobManager();
-            }
+        const energy = this.creep.store.getUsedCapacity(RESOURCE_ENERGY) || 0;
+        if (energy === 0) {
+            this.creep.memory.working = undefined;
             this.energyCollection();
-        } else {
-            this.jobManager();
+            return;
         }
+        if (!this.creep.memory.working) {
+            if (this.creep.isFull) this.creep.memory.working = true;
+            else {
+                this.energyCollection();
+                return;
+            }
+        }
+        this.jobManager();
     }
 
     houseKeeping() {
@@ -34,22 +39,22 @@ class RoleDrone {
         if (this.creep.tryToBoost()) return true;
 
         const usedCapacity = this.creep.store.getUsedCapacity();
-        // If full clear memory
-        if (this.creep.isFull) {
+        if (usedCapacity === 0) {
+            delete this.creep.memory.working;
+            delete this.creep.memory.currentTarget;
+            delete this.creep.memory.task;
+            delete this.creep.memory.targetWallHits;
+        } else if (this.creep.isFull) {
             delete this.creep.memory.energyDestination;
             delete this.creep.memory.source;
             delete this.creep.memory.harvest;
             delete this.creep.memory.remoteMining;
             this.creep.memory.working = true;
-        } else if (usedCapacity === 0) {
-            delete this.creep.memory.working;
-            delete this.creep.memory.currentTarget;
-            delete this.creep.memory.task;
-            delete this.creep.memory.targetWallHits;
         }
 
-        // Dump into an adjacent spawn/extension while walking. Free, even with a shuttle.
-        if (this.creep.store[RESOURCE_ENERGY] && this.creep.opportunisticFill()) return true;
+        // Adjacent spawn/extension fill. Do not return — transfer and move are
+        // the same tick; returning here glued drones to the bunker.
+        if (this.creep.store[RESOURCE_ENERGY]) this.creep.opportunisticFill();
 
         // If damaged move to safety
         if (this.creep.hits < this.creep.hitsMax && (!this.creep.hasActiveBodyparts(WORK) || !this.creep.hasActiveBodyparts(CARRY))) return this.creep.goToHub();
@@ -347,6 +352,11 @@ class RoleDrone {
             }
         }
 
+        if (!this.creep.store.getUsedCapacity(RESOURCE_ENERGY)) {
+            delete this.creep.memory.task;
+            delete this.creep.memory.working;
+            return false;
+        }
         this.creep.memory.task = 'upgrade';
         this.creep.say('Praise!', true);
         if (!this.creep.memory.other) this.creep.memory.other = {};
@@ -355,6 +365,10 @@ class RoleDrone {
             this.creep.memory.other.stationary = true;
         } else if (result === ERR_NOT_IN_RANGE) {
             this.creep.shibMove(this.room.controller, {range: 3});
+        } else if (result === ERR_NOT_ENOUGH_ENERGY) {
+            delete this.creep.memory.task;
+            delete this.creep.memory.working;
+            return false;
         }
         return true;
     }
@@ -439,7 +453,10 @@ function hasLiveHauler(room) {
 function spawnEnergyNeedsFill(room) {
     const cap = room.energyCapacityAvailable || 0;
     const avail = room.energyAvailable || 0;
-    return avail < cap;
+    if (cap <= SPAWN_ENERGY_CAPACITY) return avail < cap;
+    // Opportunistic fill tops off while walking. Only pull every drone off
+    // build/upgrade when the spawn cannot form a real body.
+    return avail < Math.max(SPAWN_ENERGY_CAPACITY + 50, cap * 0.35);
 }
 
 function pickSpawnFillTarget(creep) {

@@ -125,6 +125,33 @@ function creepRoleInRoom(room, role) {
     return false;
 }
 
+function countRoleInRoom(room, role) {
+    const creeps = room && room.myCreeps;
+    if (!creeps || !creeps.length) return 0;
+    let n = 0;
+    for (let i = 0; i < creeps.length; i++) {
+        const mem = creeps[i] && creeps[i].memory;
+        if (mem && mem.role === role) n++;
+    }
+    return n;
+}
+
+/**
+ * Local harvest and haul are actually staffed. New rooms skip scouts/explorers
+ * until drones (or stationary harvesters) and a hauler/shuttle are working.
+ */
+function roomHasStableWorkingSet(room) {
+    if (!room || !room.controller) return false;
+    if (roomNeedsSpawnReboot(room)) return false;
+    if (!creepRoleInRoom(room, 'shuttle') && !creepRoleInRoom(room, 'hauler')) return false;
+
+    const sources = (room.sources && room.sources.length) || 0;
+    if (sources && room.level >= 2) {
+        return countRoleInRoom(room, 'stationaryHarvester') >= sources;
+    }
+    return creepRoleInRoom(room, 'drone') || creepRoleInRoom(room, 'stationaryHarvester');
+}
+
 /** Live (not spawning) drone/shuttle/hauler that can pull a 0-MOVE harvester. */
 function roomHasLiveTowTruck(room) {
     const creeps = room && room.myCreeps;
@@ -333,6 +360,7 @@ module.exports = {
     recoverySpawnEnergy,
     isColonyEarlyRush,
     roomHasLiveTowTruck,
+    roomHasStableWorkingSet,
     harvesterWorkCapUnlocked,
     routeHasBuiltRoads,
     getHaulersBySource,

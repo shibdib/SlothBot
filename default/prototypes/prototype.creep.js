@@ -220,9 +220,10 @@ Object.defineProperty(Creep.prototype, "idle", {
         if (heap.idle === undefined) return 0;
 
         const now = Game.time;
+        const hostiles = this.room.hostileCreeps;
         if (heap.idle <= now ||
             (this.ticksToLive >= 1485 || this.hasActiveBodyparts(CLAIM)) ||
-            this.room.hostileCreeps.length ||
+            (hostiles && hostiles.length) ||
             (INTEL[this.room.name] && INTEL[this.room.name].threatLevel)) {
             delete heap.idle;
             delete heap.idleSet;
@@ -239,9 +240,16 @@ Object.defineProperty(Creep.prototype, "idle", {
 
         if (!heap.idleSet) {
             const militaryCreep = this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK);
+            const role = (this.memory && this.memory.role) || '';
+            let nearSource = false;
+            try {
+                const nearby = this.pos.lookForNearby(LOOK_SOURCES, true, 2);
+                nearSource = !!(nearby && nearby[0]);
+            } catch (e) { /* look can throw on some servers */
+            }
             if ((militaryCreep && this.pos.checkForRampart()) || !this.hasActiveBodyparts(MOVE)) {
                 heap.idleSet = true;
-            } else if (!this.memory.role.includes("Harvester") && (this.pos.checkForRoad() || this.pos.checkForContainer() || this.pos.lookForNearby(LOOK_SOURCES, true, 2)[0])) {
+            } else if (!role.includes('Harvester') && (this.pos.checkForRoad() || this.pos.checkForContainer() || nearSource)) {
                 return this.moveRandom();
             } else {
                 heap.idleSet = true;
@@ -260,8 +268,10 @@ Object.defineProperty(Creep.prototype, "idle", {
 
 Object.defineProperty(Creep.prototype, 'isFull', {
     get: function () {
-        if (!this._isFull) {
-            this._isFull = this.store.getUsedCapacity() >= this.store.getCapacity() * 0.98;
+        if (this._isFullTick !== Game.time) {
+            const cap = this.store.getCapacity();
+            this._isFull = cap > 0 && this.store.getUsedCapacity() >= cap * 0.98;
+            this._isFullTick = Game.time;
         }
         return this._isFull;
     },
@@ -395,14 +405,22 @@ Creep.prototype.opportunisticFill = function () {
     } catch (e) {
         return false;
     }
+    if (!nearbyItems || !nearbyItems.length) return false;
 
-    for (let item of nearbyItems) {
-        if (item.type === LOOK_STRUCTURES && [STRUCTURE_EXTENSION, STRUCTURE_SPAWN].includes(item.structure.structureType) && item.structure.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-            return this.transfer(item.structure, RESOURCE_ENERGY) === OK;
+    try {
+        for (let i = 0; i < nearbyItems.length; i++) {
+            const item = nearbyItems[i];
+            if (item.type === LOOK_STRUCTURES) {
+                const s = item.structure;
+                if (!s || !s.store) continue;
+                if (s.structureType !== STRUCTURE_EXTENSION && s.structureType !== STRUCTURE_SPAWN) continue;
+                if (s.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+                    return this.transfer(s, RESOURCE_ENERGY) === OK;
+                }
+            }
         }
-        if (item.type === LOOK_CREEPS && item.creep.my && ['upgrader', 'drone'].includes(item.creep.memory.role) && item.creep.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            return this.transfer(item.creep, RESOURCE_ENERGY) === OK;
-        }
+    } catch (e) {
+        return false;
     }
     return false;
 };

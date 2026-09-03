@@ -108,11 +108,21 @@ function computeCoreStampPlan(room) {
             const ly = hub.y + hubLinkOffset.y;
             if (lx < 1 || lx > 48 || ly < 1 || ly > 48) continue;
             const hubPos = new RoomPosition(lx, ly, room.name);
-            const onTile = (hubPos.lookFor(LOOK_STRUCTURES) || [])
-                    .some(s => s.structureType === STRUCTURE_LINK)
-                || (hubPos.lookFor(LOOK_CONSTRUCTION_SITES) || [])
-                    .some(s => s.structureType === STRUCTURE_LINK);
-            if (onTile) continue;
+            const onTileStructs = hubPos.lookFor(LOOK_STRUCTURES) || [];
+            let existingLink = null;
+            for (let s = 0; s < onTileStructs.length; s++) {
+                if (onTileStructs[s].structureType === STRUCTURE_LINK) {
+                    existingLink = onTileStructs[s];
+                    break;
+                }
+            }
+            if (existingLink) {
+                if (room.memory.hubLink !== existingLink.id) room.memory.hubLink = existingLink.id;
+                continue;
+            }
+            const onTileSite = (hubPos.lookFor(LOOK_CONSTRUCTION_SITES) || [])
+                .some(s => s.structureType === STRUCTURE_LINK);
+            if (onTileSite) continue;
             if (have >= allowed) continue;
             tiles.push({x: lx, y: ly});
         } else {
@@ -453,6 +463,12 @@ function placeCoreStamps(room, options) {
     // Source-adjacent extensions: planExtensions.placeSourceExtensions (siteBudget).
 
     if (!isPlannerShadow(room)) relocateHubObserver(room);
+    // Core stamps place the hub receiver then skip the tile once it exists.
+    // Bind memory here so a finished core (especially dynamic) still records it.
+    try {
+        require('planEconomy').bindHubLinkMemory(room);
+    } catch (e) { /* ignore */
+    }
 
     const stampPlan = computeCoreStampPlan(room);
     const specialsPlan = computeSpecialsPlan(room);

@@ -720,12 +720,19 @@ function countLinksAndSites(room) {
 }
 
 function hubLinkPreferredPos(room) {
-    return new RoomPosition(room.hub.x + hubLinkOffset.x, room.hub.y + hubLinkOffset.y, room.name);
+    if (!room || !room.hub) return null;
+    const x = room.hub.x + hubLinkOffset.x;
+    const y = room.hub.y + hubLinkOffset.y;
+    if (x < 0 || x > 49 || y < 0 || y > 49) return null;
+    return new RoomPosition(x, y, room.name);
 }
 
 function hubLinkCandidatePositions(room) {
     const hub = room.hub;
-    const list = [hubLinkPreferredPos(room)];
+    const list = [];
+    if (!hub) return list;
+    const preferred = hubLinkPreferredPos(room);
+    if (preferred) list.push(preferred);
     const blocked = reservedHubTileKeys(hub);
     for (const entry of coreTemplate) {
         if (entry.structureType === STRUCTURE_LINK) continue;
@@ -744,6 +751,50 @@ function hubLinkCandidatePositions(room) {
     return list;
 }
 
+function linkOnTile(pos, room) {
+    if (!pos) return null;
+    if (pos.lookFor) {
+        const structs = pos.lookFor(LOOK_STRUCTURES) || [];
+        for (let i = 0; i < structs.length; i++) {
+            if (structs[i].structureType === STRUCTURE_LINK) return structs[i];
+        }
+    }
+    const links = (room && room.links) || [];
+    for (let i = 0; i < links.length; i++) {
+        const l = links[i];
+        if (l && l.structureType === STRUCTURE_LINK && l.pos
+            && l.pos.x === pos.x && l.pos.y === pos.y) {
+            return l;
+        }
+    }
+    return null;
+}
+
+/**
+ * Record the hub receiver in room.memory.hubLink when the structure exists.
+ * Core stamps place that tile for bunker and dynamic rooms but never wrote the
+ * id; hubManager spawning and link routing both key off this memory.
+ * @param {Room} room
+ * @returns {StructureLink|null}
+ */
+function bindHubLinkMemory(room) {
+    if (!room || !room.memory) return null;
+    const remembered = Game.getObjectById(room.memory.hubLink);
+    // Construction sites also have structureType LINK — require store (built link).
+    if (remembered && remembered.structureType === STRUCTURE_LINK && remembered.store) return remembered;
+    if (room.memory.hubLink) room.memory.hubLink = undefined;
+    if (!room.hub) return null;
+    const candidates = hubLinkCandidatePositions(room);
+    for (let i = 0; i < candidates.length; i++) {
+        const existing = linkOnTile(candidates[i], room);
+        if (existing) {
+            room.memory.hubLink = existing.id;
+            return existing;
+        }
+    }
+    return null;
+}
+
 const HUB_LINK_RECLAIM = [
     STRUCTURE_EXTENSION, STRUCTURE_CONTAINER, STRUCTURE_TOWER, STRUCTURE_WALL,
     STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN, STRUCTURE_NUKER, STRUCTURE_OBSERVER,
@@ -752,19 +803,10 @@ const HUB_LINK_RECLAIM = [
 function ensureHubLink(room) {
     if (!room.hub) return {ok: false, reason: 'no-hub'};
     if (controllerRcl(room) < 5) return {ok: false, reason: 'rcl'};
-    const remembered = Game.getObjectById(room.memory.hubLink);
-    if (remembered) return {ok: false, reason: 'have'};
+    const found = bindHubLinkMemory(room);
+    if (found) return {ok: false, reason: 'have', x: found.pos.x, y: found.pos.y};
 
     const candidates = hubLinkCandidatePositions(room);
-    for (let i = 0; i < candidates.length; i++) {
-        const existing = (candidates[i].lookFor(LOOK_STRUCTURES) || [])
-            .find(s => s.structureType === STRUCTURE_LINK);
-        if (existing) {
-            room.memory.hubLink = existing.id;
-            return {ok: false, reason: 'found', x: candidates[i].x, y: candidates[i].y};
-        }
-    }
-
     const cap = CONTROLLER_STRUCTURES[STRUCTURE_LINK][controllerRcl(room)] || 0;
     if (countLinksAndSites(room) >= cap) return {ok: false, reason: 'cap'};
 
@@ -1251,6 +1293,9 @@ function placeEconomy(room) {
     if (room.memory.hubLink && !Game.getObjectById(room.memory.hubLink)) {
         room.memory.hubLink = undefined;
     }
+    // Core stamps place the hub receiver; bind the id even when storage (and
+    // therefore placeLinks) is not up yet.
+    bindHubLinkMemory(room);
 
     // Prefer controller when both are missing (one site/tick).
     const controller = placeControllerContainer(room);
@@ -1420,5 +1465,6 @@ module.exports = {
     inspectEconomy,
     diagnoseControllerContainer,
     isControllerLinkSkippedNearHub,
+    bindHubLinkMemory,
     ECONOMY_PARITY_NOTES,
 };

@@ -37,7 +37,15 @@ function hubSlotSpawnDirection(spawn, room) {
 
 function isHubManagerSlotReady(room) {
     if (!room || !room.hub || !room.storage) return false;
-    if (!room.memory.hubLink || !Game.getObjectById(room.memory.hubLink)) return false;
+    let hubLink = Game.getObjectById(room.memory.hubLink);
+    if (!hubLink || hubLink.structureType !== STRUCTURE_LINK || !hubLink.store) {
+        try {
+            require('planEconomy').bindHubLinkMemory(room);
+        } catch (e) { /* planner optional at spawn time */
+        }
+        hubLink = Game.getObjectById(room.memory.hubLink);
+    }
+    if (!hubLink || hubLink.structureType !== STRUCTURE_LINK || !hubLink.store) return false;
     const spawns = room.spawns || [];
     let adjacentSpawn = false;
     for (let i = 0; i < spawns.length; i++) {

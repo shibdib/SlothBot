@@ -24,6 +24,7 @@ class Colony {
         this.creeps = creeps;
         this.energyState = room.energyState;
         room._spawnEnergyState = this.energyState;
+        room._spawnEnergyStateTick = Game.time;
 
         // Handle room creeps
         this.creepManager();
@@ -71,7 +72,13 @@ class Colony {
             if (roomsSeen.has(roomName)) continue;
             roomsSeen.add(roomName);
             const room = Game.rooms[roomName];
-            if (room) assignTowsForRoom(room);
+            if (room) {
+                try {
+                    assignTowsForRoom(room);
+                } catch (e) {
+                    log.e(`assignTowsForRoom ${roomName}: ${e}`);
+                }
+            }
         }
 
         const roomCreeps = sortCreepsForMovement(this.creeps);
@@ -92,10 +99,10 @@ class Colony {
             log.e(e.stack);
             log.e(JSON.stringify(creep.memory));
             creep.suicide();
-        } else if (errorCount[creep.name] === 1) {
-            log.a(`${creep.name} encountered an error in room ${roomLink(creep.room.name)}`);
+        } else if (errorCount[creep.name] === 1 || errorCount[creep.name] % 5 === 0) {
+            log.a(`${creep.name} encountered an error in room ${roomLink(creep.room.name)} (${errorCount[creep.name]}x)`);
             log.a(e.stack);
-            Game.notify(e.stack);
+            if (errorCount[creep.name] === 1) Game.notify(e.stack);
         }
     }
 

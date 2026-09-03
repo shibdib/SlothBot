@@ -12,7 +12,8 @@ const {
     routeHasBuiltRoads,
     countQueuedHaulersForSource,
     roomNeedsSpawnReboot,
-    getOwnedExtensionDeficit
+    getOwnedExtensionDeficit,
+    roomHasStableWorkingSet
 } = require('bodyHelpers');
 const {remoteBuildersNeeded, colonyNeedsRoadWork} = require('planGeomRoads');
 const remoteMining = require('remoteMining');
@@ -260,6 +261,7 @@ function passesNoRoadSpawnGate(colonyRoom, sourceEntry) {
  * Returns true if a scout was requested so callers can stop after one per refresh.
  */
 function maybeScoutRemoteCandidate(room, rName) {
+    if (!roomHasStableWorkingSet(room)) return false;
     if (Game.rooms[rName]) return false;
     const rec = remoteMining.getMiningRouteRecord(rName, room.name);
     if (!rec || rec.estimateScore > REMOTE_DISTANCE_MAX) return false;
@@ -280,6 +282,7 @@ function maybeScoutRemoteCandidate(room, rName) {
  * remoteIntelEligible / maybeScoutRemoteCandidate never see those rooms.
  */
 function maybeScoutUnknownExits(room) {
+    if (!roomHasStableWorkingSet(room)) return false;
     const exits = Game.map.describeExits(room.name);
     if (!exits) return false;
     for (const dir in exits) {
@@ -786,7 +789,6 @@ function handleInvaderCore(room, remoteName) {
 function remoteCreepQueue(room) {
     if (typeof REMOTE_MINING !== 'undefined' && !REMOTE_MINING) return;
     if (!spawnState.throttleReady(spawnState.remoteTick, room.name, 5)) return;
-    // Vision for exits does not need a staffed harvest line — 1 MOVE, one at a time.
     maybeScoutUnknownExits(room);
     // Local 5W harvesters + a filler first. One adjacent remote after that;
     // storage is not required (RCL 5 used to hide remotes for the whole 405k upgrade).
