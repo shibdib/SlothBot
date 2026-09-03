@@ -1560,8 +1560,21 @@ let globals = function () {
     // Debug
     global.PATHING_DEBUG = false;
 
-    // Global cache for roles
+    // Global cache for roles. `false` = require failed this global (do not retry).
     global.ROLE_CACHE = {};
+    global.loadRole = function (roleName) {
+        const cached = ROLE_CACHE[roleName];
+        if (cached) return cached;
+        if (cached === false) return null;
+        try {
+            const Role = require('role.' + roleName);
+            ROLE_CACHE[roleName] = Role;
+            return Role;
+        } catch (e) {
+            ROLE_CACHE[roleName] = false;
+            throw e;
+        }
+    };
 
     // Combat roles
     global.COMBAT_ROLES = ['attacker', 'claimAttacker', 'defender', 'longbow', 'longbowSquad', 'siegeDuo', 'SKAttacker', 'powerAttacker', 'powerHealer', 'cleaner']

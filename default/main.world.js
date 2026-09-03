@@ -33,6 +33,13 @@ function rollEnergyExpense(kind, prevGlobal, leftoverMemoryKey) {
 class World {
     constructor() {
         global.world = this;
+        // Compile before colony work. A timeout mid-require sticks this module at 0.
+        try {
+            loadRole('longbowSquad');
+        } catch (e) {
+            log.e(`Failed to preload role.longbowSquad: ${e}`);
+            if (e.stack) log.e(e.stack);
+        }
         // Group creeps once per tick to save CPU
         this.militaryCreeps = [];
         this.colonyCreeps = {};
@@ -310,16 +317,9 @@ function minionController(minion) {
     // If being recycled do that
     if (minion.memory.recycling) return minion.recycleCreep();
 
-    // Check if the role is cached
-    let Role;
     const roleName = minion.memory.role === 'roadBuilder' ? 'remoteBuilder' : minion.memory.role;
-    if (ROLE_CACHE[roleName]) {
-        Role = ROLE_CACHE[roleName];
-    } else {
-        // Load the role and cache it
-        Role = require('role.' + roleName);
-        ROLE_CACHE[roleName] = Role;
-    }
+    const Role = loadRole(roleName);
+    if (!Role) return;
 
     new Role(minion);
 }

@@ -239,16 +239,9 @@ class Colony {
         // If being recycled do that
         if (minion.memory.recycling) return minion.recycleCreep();
 
-        // Check if the role is cached
-        let Role;
         const roleName = minion.memory.role === 'roadBuilder' ? 'remoteBuilder' : minion.memory.role;
-        if (ROLE_CACHE[roleName]) {
-            Role = ROLE_CACHE[roleName];
-        } else {
-            // Load the role and cache it
-            Role = require('role.' + roleName);
-            ROLE_CACHE[roleName] = Role;
-        }
+        const Role = loadRole(roleName);
+        if (!Role) return;
 
         new Role(minion);
     }

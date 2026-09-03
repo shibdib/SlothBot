@@ -33,7 +33,6 @@ const {
     onExitTile
 } = require("module.pathFinder");
 const {isBumperCandidate, yieldOccupant} = require("pathTraffic");
-const {recordSiegeWave} = require('hcTargets');
 
 const stagingCache = {}; // creepId → {x, y, tick, roomName}
 const musterCache = {}; // roomName → {x, y, tick}
@@ -1696,7 +1695,7 @@ class RoleLongbowSquad {
             if (wave[i]) wave[i].memory.siegeWaveRecorded = true;
         }
         creep.memory.siegeWaveRecorded = true;
-        recordSiegeWave(creep.memory.destination);
+        require('hcTargets').recordSiegeWave(creep.memory.destination);
     }
 
     // After boost/commit, wait in place until the whole live squad is in this
