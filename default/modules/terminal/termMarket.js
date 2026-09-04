@@ -126,7 +126,10 @@ function getSourceMineral(resource) {
 
 function historyAvgPrice(resource) {
     if (typeof latestMarketHistory !== 'function') return 0;
-    const avg = parseFloat(latestMarketHistory(resource).avg);
+    const data = latestMarketHistory(resource);
+    const median = parseFloat(data.median);
+    if (median > 0) return median;
+    const avg = parseFloat(data.avg);
     return avg > 0 ? avg : 0;
 }
 
@@ -206,9 +209,9 @@ function barCoveredByMineralStock(resource) {
 }
 
 /**
- * Market procurement is minerals and bars only. Buy when we need it and either
- * nobody is currently mining the source mineral, or stock is critically low.
- * Boosts are never bought.
+ * Market procurement is minerals and bars only. Buy when we need it and
+ * nobody is currently mining the source mineral. An empty satellite is a
+ * transfer, not a market buy. Boosts are never bought.
  */
 function shouldProcureResource(resource, entry = null) {
     if (!isMarketProcureResource(resource)) return false;
@@ -216,13 +219,12 @@ function shouldProcureResource(resource, entry = null) {
     const deficit = entry || getEmpireResourceDeficit(resource);
     if (!deficit) return false;
     const source = getSourceMineral(resource);
-    if (source && isActivelyMiningMineral(source) && !isExtremeShortage(deficit)) return false;
+    if (source && isActivelyMiningMineral(source)) return false;
     return true;
 }
 
 function getEmpireResourceDeficit(resource) {
     let totalDeficit = 0;
-    let minStockRatio = 1;
     let hasLabNeed = false;
     const needyRooms = [];
 
@@ -240,22 +242,25 @@ function getEmpireResourceDeficit(resource) {
 
         totalDeficit += deficit;
         needyRooms.push(name);
-        minStockRatio = Math.min(minStockRatio, effective / demand);
         if (getRoomLabNeeds(room).has(resource)) hasLabNeed = true;
     }
 
     if (!totalDeficit) return null;
 
-    const empireSurplus = getEffectiveSupply(resource) - getEmpireDemand(resource);
+    const empireSupply = getEffectiveSupply(resource);
+    const empireDemand = getEmpireDemand(resource) || 0;
+    const empireSurplus = empireSupply - empireDemand;
     if (empireSurplus >= totalDeficit) return null;
+
+    const stockRatio = empireDemand > 0 ? empireSupply / empireDemand : 1;
 
     return {
         resource,
         deficit: totalDeficit,
         needyRooms,
         isLabNeed: hasLabNeed,
-        stockRatio: minStockRatio,
-        urgency: hasLabNeed ? 2 + (1 - minStockRatio) : 1 - minStockRatio,
+        stockRatio,
+        urgency: hasLabNeed ? 2 + (1 - stockRatio) : 1 - stockRatio,
     };
 }
 

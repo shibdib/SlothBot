@@ -18,6 +18,7 @@ const {
     maxBarBuyPrice
 } = require('termMarket');
 const FactoryControl = require('module.factoryController');
+const {getCreditFloor, getSpendingAccount, canAffordCredits, recordCreditSpend} = require('termBudget');
 
 const TerminalControl = require('termClass');
 
@@ -83,7 +84,7 @@ Object.assign(TerminalControl.prototype, {
 
             // Calculate the cost of changing the price (5% market fee only if price INCREASES)
             let cost = newPrice > currentPrice ? (newPrice - currentPrice) * order.remainingAmount * 0.05 : 0;
-            let availableCash = Game.market.credits - CREDIT_BUFFER;
+            let availableCash = getSpendingAccount();
 
             // Only change the price if it's significantly different and we can afford the cost
             if (Math.abs(currentPrice - newPrice) > 0.001 && cost <= availableCash) {
@@ -186,13 +187,18 @@ Object.assign(TerminalControl.prototype, {
             }
 
             // Check credit balance for buying
-            if (order.type === ORDER_BUY && currentCredits < CREDIT_BUFFER * 0.5) {
-                this.cancelOrder(order, 'Low credits');
-                cancelled.add(order.id);
-                continue;
+            if (order.type === ORDER_BUY) {
+                const floor = order.resourceType === RESOURCE_ENERGY
+                    ? (typeof BUY_ENERGY_CREDIT_BUFFER !== 'undefined' ? BUY_ENERGY_CREDIT_BUFFER : 500000)
+                    : getCreditFloor();
+                if (currentCredits < floor) {
+                    this.cancelOrder(order, 'Low credits');
+                    cancelled.add(order.id);
+                    continue;
+                }
             }
 
-            // Minerals/bars only, and only when we still need them (not mining, or extreme shortage)
+            // Minerals/bars only, and only when we still need them (and are not mining the source)
             if (order.type === ORDER_BUY && order.resourceType !== RESOURCE_ENERGY) {
                 if (!isMarketProcureResource(order.resourceType)) {
                     this.cancelOrder(order, 'Boost and compound buys disabled');
@@ -371,8 +377,9 @@ Object.assign(TerminalControl.prototype, {
                         // Only extend if our price is still reasonable (at least 90% of market avg)
                         if (currentPriceRatio >= 0.9) {
                             let cost = order.price * extendAmount * 0.05;
-                            if (cost <= Game.market.credits - CREDIT_BUFFER) {
+                            if (canAffordCredits(cost, {allowNegativeTrend: true})) {
                                 if (Game.market.extendOrder(order.id, extendAmount) === OK) {
+                                    recordCreditSpend(cost);
                                     log.w(`Extended buy order ${order.id} for ${extendAmount} ${order.resourceType} in ${roomLink(order.roomName)}`, "Market: ");
                                 }
                             }

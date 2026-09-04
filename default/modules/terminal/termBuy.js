@@ -10,7 +10,13 @@
 
 
 const {getEffectiveSupply} = require('termNetwork');
-const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
+const {
+    recordMarketEnergyCost,
+    canAffordSend,
+    getCreditFloor,
+    canAffordCredits,
+    recordCreditSpend
+} = require('termBudget');
 const {
     getInboundPlannedAmount,
     getEmpireBuyCandidates,
@@ -198,11 +204,11 @@ Object.assign(TerminalControl.prototype, {
                 });
             }
 
-            if (Game.market.credits < CREDIT_BUFFER * 0.6 && !isLabNeed && !extreme) continue;
-            if (this.getCreditTrend() < 0 && !isLabNeed && !extreme) continue;
+            if (Game.market.credits < getCreditFloor()) continue;
 
             const activeBuyOrder = _.find(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY);
-            const histAvg = parseFloat(latestMarketHistory(mineral).avg) || 1;
+            const hist = latestMarketHistory(mineral);
+            const histAvg = parseFloat(hist.median) || parseFloat(hist.avg) || 1;
             const mineralBuyOrders = globalOrders.filter(o => o.resourceType === mineral && o.type === ORDER_BUY && o.remainingAmount >= 50 && !MY_ROOMS.includes(o.roomName));
             const sortedMineralPrices = mineralBuyOrders.map(o => o.price).sort((a, b) => a - b);
             const p90mineral = sortedMineralPrices.length ? sortedMineralPrices[Math.floor(sortedMineralPrices.length * 0.9)] : null;
@@ -231,26 +237,26 @@ Object.assign(TerminalControl.prototype, {
                 Game.market.changeOrderPrice(activeBuyOrder.id, targetPrice);
             }
 
-            let acceptableMarkup = getAcceptableMarkup(activeBuyOrder);
-            if (adjustedStored < target * 0.25 || extreme) acceptableMarkup *= 1.5;
-            if (isLabNeed && adjustedStored < 500) acceptableMarkup *= 1.5;
+            // Instant fills: at or below median. Empire-wide extreme may pay 5% over.
+            if (this.getCreditTrend() < 0 && !extreme) continue;
+            const dealCap = extreme ? histAvg * 1.05 : histAvg;
 
             let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
                 order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)
                 && (!barCap || order.price < barCap)
-                && order.price <= latestMarketHistory(mineral).avg * acceptableMarkup), 'price');
+                && order.price <= dealCap), 'price');
             if (sellOrder && sellOrder.id) {
                 if (sellOrder.remainingAmount < buyAmount) buyAmount = Math.min(buyAmount, sellOrder.remainingAmount);
                 if (sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
-                if (buyAmount >= 100) {
+                const dealCost = sellOrder.price * buyAmount;
+                if (buyAmount >= 100 && canAffordCredits(dealCost, {emergency: extreme})) {
                     const txCost = Game.market.calcTransactionCost(buyAmount, terminal.room.name, sellOrder.roomName);
                     if (!canAffordSend(txCost)) continue;
                     if (Game.market.deal(sellOrder.id, buyAmount, terminal.room.name) === OK) {
                         recordMarketEnergyCost(terminal.room.name, txCost);
-                        const dealCost = sellOrder.price * buyAmount;
+                        recordCreditSpend(dealCost);
                         const why = extreme ? '(SHORTAGE)' : isLabNeed ? '(LAB NEED)' : '';
                         log.w(`Bought ${buyAmount} ${mineral} for ${dealCost} credits in ${roomLink(terminal.room.name)} ${why}`, "Market: ");
-                        Memory._banker.spendingAccount -= dealCost;
                         this.recordBankerDeal('buy', mineral, buyAmount, dealCost);
                         break;
                     }
@@ -263,7 +269,8 @@ Object.assign(TerminalControl.prototype, {
         // CRIT only. LOW rooms unpack batteries / take empire energy instead of locking credits.
         if (BUY_ENERGY && !terminal.room.energyState && Game.market.credits > BUY_ENERGY_CREDIT_BUFFER
             && terminal.room.store(RESOURCE_BATTERY) < FactoryControl.batteryBatchCost()) {
-            const histAvg = parseFloat(latestMarketHistory(RESOURCE_ENERGY).avg) || 1;
+            const energyHist = latestMarketHistory(RESOURCE_ENERGY);
+            const histAvg = parseFloat(energyHist.median) || parseFloat(energyHist.avg) || 1;
             const currentEnergyBuyOrders = globalOrders.filter(o => o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY && o.remainingAmount >= 500 && !MY_ROOMS.includes(o.roomName));
             const sortedBuyPrices = currentEnergyBuyOrders.map(o => o.price).sort((a, b) => a - b);
             const p90 = sortedBuyPrices.length ? sortedBuyPrices[Math.floor(sortedBuyPrices.length * 0.9)] : null;
@@ -273,15 +280,20 @@ Object.assign(TerminalControl.prototype, {
             const ageMult = Math.min(1.0, 0.85 + (orderAge / 25000) * 0.15);
             const targetPrice = refPrice * ageMult;
             if (!existingOrder) {
-                if (createBuyOrder(RESOURCE_ENERGY, targetPrice, 10000)) return true;
+                if (createBuyOrder(RESOURCE_ENERGY, targetPrice, 10000, {
+                    emergency: true,
+                    floor: typeof BUY_ENERGY_CREDIT_BUFFER !== 'undefined' ? BUY_ENERGY_CREDIT_BUFFER : 500000,
+                })) return true;
             } else if (!existingOrder.pending && Math.abs(existingOrder.price - targetPrice) > 0.02 * refPrice) {
                 Game.market.changeOrderPrice(existingOrder.id, targetPrice);
             }
         }
 
-        function createBuyOrder(resourceType, price, buyAmount) {
+        function createBuyOrder(resourceType, price, buyAmount, creditOpts = {allowNegativeTrend: true}) {
             if (buyAmount <= 0) return false;
             if (hasRoomOrder(myOrders, terminal.pos.roomName, resourceType, ORDER_BUY)) return false;
+            const fee = price * buyAmount * 0.05;
+            if (!canAffordCredits(fee, creditOpts)) return false;
             const spec = {
                 type: ORDER_BUY,
                 resourceType: resourceType,
@@ -291,20 +303,11 @@ Object.assign(TerminalControl.prototype, {
             };
             if (Game.market.createOrder(spec) === OK) {
                 recordCreatedOrder(spec);
+                recordCreditSpend(fee);
                 log.w(`New Buy Order: ${resourceType} at/per ${price} in ${roomLink(terminal.room.name)}`, "Market: ");
                 return true;
             }
             return false;
-        }
-
-        function getAcceptableMarkup(activeBuyOrder) {
-            let markup = 1.2;
-            if (activeBuyOrder) {
-                const timeElapsed = Game.time - activeBuyOrder.created;
-                const cooldown = ['shard0', 'shard1', 'shard2', 'shard3', 'shardX'].includes(Game.shard.name) ? 10000 : 10;
-                markup = Math.min(1.0 + (timeElapsed / cooldown), 2.0);
-            }
-            return markup;
         }
     }
 

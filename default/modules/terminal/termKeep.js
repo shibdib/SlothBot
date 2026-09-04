@@ -152,7 +152,11 @@ function getRoomKeepAmount(room, resource) {
     }
     if (resource === RESOURCE_BATTERY) return 1000;
     if (room.memory.commodityProduction && room.mineral && room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
-    if (BASE_MINERALS.includes(resource)) return room.terminal ? REACTION_AMOUNT : 0;
+    if (BASE_MINERALS.includes(resource)) {
+        if (!room.terminal) return 0;
+        if (isHubRoom(room) || isCoreRoom(room) || roomUsesResource(room, resource)) return REACTION_AMOUNT;
+        return 0;
+    }
     if (COMPRESSED_COMMODITIES.includes(resource)) {
         if (!room.factory) return 0;
         if (isCoreRoom(room) || isHubRoom(room)) return CORE_BAR_KEEP;

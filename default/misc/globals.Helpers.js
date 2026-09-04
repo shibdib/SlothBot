@@ -296,7 +296,8 @@ let helpers = function () {
 
                 MARKET_HISTORY[resource] = {
                     data: {
-                        avg: mean.toFixed(2),
+                        avg: median.toFixed(2),
+                        mean: mean.toFixed(2),
                         highest: Math.max(...prices).toFixed(2),
                         lowest: Math.min(...prices).toFixed(2),
                         trend: (lastPrice - chronological[0]).toFixed(2),
@@ -325,12 +326,14 @@ let helpers = function () {
             MARKET_HISTORY[resource].data = {};
             if (cheapestOrder && cheapestOrder.id) {
                 MARKET_HISTORY[resource].data.avg = cheapestOrder.price;
+                MARKET_HISTORY[resource].data.median = cheapestOrder.price;
                 MARKET_HISTORY[resource].data.highest = highestOrder.price;
                 MARKET_HISTORY[resource].data.lowest = cheapestOrder.price;
             } else {
-                MARKET_HISTORY[resource].data.avg = 50;
-                MARKET_HISTORY[resource].data.highest = 50;
-                MARKET_HISTORY[resource].data.lowest = 50;
+                MARKET_HISTORY[resource].data.avg = 1;
+                MARKET_HISTORY[resource].data.median = 1;
+                MARKET_HISTORY[resource].data.highest = 1;
+                MARKET_HISTORY[resource].data.lowest = 1;
             }
             MARKET_HISTORY[resource].data.entries = 1;
         }

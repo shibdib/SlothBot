@@ -48,7 +48,12 @@ Object.assign(TerminalControl.prototype, {
             return total;
         }
         if (BASE_MINERALS.includes(resource)) {
-            return REACTION_AMOUNT * MY_ROOMS.filter(r => Game.rooms[r] && Game.rooms[r].terminal).length;
+            let total = 0;
+            for (const name of MY_ROOMS) {
+                const room = Game.rooms[name];
+                if (room) total += getRoomKeepAmount(room, resource);
+            }
+            return total;
         }
         return this.determineKeepAmount(resource);
     },

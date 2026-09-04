@@ -4,6 +4,8 @@
  * Credit trend tracking and banker deal stats.
  */
 
+const {getSpendingAccount} = require('termBudget');
+
 const TerminalControl = require('termClass');
 
 Object.assign(TerminalControl.prototype, {
@@ -31,13 +33,13 @@ Object.assign(TerminalControl.prototype, {
             Memory._banker.lastTrendUpdate = Game.time;
         }
 
-        Memory._banker.spendingAccount = Math.max(0, Game.market.credits - CREDIT_BUFFER);
+        Memory._banker.spendingAccount = getSpendingAccount();
     },
 
     getEnergyValue(globalOrders) {
         if (this._energyValue) return this._energyValue;
         const history = latestMarketHistory(RESOURCE_ENERGY);
-        const avg = history.avg || 0.05;
+        const avg = parseFloat(history.median) || parseFloat(history.avg) || 0.05;
         const buyOrders = globalOrders.filter(o => o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY && (o.remainingAmount || o.amount) >= 1000);
         if (buyOrders.length) {
             this._energyValue = _.max(buyOrders, 'price').price;

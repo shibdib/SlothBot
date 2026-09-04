@@ -14,6 +14,7 @@ const {getLedger} = require('termNetwork');
 
 const {getCachedGlobalOrders, getCachedMyOrders} = require('termCache');
 const {isMarketHub, runHousekeeping, runActiveMarket, runPassiveMarket} = require('termMarket');
+const {getSpendingAccount} = require('termBudget');
 
 const TerminalControl = require('termClass');
 
@@ -36,7 +37,7 @@ Object.assign(TerminalControl.prototype, {
 
         if (!Memory._banker) Memory._banker = {};
         if (Memory._banker.spendingAccount == null) {
-            Memory._banker.spendingAccount = Math.max(0, Game.market.credits - CREDIT_BUFFER);
+            Memory._banker.spendingAccount = getSpendingAccount();
         }
 
         const looksLikeHub = Memory._banker.marketHub === roomName;
