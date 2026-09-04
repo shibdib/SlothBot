@@ -81,7 +81,7 @@ function resolveLabHubXY(room) {
 /**
  * Bump when the perimeter algorithm changes so owned rooms replan.
  */
-const PERIMETER_PLAN_REV = 11;
+const PERIMETER_PLAN_REV = 12;
 
 function chebyDistance(ax, ay, bx, by) {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -761,15 +761,21 @@ function floodInteriorFromHub(terrain, hub, cutSet) {
     return interior;
 }
 
-function hubLeaksToExit(terrain, hub, spotSet) {
-    if (!hub || !terrain) return true;
-    const seen = new Set([xyKey(hub.x, hub.y)]);
+function findHubLeakPath(terrain, hub, spotSet) {
+    if (!hub || !terrain) return null;
+    const hubKey = xyKey(hub.x, hub.y);
+    const seen = new Set([hubKey]);
     const q = [hub.x, hub.y];
+    const parent = Object.create(null);
     let qi = 0;
-    while (qi < q.length) {
+    let leakKey = null;
+    while (qi < q.length && !leakKey) {
         const x = q[qi++];
         const y = q[qi++];
-        if (x === 0 || y === 0 || x === 49 || y === 49) return true;
+        if (x === 0 || y === 0 || x === 49 || y === 49) {
+            leakKey = xyKey(x, y);
+            break;
+        }
         for (let i = 0; i < 8; i++) {
             const nx = x + OCTALS[i][0];
             const ny = y + OCTALS[i][1];
@@ -777,12 +783,56 @@ function hubLeaksToExit(terrain, hub, spotSet) {
             const key = xyKey(nx, ny);
             if (seen.has(key) || (spotSet && spotSet.has(key))) continue;
             if (isTerrainWall(terrain, nx, ny)) continue;
-            if (nx === 0 || ny === 0 || nx === 49 || ny === 49) return true;
             seen.add(key);
+            parent[key] = xyKey(x, y);
+            if (nx === 0 || ny === 0 || nx === 49 || ny === 49) {
+                leakKey = key;
+                break;
+            }
             q.push(nx, ny);
         }
     }
-    return false;
+    if (!leakKey) return null;
+    const path = [];
+    let cur = leakKey;
+    let guard = 0;
+    while (cur && guard++ < 2500) {
+        const comma = cur.indexOf(',');
+        path.push({x: Number(cur.slice(0, comma)), y: Number(cur.slice(comma + 1))});
+        if (cur === hubKey) break;
+        cur = parent[cur];
+    }
+    return path;
+}
+
+function hubLeaksToExit(terrain, hub, spotSet) {
+    return !!findHubLeakPath(terrain, hub, spotSet);
+}
+
+function plugHubLeaks(terrain, hub, spots, interior) {
+    const out = spots ? spots.slice() : [];
+    const spotSet = new Set();
+    for (let i = 0; i < out.length; i++) spotSet.add(xyKey(out[i].x, out[i].y));
+    for (let n = 0; n < 16; n++) {
+        const path = findHubLeakPath(terrain, hub, spotSet);
+        if (!path) return out;
+        let added = false;
+        for (let i = 0; i < path.length; i++) {
+            const t = path[i];
+            if (t.x < PERIMETER_EDGE || t.x > 49 - PERIMETER_EDGE
+                || t.y < PERIMETER_EDGE || t.y > 49 - PERIMETER_EDGE) continue;
+            const k = xyKey(t.x, t.y);
+            if (spotSet.has(k)) continue;
+            if (interior && interior.has(k)) continue;
+            if (isTerrainWall(terrain, t.x, t.y)) continue;
+            spotSet.add(k);
+            out.push({x: t.x, y: t.y});
+            added = true;
+            break;
+        }
+        if (!added) break;
+    }
+    return out;
 }
 
 function interiorBounds(interior, hub) {
@@ -836,25 +886,38 @@ function computeFloodfillPerimeter(room, layout) {
     let algorithm = 'mincut-tiles';
 
     if (spots && spots.length) {
-        const cutSet = new Set();
+        let cutSet = new Set();
         for (let i = 0; i < spots.length; i++) cutSet.add(xyKey(spots[i].x, spots[i].y));
         interior = floodInteriorFromHub(terrain, hub, cutSet);
         spots = spots.filter(p => touchesInterior(interior, p.x, p.y));
         spots = filterPerimeterBarrierSpots(room, spots);
+        spots = plugHubLeaks(terrain, hub, spots, interior);
+        cutSet = new Set();
+        for (let i = 0; i < spots.length; i++) cutSet.add(xyKey(spots[i].x, spots[i].y));
+        interior = floodInteriorFromHub(terrain, hub, cutSet);
         const exterior = floodExteriorFromExits(terrain, interior);
         spots = snapSpotsToExisting(room, spots, interior, terrain, exterior, null);
         spots = filterPerimeterBarrierSpots(room, spots);
+        spots = plugHubLeaks(terrain, hub, spots, interior);
         const sealed = new Set();
         for (let i = 0; i < spots.length; i++) sealed.add(xyKey(spots[i].x, spots[i].y));
-        if (!spots.length || hubLeaksToExit(terrain, hub, sealed)) {
-            spots = null;
-        } else {
+        if (spots.length && !hubLeaksToExit(terrain, hub, sealed)) {
             bounds = interiorBounds(interior, hub);
             radius = Math.max(bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
+        } else if (spots.length) {
+            // Keep the choke even if a diagonal leak remains — do not balloon into a hub box.
+            bounds = interiorBounds(interior, hub);
+            radius = Math.max(bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
+            algorithm = 'mincut-tiles-plugged';
+        } else {
+            spots = null;
         }
     }
 
-    if (!spots || !spots.length) {
+    if (spots && !spots.length && hubLeaksToExit(terrain, hub, new Set())) {
+        spots = null;
+    }
+    if (!spots) {
         const fb = contourFallbackPerimeter(room, hub, valid, flood, terrain);
         spots = fb.spots;
         interior = fb.interior;
@@ -918,6 +981,7 @@ function storeWalkwaySpots(roomName, spotsStr, walkway) {
 function computeWalkwayFromSpots(room, spots) {
     const walkway = [];
     if (!room || !spots || !spots.length) return walkway;
+    const hub = room.hub;
     const terrain = Game.map.getRoomTerrain(room.name);
     const seal = new Set();
     for (let i = 0; i < spots.length; i++) seal.add(xyKey(spots[i].x, spots[i].y));
@@ -933,8 +997,11 @@ function computeWalkwayFromSpots(room, spots) {
             const k = xyKey(nx, ny);
             if (seen.has(k) || seal.has(k)) continue;
             if (isTerrainWall(terrain, nx, ny)) continue;
-            const pos = new RoomPosition(nx, ny, room.name);
-            if (pos.isInBunker && !pos.isInBunker()) continue;
+            if (hub) {
+                const sealCheby = chebyDistance(p.x, p.y, hub.x, hub.y);
+                const tileCheby = chebyDistance(nx, ny, hub.x, hub.y);
+                if (tileCheby > sealCheby) continue;
+            }
             seen.add(k);
             walkway.push({x: nx, y: ny});
         }
@@ -976,9 +1043,9 @@ function roomControllerLevel(room) {
     return room && room.controller && room.controller.level != null ? room.controller.level : 0;
 }
 
-/** RCL8 extra layer (walkway, seal-wall conversion, full-HP teeth) spends sites. */
+/** RCL8 extra layer (walkway, seal-wall conversion, outer teeth). Sites are cheap; wallers spend energy. */
 function roomAllowsRcl8DefenseLayer(room) {
-    return roomControllerLevel(room) >= 8 && !!room.energyState;
+    return roomControllerLevel(room) >= 8;
 }
 
 function roomSafeForSealConversion(room) {

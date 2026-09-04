@@ -142,20 +142,25 @@ function essentialCreepQueue(room) {
         rebootCondition: spawnReboot
     });
 
-    if (room.level >= BUNKER_LEVEL) {
-        let wallerCount = 1;
-        // Spawn wallers for barrier maintenance unless the room is completely energy barren (energyState==0).
-        // At energyState==1 we allow minimal (body will be heavily scaled down by flowScale anyway).
-        // This prevents completely abandoning wall/rampart building in low-but-not-zero energy rooms.
-        // Previously gated strictly at >=2; drones still only do "energy rich" walling at >=3.
-        if (energyState >= 1 && flowHealthy && spareIncome >= 4) {
-            wallerCount = 1;
-            // Second waller only while the seal is still going up: many sub-floor
-            // ramparts or queued barrier sites. Drops back to 1 once floored.
-            if (energyState >= 2 && roomNeedsRampartBootstrap(room)) wallerCount = 2;
-            if (room.level < 7) {
-                wallerCount = Math.max(1, Math.min(wallerCount, Math.floor(spareIncome / 10)));
-            }
+    if (room.controller && room.controller.level >= BUNKER_LEVEL) {
+        let barrierSites = 0;
+        const sites = room.constructionSites || [];
+        for (let i = 0; i < sites.length; i++) {
+            const t = sites[i].structureType;
+            if (t === STRUCTURE_RAMPART || t === STRUCTURE_WALL) barrierSites++;
+        }
+        let missingSeal = false;
+        try {
+            missingSeal = require('planGeomRamparts').perimeterHasMissingBuilt(room);
+        } catch (e) { /* optional */
+        }
+        const bootstrap = roomNeedsRampartBootstrap(room) || missingSeal || barrierSites > 0;
+        let wallerCount = 0;
+        if (energyState >= 1 || bootstrap) wallerCount = 1;
+        if (energyState >= 1 && bootstrap && (barrierSites >= 5 || missingSeal)) wallerCount = 2;
+        if (energyState >= 2 && room.controller.level >= 8 && barrierSites >= 8) wallerCount = 3;
+        if (room.controller.level < 7 && spareIncome < 10) {
+            wallerCount = Math.min(wallerCount, spareIncome >= 4 ? 1 : (bootstrap ? 1 : 0));
         }
         if (wallerCount) {
             queueCreepIfNeeded({

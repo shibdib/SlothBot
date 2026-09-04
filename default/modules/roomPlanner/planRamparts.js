@@ -495,7 +495,7 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
     // Use controller.level (not energy-tier room.level) so incomplete extensions never stall seals.
     if (bunkerLevelAllowsPerimeter(room)) {
         if (!opts.skipPerimeter && handleBunkerRamparts(room, layout, count)) return true;
-        if (!opts.skipProtective && room.energyState && buildProtectiveRamparts(room, layout)) return true;
+        if (!opts.skipProtective && buildProtectiveRamparts(room, layout)) return true;
     }
 
     // RCL8 fighting layer: walkable seal, inner walkway, then outer teeth.
@@ -578,8 +578,7 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
     }
 
     function buildProtectiveRamparts(room, layout) {
-        const ramparts = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name] ? JSON.parse(ROOM_RAMPART_SPOTS[room.name]) : undefined;
-        if (!ramparts || !ramparts.length) return false;
+        const ramparts = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name] ? JSON.parse(ROOM_RAMPART_SPOTS[room.name]) : [];
         let counter = 0;
         if (buildBorderStructureRamparts(room, layout)) return true;
         const vulnerableStructures = room.structures.filter((s) =>
@@ -594,7 +593,7 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
             else if (result === ERR_NOT_OWNER || result === ERR_FULL) return true;
         }
         const rcl = roomControllerLevel(room);
-        if (rcl >= SPECIAL_RAMPARTS) {
+        if (rcl >= SPECIAL_RAMPARTS && room.energyState) {
             if (PROTECT_SOURCES) {
                 for (let source of room.sources) {
                     if (counter >= 3) return true;
@@ -1077,6 +1076,12 @@ function ensurePerimeterSites(room, options = {}) {
         if (built.has(key) || barrierSiteKeys.has(key)) continue;
         buildPositions.push(new RoomPosition(p.x, p.y, room.name));
     }
+    let wallerN = 0;
+    const creeps = room.creeps || [];
+    for (let i = 0; i < creeps.length; i++) {
+        if (creeps[i] && creeps[i].memory && creeps[i].memory.role === 'waller') wallerN++;
+    }
+    const maxInBuild = wallerN >= 2 ? 8 : 5;
     if (buildPositions.length > 1) {
         sortPerimeterBuildPositions(room, buildPositions, built, barrierSiteKeys);
     }
@@ -1132,9 +1137,16 @@ function ensurePerimeterSites(room, options = {}) {
     }
 
     let want = Math.max(0, siteCap - inBuild);
+    if (inBuild >= maxInBuild) {
+        siteCap = inBuild;
+        want = 0;
+    } else {
+        siteCap = Math.min(siteCap, maxInBuild);
+        want = Math.max(0, siteCap - inBuild);
+    }
     // Incomplete seal: free idle roads when the layer got 0 (full cap *or*
     // reserve ate the last slot). Then recompute so replacements actually place.
-    if (want <= 0 && buildPositions.length) {
+    if (want <= 0 && buildPositions.length && inBuild < maxInBuild) {
         const freed = freeSiteSlotsForPerimeter(room, Math.min(5, maxPlace + 1), {force: true});
         if (freed > 0) {
             if (typeof options.placementLimit === 'function') {
@@ -1645,10 +1657,25 @@ function placeRamparts(room, options) {
     let protective = false;
     let protectiveSkipped = false;
     const lastProtective = room.memory._protectiveRampartTick || 0;
-    const protectiveInterval = sealComplete
-        ? (bucket < 5000 ? 40 : 20)
-        : 1;
-    const protectiveDue = !sealComplete
+    let extraLayerPending = false;
+    if (sealComplete && roomAllowsRcl8DefenseLayer(room)) {
+        try {
+            const walkway = getWalkwaySpots(room);
+            for (let i = 0; i < walkway.length; i++) {
+                const pos = new RoomPosition(walkway[i].x, walkway[i].y, room.name);
+                if (!pos.checkForRampart()) {
+                    extraLayerPending = true;
+                    break;
+                }
+            }
+        } catch (e) { /* ignore */
+        }
+    }
+    const protectiveInterval = extraLayerPending ? 2
+        : sealComplete ? (bucket < 5000 ? 40 : 20)
+            : 1;
+    const protectiveDue = extraLayerPending
+        || !sealComplete
         || (Game.time - lastProtective) >= protectiveInterval
         || (perimeter.placed || 0) > 0;
     if (protectiveDue && bucket >= 2000) {
