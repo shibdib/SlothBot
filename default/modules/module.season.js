@@ -195,7 +195,9 @@ function pickTargetReactor() {
     }
 
     mem.targetReactor = best || undefined;
-    mem.feederRoom = best ? (closestOwned(best, 4) || closestOwned(best, 1)) : undefined;
+    // Terminals (and extractors) unlock at RCL 6. Prefer a feeder that can
+    // receive empire Thorium; fall back only if nothing that high exists.
+    mem.feederRoom = best ? (closestOwned(best, 6) || closestOwned(best, 4) || closestOwned(best, 1)) : undefined;
 }
 
 function ensureIntelStub(roomName) {
@@ -222,13 +224,15 @@ function setOperations() {
     const emergency = mine && store != null && store < REACTOR_STORE_EMERGENCY;
     const cap = reactorCapacity();
     const hungry = !mine || store == null || store < REACTOR_STORE_TARGET;
+    // Extractors unlock at RCL 6. Haulers before that idle with empty stores.
+    const canMine = (typeof MAX_LEVEL !== 'undefined' ? MAX_LEVEL : 0) >= 6;
 
     Memory.auxiliaryTargets[target] = {
         tick: Game.time,
         type: 'reactor',
         priority: emergency ? PRIORITIES.urgent : PRIORITIES.high,
         claim: !mine,
-        haulers: emergency ? 3 : (hungry ? 2 : 1),
+        haulers: canMine ? (emergency ? 3 : (hungry ? 2 : 1)) : 0,
         feeder: mem.feederRoom,
         store: store,
         capacity: cap
