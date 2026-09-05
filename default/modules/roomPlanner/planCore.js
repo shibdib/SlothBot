@@ -466,6 +466,7 @@ function placeCoreStamps(room, options) {
     // Core stamps place the hub receiver then skip the tile once it exists.
     // Bind memory here so a finished core (especially dynamic) still records it.
     try {
+        require('planEconomy').cleanupMisplacedLinks(room);
         require('planEconomy').bindHubLinkMemory(room);
     } catch (e) { /* ignore */
     }

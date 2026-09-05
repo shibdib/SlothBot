@@ -29,10 +29,15 @@ class RoleHubManager {
     }
 
     spawnNeed() {
-        return this.creep.pos.findInRange(FIND_MY_STRUCTURES, 1, {
+        if (this._spawnNeedTick === Game.time) return this._spawnNeed;
+        const pos = this.creep.pos;
+        const need = pos.findInRange(FIND_MY_STRUCTURES, 1, {
             filter: s => (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION)
                 && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0
         });
+        this._spawnNeedTick = Game.time;
+        this._spawnNeed = need;
+        return need;
     }
 
     surplusSink() {
@@ -178,7 +183,7 @@ class RoleHubManager {
         }
 
         if (this.surplusSink() && pullEnergy()) return;
-        this.creep.idleFor(3);
+        this.creep.idleFor(8);
     }
 }
 

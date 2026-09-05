@@ -26,6 +26,47 @@ const LAB_HUB_INPUT_LOW = 1000;
 const LAB_HUB_INPUT_TARGET = 2500;
 const LAB_OUTPUT_DRAIN_MIN = 500;
 const LAB_OUTPUT_ENERGY_REFILL = 400;
+const WAREHOUSE_PLAN_TTL = 20;
+
+function empireRemoteNeed(skipRoom) {
+    if (global._empNeedTick !== Game.time) {
+        global._empNeedTick = Game.time;
+        const byRoom = Object.create(null);
+        const rooms = typeof MY_ROOMS !== 'undefined' ? MY_ROOMS : [];
+        for (let i = 0; i < rooms.length; i++) {
+            const name = rooms[i];
+            const dest = Game.rooms[name];
+            if (!dest || !dest.terminal) continue;
+            const seen = Object.create(null);
+            const labs = dest.labs || [];
+            for (let l = 0; l < labs.length; l++) {
+                const mem = labs[l].memory;
+                if (!mem) continue;
+                if (mem.itemNeeded) seen[mem.itemNeeded] = 1;
+                if (mem.neededBoost) seen[mem.neededBoost] = 1;
+            }
+            if (dest.memory.producingBoost) seen[dest.memory.producingBoost] = 1;
+            if (dest.memory.neededCommodity) seen[dest.memory.neededCommodity] = 1;
+            const bag = Object.create(null);
+            for (const res in seen) {
+                const need = getRoomOperationalNeed(dest, res);
+                if (!need) continue;
+                const have = dest.store(res) || 0;
+                if (have < need) bag[res] = need - have;
+            }
+            byRoom[name] = bag;
+        }
+        global._empNeedByRoom = byRoom;
+    }
+    const totals = Object.create(null);
+    const byRoom = global._empNeedByRoom || {};
+    for (const name in byRoom) {
+        if (name === skipRoom) continue;
+        const bag = byRoom[name];
+        for (const res in bag) totals[res] = (totals[res] || 0) + bag[res];
+    }
+    return totals;
+}
 
 
 class RoleLabTech {
@@ -167,7 +208,7 @@ class RoleLabTech {
         // pack the last free slot. Dual-zero swap stays at 2.
         // Hub manager owns storage↔terminal warehouse when it is sitting on (0,0).
         if (storage && terminal && !hasLiveHubManager(this.room) && this.needsBalanceSpace(storage, terminal)) {
-            const spaceTask = this.findBalancingTask(storage, terminal);
+            const spaceTask = RoleLabTech.planWarehouseTask(this.room, this.creep.store.getCapacity() || 0);
             if (spaceTask) return spaceTask;
         }
 
@@ -337,7 +378,7 @@ class RoleLabTech {
 
         // 16. Routine storage/terminal balance (keep split, energy, export slices)
         if (!hasLiveHubManager(this.room)) {
-            const balancingTask = this.findBalancingTask(storage, terminal);
+            const balancingTask = RoleLabTech.planWarehouseTask(this.room, this.creep.store.getCapacity() || 0);
             if (balancingTask) return balancingTask;
         }
 
@@ -976,41 +1017,25 @@ class RoleLabTech {
         const terminalFree = this.usableFree(terminal);
         if (terminalFree < BALANCE_MIN_TRANSFER) return null;
         if (typeof ALL_BOOSTS === 'undefined' || !ALL_BOOSTS.length) return null;
+        if (!MY_ROOMS || MY_ROOMS.length < 2) return null;
 
+        const remoteNeed = empireRemoteNeed(this.room.name);
         let best = null;
         let bestWant = 0;
-        const resources = Object.keys(storage.store);
-        for (let i = 0; i < resources.length; i++) {
-            const resource = resources[i];
-            if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
-            const labFeed = (typeof ALL_BOOSTS !== 'undefined' && ALL_BOOSTS.includes(resource))
-                || BASE_MINERALS.includes(resource)
-                || resource === RESOURCE_GHODIUM;
-            if (!labFeed) continue;
+        for (const resource in remoteNeed) {
+            const need = remoteNeed[resource];
+            if (need < BALANCE_MIN_TRANSFER) continue;
             const inStorage = storage.store[resource] || 0;
             if (inStorage < BALANCE_MIN_TRANSFER) continue;
             const protect = getOperationalProtectAmount(this.room, resource);
             const spare = (this.room.store(resource) || 0) - protect;
             if (spare < BALANCE_MIN_TRANSFER) continue;
-
-            let remoteNeed = 0;
-            for (let r = 0; r < MY_ROOMS.length; r++) {
-                const name = MY_ROOMS[r];
-                if (name === this.room.name) continue;
-                const dest = Game.rooms[name];
-                if (!dest || !dest.terminal) continue;
-                const need = getRoomOperationalNeed(dest, resource);
-                if (!need) continue;
-                const have = dest.store(resource) || 0;
-                if (have < need) remoteNeed += need - have;
-            }
-            if (remoteNeed < BALANCE_MIN_TRANSFER) continue;
             const inTerminal = terminal.store[resource] || 0;
-            if (inTerminal >= remoteNeed) continue;
+            if (inTerminal >= need) continue;
             const cap = Math.min(this.getTerminalStockTarget(resource), TERMINAL_EXPORT_CEILING);
             if (inTerminal >= cap) continue;
             const want = Math.min(
-                remoteNeed - inTerminal,
+                need - inTerminal,
                 spare,
                 inStorage,
                 cap - inTerminal,
@@ -1277,6 +1302,7 @@ class RoleLabTech {
     }
 
     findSellOrderBalance(storage, terminal) {
+        if (typeof IS_SEASON !== 'undefined' && IS_SEASON) return null;
         const terminalFree = terminal.store.getFreeCapacity();
         if (terminalFree < BALANCE_MIN_TRANSFER) return null;
         if (this.isStructureNearFull(terminal) && !this.isStructureNearFull(storage)) return null;
@@ -1976,6 +2002,25 @@ profiler.registerClass(RoleLabTech, 'LabTech');
 RoleLabTech.planWarehouseTask = function (room, carry) {
     if (!room || !room.storage || !room.terminal) return null;
     const cap = carry || 0;
+    const heap = global.roomHeap ? global.roomHeap(room.name) : null;
+    if (heap && heap.warehousePlanTick && heap.warehousePlanTick + WAREHOUSE_PLAN_TTL > Game.time) {
+        const cached = heap.warehousePlan;
+        if (!cached) return null;
+        const src = Game.getObjectById(cached.withdrawTarget);
+        const dest = Game.getObjectById(cached.deliveryTarget);
+        if (src && dest && (src.store[cached.resource] || 0) > 0) {
+            const task = {
+                withdrawTarget: cached.withdrawTarget,
+                deliveryTarget: cached.deliveryTarget,
+                resource: cached.resource,
+                amount: cached.amount,
+            };
+            if (cached.swapReverse) task.swapReverse = cached.swapReverse;
+            if (task.amount) task.amount = Math.min(task.amount, cap);
+            return task;
+        }
+        heap.warehousePlanTick = 0;
+    }
     const planner = Object.create(RoleLabTech.prototype);
     planner.room = room;
     planner.creep = {
@@ -1987,6 +2032,10 @@ RoleLabTech.planWarehouseTask = function (room, carry) {
         },
     };
     const task = planner.findBalancingTask(room.storage, room.terminal);
+    if (heap) {
+        heap.warehousePlanTick = Game.time;
+        heap.warehousePlan = task || null;
+    }
     if (!task) return null;
     if (task.amount) task.amount = Math.min(task.amount, cap);
     return task;

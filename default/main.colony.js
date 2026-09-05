@@ -166,13 +166,16 @@ class Colony {
             if (avgCpu > roomCpuTarget) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
                 this.room.memory.cpuOverage = cpuOverCount + 1;
-                if (cpuOverCount >= 80 && Game.cpu.bucket < BUCKET_MAX * 0.15) {
+                const severe = avgCpu > roomCpuTarget * 2;
+                const bucketLow = Game.cpu.bucket < BUCKET_MAX * 0.25;
+                const bucketCritical = Game.cpu.bucket < BUCKET_MAX * 0.15;
+                if ((cpuOverCount >= 80 && bucketCritical) || (severe && cpuOverCount >= 20 && bucketLow)) {
                     this.room.memory.cpuOverage = undefined;
                     this.room.memory.noRemote = Game.time + CREEP_LIFE_TIME;
                     this.suicideRemoteCreeps();
                     log.a(`${roomLink(this.room.name)} remotes disabled (severe CPU + low bucket).`, 'ROOM MANAGER:');
                     cpuUsageArray = [];
-                } else if (cpuOverCount >= 40 && Game.cpu.bucket < BUCKET_MAX * 0.25) {
+                } else if ((cpuOverCount >= 40 && bucketLow) || (severe && cpuOverCount >= 2)) {
                     this.room.memory.cpuOverage = undefined;
                     this.room.memory.remotePenalty = Game.time + 500;
                     log.a(`${roomLink(this.room.name)} remote spawning penalized to conserve CPU.`, 'ROOM MANAGER:');

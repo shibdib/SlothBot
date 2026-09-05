@@ -239,7 +239,7 @@ function placeOwnedRoads(room, options) {
         });
     }
 
-    if (!room.storage || !room.spawns.length || room.level < ROAD_LEVEL) {
+    if (!isOwnedRoomRoadEligible(room)) {
         setRoadsBuiltFlag(room, undefined);
         return {
             ok: cleaned > 0,

@@ -190,13 +190,13 @@ function clearConstructionMemory(creep) {
     creep.memory.targetHits = undefined;
 }
 
-// Owned roads are not placed until ROAD_LEVEL + storage. Leftover previous-owner
-// roads must not steal RCL1 energy that should go to the controller.
+// Owned roads wait for ROAD_LEVEL + storage. Use controller.level so incomplete
+// extensions do not freeze paving after storage exists.
 function ownedRoomRepairsRoads(room) {
     if (!room || !room.controller || !room.controller.my) return false;
     if (!room.storage || !(room.spawns && room.spawns.length)) return false;
     const roadLevel = typeof ROAD_LEVEL !== 'undefined' ? ROAD_LEVEL : 4;
-    return (room.level || 0) >= roadLevel;
+    return (room.controller.level || room.level || 0) >= roadLevel;
 }
 
 function allowRoadMaintenance(room, roadsOnly) {
@@ -910,13 +910,16 @@ Creep.prototype.constructionWork = function (scope) {
     site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.5));
     if (site) return repair(site, site.hitsMax * 0.8);
 
+    // Queued roads occupy a site slot; idle 0-progress ones get evicted by the
+    // perimeter queue. allowRoads already requires ROAD_LEVEL + storage.
+    if (roadSites.length) return buildClosest(roadSites);
+    site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.75));
+    if (site) return repair(site, site.hitsMax * 0.75);
+
     const trend = (room.energyInfo && room.energyInfo.trend) || 0;
     const spareIncome = (room.energyInfo && room.energyInfo.spareIncome) || 0;
     if (room.energyState >= 3 || (room.energyState >= 1 && spareIncome > 0 && trend >= 0)) {
         if (sites.misc.length) return buildClosest(sites.misc);
-        if (roadSites.length) return buildClosest(roadSites);
-        site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.75));
-        if (site) return repair(site, site.hitsMax * 0.75);
         site = weakestByHitsRatio(available(damage.containers).filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
         site = available(damage.containers)[0] || available(damagedRoads)[0] || available(damage.other)[0];

@@ -16,6 +16,9 @@
  *   - In-progress higher-priority link site stops lower steps same tick (V1 return true).
  *   - Source within 2 of controller: one shared link (harvest dump + upgrade);
  *     controller container keeps off the shared-link tile.
+ *   - Stray / duplicate links (wrong tile, extra per source/controller, dead
+ *     remote-exit, ring fallback while stamp tile is free) are destroyed one
+ *     per tick so the cap can be spent on hub / source / controller.
  */
 
 const {labTemplate, hubLinkOffset, coreTemplate, reservedHubTileKeys} = require('planTemplates');
@@ -623,18 +626,26 @@ function buildSourceLink(room, source) {
     if (source.memory.link && source.memory.link === room.memory.hubLink) {
         source.memory.link = undefined;
     }
-    const existingLink = sourceContainer.pos.findInRange(room.links, 1)
-        .find(l => l.id !== room.memory.hubLink);
-    if (existingLink) {
+    const existingLinks = sourceContainer.pos.findInRange(room.links, 1)
+        .filter(l => l.id !== room.memory.hubLink);
+    const shared = isControllerNeighborSource(source, room);
+    if (existingLinks.length) {
+        existingLinks.sort((a, b) => {
+            if (shared) {
+                const sa = isControllerLinkPos(a.pos, room) ? 0 : 1;
+                const sb = isControllerLinkPos(b.pos, room) ? 0 : 1;
+                if (sa !== sb) return sa - sb;
+            }
+            return a.pos.getRangeTo(sourceContainer) - b.pos.getRangeTo(sourceContainer);
+        });
+        const existingLink = existingLinks[0];
         source.memory.link = existingLink.id;
-        if (isControllerNeighborSource(source, room) && isControllerLinkPos(existingLink.pos, room)) {
+        if (shared && isControllerLinkPos(existingLink.pos, room)) {
             room.memory.controllerLink = existingLink.id;
             return {ok: false, reason: 'shared-controller'};
         }
         return {ok: false, reason: 'have'};
     }
-
-    const shared = isControllerNeighborSource(source, room);
     const ctrlLink = Game.getObjectById(room.memory.controllerLink);
     if (shared && ctrlLink && ctrlLink.pos.isNearTo(sourceContainer)) {
         source.memory.link = ctrlLink.id;
@@ -770,29 +781,567 @@ function linkOnTile(pos, room) {
     return null;
 }
 
+function preferredHubLinkBlockedByTerrain(room) {
+    const pos = hubLinkPreferredPos(room);
+    if (!pos) return true;
+    return !!(pos.checkForWall && pos.checkForWall());
+}
+
+function linkMatchesPos(link, pos) {
+    return !!(link && pos && link.pos && link.pos.x === pos.x && link.pos.y === pos.y);
+}
+
+function linkOnCandidate(linkOrPos, candidates) {
+    if (!linkOrPos || !candidates || !candidates.length) return false;
+    const x = linkOrPos.x != null ? linkOrPos.x : (linkOrPos.pos && linkOrPos.pos.x);
+    const y = linkOrPos.y != null ? linkOrPos.y : (linkOrPos.pos && linkOrPos.pos.y);
+    if (x == null || y == null) return false;
+    for (let i = 0; i < candidates.length; i++) {
+        if (candidates[i].x === x && candidates[i].y === y) return true;
+    }
+    return false;
+}
+
 /**
  * Record the hub receiver in room.memory.hubLink when the structure exists.
  * Core stamps place that tile for bunker and dynamic rooms but never wrote the
  * id; hubManager spawning and link routing both key off this memory.
+ *
+ * The stamp tile (hub + 0,1) always wins when it is not a terrain wall. A ring
+ * fallback is only bound when that stamp tile is unusable — otherwise a leftover
+ * diagonal link would block placing the real receiver.
  * @param {Room} room
  * @returns {StructureLink|null}
  */
 function bindHubLinkMemory(room) {
     if (!room || !room.memory) return null;
+    if (!room.hub) {
+        if (room.memory.hubLink) room.memory.hubLink = undefined;
+        return null;
+    }
+
+    const preferred = hubLinkPreferredPos(room);
+    const preferredLink = preferred && linkOnTile(preferred, room);
+    if (preferredLink && preferredLink.store) {
+        if (room.memory.hubLink !== preferredLink.id) room.memory.hubLink = preferredLink.id;
+        return preferredLink;
+    }
+
     const remembered = Game.getObjectById(room.memory.hubLink);
-    // Construction sites also have structureType LINK — require store (built link).
-    if (remembered && remembered.structureType === STRUCTURE_LINK && remembered.store) return remembered;
-    if (room.memory.hubLink) room.memory.hubLink = undefined;
-    if (!room.hub) return null;
+    const validRemembered = remembered
+        && remembered.structureType === STRUCTURE_LINK
+        && remembered.store;
+
+    // Stamp tile is free: do not treat a ring leftover as the hub receiver.
+    if (!preferredHubLinkBlockedByTerrain(room)) {
+        if (validRemembered && preferred && !linkMatchesPos(remembered, preferred)) {
+            room.memory.hubLink = undefined;
+            return null;
+        }
+        if (room.memory.hubLink && !validRemembered) room.memory.hubLink = undefined;
+        return null;
+    }
+
     const candidates = hubLinkCandidatePositions(room);
+    if (validRemembered && linkOnCandidate(remembered, candidates)) return remembered;
+    if (room.memory.hubLink) room.memory.hubLink = undefined;
     for (let i = 0; i < candidates.length; i++) {
         const existing = linkOnTile(candidates[i], room);
-        if (existing) {
+        if (existing && existing.store) {
             room.memory.hubLink = existing.id;
             return existing;
         }
     }
     return null;
+}
+
+function sourceDumpContainer(source, room) {
+    return resolveSourceContainer(source, room, false)
+        || Game.getObjectById(source.memory && source.memory.container)
+        || null;
+}
+
+function isSourceDumpAt(link, source, room) {
+    if (!link || !link.pos || !source) return false;
+    const container = sourceDumpContainer(source, room);
+    if (container) return link.pos.isNearTo(container);
+    return link.pos.getRangeTo(source) <= 2;
+}
+
+function linkStoreEnergy(link) {
+    return (link.store && link.store.getUsedCapacity
+        && link.store.getUsedCapacity(RESOURCE_ENERGY)) || 0;
+}
+
+function forgetLinkId(room, id) {
+    if (!id || !room || !room.memory) return;
+    if (room.memory.hubLink === id) room.memory.hubLink = undefined;
+    if (room.memory.controllerLink === id) room.memory.controllerLink = undefined;
+    const sources = room.sources || [];
+    for (let i = 0; i < sources.length; i++) {
+        const mem = sources[i].memory;
+        if (mem && mem.link === id) mem.link = undefined;
+    }
+}
+
+function pickBestLink(list, scoreFn) {
+    let best = null;
+    let bestScore = -Infinity;
+    for (let i = 0; i < list.length; i++) {
+        const score = scoreFn(list[i]);
+        if (score > bestScore) {
+            bestScore = score;
+            best = list[i];
+        }
+    }
+    return best;
+}
+
+function listHasId(list, obj) {
+    if (!obj) return false;
+    for (let i = 0; i < list.length; i++) {
+        if (list[i].id === obj.id) return true;
+    }
+    return false;
+}
+
+function neighborHasVisibleRemoteHarvester(roomName) {
+    const nRoom = Game.rooms[roomName];
+    if (!nRoom || !nRoom.myCreeps) return false;
+    const creeps = nRoom.myCreeps;
+    for (let c = 0; c < creeps.length; c++) {
+        if (creeps[c].memory && creeps[c].memory.role === 'remoteHarvester') return true;
+    }
+    return false;
+}
+
+function neighborIsActiveRemote(roomName) {
+    if (neighborHasVisibleRemoteHarvester(roomName)) return true;
+    const intel = typeof INTEL !== 'undefined' && INTEL[roomName];
+    if (!intel || !intel.activeRemote) return false;
+    const window = typeof CREEP_LIFE_TIME === 'number' ? CREEP_LIFE_TIME : 1500;
+    return intel.activeRemote + window > Game.time;
+}
+
+/**
+ * Mid-exit tiles facing remote neighbors.
+ * `requireHarvester` (placement): only while a remote harvester is in vision.
+ * Cleanup uses INTEL.activeRemote so a dark tick does not wipe a live exit link.
+ * @param {Room} room
+ * @param {{requireHarvester?: boolean}} [opts]
+ * @returns {{pos: RoomPosition, neighbor: string}[]}
+ */
+function activeRemoteExitAnchors(room, opts) {
+    const requireHarvester = !!(opts && opts.requireHarvester);
+    const cacheKey = requireHarvester ? '_remoteExitAnchorsHarvest' : '_remoteExitAnchorsKeep';
+    const tickKey = cacheKey + 'Tick';
+    if (room[tickKey] === Game.time && room[cacheKey]) return room[cacheKey];
+    const out = [];
+    if (controllerRcl(room) >= 8) {
+        const neighboring = Object.values(Game.map.describeExits(room.name) || {});
+        for (let n = 0; n < neighboring.length; n++) {
+            const neighbor = neighboring[n];
+            if (requireHarvester) {
+                if (!neighborHasVisibleRemoteHarvester(neighbor)) continue;
+            } else if (!neighborIsActiveRemote(neighbor)) {
+                continue;
+            }
+            const exit = Game.map.findExit(room.name, neighbor);
+            if (!(exit > 0)) continue;
+            const exitTiles = room.find(exit);
+            if (!exitTiles || !exitTiles.length) continue;
+            out.push({
+                pos: exitTiles[Math.floor(exitTiles.length / 2)],
+                neighbor,
+            });
+        }
+    }
+    room[cacheKey] = out;
+    room[tickKey] = Game.time;
+    return out;
+}
+
+function extraHasLink(extras, link) {
+    for (let i = 0; i < extras.length; i++) {
+        if (extras[i].link.id === link.id) return true;
+    }
+    return false;
+}
+
+/**
+ * Keep at most: 1 hub (stamp tile, or a ring fallback only if the stamp is a
+ * wall), 1 dump per source, 1 controller-area (skipped when the controller is
+ * next to the hub), 1 remote per active exit. Everything else is extra.
+ * @param {Room} room
+ */
+function classifyRoomLinks(room) {
+    const rcl = controllerRcl(room);
+    const cap = CONTROLLER_STRUCTURES[STRUCTURE_LINK][rcl] || 0;
+    const skipControllerNearHub = isControllerLinkSkippedNearHub(room, rcl);
+    const neighborSource = getControllerNeighborSource(room);
+    const shareWithNeighbor = !!(neighborSource && !skipControllerNearHub);
+    const sources = room.sources || [];
+    const links = (room.links || []).filter(l => l && l.pos);
+    const keep = Object.create(null);
+    const extras = [];
+
+    const preferred = hubLinkPreferredPos(room);
+    const preferredBlocked = preferredHubLinkBlockedByTerrain(room);
+    const candidates = hubLinkCandidatePositions(room);
+
+    let hubKeep = null;
+    if (preferred) hubKeep = linkOnTile(preferred, room);
+    if (!hubKeep && preferredBlocked) {
+        const remembered = Game.getObjectById(room.memory.hubLink);
+        if (remembered && remembered.pos && linkOnCandidate(remembered, candidates)) {
+            hubKeep = remembered;
+        } else {
+            for (let i = 0; i < candidates.length; i++) {
+                const existing = linkOnTile(candidates[i], room);
+                if (existing) {
+                    hubKeep = existing;
+                    break;
+                }
+            }
+        }
+    }
+    if (hubKeep) keep[hubKeep.id] = 'hub';
+
+    for (let s = 0; s < sources.length; s++) {
+        const source = sources[s];
+        const adjacent = [];
+        for (let i = 0; i < links.length; i++) {
+            const l = links[i];
+            if (keep[l.id] === 'hub') continue;
+            if (isSourceDumpAt(l, source, room)) adjacent.push(l);
+        }
+        if (!adjacent.length) continue;
+
+        let chosen = null;
+        const bound = source.memory && source.memory.link && Game.getObjectById(source.memory.link);
+        const wantShared = shareWithNeighbor && neighborSource && source.id === neighborSource.id;
+        if (wantShared) {
+            const shared = adjacent.filter(l => isControllerLinkPos(l.pos, room));
+            if (shared.length) {
+                chosen = pickBestLink(shared, (l) => {
+                    let score = 20 - l.pos.getRangeTo(room.controller);
+                    if (room.memory.controllerLink === l.id) score += 5;
+                    if (bound && l.id === bound.id) score += 3;
+                    return score;
+                });
+            }
+        }
+        if (!chosen && bound && listHasId(adjacent, bound)) chosen = bound;
+        if (!chosen) {
+            const container = sourceDumpContainer(source, room);
+            chosen = pickBestLink(adjacent, (l) => {
+                let score = 0;
+                if (container) score += (2 - l.pos.getRangeTo(container)) * 10;
+                if (source.memory && source.memory.link === l.id) score += 3;
+                return score;
+            });
+        }
+        if (chosen && !keep[chosen.id]) keep[chosen.id] = 'source';
+        for (let i = 0; i < adjacent.length; i++) {
+            if (!keep[adjacent[i].id] && !extraHasLink(extras, adjacent[i])) {
+                extras.push({link: adjacent[i], reason: 'duplicate-source'});
+            }
+        }
+    }
+
+    if (!skipControllerNearHub && room.controller) {
+        const area = [];
+        for (let i = 0; i < links.length; i++) {
+            const l = links[i];
+            if (keep[l.id] === 'hub') continue;
+            if (isControllerLinkPos(l.pos, room)) area.push(l);
+        }
+        if (area.length) {
+            let chosen = null;
+            for (let i = 0; i < area.length; i++) {
+                if (keep[area[i].id]) {
+                    chosen = area[i];
+                    break;
+                }
+            }
+            if (!chosen && shareWithNeighbor) {
+                const srcCont = neighborSourceContainer(room);
+                if (srcCont) {
+                    const shared = area.filter(l => l.pos.isNearTo(srcCont));
+                    if (shared.length) {
+                        chosen = pickBestLink(shared, l => 10 - l.pos.getRangeTo(room.controller));
+                    }
+                }
+            }
+            if (!chosen) {
+                const remembered = Game.getObjectById(room.memory.controllerLink);
+                if (remembered && listHasId(area, remembered)) chosen = remembered;
+            }
+            if (!chosen) {
+                chosen = pickBestLink(area, (l) => {
+                    const range = l.pos.getRangeTo(room.controller);
+                    if (range === 2) return 30;
+                    if (range === 3) return 15;
+                    if (range === 1) return 8;
+                    return 0;
+                });
+            }
+            if (chosen && !keep[chosen.id]) keep[chosen.id] = 'controller';
+            for (let i = 0; i < area.length; i++) {
+                if (!keep[area[i].id] && !extraHasLink(extras, area[i])) {
+                    extras.push({link: area[i], reason: 'duplicate-controller'});
+                }
+            }
+        }
+    }
+
+    if (rcl >= 8) {
+        const anchors = activeRemoteExitAnchors(room);
+        for (let a = 0; a < anchors.length; a++) {
+            const pos = anchors[a].pos;
+            let covered = false;
+            const nearby = [];
+            for (let i = 0; i < links.length; i++) {
+                const l = links[i];
+                if (l.pos.getRangeTo(pos) > 4) continue;
+                if (keep[l.id]) covered = true;
+                else nearby.push(l);
+            }
+            if (covered) {
+                for (let i = 0; i < nearby.length; i++) {
+                    if (!extraHasLink(extras, nearby[i])) {
+                        extras.push({link: nearby[i], reason: 'duplicate-remote'});
+                    }
+                }
+                continue;
+            }
+            if (!nearby.length) continue;
+            const chosen = pickBestLink(nearby, l => 10 - l.pos.getRangeTo(pos));
+            if (chosen) keep[chosen.id] = 'remote';
+            for (let i = 0; i < nearby.length; i++) {
+                if (!keep[nearby[i].id] && !extraHasLink(extras, nearby[i])) {
+                    extras.push({link: nearby[i], reason: 'duplicate-remote'});
+                }
+            }
+        }
+    }
+
+    for (let i = 0; i < links.length; i++) {
+        const l = links[i];
+        if (keep[l.id] || extraHasLink(extras, l)) continue;
+        extras.push({link: l, reason: 'stray'});
+    }
+
+    if (!hubKeep && cap > 0 && links.length >= cap && !extras.length) {
+        const demote = [];
+        for (let i = 0; i < links.length; i++) {
+            const role = keep[links[i].id];
+            if (!role || role === 'hub') continue;
+            let rank = 2;
+            if (role === 'remote') rank = 0;
+            else if (role === 'controller') rank = 1;
+            demote.push({
+                link: links[i],
+                rank,
+                energy: linkStoreEnergy(links[i]),
+            });
+        }
+        demote.sort((a, b) => a.rank - b.rank || a.energy - b.energy);
+        if (demote.length) {
+            delete keep[demote[0].link.id];
+            extras.push({link: demote[0].link, reason: 'slot-for-hub'});
+        }
+    }
+
+    return {
+        keep,
+        extras,
+        hubKeep,
+        hubMissing: !hubKeep,
+        skipControllerNearHub,
+        shareWithNeighbor,
+        cap,
+        preferredBlocked,
+    };
+}
+
+function sourceHasKeptDump(classified, source, room) {
+    const links = room.links || [];
+    for (let i = 0; i < links.length; i++) {
+        const l = links[i];
+        if (!classified.keep[l.id] || classified.keep[l.id] === 'hub') continue;
+        if (isSourceDumpAt(l, source, room)) return true;
+    }
+    return false;
+}
+
+function hasKeptControllerLink(classified, room) {
+    if (classified.skipControllerNearHub) return true;
+    const links = room.links || [];
+    for (let i = 0; i < links.length; i++) {
+        const l = links[i];
+        if (!classified.keep[l.id] || classified.keep[l.id] === 'hub') continue;
+        if (isControllerLinkPos(l.pos, room)) return true;
+    }
+    return false;
+}
+
+function remoteExitCovered(room, anchor, classified) {
+    const links = room.links || [];
+    for (let i = 0; i < links.length; i++) {
+        const l = links[i];
+        if (!classified.keep[l.id]) continue;
+        if (l.pos.getRangeTo(anchor.pos) <= 4) return true;
+    }
+    return false;
+}
+
+function isWantedLinkSite(pos, room, classified) {
+    if (!pos) return false;
+    const preferred = hubLinkPreferredPos(room);
+    if (classified.hubMissing && preferred && pos.x === preferred.x && pos.y === preferred.y) {
+        return true;
+    }
+    if (classified.hubMissing && classified.preferredBlocked
+        && linkOnCandidate(pos, hubLinkCandidatePositions(room))) {
+        return true;
+    }
+
+    const sources = room.sources || [];
+    let atNeedyDump = false;
+    for (let s = 0; s < sources.length; s++) {
+        const source = sources[s];
+        const container = sourceDumpContainer(source, room);
+        const atDump = container ? pos.isNearTo(container) : pos.getRangeTo(source) <= 2;
+        if (!atDump) continue;
+        if (!sourceHasKeptDump(classified, source, room)) atNeedyDump = true;
+    }
+    if (atNeedyDump) return true;
+
+    if (!classified.skipControllerNearHub && isControllerLinkPos(pos, room)
+        && !hasKeptControllerLink(classified, room)) {
+        return true;
+    }
+
+    if (controllerRcl(room) >= 8) {
+        const anchors = activeRemoteExitAnchors(room);
+        for (let a = 0; a < anchors.length; a++) {
+            if (pos.getRangeTo(anchors[a].pos) > 4) continue;
+            if (remoteExitCovered(room, anchors[a], classified)) continue;
+            return true;
+        }
+    }
+    return false;
+}
+
+function destroyLinkStructure(room, link) {
+    if (!link || isPlannerShadow(room)) return false;
+    const id = link.id;
+    const x = link.pos && link.pos.x;
+    const y = link.pos && link.pos.y;
+    try {
+        if (link.destroy() === OK) {
+            forgetLinkId(room, id);
+            // Keep this tick's room.links / structure counts in sync so hub
+            // can stamp the freed slot immediately (global structure cache is
+            // built once per tick and would still include the wreck).
+            try {
+                const live = room.find(FIND_STRUCTURES) || [];
+                room._structures = live;
+                room._structures_ts = Game.time;
+                room._structuresByType = undefined;
+                room._structuresByType_ts = undefined;
+            } catch (e) {
+                if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+            }
+            try {
+                invalidateRampartSpots(room);
+            } catch (e) { /* optional */
+            }
+            return {id, x, y};
+        }
+    } catch (e) { /* ignore */
+    }
+    return false;
+}
+
+/**
+ * Pull stray / duplicate links (and their sites) so the cap can be spent on
+ * hub / source / controller. One built link per call; invalid sites all go.
+ * @param {Room} room
+ */
+function cleanupMisplacedLinks(room) {
+    if (room && room._linkCleanupTick === Game.time && room._linkCleanupResult) {
+        return room._linkCleanupResult;
+    }
+    if (!room || !room.controller || controllerRcl(room) < 5) {
+        const early = {removed: 0, sites: 0, reason: 'rcl'};
+        if (room) {
+            room._linkCleanupTick = Game.time;
+            room._linkCleanupResult = early;
+        }
+        return early;
+    }
+    if (isPlannerShadow(room)) return {removed: 0, sites: 0, reason: 'shadow'};
+    bindHubLinkMemory(room);
+
+    const classified = classifyRoomLinks(room);
+    let sitesRemoved = 0;
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const site = sites[i];
+        if (site.structureType !== STRUCTURE_LINK) continue;
+        if (isWantedLinkSite(site.pos, room, classified)) continue;
+        try {
+            if (site.remove() === OK) sitesRemoved++;
+        } catch (e) { /* ignore */
+        }
+    }
+    if (sitesRemoved) {
+        try {
+            const {invalidateRoomConstructionSiteCache} = require('planUtils');
+            invalidateRoomConstructionSiteCache(room);
+        } catch (e) { /* ignore */
+        }
+    }
+
+    const extras = classified.extras.slice();
+    extras.sort((a, b) => {
+        const stray = (a.reason === 'stray' ? 0 : 1) - (b.reason === 'stray' ? 0 : 1);
+        if (stray) return stray;
+        return linkStoreEnergy(a.link) - linkStoreEnergy(b.link);
+    });
+
+    let destroyed = 0;
+    let destroyedAt = null;
+    let destroyedReason = null;
+    if (extras.length) {
+        const res = destroyLinkStructure(room, extras[0].link);
+        if (res) {
+            destroyed = 1;
+            destroyedAt = {x: res.x, y: res.y};
+            destroyedReason = extras[0].reason;
+        }
+    }
+
+    if ((destroyed || sitesRemoved) && typeof log !== 'undefined' && log.a) {
+        const bits = [];
+        if (destroyed) bits.push(`destroyed ${destroyed} ${destroyedReason} at (${destroyedAt.x},${destroyedAt.y})`);
+        if (sitesRemoved) bits.push(`removed ${sitesRemoved} site(s)`);
+        log.a(`${room.name} link cleanup: ${bits.join(', ')}`, 'PLANNER');
+    }
+
+    const result = {
+        removed: destroyed,
+        sites: sitesRemoved,
+        reason: destroyedReason,
+        extras: classified.extras.length,
+        keep: classified.keep,
+        hubMissing: classified.hubMissing,
+    };
+    room._linkCleanupTick = Game.time;
+    room._linkCleanupResult = result;
+    return result;
 }
 
 const HUB_LINK_RECLAIM = [
@@ -806,7 +1355,13 @@ function ensureHubLink(room) {
     const found = bindHubLinkMemory(room);
     if (found) return {ok: false, reason: 'have', x: found.pos.x, y: found.pos.y};
 
-    const candidates = hubLinkCandidatePositions(room);
+    const preferred = hubLinkPreferredPos(room);
+    let candidates = hubLinkCandidatePositions(room);
+    // Stamp tile is usable: do not reclaim nuker/power-spawn/factory on a
+    // diagonal fallback just because tryPlace failed on (0,1).
+    if (preferred && !preferredHubLinkBlockedByTerrain(room)) {
+        candidates = [preferred];
+    }
     const cap = CONTROLLER_STRUCTURES[STRUCTURE_LINK][controllerRcl(room)] || 0;
     if (countLinksAndSites(room) >= cap) return {ok: false, reason: 'cap'};
 
@@ -863,6 +1418,8 @@ function placeLinks(room) {
     const rcl = controllerRcl(room);
     if (rcl < 5) return {placed: 0, reason: 'rcl'};
     if (!room.hub) return {placed: 0, reason: 'no-hub'};
+
+    const cleanup = cleanupMisplacedLinks(room);
 
     const linkLimit = CONTROLLER_STRUCTURES[STRUCTURE_LINK][rcl] || 0;
     const currentLinks = countLinksAndSites(room);
@@ -1046,26 +1603,28 @@ function placeLinks(room) {
 
     // 5. Remote exit links (RCL 8 only — V1 comment; V1 code had no RCL gate)
     if (placed < MAX_SITES_PER_SUBPHASE && canPlaceNonHub() && currentLinks + placed < linkLimit && rcl >= 8) {
-        const neighboring = Object.values(Game.map.describeExits(room.name) || {});
-        for (let n = 0; n < neighboring.length && placed < MAX_SITES_PER_SUBPHASE; n++) {
-            const neighbor = neighboring[n];
-            const nRoom = Game.rooms[neighbor];
-            const remoteHarvester = nRoom && nRoom.myCreeps
-                && nRoom.myCreeps.find(c => c.memory.role === 'remoteHarvester');
-            if (!remoteHarvester) continue;
-            const exit = Game.map.findExit(room.name, neighbor);
-            const exitTiles = room.find(exit);
-            if (!exitTiles.length) continue;
-            const middle = Math.round(exitTiles.length / 2);
-            const startPos = exitTiles[middle];
-            const existingLink = startPos.findClosestByRange(room.structures, {
-                filter: s => s.structureType === STRUCTURE_LINK,
-            });
-            if (existingLink && existingLink.pos.getRangeTo(startPos) <= 4) continue;
-            const inBuildLink = startPos.findClosestByRange(room.constructionSites, {
-                filter: s => s.structureType === STRUCTURE_LINK,
-            });
-            if (inBuildLink && inBuildLink.pos.getRangeTo(startPos) <= 4) continue;
+        const anchors = activeRemoteExitAnchors(room, {requireHarvester: true});
+        const existingLinks = room.links || [];
+        const siteList = room.constructionSites || [];
+        for (let n = 0; n < anchors.length && placed < MAX_SITES_PER_SUBPHASE; n++) {
+            const startPos = anchors[n].pos;
+            const neighbor = anchors[n].neighbor;
+            let covered = false;
+            for (let i = 0; i < existingLinks.length; i++) {
+                if (existingLinks[i].pos.getRangeTo(startPos) <= 4) {
+                    covered = true;
+                    break;
+                }
+            }
+            if (covered) continue;
+            for (let i = 0; i < siteList.length; i++) {
+                if (siteList[i].structureType !== STRUCTURE_LINK) continue;
+                if (siteList[i].pos.getRangeTo(startPos) <= 4) {
+                    covered = true;
+                    break;
+                }
+            }
+            if (covered) continue;
 
             outer:
                 for (let xOff = -3; xOff <= 3; xOff++) {
@@ -1075,7 +1634,8 @@ function placeLinks(room) {
                         const y = startPos.y + yOff;
                         if (x < 1 || x > 48 || y < 1 || y > 48) continue;
                         const pos = new RoomPosition(x, y, room.name);
-                        if (pos.checkForAllStructure() || pos.checkForImpassible()) continue;
+                        if (pos.checkForWall && pos.checkForWall()) continue;
+                        if (pos.checkForAllStructure && pos.checkForAllStructure()) continue;
                         const res = tryPlace(room, 'links', pos, STRUCTURE_LINK);
                         if (res.ok) {
                             placed++;
@@ -1096,6 +1656,7 @@ function placeLinks(room) {
     return {
         placed,
         details,
+        cleanup,
         skipControllerNearHub: skipControllerNearHub || undefined,
     };
 }
@@ -1296,6 +1857,11 @@ function placeEconomy(room) {
     // Core stamps place the hub receiver; bind the id even when storage (and
     // therefore placeLinks) is not up yet.
     bindHubLinkMemory(room);
+    // Free cap of stray/duplicate links before the hub stamp / placeLinks run.
+    let linkCleanup = {removed: 0, sites: 0, reason: 'rcl'};
+    if (controllerRcl(room) >= 5) {
+        linkCleanup = cleanupMisplacedLinks(room);
+    }
 
     // Prefer controller when both are missing (one site/tick).
     const controller = placeControllerContainer(room);
@@ -1331,6 +1897,9 @@ function placeEconomy(room) {
             mineral: mineral.placed,
             labs: labs.placed,
             links: links.placed,
+            linkCleanup: linkCleanup.removed || linkCleanup.sites
+                ? {removed: linkCleanup.removed, sites: linkCleanup.sites, reason: linkCleanup.reason}
+                : undefined,
             placed,
         };
     }
@@ -1342,6 +1911,7 @@ function placeEconomy(room) {
         mineral,
         labs,
         links,
+        linkCleanup,
     };
 }
 
@@ -1358,6 +1928,8 @@ const ECONOMY_PARITY_NOTES = [
     'order: controller → sources → [storage] mineral → labs → links (controller first so RCL climb is not starved)',
     'missing containers: early phase before core/extensions + site-slot reclaim of idle roads/barriers',
     'source within 2 of controller: shared controller/source link; controller container avoids that tile',
+    'stray/duplicate links destroyed (one/tick) so hub/source/controller can use the cap',
+    'hub stamp tile (0,1) wins over ring fallbacks; fallbacks only when that tile is a wall',
 ];
 
 /**
@@ -1435,6 +2007,26 @@ function inspectEconomy(room) {
         extractorContainer: room.memory.extractorContainer,
         links: room.links ? room.links.length : 0,
         linkLimit: CONTROLLER_STRUCTURES[STRUCTURE_LINK][level] || 0,
+        linkRoles: (() => {
+            if (level < 5) return undefined;
+            const c = classifyRoomLinks(room);
+            return {
+                hubMissing: c.hubMissing,
+                skipControllerNearHub: c.skipControllerNearHub || undefined,
+                keep: (room.links || []).filter(l => c.keep[l.id]).map(l => ({
+                    id: l.id,
+                    x: l.pos.x,
+                    y: l.pos.y,
+                    role: c.keep[l.id],
+                })),
+                extras: c.extras.map(e => ({
+                    id: e.link.id,
+                    x: e.link.pos.x,
+                    y: e.link.pos.y,
+                    reason: e.reason,
+                })),
+            };
+        })(),
         gates: {
             sourceContainers: level >= 3,
             controllerContainer: level >= 2 && level < 8 && !shouldSkipControllerContainer(room),
@@ -1466,5 +2058,7 @@ module.exports = {
     diagnoseControllerContainer,
     isControllerLinkSkippedNearHub,
     bindHubLinkMemory,
+    cleanupMisplacedLinks,
+    classifyRoomLinks,
     ECONOMY_PARITY_NOTES,
 };

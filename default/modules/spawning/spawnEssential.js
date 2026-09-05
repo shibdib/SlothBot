@@ -111,8 +111,9 @@ function essentialCreepQueue(room) {
 
     const {energyInfo, trend, trendOk, flowHealthy, spareIncome} = getFlowContext(room);
     const importantBuilds = _.some(room.constructionSites, s => s.structureType !== STRUCTURE_ROAD && s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
+    const roadLevel = typeof ROAD_LEVEL !== 'undefined' ? ROAD_LEVEL : 4;
     const maintainOwnedRoads = !!(room.storage && room.spawns && room.spawns.length
-        && room.level >= (typeof ROAD_LEVEL !== 'undefined' ? ROAD_LEVEL : 4));
+        && (room.controller.level || room.level || 0) >= roadLevel);
     const hasRoadMaintenance = maintainOwnedRoads
         ? _.filter(room.structures, s => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5)
         : [];

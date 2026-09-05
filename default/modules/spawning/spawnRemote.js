@@ -26,23 +26,7 @@ function maxRemoteHaulerCarryParts(roomLevel, onRoads) {
 }
 
 function maxRemoteHarvesters(room) {
-    if (room.memory.remotePenalty) {
-        return room.level < 7 ? 5 : 1;
-    }
-    if (room.level < 7) return 10;
-    const {spareIncome, flowStressed} = getFlowContext(room);
-    const assigned = (ROOM_REMOTE_TARGETS[room.name] || []).length;
-    const fromSpare = Math.max(0, Math.floor(spareIncome / 15));
-    const hasCenter = (ROOM_REMOTE_TARGETS[room.name] || []).some(s => remoteMining.isSectorCenterRoomName(s.room));
-    // RCL7+ can hold 4 rooms × 2 sources (or SK + center). Cap 5 left assigned
-    // sources idle while the room was still net-negative.
-    const assignedFloor = hasCenter ? Math.min(assigned, 7) : Math.min(assigned, 4);
-    const cap = 8;
-    const energyState = spawnEnergyState(room) || 0;
-    // Below surplus (or already bleeding) staff every assigned source so harvest can recover.
-    const needIncome = energyState < 3 || flowStressed || spareIncome < 0;
-    const incomeFloor = needIncome ? Math.min(assigned, cap) : assignedFloor;
-    return Math.max(1, Math.min(cap, Math.max(fromSpare, incomeFloor)));
+    return remoteMining.remoteSourceStaffCap(room);
 }
 
 function shouldDeprioritizeRemotes(room) {
@@ -126,6 +110,8 @@ function haulerExpiringSoon(creep, remoteRoom) {
 
 function maxHaulersForSource(room, dest, keeperYield) {
     if (room.memory.remotePenalty) return 1;
+    if (Game.cpu.bucket < BUCKET_MAX * 0.35) return 1;
+    if (!keeperYield && (room.level || 0) >= 7 && !remoteMining.colonyNeedsRemoteIncome(room)) return 1;
     if (keeperYield) {
         // Center is colony → SK → center (2 hops) at 4000-energy sources.
         return remoteMining.isSectorCenterRoomName(dest) ? 6 : 4;
@@ -220,6 +206,7 @@ function ingestColonyRemoteSources(colonyRoom, rName) {
                 continue;
             }
         }
+        if (!remoteMining.isRemoteSourceWorthMining(colonyRoom, {room: rName, source: sd.source, score})) continue;
 
         if (sd.colony !== colonyRoom.name) {
             sd.colony = colonyRoom.name;
@@ -501,6 +488,7 @@ function colonyRemoteBuilderTotal(colonyName) {
 }
 
 function handleRemoteBuilder(room) {
+    if (room.memory.remotePenalty || Game.cpu.bucket < BUCKET_MAX * 0.35) return;
     const colony = room.name;
     const remoteTargets = ROOM_REMOTE_TARGETS[colony];
     if (!remoteTargets || !remoteTargets.length) return;
@@ -600,9 +588,7 @@ function handleRemoteHarvesters(room) {
         const s = remoteSource[i];
         if (shouldSkipRemote(room, s.room)) continue;
         if (remoteMining.isRemoteClaimedByOther(room.name, s.room, s.source)) continue;
-        if (!remoteMining.isRemoteSourceScoreAcceptable(room.name, s.room, s.score, {allowMissingEstimate: true})) {
-            continue;
-        }
+        if (!remoteMining.isRemoteSourceWorthMining(room, s)) continue;
         const guard = remoteMining.skGuardRoom(room.name, s.room);
         if (guard && !hasSkAttackerCoverage(guard)) continue;
         if (!passesNoRoadSpawnGate(room, s)) continue;
@@ -853,6 +839,7 @@ function remoteCreepQueue(room) {
 
     if (room.memory.noRemote) return;
 
+    remoteMining.pruneRoomRemoteTargets(room.name, room);
     purgeUnguardedSkQueue(room);
     handleRemoteHarvesters(room);
     handleRemoteHaulers(room);

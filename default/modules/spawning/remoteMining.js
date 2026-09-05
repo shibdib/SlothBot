@@ -106,6 +106,134 @@ function maxSkRoomsPerColony() {
     return v > 0 ? v : 1;
 }
 
+const HARVESTER_E_PER_TICK = 0.85;
+const HAULER_E_PER_TICK = 1.3;
+const RESERVER_ROOM_E_PER_TICK = 3.2;
+
+function colonyNeedsRemoteIncome(room) {
+    if (!room) return true;
+    const energyState = room.energyState || 0;
+    const ei = room.energyInfo;
+    const spare = (ei && ei.spareIncome) || 0;
+    const stressed = !!(ei && ei.flowStressed);
+    return energyState < 3 || stressed || spare < 0;
+}
+
+function miningRouteHasRoads(colonyName, destName) {
+    const rooms = getMiningRouteRooms(colonyName, destName);
+    if (!rooms || rooms.length < 2) return false;
+    for (let i = 0; i < rooms.length; i++) {
+        if (!INTEL[rooms[i]] || !INTEL[rooms[i]].roadsBuilt) return false;
+    }
+    return true;
+}
+
+function sourceHarvestRate(colonyRoom, sourceEntry) {
+    const remoteName = sourceEntry && sourceEntry.room;
+    if (isKeeperYieldRoom(remoteName)) return SOURCE_ENERGY_KEEPER_CAPACITY / ENERGY_REGEN_TIME;
+    const level = (colonyRoom && colonyRoom.level) || 0;
+    const reserved = INTEL[remoteName] && INTEL[remoteName].reservation === MY_USERNAME;
+    if (reserved || level >= 4) return SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME;
+    return SOURCE_ENERGY_NEUTRAL_CAPACITY / ENERGY_REGEN_TIME;
+}
+
+function maxHaulerCarryParts(roomLevel, onRoads) {
+    if (roomLevel < 7) return Math.max(2, roomLevel * 2);
+    const maxNonMove = Math.floor(50 / (1 + (onRoads ? 0.5 : 1)));
+    return Math.max(1, maxNonMove - 1);
+}
+
+function sourceHaulersNeeded(colonyRoom, sourceEntry) {
+    const colonyName = colonyRoom && colonyRoom.name;
+    const remoteName = sourceEntry && sourceEntry.room;
+    if (!colonyName || !remoteName) return 1;
+    const score = effectiveHaulScore(colonyName, remoteName, sourceEntry.score);
+    const rate = sourceHarvestRate(colonyRoom, sourceEntry);
+    const roads = miningRouteHasRoads(colonyName, remoteName);
+    let buffer = roads ? 1.25 : 1.4;
+    if (isKeeperYieldRoom(remoteName)) buffer += 0.15;
+    const required = rate * score * 2 * buffer;
+    const oneCap = maxHaulerCarryParts(colonyRoom.level || 0, roads) * CARRY_CAPACITY;
+    if (!oneCap) return 1;
+    return Math.max(1, Math.ceil(required / oneCap));
+}
+
+function sourceNetEnergyPerTick(colonyRoom, sourceEntry, haulers) {
+    const remoteName = sourceEntry && sourceEntry.room;
+    const rate = sourceHarvestRate(colonyRoom, sourceEntry);
+    const sources = (INTEL[remoteName] && INTEL[remoteName].sources) || 1;
+    const reserverShare = isKeeperYieldRoom(remoteName) ? 0 : (RESERVER_ROOM_E_PER_TICK / sources);
+    return rate - HARVESTER_E_PER_TICK - haulers * HAULER_E_PER_TICK - reserverShare;
+}
+
+function isRemoteSourceWorthMining(colonyRoom, sourceEntry) {
+    if (!sourceEntry || !colonyRoom) return false;
+    if (!isRemoteSourceScoreAcceptable(colonyRoom.name, sourceEntry.room, sourceEntry.score, {allowMissingEstimate: true})) {
+        return false;
+    }
+    const keeper = isKeeperYieldRoom(sourceEntry.room);
+    const needed = sourceHaulersNeeded(colonyRoom, sourceEntry);
+    const haulers = Math.min(needed, keeper ? 4 : 2);
+    if (sourceNetEnergyPerTick(colonyRoom, sourceEntry, haulers) <= 0) return false;
+    // Surplus RCL7+: a second hauler is ~0.3 CPU for <1 e/t. Drop the source.
+    if (!keeper && needed > 1 && (colonyRoom.level || 0) >= 7 && !colonyNeedsRemoteIncome(colonyRoom)) {
+        return false;
+    }
+    return true;
+}
+
+function remoteSourceStaffCap(room) {
+    if (!room) return 1;
+    if (room.memory && room.memory.remotePenalty) return room.level < 7 ? 5 : 1;
+    if (typeof BUCKET_MAX !== 'undefined' && Game.cpu.bucket < BUCKET_MAX * 0.35) {
+        return room.level < 7 ? 3 : 1;
+    }
+    if (room.level < 7) return 10;
+    const hungry = colonyNeedsRemoteIncome(room);
+    const targets = ROOM_REMOTE_TARGETS[room.name] || [];
+    let hasCenter = false;
+    for (let i = 0; i < targets.length; i++) {
+        if (isSectorCenterRoomName(targets[i].room)) {
+            hasCenter = true;
+            break;
+        }
+    }
+    if (hungry) return hasCenter ? 8 : 6;
+    return hasCenter ? 6 : 4;
+}
+
+function pruneToStaffCap(colonyName, colonyRoom) {
+    const targets = ROOM_REMOTE_TARGETS[colonyName];
+    if (!targets || !targets.length) return;
+    const cap = remoteSourceStaffCap(colonyRoom);
+    if (targets.length <= cap) return;
+    const ranked = targets.slice().sort((a, b) => {
+        const kA = isKeeperYieldRoom(a.room) ? 0 : 1;
+        const kB = isKeeperYieldRoom(b.room) ? 0 : 1;
+        if (kA !== kB) return kA - kB;
+        return (a.score || 99) - (b.score || 99);
+    });
+    const keepIds = new Set();
+    for (let i = 0; i < cap; i++) {
+        if (ranked[i] && ranked[i].source) keepIds.add(ranked[i].source);
+    }
+    const next = [];
+    const removedByRoom = {};
+    for (let i = 0; i < targets.length; i++) {
+        const s = targets[i];
+        if (s.source && keepIds.has(s.source)) {
+            next.push(s);
+        } else if (s.source) {
+            if (!removedByRoom[s.room]) removedByRoom[s.room] = [];
+            removedByRoom[s.room].push(s.source);
+        }
+    }
+    ROOM_REMOTE_TARGETS[colonyName] = next;
+    for (const remoteName in removedByRoom) {
+        unindexColonyRemote(colonyName, remoteName, removedByRoom[remoteName]);
+    }
+}
+
 // Per-tick index: one full creep/queue/targets pass instead of O(creeps) per lookup.
 // Built lazily on first hasLiveRemoteWork / isRemoteClaimedByOther call each tick.
 let claimIndexTick = -1;
@@ -801,9 +929,7 @@ function pruneRoomRemoteTargets(colonyName, colonyRoom) {
         let keep = true;
         if (shouldSkipRemotePrune(colonyRoom, s.room)) keep = false;
         else if (isRemoteClaimedByOther(colonyName, s.room, s.source)) keep = false;
-        else if (!isRemoteSourceScoreAcceptable(colonyName, s.room, s.score, {allowMissingEstimate: true})) {
-            keep = false;
-        }
+        else if (!isRemoteSourceWorthMining(colonyRoom, s)) keep = false;
         if (keep) {
             kept.push(s);
         } else if (s.source) {
@@ -818,6 +944,7 @@ function pruneRoomRemoteTargets(colonyName, colonyRoom) {
     pruneExcessSkRooms(colonyName);
     pruneOrphanSectorCenters(colonyName);
     pruneRemoteRoomCount(colonyName, colonyRoom);
+    pruneToStaffCap(colonyName, colonyRoom);
 }
 
 function getCandidateRemotesForProbe(colonyRoom) {
@@ -1268,6 +1395,10 @@ module.exports = {
     stripRemoteFromOtherColonies,
     refreshStaggerDue,
     sourcePickScore,
+    colonyNeedsRemoteIncome,
+    sourceHaulersNeeded,
+    isRemoteSourceWorthMining,
+    remoteSourceStaffCap,
     pruneRoomRemoteTargets,
     getCandidateRemotesForProbe,
     bootstrapRemoteRoomOnVision,

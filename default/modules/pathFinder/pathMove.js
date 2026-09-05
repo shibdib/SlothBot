@@ -328,7 +328,10 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         prevRange !== (options.range ?? 1);
     if (!pathState || targetChanged) {
         pathState = setShibMove(creep, {});
-        if (creep.memory) delete creep.memory._mazeOpsRetry;
+        if (creep.memory) {
+            delete creep.memory._mazeOpsRetry;
+            delete creep.memory._pathRangeBump;
+        }
     } else {
         const prevOff = pathState.pathOptions && pathState.pathOptions.offRoad;
         const prevIgnore = pathState.pathOptions && pathState.pathOptions.ignoreRoads;
@@ -509,6 +512,12 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     } else {
         options.maxOps = options.maxOps || DEFAULT_MAXOPS;
     }
+    if (creep.memory && creep.memory._mazeOpsRetry) {
+        options.maxOps = Math.max(options.maxOps, MAZE_MAXOPS);
+    }
+    if (creep.memory && creep.memory._pathRangeBump) {
+        options.range = Math.max(options.range ?? 1, creep.memory._pathRangeBump);
+    }
     if (roomNeedsMazeOps(origin.roomName) || roomNeedsMazeOps(target.roomName)) {
         options.maxOps = Math.max(options.maxOps, MAZE_MAXOPS);
     }
@@ -581,22 +590,29 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         delete creep.memory.repathAttempt;
         delete creep.memory.badPathing;
         delete creep.memory._mazeOpsRetry;
+        delete creep.memory._pathRangeBump;
 
         return executePath(creep, pathInfo, options, origin, heading);
     }
 
-    // Incomplete often means the tunnel was not explored. Retry once with maze ops.
+    // Stamp the dest so next tick is not treated as a target change (that
+    // wipe would reset maze/range retries and loop 1500-op searches).
+    pathInfo.target = {x: target.x, y: target.y, roomName: target.roomName};
+    pathInfo.targetRoom = target.roomName;
+    setShibMove(creep, pathInfo);
+
+    // Incomplete often means the tunnel was not explored. Retry with maze ops
+    // next tick — chaining PathFinder.search here (1500 + 4000 detour + 12000
+    // maze + another detour) is how one stuck creep burns several CPU.
     if (!creep.memory._mazeOpsRetry && (options.maxOps || 0) < MAZE_MAXOPS) {
         creep.memory._mazeOpsRetry = Game.time;
-        options.maxOps = MAZE_MAXOPS;
-        return shibPath(creep, heading, pathInfo, origin, target, options);
+        return false;
     }
 
-    // Pathfinding failed
     if (!creep.memory.repathAttempt || creep.memory.repathAttempt + 10 < Game.time) {
         creep.memory.repathAttempt = Game.time;
-        options.range = (options.range ?? 1) + 1;
-        return shibPath(creep, heading, pathInfo, origin, target, options);
+        creep.memory._pathRangeBump = (options.range ?? 1) + 1;
+        return false;
     }
 
     // Permanent failure path

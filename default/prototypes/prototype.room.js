@@ -605,6 +605,9 @@ Object.defineProperty(Room.prototype, 'energyIncome', {
     configurable: true
 });
 
+const STORE_SKIP_NORMAL = new Set([STRUCTURE_NUKER, STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION]);
+const STORE_COUNTS_UNUSED = new Set([STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_CONTAINER, STRUCTURE_FACTORY]);
+
 function ensureRoomResourceScan(room) {
     if (room._resourceScanTick === Game.time) return;
     room._resourceScanTick = Game.time;
@@ -619,8 +622,8 @@ function ensureRoomResourceScan(room) {
     for (const s of room.impassibleStructures) {
         if (!s.store) continue;
         const structType = s.structureType;
-        const skipNormal = [STRUCTURE_NUKER, STRUCTURE_TOWER, STRUCTURE_SPAWN, STRUCTURE_EXTENSION].includes(structType);
-        const countsUnused = [STRUCTURE_STORAGE, STRUCTURE_TERMINAL, STRUCTURE_CONTAINER, STRUCTURE_FACTORY].includes(structType);
+        const skipNormal = STORE_SKIP_NORMAL.has(structType);
+        const countsUnused = STORE_COUNTS_UNUSED.has(structType);
 
         for (const resource in s.store) {
             const amount = s.store[resource];

@@ -122,9 +122,8 @@ function commitTowerHubs(room, hubs) {
     }
     // Version gate still on memory for clearance/reset consumers.
     room.memory.towerLayoutVersion = TOWER_LAYOUT_VERSION;
-    if (typeof ROOM_RAMPART_SPOTS !== 'undefined') {
-        ROOM_RAMPART_SPOTS[room.name] = undefined;
-    }
+    // Do not clear ROOM_RAMPART_SPOTS: currentSealKey would fall back to the
+    // stamp ring and the next tick would destroy the towers just committed.
     return list;
 }
 
@@ -878,7 +877,8 @@ function ensureLabHub(room) {
 // ---------------------------------------------------------------------------
 // Tower hubs — interior band along the min-cut seal.
 // Greedy maximin of tower damage on every seal tile so firepower is even.
-// Bump TOWER_LAYOUT_VERSION to migrate; off-plan towers are destroyed.
+// Bump TOWER_LAYOUT_VERSION to migrate; off-plan towers are destroyed once.
+// Do not re-pick when the seal later grows around those towers.
 // ---------------------------------------------------------------------------
 
 function cheby(ax, ay, bx, by) {
@@ -1246,18 +1246,8 @@ function currentSealKey(room) {
     return walls.length + ':' + Math.round(sx / walls.length) + ':' + Math.round(sy / walls.length);
 }
 
-function sealKeyDrifted(prev, next) {
-    if (!prev || prev === 'none') return next !== 'none';
-    if (!next || next === 'none') return false;
-    const a = prev.split(':');
-    const b = next.split(':');
-    const n0 = Number(a[0]);
-    const n1 = Number(b[0]);
-    if (!n0 || !n1) return true;
-    if (Math.abs(n0 - n1) > Math.max(4, n0 * 0.2)) return true;
-    if (Math.abs(Number(a[1]) - Number(b[1])) >= 4) return true;
-    if (Math.abs(Number(a[2]) - Number(b[2])) >= 4) return true;
-    return false;
+function hasCachedSealSpots(room) {
+    return !!(room && typeof ROOM_RAMPART_SPOTS !== 'undefined' && ROOM_RAMPART_SPOTS[room.name]);
 }
 
 function towerLayoutStale(room) {
@@ -1265,7 +1255,11 @@ function towerLayoutStale(room) {
     if (room.memory.towerLayoutVersion !== TOWER_LAYOUT_VERSION) return true;
     const rev = perimeterRevForTowers();
     if (rev && room.memory.towerSealRev !== rev) return true;
-    return sealKeyDrifted(room.memory.towerSealKey, currentSealKey(room));
+    // One migrate onto the RCL 6 min-cut seal. After that, freeze: towers are
+    // seal seeds, so wrapping them (and later extensions) grows the contour
+    // and would otherwise re-pick hubs and destroy() just-built towers.
+    if (room.memory.towerSealLocked) return false;
+    return hasCachedSealSpots(room);
 }
 
 function hubsMatch(a, b) {
@@ -1300,8 +1294,9 @@ function roomUnsafeForTowerMove(room) {
 }
 
 function relocateOffPlanTowers(room, hubs) {
+    if (!hubs || !hubs.length) return {destroyed: 0, sitesRemoved: 0};
     const hubSet = new Set();
-    for (let i = 0; i < (hubs || []).length; i++) {
+    for (let i = 0; i < hubs.length; i++) {
         hubSet.add(towerTileKey(hubs[i].x, hubs[i].y));
     }
     let destroyed = 0;
@@ -1356,6 +1351,7 @@ function stampTowerLayout(room) {
     room.memory.towerLayoutVersion = TOWER_LAYOUT_VERSION;
     room.memory.towerSealRev = perimeterRevForTowers();
     room.memory.towerSealKey = currentSealKey(room);
+    if (hasCachedSealSpots(room)) room.memory.towerSealLocked = 1;
 }
 
 function ensureTowerHubs(room, options) {
@@ -1374,8 +1370,8 @@ function ensureTowerHubs(room, options) {
         const recovered = recoverTowerHubsFromWorld(room);
         if (recovered.length) {
             commitTowerHubs(room, recovered);
-            stampTowerLayout(room);
             refreshPerimeterAfterTowerHubs(room);
+            stampTowerLayout(room);
             ensureTowerRamparts(room, recovered);
             if (typeof log !== 'undefined' && log.a) {
                 log.a(room.name + ': recovered ' + recovered.length + ' tower hub(s) from existing towers', 'PLANNER');
@@ -1403,9 +1399,27 @@ function ensureTowerHubs(room, options) {
 
     const selected = selectTowerHubs(room);
     const existing = resolveTowerHubs(room);
+    if (!selected.hubs.length) {
+        if (existing.length) {
+            ensureTowerRamparts(room, existing);
+            return {
+                ok: true,
+                hubs: existing.slice(),
+                reason: 'search_empty_keep',
+                candidateCount: selected.candidateCount,
+                alongSeal: selected.alongSeal,
+            };
+        }
+        return {
+            ok: false,
+            hubs: [],
+            reason: selected.reason || 'no_candidates',
+            candidateCount: selected.candidateCount,
+            alongSeal: selected.alongSeal,
+        };
+    }
     const same = hubsMatch(existing, selected.hubs);
     if (!same) commitTowerHubs(room, selected.hubs);
-    stampTowerLayout(room);
 
     let relocated = null;
     if (!same && !isPlannerShadow(room) && !roomUnsafeForTowerMove(room)) {
@@ -1416,6 +1430,9 @@ function ensureTowerHubs(room, options) {
         }
         refreshPerimeterAfterTowerHubs(room);
     }
+    // Stamp after refresh so the frozen key is the post-tower-wrap seal, not the
+    // stamp-ring fallback from a cleared ROOM_RAMPART_SPOTS cache.
+    stampTowerLayout(room);
     placeTowerSites(room, 2);
     ensureTowerRamparts(room, selected.hubs);
     if (typeof log !== 'undefined' && log.a && !same) {
@@ -1724,6 +1741,8 @@ function resetTowerLayoutForRoom(room) {
     const wiped = wipeTowersInRoom(room);
     const oldTowerHubs = resolveTowerHubs(room).length;
     delete room.memory.towerHubs;
+    delete room.memory.towerSealLocked;
+    delete room.memory.towerSealKey;
     const planDoc = getPlan(room);
     if (planDoc && planDoc.anchors) {
         planDoc.anchors.towers = [];
@@ -1868,7 +1887,8 @@ function inspectAnchors(room) {
         towerLayout: {
             version: room.memory.towerLayoutVersion,
             target: TOWER_LAYOUT_VERSION,
-            stale: room.memory.towerLayoutVersion !== TOWER_LAYOUT_VERSION,
+            stale: towerLayoutStale(room),
+            locked: !!room.memory.towerSealLocked,
             resetQueue: typeof Memory !== 'undefined' ? (Memory.towerLayoutResetQueue || []) : [],
             pendingReset: typeof Memory !== 'undefined'
                 && Array.isArray(Memory.towerLayoutResetQueue)

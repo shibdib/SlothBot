@@ -782,6 +782,8 @@ function buildRoom() {
         }, report);
         tickTracker[room.name] = lastRun;
         noteRecentRoomTurn(room.name, QUEUE.HUB_BOOTSTRAP, report.v2, false);
+        // Keep GLOBAL_ROADS / GLOBAL_PERIMETER alive while a new room bootstraps.
+        runGlobalPhases(report);
         report.cpu = Math.round((Game.cpu.getUsed() - cpuStart) * 1000) / 1000;
         return report;
     }
@@ -805,6 +807,7 @@ function buildRoom() {
         }, report);
         tickTracker[room.name] = lastRun;
         noteRecentRoomTurn(room.name, QUEUE.SPAWN_SITE, report.v2, false);
+        runGlobalPhases(report);
         report.cpu = Math.round((Game.cpu.getUsed() - cpuStart) * 1000) / 1000;
         return report;
     }

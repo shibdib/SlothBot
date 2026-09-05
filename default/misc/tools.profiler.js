@@ -133,6 +133,16 @@ const functionBlackList = [
     'my', // derived from owner; unsafe during object init or with corrupt runtime data
     'memory', // native Creep/PowerCreep getter; wrapping detaches writes from Memory.creeps
     'store',
+    // Native actions: wrap overhead dominates the real cost (Creep.move was ~0.20
+    // avg / 50 CPU/tick while profiling, almost all getUsed + Memory.profiler).
+    'move',
+    'say',
+    'notifyWhenAttacked',
+    'harvest',
+    'transfer',
+    'withdraw',
+    'pickup',
+    'drop',
 ];
 
 const commonProperties = ['length', 'name', 'arguments', 'caller', 'prototype'];
