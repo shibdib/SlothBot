@@ -20,8 +20,36 @@ const POWER_MAX_ATTACKERS = 2;
 const POWER_HAULER_CARRY = 1250;
 const POWER_BANK_MAX_HITS = typeof POWER_BANK_HITS !== 'undefined' ? POWER_BANK_HITS : 2000000;
 
-function auxEntryEligible(r, cache) {
-    return r?.name && !cache[r.name] && !r.hostile && !Memory.nonCombatRooms.includes(r.name);
+function auxEntryEligible(r, cache, roomName) {
+    const name = roomName || (r && r.name);
+    if (!name || !r || cache[name] || r.hostile) return false;
+    const banned = Memory.nonCombatRooms;
+    return !(banned && banned.includes(name));
+}
+
+// Observer range is Chebyshev 8. Route hops inflate around SK/towers, so the
+// spawn origin can be farther than the scan radius; still cap so TTL math holds.
+const POWER_MAX_ROUTE = 16;
+
+function closestPowerOriginHops(roomName) {
+    if (!MY_ROOMS) return null;
+    let bestLinear = Infinity;
+    let bestRoute = Infinity;
+    for (let i = 0; i < MY_ROOMS.length; i++) {
+        const name = MY_ROOMS[i];
+        const room = Game.rooms[name];
+        if (!room || room.level < 8) continue;
+        const linear = Game.map.getRoomLinearDistance(name, roomName);
+        if (linear > POWER_MAX_RANGE) continue;
+        const route = room.routeDistance(roomName);
+        const hops = Number.isFinite(route) ? route : Infinity;
+        if (hops > POWER_MAX_ROUTE) continue;
+        if (linear < bestLinear || (linear === bestLinear && hops < bestRoute)) {
+            bestLinear = linear;
+            bestRoute = hops;
+        }
+    }
+    return Number.isFinite(bestRoute) ? bestRoute : null;
 }
 
 function powerTimeNeeded(dist) {
@@ -72,32 +100,32 @@ function auxiliaryOperations() {
     }
 
     const readiness = state.EMPIRE_READINESS;
-    const auxReady = readiness && readiness.auxReady > 0;
-    // Power is income, not a siege. Combat-ready pause (ALLOW_NEW_OPS / auxLimit 0)
-    // used to freeze banks while RCL 8 rooms were still aux-ready.
+    // Power is income, not a siege. Combat-ready / aux-ready pauses froze banks
+    // in otherwise healthy RCL 8 rooms (energyState 0 is still <250k at RCL 8).
+    const milCpuOk = !readiness || readiness.militaryCpuOk !== false;
     const canLaunchPower = MAX_LEVEL >= 8 && activePowerOps < 2
         && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT
-        && (auxLimit > 0 || auxReady)
-        && (state.ALLOW_NEW_OPS || (auxReady && readiness.militaryCpuOk !== false));
+        && milCpuOk;
 
     if (canLaunchPower) {
-        let best = null, bestScore = Infinity;
+        let best = null, bestName = null, bestScore = Infinity;
         for (const rName of (idx.power || [])) {
             const r = INTEL[rName];
-            if (!auxEntryEligible(r, cache)) continue;
+            if (!auxEntryEligible(r, cache, rName)) continue;
             if (!isUncontestedPowerBank(r)) continue;
-            const dist = findClosestOwnedRoom(r.name, true);
-            if (dist == null || dist > POWER_MAX_RANGE) continue;
+            const dist = closestPowerOriginHops(rName);
+            if (dist == null) continue;
             if (r.power - Game.time < powerTimeNeeded(dist)) continue;
             const score = scorePowerBank(r, dist);
             if (score < bestScore) {
                 bestScore = score;
                 best = r;
+                bestName = rName;
             }
         }
-        if (best) {
+        if (best && bestName) {
             const team = planPowerTeam(best);
-            cache[best.name] = {
+            cache[bestName] = {
                 tick: Game.time,
                 type: 'power',
                 level: 1,
@@ -106,7 +134,7 @@ function auxiliaryOperations() {
                 powerAmount: best.powerAmount,
                 haulers: team.haulers,
             };
-            log.a(`Power mining planned for ${roomLink(best.name)} (${best.powerAmount} power, ${team.attackers} attackers / ${team.attackers * 2} healers / ${team.haulers} haulers)`, 'HIGH COMMAND: ');
+            log.a(`Power mining planned for ${roomLink(bestName)} (${best.powerAmount} power, ${team.attackers} attackers / ${team.attackers * 2} healers / ${team.haulers} haulers)`, 'HIGH COMMAND: ');
         }
     }
 
@@ -117,9 +145,9 @@ function auxiliaryOperations() {
             let best = null, bestDist = Infinity;
             for (const rName of (idx.commodity || [])) {
                 const r = INTEL[rName];
-                if (!auxEntryEligible(r, cache)) continue;
+                if (!auxEntryEligible(r, cache, rName)) continue;
                 if (!r.commodity || r.commodityCooldown >= cutoff || getResourceTotal(r.commodity) >= DUMP_AMOUNT) continue;
-                const dist = findClosestOwnedRoom(r.name, true);
+                const dist = findClosestOwnedRoom(rName, true);
                 if (dist <= 8 && dist < bestDist) {
                     bestDist = dist;
                     best = r;
@@ -135,10 +163,10 @@ function auxiliaryOperations() {
         let bestMineral = null, bestDist = Infinity;
         for (const rName of (idx.mineralCandidates || [])) {
             const r = INTEL[rName];
-            if (!auxEntryEligible(r, cache)) continue;
+            if (!auxEntryEligible(r, cache, rName)) continue;
             if (MY_MINERALS[r.mineral]) continue;
-            if (!myRoomInSectorCheck(r.name)) continue;
-            const dist = findClosestOwnedRoom(r.name, true);
+            if (!myRoomInSectorCheck(rName)) continue;
+            const dist = findClosestOwnedRoom(rName, true);
             if (dist <= 5 && dist < bestDist) {
                 bestDist = dist;
                 bestMineral = r;
