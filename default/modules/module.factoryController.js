@@ -391,7 +391,14 @@ class FactoryControl {
             return;
         }
 
-        if (opsPaused) return;
+        // Packing is economy, not an offensive op. When rooms are hungry,
+        // surplus energy should become batteries even while ops are held.
+        if (opsPaused) {
+            if (FactoryControl.shouldPackBatteries(room)) {
+                this.setProduction(factory, RESOURCE_BATTERY, 'energy overflow');
+            }
+            return;
+        }
 
         const totalFree = (room.storage ? room.storage.store.getFreeCapacity() : 0) +
             (room.terminal ? room.terminal.store.getFreeCapacity() : 0);

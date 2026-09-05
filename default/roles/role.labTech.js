@@ -176,6 +176,15 @@ class RoleLabTech {
         const energyBoost = this.findBoostLabEnergyTask(labs, labStructMem, storage, terminal);
         if (energyBoost) return energyBoost;
 
+        // 3b. Energy overflow packing. Production labs otherwise occupy labTech
+        // forever and the factory never gets the 600 energy it needs to pack.
+        if (factory && FactoryControl.shouldPackBatteries(this.room)
+            && !FactoryControl.shouldContinueBatteryUnpack(this.room)
+            && (!factory.memory.producing || factory.memory.producing === RESOURCE_BATTERY)) {
+            const packTask = this.findFactoryPackEnergyTask(factory, storage, terminal);
+            if (packTask) return packTask;
+        }
+
         // 4. Lab hub feed beats store balancing. Filling labs from a stuffed
         // warehouse frees space; balancing first can starve reactions.
         if (this.room.memory.producingBoost) {
@@ -282,6 +291,8 @@ class RoleLabTech {
                 if (!(factory.store[res] > 0)) continue;
                 if (typeof RESOURCES_ALL !== 'undefined' && !RESOURCES_ALL.includes(res)) continue;
                 if (res === RESOURCE_BATTERY && FactoryControl.shouldContinueBatteryUnpack(this.room)) continue;
+                if (res === RESOURCE_ENERGY && FactoryControl.shouldPackBatteries(this.room)
+                    && !FactoryControl.shouldContinueBatteryUnpack(this.room)) continue;
                 if (factory.memory.producing && COMMODITIES[factory.memory.producing] && COMMODITIES[factory.memory.producing].components[res]) continue;
                 if (factory.memory.producing === res && factory.store[res] < 5000) continue;
                 const dumpTarget = this.pickFactoryClogTarget(res, storage, terminal);
@@ -843,6 +854,33 @@ class RoleLabTech {
         };
     }
 
+    findFactoryPackEnergyTask(factory, storage, terminal) {
+        if (!factory) return null;
+        const packCost = FactoryControl.batteryPackCost();
+        const outputRoom = COMMODITIES[RESOURCE_BATTERY]?.amount || 50;
+        if (factory.store.getFreeCapacity() < packCost + outputRoom) {
+            const contents = Object.keys(factory.store);
+            for (let i = 0; i < contents.length; i++) {
+                const res = contents[i];
+                if (res === RESOURCE_ENERGY || !(factory.store[res] > 0)) continue;
+                const dumpTarget = this.pickFactoryClogTarget(res, storage, terminal);
+                if (dumpTarget) {
+                    return {withdrawTarget: factory.id, deliveryTarget: dumpTarget.id, resource: res};
+                }
+            }
+        }
+        const supplier = [storage, terminal].find(s => s && (s.store[RESOURCE_ENERGY] || 0) > 0);
+        if (!supplier) return null;
+        const amount = this.getFactorySupplyAmount(factory, RESOURCE_ENERGY, supplier);
+        if (amount <= 0) return null;
+        return {
+            withdrawTarget: supplier.id,
+            deliveryTarget: factory.id,
+            resource: RESOURCE_ENERGY,
+            amount
+        };
+    }
+
     getFactorySupplyAmount(factory, resource, supplier) {
         const creepFree = this.creep.store.getFreeCapacity(resource) || this.creep.store.getFreeCapacity();
         const available = supplier.store[resource] || 0;
@@ -860,7 +898,11 @@ class RoleLabTech {
             return Math.min(creepFree, available, loadCap);
         }
 
-        if (resource === RESOURCE_ENERGY && factory.memory.producing === RESOURCE_BATTERY) {
+        const packingEnergy = factory.memory.producing === RESOURCE_BATTERY
+            || (!factory.memory.producing
+                && FactoryControl.shouldPackBatteries(this.room)
+                && !FactoryControl.shouldContinueBatteryUnpack(this.room));
+        if (resource === RESOURCE_ENERGY && packingEnergy) {
             const outputRoom = COMMODITIES[RESOURCE_BATTERY]?.amount || 50;
             const loadCap = Math.min(
                 factory.store.getFreeCapacity(RESOURCE_ENERGY),
