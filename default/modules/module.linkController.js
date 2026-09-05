@@ -110,19 +110,25 @@ class LinkControl {
         ).sort((a, b) => b.store[RESOURCE_ENERGY] - a.store[RESOURCE_ENERGY]);
 
         let hubInboundThisTick = false;
+        let controllerFreeRemaining = controllerLink ? controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
         for (const link of sourceLinks) {
             const target = this.pickSourceDestination(link, controllerLink, hubLink, room, policy, {
                 hubFreeRemaining,
+                controllerFreeRemaining,
                 allowHubInbound: !hubInboundThisTick,
             });
             if (!target) continue;
             const amount = link.store[RESOURCE_ENERGY];
-            const sendAmount = target === hubLink ? Math.min(amount, hubFreeRemaining) : amount;
+            let sendAmount = amount;
+            if (target === hubLink) sendAmount = Math.min(amount, hubFreeRemaining);
+            else if (target === controllerLink) sendAmount = Math.min(amount, controllerFreeRemaining);
             if (sendAmount <= 0) continue;
             if (link.transferEnergy(target, sendAmount) !== OK) continue;
             if (target === hubLink) {
                 hubInboundThisTick = true;
                 hubFreeRemaining = Math.max(0, hubFreeRemaining - sendAmount);
+            } else if (target === controllerLink) {
+                controllerFreeRemaining = Math.max(0, controllerFreeRemaining - sendAmount);
             }
         }
 
@@ -136,8 +142,9 @@ class LinkControl {
     }
 
     pickSourceDestination(link, controllerLink, hubLink, room, policy, options = {}) {
-        const carrying = link.store.getUsedCapacity(RESOURCE_ENERGY);
-        const cFree = controllerLink ? controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
+        const cFree = options.controllerFreeRemaining != null
+            ? options.controllerFreeRemaining
+            : (controllerLink ? controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0);
         const hFree = options.hubFreeRemaining != null
             ? options.hubFreeRemaining
             : (hubLink ? hubLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0);
@@ -146,7 +153,7 @@ class LinkControl {
         const hubFill = hubLink ? (LINK_CAPACITY - hFree) / LINK_CAPACITY : 0;
         const hubSaturated = hubFill >= HUB_OVERFLOW_RATIO;
         const canSendToHub = allowHubInbound && hubLink && hubLink.id !== link.id && hFree > 0;
-        const canSendToController = controllerLink && cFree >= carrying && cEnergy < policy.controllerTarget;
+        const canSendToController = controllerLink && cFree > 0 && cEnergy < policy.controllerTarget;
 
         const rcl = (room.controller && room.controller.level) || room.level || 0;
         // Pre-RCL8: energyState 0 is "below the stockpile target", not famine.

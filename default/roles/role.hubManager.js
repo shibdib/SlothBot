@@ -110,10 +110,27 @@ class RoleHubManager {
         this.deliverEnergy();
     }
 
+    shouldFeedControllerFromHub(hubLink) {
+        if (!hubLink) return false;
+        const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
+        if (rcl >= 8) return false;
+        if (this.spawnNeed().length) return false;
+        const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
+        if (!controllerLink || !controllerLink.store) return false;
+        const cEnergy = controllerLink.store[RESOURCE_ENERGY] || 0;
+        return cEnergy < LINK_CAPACITY * 0.5;
+    }
+
     deliverEnergy() {
         const spawnNeed = this.spawnNeed();
         if (spawnNeed.length) {
             this.creep.transfer(spawnNeed[0], RESOURCE_ENERGY);
+            return;
+        }
+
+        const hubLink = Game.getObjectById(this.room.memory.hubLink);
+        if (this.shouldFeedControllerFromHub(hubLink) && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+            this.creep.transfer(hubLink, RESOURCE_ENERGY);
             return;
         }
 
@@ -138,7 +155,10 @@ class RoleHubManager {
 
     pickup() {
         const hubLink = Game.getObjectById(this.room.memory.hubLink);
-        if (hubLink && (hubLink.store[RESOURCE_ENERGY] || 0) > 0) {
+        const feedController = this.shouldFeedControllerFromHub(hubLink);
+        // Keep hub stocked for controller drip while leveling. Drain it only
+        // when spawn needs energy or the controller link is already full.
+        if (hubLink && (hubLink.store[RESOURCE_ENERGY] || 0) > 0 && !feedController) {
             const task = this.creep.memory.warehouse;
             if (task && task.resource === RESOURCE_ENERGY) this.creep.memory.warehouse = undefined;
             this.creep.withdraw(hubLink, RESOURCE_ENERGY);
@@ -162,6 +182,7 @@ class RoleHubManager {
         };
 
         if (this.spawnNeed().length && pullEnergy()) return;
+        if (feedController && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && pullEnergy()) return;
 
         let task = this.liveWarehouseTask();
         if (!task) {

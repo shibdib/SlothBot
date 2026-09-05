@@ -91,7 +91,11 @@ function globalCreepQueue() {
         }
 
         const intel = INTEL[key];
-        if (!intel || intel.cached == null) {
+        // Highway banks are stamped on light intel (observer 1-tick vision).
+        // Heavy `cached` often never lands (1 slot/tick, owned rooms first),
+        // which used to queue a scout forever and skip the mining team.
+        const powerVisible = operation.type === 'power' && intel && intel.power > Game.time;
+        if (!intel || (intel.cached == null && !powerVisible)) {
             queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
             continue;
         }

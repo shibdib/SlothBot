@@ -512,7 +512,7 @@ function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
                     }
                     return handleAssignmentReadinessWait(target, opMemory, 'Room is not combat ready.', levelTarget, entry);
                 }
-            } else if (Memory.auxiliaryTargets[target] && !isLiveAuxReady(assigned)) {
+            } else if (Memory.auxiliaryTargets[target] && opMemory.type !== 'power' && !isLiveAuxReady(assigned)) {
                 if (stealCheckDue(target, opMemory.assignedAt)) {
                     const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, 'Room is not auxiliary ready.');
                     if (stolen) return stolen;
@@ -673,10 +673,13 @@ function getAssignedRoomCacheKey(targetRoom, level, creepInfo) {
 }
 
 function assignmentFlags(targetRoom, creepInfo) {
-    const opType = Memory.targetRooms[targetRoom] && Memory.targetRooms[targetRoom].type;
+    const aux = Memory.auxiliaryTargets && Memory.auxiliaryTargets[targetRoom];
+    const opType = (Memory.targetRooms[targetRoom] && Memory.targetRooms[targetRoom].type)
+        || (aux && aux.type);
     const isClaimRole = CLAIM_ROLES.has(creepInfo.role);
     return {
-        isAuxiliary: !!Memory.auxiliaryTargets[targetRoom],
+        isAuxiliary: !!aux,
+        isPower: !!(aux && aux.type === 'power'),
         opType,
         isHelper: HELPER_ROLES.has(creepInfo.role),
         isScout: opType === 'scout' || creepInfo.role === 'scout',
@@ -696,10 +699,14 @@ function evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads
     if (myRoom.controller.level !== myRoom.level) return null;
     if (myRoom.level < level) return null;
 
-    const tier = flags.isHelper || flags.isAuxiliary || flags.isScout
-        ? OP_TIER.HARASS
-        : getOpTier({type: flags.opType}, creepInfo);
-    if (!isRoomReadyForTier(myRoom, tier)) return null;
+    // Power is RCL 8 + a 6k healer body. HARASS readiness also requires
+    // energyState >= 1 (>250k at RCL 8), which left planned banks unassigned.
+    if (!flags.isPower) {
+        const tier = flags.isHelper || flags.isAuxiliary || flags.isScout
+            ? OP_TIER.HARASS
+            : getOpTier({type: flags.opType}, creepInfo);
+        if (!isRoomReadyForTier(myRoom, tier)) return null;
+    }
     if (flags.isScout && !roomHasStableWorkingSet(myRoom)) return null;
 
     const distance = myRoom.routeDistance(targetRoom, flags.isClaimRole ? {shortest: true} : {});

@@ -732,7 +732,8 @@ Creep.prototype.haulerDelivery = function () {
 
     const hubLink = Game.getObjectById(this.room.memory.hubLink);
     const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
-    if (this.room.level < 8 && hubLink && controllerLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && this.room.energyState > 1) {
+    const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
+    if (rcl < 8 && hubLink && controllerLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && (this.room.energyState || 0) >= 1) {
         targets.push(hubLink);
     }
 
@@ -751,7 +752,7 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     if (!this.room.memory.controllerLink &&
-        (this.room.level < 8 ? this.room.energyState > 0 : this.room.energyState >= 3)) {
+        (rcl < 8 ? (this.room.energyState || 0) >= 1 : this.room.energyState >= 3)) {
         const controllerContainer = global.resolveControllerContainer(this.room);
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 200) targets.push(controllerContainer);
     }
