@@ -115,12 +115,17 @@ function processCreepForCache(counts, creep) {
 }
 
 function incrementCreepCount(counts, key, creep) {
-    if (!counts[key]) counts[key] = {count: 0, minTTL: Infinity, bodyLen: 0};
+    if (!counts[key]) counts[key] = {count: 0, minTTL: Infinity, bodyLen: 0, minTTLAtDest: Infinity, bodyLenAtDest: 0};
     counts[key].count++;
     const ttl = creep.spawning ? Infinity : (creep.ticksToLive || Infinity);
     if (ttl < counts[key].minTTL) {
         counts[key].minTTL = ttl;
         counts[key].bodyLen = creep.body.length;
+    }
+    const dest = creep.memory.destination;
+    if (dest && !creep.spawning && creep.room.name === dest && ttl < counts[key].minTTLAtDest) {
+        counts[key].minTTLAtDest = ttl;
+        counts[key].bodyLenAtDest = creep.body.length;
     }
 }
 
@@ -156,6 +161,7 @@ function getCreepCount(room = undefined, role, destination = undefined, operatio
 
 const REPLACEMENT_BUFFER = 80;
 const SK_ATTACKER_OVERLAP = 100;
+const RESERVER_OVERLAP = 80;
 const TICKS_PER_ROOM = 50;
 
 function replacementOrigin(room, colony, destination) {
@@ -179,6 +185,9 @@ function replacementHops(origin, destination) {
 
 function replacementLeadTime(role, bodyLen, origin, destination) {
     const spawnTime = 3 * (bodyLen || 1);
+    // CLAIM TTL is 600. spawn+travel+80 was 250–320 live overlap (two walkers
+    // for half a life). Cap overlap at spawn+80; travelers are ignored via minTTLAtDest.
+    if (role === 'reserver') return spawnTime + RESERVER_OVERLAP;
     // +1 hop: walk from spawn to the colony exit (linear distance ignores that).
     const travel = (replacementHops(origin, destination) + 1) * TICKS_PER_ROOM;
     const overlap = role === 'SKAttacker' ? SK_ATTACKER_OVERLAP : 0;
@@ -193,8 +202,17 @@ function creepExpiringSoon(room = undefined, role, destination = undefined, oper
     const data = CREEP_COUNT_CACHE.counts[key];
     if (!data || data.count <= 0 || data.minTTL === Infinity) return false;
 
+    let ttl = data.minTTL;
+    let bodyLen = data.bodyLen;
+    if (role === 'reserver') {
+        // Don't stack a second walker while the live one is still in transit.
+        if (data.minTTLAtDest === Infinity) return false;
+        ttl = data.minTTLAtDest;
+        bodyLen = data.bodyLenAtDest || bodyLen;
+    }
+
     const origin = replacementOrigin(room, colony, destination);
-    return data.minTTL <= replacementLeadTime(role, data.bodyLen, origin, destination);
+    return ttl <= replacementLeadTime(role, bodyLen, origin, destination);
 }
 
 function getBodyAbilityPower(room, role) {

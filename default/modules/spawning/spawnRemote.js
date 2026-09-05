@@ -111,11 +111,14 @@ function haulerExpiringSoon(creep, remoteRoom) {
 function maxHaulersForSource(room, dest, keeperYield) {
     if (room.memory.remotePenalty) return 1;
     if (Game.cpu.bucket < BUCKET_MAX * 0.35) return 1;
-    if (!keeperYield && (room.level || 0) >= 7 && !remoteMining.colonyNeedsRemoteIncome(room)) return 1;
     if (keeperYield) {
         // Center is colony → SK → center (2 hops) at 4000-energy sources.
-        return remoteMining.isSectorCenterRoomName(dest) ? 6 : 4;
+        const max = remoteMining.isSectorCenterRoomName(dest) ? 6 : 4;
+        return remoteMining.applyCpuOverageCap(room, max);
     }
+    // RCL7+: one fat road hauler. Second only while the route is unpaved.
+    if ((room.level || 0) >= 7 && routeHasBuiltRoads(room.name, dest)) return 1;
+    if (remoteMining.cpuOverageThrottle(room)) return 1;
     return 2;
 }
 
@@ -489,12 +492,16 @@ function colonyRemoteBuilderTotal(colonyName) {
 
 function handleRemoteBuilder(room) {
     if (room.memory.remotePenalty || Game.cpu.bucket < BUCKET_MAX * 0.35) return;
+    if (remoteMining.cpuOverageThrottle(room)) return;
     const colony = room.name;
     const remoteTargets = ROOM_REMOTE_TARGETS[colony];
     if (!remoteTargets || !remoteTargets.length) return;
     if (!getCreepCount(undefined, 'remoteHarvester', undefined, undefined, colony)) return;
     if (!colonyNeedsRoadWork(colony)) return;
-    const needed = remoteBuildersNeeded(colony);
+    let needed = remoteBuildersNeeded(colony);
+    if ((room.memory.cpuOverage || 0) > 0 || Game.cpu.bucket < BUCKET_MAX * 0.5) {
+        needed = Math.min(needed, 1);
+    }
     if (!needed || colonyRemoteBuilderTotal(colony) >= needed) return;
 
     const priority = shouldDeprioritizeRemotes(room)

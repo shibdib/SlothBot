@@ -1193,16 +1193,18 @@ function getBuiltBarrierKeySet(room) {
 }
 
 function isOnPerimeterPlanTile(room, x, y) {
-    if (!room) return false;
+    if (!room) return true;
+    // Heap cache is empty after a global reset — do not treat every barrier as stray.
+    if (!hasPerimeterSpots(room.name)) return true;
     const key = xyKey(x, y);
     const spots = getPerimeterSpots(room.name);
     for (let i = 0; i < spots.length; i++) {
-        if (xyKey(spots[i].x, spots[i].y) === key) return true;
+        if (spots[i].x === x && spots[i].y === y) return true;
     }
     try {
         return getWalkwayKeySet(room).has(key);
     } catch (e) {
-        return false;
+        return true;
     }
 }
 

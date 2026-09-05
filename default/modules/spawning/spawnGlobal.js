@@ -167,6 +167,28 @@ function globalCreepQueue() {
                         operation: 'reactor'
                     });
                 }
+                if (operation.guards > 1) {
+                    clearOpQueueRole('longbow', key, 'reactor');
+                    queueCreepIfNeeded({
+                        role: 'longbowSquad',
+                        priority: operation.priority != null ? operation.priority : priority,
+                        numberNeeded: 2,
+                        destination: key,
+                        closestRoom: true,
+                        operation: 'reactor',
+                        misc: {waitFor: 2}
+                    });
+                } else if (operation.guards) {
+                    clearOpQueueRole('longbowSquad', key, 'reactor');
+                    queueCreepIfNeeded({
+                        role: 'longbow',
+                        priority: operation.priority != null ? operation.priority : priority,
+                        numberNeeded: 1,
+                        destination: key,
+                        closestRoom: true,
+                        operation: 'reactor'
+                    });
+                }
                 break;
             case 'remoteDenial':
                 const remotes = _.filter(_.map(Game.map.describeExits(key)), function (r) {

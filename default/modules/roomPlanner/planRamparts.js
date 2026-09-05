@@ -51,7 +51,9 @@ const {
     isValidRampartPosition, bridgePerimeterGaps, isPerimeterBarrierTile,
     invalidateRoomConstructionSiteCache, roomConstructionSiteBudget,
     listVisibleOwnedRooms,
-    isOnOwnedRoadPlan,
+    isPlannedConstructionSite,
+    alreadyFreedSiteSlots,
+    markFreedSiteSlots,
 } = require('planUtils');
 
 /** Ticks to skip automatic off-plan destroy after a no-destroy replan. */
@@ -787,16 +789,10 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
 
 function freeSiteSlotsForPerimeter(room, want, options) {
     if (want <= 0) return 0;
-    // force: incomplete seal needs a slot even when the raw cap still has 1
-    // reserved for STEADY_SITE_RESERVE (canPlace is true, rampartLimit is 0).
+    if (alreadyFreedSiteSlots(room)) return 0;
+    // Incomplete seals use skipReserve for the last raw slot. Do not delete
+    // on-plan work just because STEADY_SITE_RESERVE zeroed rampartLimit.
     if ((!options || !options.force) && canPlaceConstructionSite(room)) return 0;
-    // Never cannibalize extensions while the room still needs energy capacity.
-    // After a wipe, incomplete perimeters used to delete extension sites every tick.
-    let extDeficit = 0;
-    try {
-        extDeficit = require('planGeomExtensions').getExtensionDeficit(room);
-    } catch (e) { /* ignore circular load */
-    }
     let freed = 0;
     const removeSites = (sites) => {
         for (const site of sites) {
@@ -807,26 +803,12 @@ function freeSiteSlotsForPerimeter(room, want, options) {
             }
         }
     };
-    // Prefer idle roads. Never remove spawn/tower/terminal/container/link sites —
-    // economy immediately re-queues those on the same tile (visible flicker).
-    // Never cancel on-plan roads — the frozen layout re-queues them next tick.
-    // Extensions only when the room is already at full extension count (deficit 0).
-    // Roads first: ensureOwnedRoadsProgress can fill the room cap and leave seals empty.
-    const prefer = extDeficit > 0
-        ? [STRUCTURE_ROAD]
-        : [STRUCTURE_ROAD, STRUCTURE_EXTENSION];
-    const keepSite = (s) => {
-        if (!s || !s.pos) return true;
-        if (s.structureType === STRUCTURE_ROAD && isOnOwnedRoadPlan(room, s.pos.x, s.pos.y)) return true;
-        return false;
-    };
-    for (const type of prefer) {
-        if (freed >= want) break;
-        removeSites(room.constructionSites.filter(s =>
-            s.structureType === type && !s.progress && !keepSite(s)));
-    }
-    // In-progress road sites are kept — they re-queue slowly and drones already spent energy.
+    // Stray idle roads only. Planned roads/extensions/stamps re-queue next tick.
+    const idleRoads = (room.constructionSites || []).filter(s =>
+        s.structureType === STRUCTURE_ROAD && !s.progress && !isPlannedConstructionSite(room, s));
+    removeSites(idleRoads);
     if (freed) {
+        markFreedSiteSlots(room);
         invalidateRoomConstructionSiteCache(room);
         log.a(`${room.name} removed ${freed} site(s) to free slots for perimeter barriers`, 'PLANNER');
     }
@@ -1180,10 +1162,10 @@ function ensurePerimeterSites(room, options = {}) {
         siteCap = Math.min(siteCap, maxInBuild);
         want = Math.max(0, siteCap - inBuild);
     }
-    // Incomplete seal: free idle *off-plan* roads when the layer got 0 (full cap *or*
-    // reserve ate the last slot). Never run this unless a hole is actually placeable.
-    if (want <= 0 && placeable.length && inBuild < maxInBuild) {
-        const freed = freeSiteSlotsForPerimeter(room, Math.min(5, maxPlace + 1), {force: true});
+    // Raw cap full + a real hole: reclaim stray idle roads once. Never force-delete
+    // when a raw slot still exists (STEADY_SITE_RESERVE is skipReserve on this path).
+    if (!canPlaceConstructionSite(room) && placeable.length && inBuild < maxInBuild) {
+        const freed = freeSiteSlotsForPerimeter(room, Math.min(5, maxPlace + 1));
         if (freed > 0) {
             if (typeof options.placementLimit === 'function') {
                 const allowedNew = options.placementLimit(room, layoutPending);
@@ -1207,10 +1189,6 @@ function ensurePerimeterSites(room, options = {}) {
         return 0;
     }
 
-    if (!canPlaceConstructionSite(room)) {
-        freeSiteSlotsForPerimeter(room, Math.min(want, 5));
-    }
-
     let cycles = 0;
     const fails = [];
     let budgetBlocked = false;
@@ -1232,9 +1210,8 @@ function ensurePerimeterSites(room, options = {}) {
         const otherSite = pos.lookFor(LOOK_CONSTRUCTION_SITES).find(s =>
             s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL);
         if (otherSite) {
-            const onPlanRoad = otherSite.structureType === STRUCTURE_ROAD
-                && isOnOwnedRoadPlan(room, otherSite.pos.x, otherSite.pos.y);
-            if (!otherSite.progress && otherSite.structureType === STRUCTURE_ROAD && !onPlanRoad) {
+            if (!otherSite.progress && otherSite.structureType === STRUCTURE_ROAD
+                && !isPlannedConstructionSite(room, otherSite)) {
                 try {
                     otherSite.remove();
                     invalidateRoomConstructionSiteCache(room);

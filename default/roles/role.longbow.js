@@ -35,6 +35,7 @@ class RoleLongbow {
                 this.creep.borderPatrol();
                 break;
             case 'guard':
+            case 'reactor':
                 this.creep.guardRoom();
                 break;
             case 'roomDenial':

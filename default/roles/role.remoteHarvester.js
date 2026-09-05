@@ -26,7 +26,12 @@ class RoleRemoteHarvester {
         this.room = creep.room;
         if (!this.creep.memory.other) this.creep.memory.other = {};
         this.source = this.resolveSource();
-        this.refreshContainerTarget();
+        if (this.creep.memory.onContainer && Game.time % 50 !== 0) {
+            this.container = Game.getObjectById(this.creep.memory.containerID)
+                || Game.getObjectById(this.creep.memory.containerSite);
+        } else {
+            this.refreshContainerTarget();
+        }
         this.performRoleActions();
     }
 
@@ -77,13 +82,47 @@ class RoleRemoteHarvester {
     }
 
     performRoleActions() {
+        if (this.stationaryHarvest()) return;
         if (this.housekeeping()) return;
         this.harvestSource();
     }
 
+    isSkRoom() {
+        return !!(this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk));
+    }
+
+    /**
+     * On-container in a non-SK room: harvest/repair only. Full housekeeping every 50 ticks.
+     */
+    stationaryHarvest() {
+        if (!this.creep.memory.onContainer || !this.source) return false;
+        if (this.isSkRoom()) return false;
+        if (Game.time % 50 === 0) return false;
+        if (!this.container || !this.creep.pos.isEqualTo(this.container.pos)) {
+            this.creep.memory.onContainer = undefined;
+            return false;
+        }
+        if (this.handleContainer()) return true;
+        const result = this.creep.harvest(this.source);
+        if (result === OK) {
+            if (this.container.store && !this.container.store.getFreeCapacity(RESOURCE_ENERGY)
+                && this.container.hits < this.container.hitsMax) {
+                this.creep.repair(this.container);
+            }
+        } else if (result === ERR_NOT_IN_RANGE) {
+            this.creep.memory.onContainer = undefined;
+        } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
+            if (this.container.store) this.creep.repair(this.container);
+            if (!this.container.progressTotal) {
+                this.creep.idleFor(this.source.ticksToRegeneration + 1);
+            }
+        }
+        return true;
+    }
+
     housekeeping() {
         // SK Safety - Throttled
-        if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) {
+        if (this.isSkRoom() && this.creep.skSafety()) {
             this.creep.memory.onContainer = undefined;
             return true;
         }
@@ -177,7 +216,7 @@ class RoleRemoteHarvester {
         // Build/repair consumes the work intent — do not harvest the same tick.
         if (this.container && this.handleContainer()) return;
 
-        this.handleDroppedResources();
+        if (!this.container || !this.container.store) this.handleDroppedResources();
 
         const result = this.creep.harvest(this.source);
         if (result === OK) {

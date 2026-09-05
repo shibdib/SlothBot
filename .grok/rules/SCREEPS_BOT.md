@@ -368,6 +368,10 @@ points = 1 + Math.floor(Math.log10(ticksOfContinuousOperation))
 - **2026-09-02** — Aligned to live docs-season: `FIND_REACTORS` 10051 (not structures), reactor cap 1000, Thorium as a
   second wall mineral, `claimReactor` adjacent CLAIM, no reactor withdraw.
 - **2026-09-05** — Creep names use unique 3-char role prefixes (not operation) with spawn collision retry.
+- **2026-09-05** — Remote CPU: reserver replace overlap capped at spawn+80 and only once on-site;
+  `cpuOverage` scales staff/rooms 4→3→2→1 before penalty/noRemote; RCL7+ road remotes spawn one hauler.
+- **2026-09-05** — Remote CPU chunk 2: parked harvester/reserver skip scans; haulers idle 10 on empty
+  containers instead of room-loot; remoteBuilder skSafety only in SK rooms; builders cap 1 when overage/bucket.
 
 ---
 

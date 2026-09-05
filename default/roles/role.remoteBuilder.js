@@ -45,7 +45,8 @@ class RoleRemoteBuilder {
             this.creep.memory.harvest = undefined;
             return;
         }
-        if (this.creep.skSafety()) return;
+        const here = this.creep.room;
+        if ((here.memory.sk || (INTEL[here.name] && INTEL[here.name].sk)) && this.creep.skSafety()) return;
 
         if (!this.creep.memory.working) {
             this.getEnergy();

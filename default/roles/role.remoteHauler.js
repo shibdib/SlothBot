@@ -121,6 +121,24 @@ class RoleRemoteHauler {
             return true;
         }
 
+        const container = Game.getObjectById(this.memory.containerID);
+        if (container && container.store) {
+            if (container.store[RESOURCE_ENERGY]) {
+                this.memory.energyDestination = container.id;
+                return this.creep.withdrawResource();
+            }
+            if (this.creep.pos.getRangeTo(container) > 1) {
+                return this.creep.shibMove(container, {range: 1});
+            }
+            const pile = container.pos.lookFor(LOOK_RESOURCES)
+                .find(r => r.resourceType === RESOURCE_ENERGY && r.amount > 0);
+            if (pile) {
+                this.memory.energyDestination = pile.id;
+                return this.creep.withdrawResource();
+            }
+            return this.creep.idleFor(10);
+        }
+
         let harvester = Game.getObjectById(other.harvester);
         if (!harvester || (harvester.memory.other && harvester.memory.other.source !== other.source)) {
             harvester = getRemoteHarvesterForSource(other.source);
@@ -129,27 +147,11 @@ class RoleRemoteHauler {
         if (harvester) {
             if (harvester.memory.containerID) this.memory.containerID = harvester.memory.containerID;
             else if (harvester.memory.containerSite) this.memory.containerID = harvester.memory.containerSite;
-        }
-
-        const container = Game.getObjectById(this.memory.containerID);
-        if (container && container.store) {
-            if (container.store[RESOURCE_ENERGY]) {
-                this.memory.energyDestination = container.id;
+            const fresh = Game.getObjectById(this.memory.containerID);
+            if (fresh && fresh.store && fresh.store[RESOURCE_ENERGY]) {
+                this.memory.energyDestination = fresh.id;
                 return this.creep.withdrawResource();
             }
-            const pile = container.pos.lookFor(LOOK_RESOURCES)
-                .find(r => r.resourceType === RESOURCE_ENERGY && r.amount > 0);
-            if (pile) {
-                this.memory.energyDestination = pile.id;
-                return this.creep.withdrawResource();
-            }
-            if (this.creep.pos.getRangeTo(container) <= 1) {
-                return this.creep.idleFor(3);
-            }
-            return this.creep.shibMove(container, {range: 1});
-        }
-
-        if (harvester) {
             if (harvester.memory.energyId) {
                 const resource = Game.getObjectById(harvester.memory.energyId);
                 if (resource) {
@@ -163,11 +165,16 @@ class RoleRemoteHauler {
             }
         }
 
+        // Assigned pickup: wait at the source instead of scanning the room.
+        if (other.source) {
+            return this.creep.idleFor(10);
+        }
+
         if (this.randomLoot()) {
             return this.creep.withdrawResource();
         }
 
-        this.creep.idleFor(5);
+        this.creep.idleFor(10);
         return false;
     }
     specialDuty() {

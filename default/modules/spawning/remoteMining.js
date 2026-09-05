@@ -95,10 +95,37 @@ function effectiveHaulScore(colonyName, remoteName, score) {
 
 function maxRemoteRoomsForColony(colonyRoom) {
     const level = colonyRoom.level || 0;
-    if (level >= 8) return cfg('REMOTE_MAX_ROOMS_RCL8', 5);
-    if (level >= 7) return cfg('REMOTE_MAX_ROOMS_RCL7', 4);
-    if (level >= 6) return cfg('REMOTE_MAX_ROOMS_RCL6', 2);
-    return cfg('REMOTE_MAX_ROOMS_LOW', 1);
+    let max;
+    if (level >= 8) max = cfg('REMOTE_MAX_ROOMS_RCL8', 5);
+    else if (level >= 7) max = cfg('REMOTE_MAX_ROOMS_RCL7', 4);
+    else if (level >= 6) max = cfg('REMOTE_MAX_ROOMS_RCL6', 2);
+    else max = cfg('REMOTE_MAX_ROOMS_LOW', 1);
+    return applyCpuOverageCap(colonyRoom, max);
+}
+
+/** cpuOverage ticks above room CPU share. Penalty/noRemote fire at 40/80. */
+const CPU_OVERAGE_THROTTLE = 8;
+
+function cpuOverageCount(room) {
+    return (room && room.memory && room.memory.cpuOverage) || 0;
+}
+
+/**
+ * Shrink remote staff as cpuOverage climbs, before remotePenalty/noRemote.
+ * 8 → 4 sources, 16 → 3, 24 → 2, 32 → 1.
+ */
+function applyCpuOverageCap(room, baseCap) {
+    const overage = cpuOverageCount(room);
+    let cap = baseCap;
+    if (overage >= 32) cap = 1;
+    else if (overage >= 24) cap = 2;
+    else if (overage >= 16) cap = 3;
+    else if (overage >= 8) cap = 4;
+    return Math.min(baseCap, cap);
+}
+
+function cpuOverageThrottle(room) {
+    return cpuOverageCount(room) >= CPU_OVERAGE_THROTTLE;
 }
 
 function maxSkRoomsPerColony() {
@@ -173,7 +200,9 @@ function isRemoteSourceWorthMining(colonyRoom, sourceEntry) {
     }
     const keeper = isKeeperYieldRoom(sourceEntry.room);
     const needed = sourceHaulersNeeded(colonyRoom, sourceEntry);
-    const haulers = Math.min(needed, keeper ? 4 : 2);
+    const roadCap = !keeper && (colonyRoom.level || 0) >= 7
+    && miningRouteHasRoads(colonyRoom.name, sourceEntry.room) ? 1 : 2;
+    const haulers = Math.min(needed, keeper ? 4 : roadCap);
     if (sourceNetEnergyPerTick(colonyRoom, sourceEntry, haulers) <= 0) return false;
     // Surplus RCL7+: a second hauler is ~0.3 CPU for <1 e/t. Drop the source.
     if (!keeper && needed > 1 && (colonyRoom.level || 0) >= 7 && !colonyNeedsRemoteIncome(colonyRoom)) {
@@ -188,7 +217,7 @@ function remoteSourceStaffCap(room) {
     if (typeof BUCKET_MAX !== 'undefined' && Game.cpu.bucket < BUCKET_MAX * 0.35) {
         return room.level < 7 ? 3 : 1;
     }
-    if (room.level < 7) return 10;
+    if (room.level < 7) return applyCpuOverageCap(room, 10);
     const hungry = colonyNeedsRemoteIncome(room);
     const targets = ROOM_REMOTE_TARGETS[room.name] || [];
     let hasCenter = false;
@@ -198,8 +227,8 @@ function remoteSourceStaffCap(room) {
             break;
         }
     }
-    if (hungry) return hasCenter ? 8 : 6;
-    return hasCenter ? 6 : 4;
+    const base = hungry ? (hasCenter ? 8 : 6) : (hasCenter ? 6 : 4);
+    return applyCpuOverageCap(room, base);
 }
 
 function pruneToStaffCap(colonyName, colonyRoom) {
@@ -1399,6 +1428,8 @@ module.exports = {
     sourceHaulersNeeded,
     isRemoteSourceWorthMining,
     remoteSourceStaffCap,
+    applyCpuOverageCap,
+    cpuOverageThrottle,
     pruneRoomRemoteTargets,
     getCandidateRemotesForProbe,
     bootstrapRemoteRoomOnVision,

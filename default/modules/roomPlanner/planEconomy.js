@@ -37,6 +37,9 @@ const {
     hasSharedSourceControllerLink,
     isSharedLinkReserveTile,
     shouldSkipControllerContainer,
+    isPlannedConstructionSite,
+    alreadyFreedSiteSlots,
+    markFreedSiteSlots,
 } = require('planUtils');
 const {invalidateRampartSpots} = require('planGeomRamparts');
 
@@ -57,6 +60,7 @@ const MAX_SITES_PER_SUBPHASE = 1;
 function freeSiteSlotsForContainers(room, want) {
     if (want <= 0 || isPlannerShadow(room)) return 0;
     if (siteBudget.canPlaceConstructionSite(room)) return 0;
+    if (alreadyFreedSiteSlots(room)) return 0;
 
     let freed = 0;
     const removeSites = (sites) => {
@@ -71,25 +75,27 @@ function freeSiteSlotsForContainers(room, want) {
     };
 
     const sites = room.constructionSites || [];
-    // Prefer idle roads / barriers — they re-queue; containers must not wait forever.
+    const keep = (s) => isPlannedConstructionSite(room, s);
+    // Stray idle roads / barriers only — planned tiles re-queue and starve the cap.
     const preferIdle = [STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART];
     for (let t = 0; t < preferIdle.length; t++) {
         if (freed >= want) break;
         const type = preferIdle[t];
-        removeSites(sites.filter(s => s.structureType === type && !s.progress));
+        removeSites(sites.filter(s => s.structureType === type && !s.progress && !keep(s)));
     }
-    // Lightly progressed barriers only if still stuck (same idea as extensions).
     if (freed < want) {
         const barriers = sites
             .filter(s =>
                 (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART)
                 && s.progress > 0
-                && s.progress < Math.max(1, (s.progressTotal || 1) * 0.25))
+                && s.progress < Math.max(1, (s.progressTotal || 1) * 0.25)
+                && !keep(s))
             .sort((a, b) => a.progress - b.progress);
         removeSites(barriers);
     }
 
     if (freed) {
+        markFreedSiteSlots(room);
         try {
             const {invalidateRoomConstructionSiteCache} = require('planUtils');
             invalidateRoomConstructionSiteCache(room);

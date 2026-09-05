@@ -165,6 +165,7 @@ class Colony {
             const roomCpuTarget = (Game.cpu.limit * 0.95) / roomCount
             if (avgCpu > roomCpuTarget) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
+                // remoteSourceStaffCap / maxHaulers scale down at 8/16/24/32 before these kill switches.
                 this.room.memory.cpuOverage = cpuOverCount + 1;
                 const severe = avgCpu > roomCpuTarget * 2;
                 const bucketLow = Game.cpu.bucket < BUCKET_MAX * 0.25;
@@ -216,15 +217,16 @@ class Colony {
             minion.memory.notifyDisabled = true;
         }
 
-        if (minion.towTruck()) return;
+        const parked = minion.memory.onContainer || minion.memory.inPlace;
+        if (!parked && minion.towTruck()) return;
 
         if (shouldRecycleUnguardedSkCreep(minion)) return minion.recycleCreep();
 
         // Return if idle
         if (minion.idle) return;
 
-        // Track Threat
-        DiplomacyControl.trackThreat(minion);
+        // Track Threat — parked remotes skip; haulers still scan the room.
+        if (!parked) DiplomacyControl.trackThreat(minion);
 
         // Handle edge cases (border or nuke flee)
         if (minion.memory.fleeNukeTime && minion.fleeNukeRoom()) {

@@ -35,7 +35,7 @@ const {
 } = geom;
 
 const {bunkerTemplate} = require('planTemplates');
-const {invalidateRampartSpots, isOnPerimeterPlanTile} = require('planGeomRamparts');
+const {invalidateRampartSpots} = require('planGeomRamparts');
 const {recalculateRampartsForRoom} = require('planRamparts');
 const {
     canPlaceConstructionSite,
@@ -47,7 +47,9 @@ const {
     resolveControllerContainer,
     hasControllerContainerSite,
     shouldSkipControllerContainer,
-    isOnOwnedRoadPlan,
+    isPlannedConstructionSite,
+    alreadyFreedSiteSlots,
+    markFreedSiteSlots,
 } = require('planUtils');
 
 const DYNAMIC_SPECIAL_SITE_TYPES = DYNAMIC_SPECIAL_STRUCTURES.map(d => d.structureType);
@@ -61,6 +63,7 @@ const DYNAMIC_SPECIAL_SITE_TYPES = DYNAMIC_SPECIAL_STRUCTURES.map(d => d.structu
  */
 function freeSiteSlotsForExtensions(room, want) {
     if (want <= 0 || canPlaceConstructionSite(room)) return 0;
+    if (alreadyFreedSiteSlots(room)) return 0;
     let freed = 0;
     const removeSites = (sites) => {
         for (const site of sites) {
@@ -71,25 +74,14 @@ function freeSiteSlotsForExtensions(room, want) {
             }
         }
     };
-    // Pass 1: idle non-critical sites.
-    // Do NOT cancel container/link sites — freeSiteSlots used to remove them for
-    // extension headroom, and V2 forceLayout (ext deficit > 5) then permanently
-    // starved source/controller containers and links.
-    // Do NOT cancel on-plan roads/barriers — the frozen layout re-queues them
-    // and fights the perimeter/road layers for the room cap.
+    // Pass 1: idle stray sites only. Planned roads/barriers/stamps re-queue
+    // and steal the cap from the layer that just deleted them.
     const preferIdle = [STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART];
-    const keepOnPlan = (s) => {
-        if (!s || !s.pos) return true;
-        if (s.structureType === STRUCTURE_ROAD) return isOnOwnedRoadPlan(room, s.pos.x, s.pos.y);
-        if (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) {
-            return isOnPerimeterPlanTile(room, s.pos.x, s.pos.y);
-        }
-        return false;
-    };
+    const keep = (s) => isPlannedConstructionSite(room, s);
     for (const type of preferIdle) {
         if (freed >= want) break;
         removeSites(room.constructionSites.filter(s =>
-            s.structureType === type && !s.progress && !keepOnPlan(s)));
+            s.structureType === type && !s.progress && !keep(s)));
     }
     // Pass 1b: large extension deficit — reclaim idle dynamic specials (factory etc.).
     if (freed < want && shouldDeferDynamicSpecials(room)) {
@@ -104,11 +96,12 @@ function freeSiteSlotsForExtensions(room, want) {
             .filter(s =>
                 (s.structureType === STRUCTURE_WALL || s.structureType === STRUCTURE_RAMPART) &&
                 s.progress < Math.max(1, (s.progressTotal || 1) * 0.25) &&
-                !keepOnPlan(s))
+                !keep(s))
             .sort((a, b) => a.progress - b.progress);
         removeSites(barriers);
     }
     if (freed) {
+        markFreedSiteSlots(room);
         invalidateRoomConstructionSiteCache(room);
         if (room._invalidateStructureCaches) room._invalidateStructureCaches();
         log.a(`${room.name} removed ${freed} site(s) to free slots for extensions`, 'PLANNER');

@@ -556,11 +556,12 @@ function isSiteDenylisted(room, x, y) {
 }
 
 /**
- * True when this tile is in the persisted owned-road plan. Missing plan → false
- * so wipe leftovers can still be reclaimed.
+ * True when this tile is in the persisted owned-road plan.
+ * No packed plan → true (fail closed) so we do not delete roads that will
+ * re-queue next tick. Packed miss → stray.
  */
 function isOnOwnedRoadPlan(room, x, y) {
-    if (!room) return false;
+    if (!room) return true;
     try {
         const packed = room.memory && room.memory.plan && room.memory.plan.layers
             && room.memory.plan.layers.roads && room.memory.plan.layers.roads.packed;
@@ -571,11 +572,72 @@ function isOnOwnedRoadPlan(room, x, y) {
             }
             return false;
         }
-        const desired = require('planGeomRoads').getDesiredRoadTiles(room);
-        return !!(desired && desired.has(x + 'x' + y));
-    } catch (e) {
+    } catch (e) { /* keep */
+    }
+    return true;
+}
+
+const KEEP_SITE_TYPES = {
+    [STRUCTURE_SPAWN]: 1,
+    [STRUCTURE_TOWER]: 1,
+    [STRUCTURE_TERMINAL]: 1,
+    [STRUCTURE_STORAGE]: 1,
+    [STRUCTURE_LINK]: 1,
+    [STRUCTURE_CONTAINER]: 1,
+    [STRUCTURE_LAB]: 1,
+    [STRUCTURE_EXTRACTOR]: 1,
+    [STRUCTURE_FACTORY]: 1,
+    [STRUCTURE_NUKER]: 1,
+    [STRUCTURE_OBSERVER]: 1,
+    [STRUCTURE_POWER_SPAWN]: 1,
+    [STRUCTURE_EXTENSION]: 1,
+};
+
+/**
+ * Construction sites that belong to the frozen room plan. Free-slot helpers
+ * must not cancel these — they re-queue and fight other layers for the cap.
+ */
+function isPlannedConstructionSite(room, site) {
+    if (!site || !site.pos) return true;
+    const t = site.structureType;
+    if (KEEP_SITE_TYPES[t]) return true;
+    if (t === STRUCTURE_ROAD) return isOnOwnedRoadPlan(room, site.pos.x, site.pos.y);
+    if (t === STRUCTURE_WALL || t === STRUCTURE_RAMPART) {
+        try {
+            const geom = require('planGeomRamparts');
+            if (!geom.hasPerimeterSpots(room.name)) return true;
+            if (geom.isOnPerimeterPlanTile(room, site.pos.x, site.pos.y)) return true;
+        } catch (e) {
+            return true;
+        }
+        const structs = site.pos.lookFor(LOOK_STRUCTURES);
+        for (let i = 0; i < structs.length; i++) {
+            const st = structs[i].structureType;
+            if (st !== STRUCTURE_ROAD && st !== STRUCTURE_RAMPART && st !== STRUCTURE_WALL) return true;
+        }
         return false;
     }
+    return true;
+}
+
+let freeSlotTick = -1;
+const freeSlotRooms = Object.create(null);
+
+function resetFreeSlotTick() {
+    if (typeof Game === 'undefined' || freeSlotTick === Game.time) return;
+    freeSlotTick = Game.time;
+    for (const k in freeSlotRooms) delete freeSlotRooms[k];
+}
+
+/** One reclaim pass per room per tick — economy + extensions + perimeter used to each delete a site. */
+function alreadyFreedSiteSlots(room) {
+    resetFreeSlotTick();
+    return !!(room && freeSlotRooms[room.name]);
+}
+
+function markFreedSiteSlots(room) {
+    resetFreeSlotTick();
+    if (room) freeSlotRooms[room.name] = 1;
 }
 
 /**
@@ -1352,6 +1414,9 @@ module.exports = {
     isNaturalUnbuildableTile,
     isSiteDenylisted,
     isOnOwnedRoadPlan,
+    isPlannedConstructionSite,
+    alreadyFreedSiteSlots,
+    markFreedSiteSlots,
 
     cacheRoad,
 

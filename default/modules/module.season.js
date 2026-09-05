@@ -226,30 +226,28 @@ function setOperations() {
     const hungry = !mine || store == null || store < REACTOR_STORE_TARGET;
     // Extractors unlock at RCL 6. Haulers before that idle with empty stores.
     const canMine = (typeof MAX_LEVEL !== 'undefined' ? MAX_LEVEL : 0) >= 6;
+    const armed = intel.armedHostile && (Game.time - intel.armedHostile < CREEP_LIFE_TIME);
+    const hostile = !!(armed || (intel.threatLevel && intel.threatLevel > 0));
 
     Memory.auxiliaryTargets[target] = {
         tick: Game.time,
         type: 'reactor',
-        priority: emergency ? PRIORITIES.urgent : PRIORITIES.high,
+        priority: (emergency || hostile) ? PRIORITIES.urgent : PRIORITIES.high,
         claim: !mine,
         haulers: canMine ? (emergency ? 3 : (hungry ? 2 : 1)) : 0,
+        // Standing longbow on claim and feed; duo if the room is contested.
+        guards: hostile ? 2 : 1,
         feeder: mem.feederRoom,
         store: store,
         capacity: cap
     };
 
-    const hostile = (intel.threatLevel && intel.threatLevel > 0) || intel.armedHostile;
-    if (mine && hostile) {
-        if (!Memory.targetRooms) Memory.targetRooms = {};
-        const existing = Memory.targetRooms[target];
-        if (!existing || existing.type === 'guard') {
-            Memory.targetRooms[target] = {
-                tick: Game.time,
-                type: 'guard',
-                level: intel.threatLevel > 2 ? 2 : 1,
-                priority: PRIORITIES.urgent
-            };
-        }
+    // Old path wrote a targetRooms guard that spawnGlobal never queued
+    // (aux reactor overwrites the same key). Drop leftover auto-guards so
+    // they do not count against military op limits.
+    const existing = Memory.targetRooms && Memory.targetRooms[target];
+    if (existing && existing.type === 'guard' && !existing.manual && !existing.camping) {
+        delete Memory.targetRooms[target];
     }
 }
 

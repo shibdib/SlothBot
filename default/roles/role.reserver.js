@@ -15,6 +15,8 @@ class RoleReserver {
     }
 
     performRoleActions() {
+        if (this.stationaryReserve()) return;
+
         // SK check only when relevant — skSafety scans hostiles/structures every call.
         if (this.needsSkSafety() && this.creep.skSafety()) {
             this.creep.memory.other.stationary = undefined;
@@ -60,6 +62,35 @@ class RoleReserver {
         } else {
             this.creep.recycleCreep();
         }
+    }
+
+    /**
+     * Adjacent to controller in a non-SK room: reserve/attack only.
+     * Full path (recycle + SK) every 50 ticks.
+     */
+    stationaryReserve() {
+        if (!this.creep.memory.inPlace) return false;
+        if (this.needsSkSafety()) return false;
+        if (Game.time % 50 === 0) return false;
+        const dest = this.creep.memory.destination;
+        if (!dest || this.room.name !== dest) return false;
+        const controller = this.resolveController();
+        if (!controller || !this.creep.pos.isNearTo(controller)) {
+            this.creep.memory.inPlace = undefined;
+            return false;
+        }
+        if (controller.owner) {
+            this.creep.recycleCreep();
+            return true;
+        }
+        if (!controller.reservation || controller.reservation.username === MY_USERNAME) {
+            this.reserveController(controller);
+        } else if (!FRIENDLIES.includes(controller.reservation.username)) {
+            this.attackController(controller);
+        } else {
+            this.creep.recycleCreep();
+        }
+        return true;
     }
 
     needsSkSafety() {
