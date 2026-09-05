@@ -1889,29 +1889,60 @@ Creep.prototype.clearBoostLabs = function () {
     finishBoosting(this);
 };
 
-const ROLE_FROM_NAME_PREFIX = {
-    dro: 'drone',
-    hau: 'hauler',
-    shu: 'shuttle',
-    sta: 'stationaryHarvester',
-    upg: 'upgrader',
-    exp: 'explorer',
-    sco: 'scout',
-    wal: 'waller',
-    def: 'defender',
-    hub: 'hubManager',
-    lab: 'labTech',
-    min: 'mineralHarvester',
-    cle: 'cleaner',
-    att: 'attacker',
-    res: 'reserver',
-    sie: 'siegeDuo',
+// 3-char name prefixes. Keep every value unique so inferRoleFromName is unambiguous.
+const ROLE_NAME_PREFIX = {
+    drone: 'dro',
+    hauler: 'hau',
+    shuttle: 'shu',
+    stationaryHarvester: 'sta',
+    upgrader: 'upg',
+    explorer: 'exp',
+    scout: 'sco',
+    waller: 'wal',
+    defender: 'def',
+    hubManager: 'hub',
+    labTech: 'lab',
+    mineralHarvester: 'min',
+    cleaner: 'cle',
+    attacker: 'att',
+    reserver: 'res',
+    siegeDuo: 'sie',
+    claimer: 'clm',
+    claimAttacker: 'cAt',
+    commodityMiner: 'cmd',
+    longbow: 'lbw',
+    longbowSquad: 'lsq',
+    powerAttacker: 'pAt',
+    powerHauler: 'pHa',
+    powerHealer: 'pHe',
+    powerManager: 'pMg',
+    reactorClaimer: 'rCl',
+    remoteBuilder: 'rBu',
+    remoteHarvester: 'rHa',
+    remoteHauler: 'rHu',
+    SKAttacker: 'ska',
+    thoriumHauler: 'tHa',
+    test: 'tst',
+    testSquad: 'tsq',
 };
+
+const ROLE_FROM_NAME_PREFIX = {};
+for (const role in ROLE_NAME_PREFIX) {
+    ROLE_FROM_NAME_PREFIX[ROLE_NAME_PREFIX[role]] = role;
+}
+
+function roleNamePrefix(role) {
+    if (ROLE_NAME_PREFIX[role]) return ROLE_NAME_PREFIX[role];
+    if (role && typeof role === 'string' && role.length >= 3) return role.slice(0, 3);
+    return 'crp';
+}
 
 function inferRoleFromName(name) {
     if (!name || typeof name !== 'string') return undefined;
     return ROLE_FROM_NAME_PREFIX[name.slice(0, 3)];
 }
+
+module.exports.roleNamePrefix = roleNamePrefix;
 
 function resolveCreepMemory(creep) {
     let mem = creep.memory;

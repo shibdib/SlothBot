@@ -200,6 +200,8 @@ expensive operations in frequently called code.
 - `room.memory.forceRole` — optional sticky override (`core`/`frontier`/`launch`/`outpost`)
 - `Memory._banker.marketHub` — single market-desk room name (a core when any core exists)
 - `creep.memory` — role, target, squad info, working state, traffic data
+- Creep names — `{rolePrefix}{rcl}{100-999}` (unique 3-char role codes in `ROLE_NAME_PREFIX`; not operation). Collision
+  retry in `generateCreepName`.
 - Squad/memory coordination for duos and quads
 - Global configuration via `configs/`
 
@@ -365,7 +367,8 @@ points = 1 + Math.floor(Math.log10(ticksOfContinuousOperation))
   mining (no container), reactor claim/feed pipeline, northern expansion bias, season market skip, no portal jumps.
 - **2026-09-02** — Aligned to live docs-season: `FIND_REACTORS` 10051 (not structures), reactor cap 1000, Thorium as a
   second wall mineral, `claimReactor` adjacent CLAIM, no reactor withdraw.
+- **2026-09-05** — Creep names use unique 3-char role prefixes (not operation) with spawn collision retry.
 
 ---
 
-**Last updated:** 2026-09-02
+**Last updated:** 2026-09-05

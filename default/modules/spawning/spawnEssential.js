@@ -9,7 +9,7 @@ const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount} = require('spawnCounts');
 const {queueCreepIfNeeded, clearRoomRoleQueue} = require('spawnQueue');
 const {empireOpsPaused} = require('hcReadiness');
-const {planShuttleForSource} = require('bodyEconomic');
+const {planShuttleForSource, planUpgraderNeed} = require('bodyEconomic');
 const {
     roomHasCriticalBuildSites,
     roomNeedsSpawnReboot,
@@ -249,23 +249,32 @@ function essentialCreepQueue(room) {
     // A dedicated upgrader during an extension deficit starves the builders.
     if (earlyRush && (room.controller.level < 3 || extensionDeficit > 0)) {
         upgraderAmount = 0;
-    } else if (room.controller.level !== 8 && energyState) {
-        const container = global.resolveControllerContainer(room);
-        if (container && room.controller.level < 8) {
-            const trend = (energyInfo && energyInfo.trend) || 0;
-            const effectiveIncome = Math.min(spareIncome, spareIncome + trend * 50);
-            upgraderAmount = Math.max(1, Math.min(
-                Math.floor(effectiveIncome / 12),
-                container.pos.countOpenTerrainAround()
-            ));
-        }
-        if (room.level >= 7) upgraderAmount = 1;
-        else if (earlyRush && harvesterCount && energyState >= 2 && (energyInfo && (energyInfo.trend || 0) >= 0)) {
-            upgraderAmount = Math.max(upgraderAmount, 2);
+    } else if (room.controller.level === 8) {
+        upgraderAmount = 1;
+    } else if (energyState) {
+        const need = planUpgraderNeed(room, {spareIncome, trend: (energyInfo && energyInfo.trend) || 0});
+        upgraderAmount = need.count;
+        // Live body is a reboot leftover. Allow one overlap so a full-size
+        // replacement can spawn; the small one retires once energy is ready.
+        if (need.maxWork >= 8 && energyState >= 2) {
+            const live = room.myCreeps || [];
+            let bestWork = 0;
+            let liveCount = 0;
+            for (let i = 0; i < live.length; i++) {
+                const c = live[i];
+                if (!c || !c.memory || c.memory.role !== 'upgrader' || c.memory.recycling) continue;
+                liveCount++;
+                const w = c.getActiveBodyparts(WORK);
+                if (w > bestWork) bestWork = w;
+            }
+            if (liveCount && bestWork < need.maxWork * 0.5) {
+                upgraderAmount = Math.max(upgraderAmount, Math.min(liveCount + 1, 2));
+            }
         }
     }
     if (upgraderAmount > 0) {
-        const fastTrack = (energyState > 1 && room.storage && trendOk) ||
+        const fastTrack = (room.controller.level < 8) ||
+            (energyState > 1 && room.storage && trendOk) ||
             (earlyRush && harvesterCount && energyState >= 2);
         const priority = fastTrack ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
         queueCreepIfNeeded({

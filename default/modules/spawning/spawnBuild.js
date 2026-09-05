@@ -307,7 +307,7 @@ function spawnQueuedCreep(room, availableSpawn, queuedBuild, body) {
         military, misc, neededBoosts, assignment
     } = queuedBuild;
 
-    const name = generateCreepName(role, room.level, operation);
+    const name = generateCreepName(role, room.level);
 
     let energyStructures;
     if (spawnState.energyOrder[availableSpawn.room.name]) {

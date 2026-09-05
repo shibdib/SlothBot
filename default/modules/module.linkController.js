@@ -126,9 +126,11 @@ class LinkControl {
             }
         }
 
+        const rcl = (room.controller && room.controller.level) || room.level || 0;
         if (controllerLink && !controllerLink.cooldown && hubLink &&
             controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
-            (!room.energyState || (room.level >= 8 && room.energyState < 2 && !policy.allowHubToController))) {
+            rcl >= 8 &&
+            (!room.energyState || (room.energyState < 2 && !policy.allowHubToController))) {
             controllerLink.transferEnergy(hubLink);
         }
     }
@@ -146,12 +148,15 @@ class LinkControl {
         const canSendToHub = allowHubInbound && hubLink && hubLink.id !== link.id && hFree > 0;
         const canSendToController = controllerLink && cFree >= carrying && cEnergy < policy.controllerTarget;
 
-        if (!room.energyState) {
+        const rcl = (room.controller && room.controller.level) || room.level || 0;
+        // Pre-RCL8: energyState 0 is "below the stockpile target", not famine.
+        // Harvest goes to the controller so rooms actually level.
+        if (!room.energyState && rcl >= 8) {
             if (canSendToHub) return hubLink;
             return canSendToController ? controllerLink : null;
         }
 
-        if (room.level < 8) {
+        if (rcl < 8) {
             if (canSendToController) return controllerLink;
             return canSendToHub ? hubLink : null;
         }

@@ -59,6 +59,47 @@ function buildRoadDroneWaller(gen) {
     return {work, carry, halfMove};
 }
 
+function maxStationaryUpgraderWork(room, energyAmount) {
+    if (!room) return 1;
+    const energy = energyAmount != null ? energyAmount : (room.energyCapacityAvailable || 0);
+    const hasLink = !!(room.memory && room.memory.controllerLink);
+    const carry = hasLink ? 4 : 1;
+    const carryCost = BODYPART_COST[CARRY] * carry;
+    return Math.max(1, Math.min(49, Math.floor((energy - carryCost) / BODYPART_COST[WORK]) || 1));
+}
+
+/**
+ * How many upgraders a room should run. Prefer one body that fills the spawn
+ * cap; only add a second when RCL energy cannot put the spare on one creep.
+ */
+function planUpgraderNeed(room, flow = {}) {
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    const maxWork = maxStationaryUpgraderWork(room);
+    if (rcl >= 7) return {count: 1, maxWork};
+
+    const container = global.resolveControllerContainer && global.resolveControllerContainer(room);
+    const hasLink = !!(room.memory && room.memory.controllerLink);
+    if (!container && !hasLink) return {count: 1, maxWork};
+
+    const spareIncome = flow.spareIncome || 0;
+    const trend = flow.trend || 0;
+    const effectiveSpare = Math.min(spareIncome, spareIncome + trend * 50);
+    const existingWork = (room.energyDiag && room.energyDiag.upgradeExpense) || 0;
+
+    let count = 1;
+    if (effectiveSpare > 0) {
+        count = Math.max(1, Math.ceil((existingWork + effectiveSpare) / Math.max(1, maxWork)));
+    }
+
+    const stand = container && container.pos && container.pos.countOpenTerrainAround
+        ? Math.max(1, container.pos.countOpenTerrainAround())
+        : 2;
+    // RCL5 (~16W) may still need a pair for two sources; RCL6 (~22W) does not.
+    count = Math.min(count, stand, maxWork >= 15 ? 2 : 3);
+    if (maxWork >= 20) count = 1;
+    return {count, maxWork};
+}
+
 function buildUpgrader(gen) {
     const hasLink = !!gen.room.memory.controllerLink;
     const hasContainer = !!global.resolveControllerContainer(gen.room);
@@ -70,7 +111,7 @@ function buildUpgrader(gen) {
         move = 0;
     } else if (hasLink || hasContainer) {
         carry = hasLink ? 4 : 1;
-        const affordableWork = Math.floor((gen.energyAmount - (BODYPART_COST[CARRY] * carry)) / BODYPART_COST[WORK]) || 1;
+        const affordableWork = maxStationaryUpgraderWork(gen.room, gen.energyAmount);
         work = affordableWork;
 
         if (hasLink && gen.level >= 5) {
@@ -93,26 +134,41 @@ function buildUpgrader(gen) {
             if (sourceLinks.length + sharedHarvest > 0) {
                 const sourceRate = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME;
                 const linked = sourceLinks.length * (1 - LINK_LOSS_RATIO) + sharedHarvest;
-                work = Math.floor(sourceRate * linked) + 1;
+                let feedCap = Math.floor(sourceRate * linked) + 1;
+                // Receiver has no cooldown. Hub can drip ~800/40 ticks from storage/remotes.
+                const stored = (gen.room.rawEnergy || 0) > 1000;
+                if (gen.room.memory.hubLink && (gen.room.controller.level < 8 || gen.room.energyState >= 2 || stored)) {
+                    const linkCap = typeof LINK_CAPACITY === 'number' ? LINK_CAPACITY : 800;
+                    feedCap += Math.floor(linkCap / 40);
+                }
+                work = Math.min(affordableWork, feedCap);
             }
-            if (!gen.room.energyState) {
-                work *= 0.15;
-            } else if (gen.room.energyState < 3) {
-                work *= gen.flowScale(0.75, 12);
+            if (gen.room.controller.level >= 8) {
+                if (!gen.room.energyState) {
+                    work *= 0.15;
+                } else if (gen.room.energyState < 3) {
+                    work *= gen.flowScale(0.75, 12);
+                } else {
+                    work *= gen.flowScale(0.5, 10);
+                }
+                const upgraderCnt = (gen.room.energyDiag && gen.room.energyDiag.upgraderCnt) || 0;
+                if (upgraderCnt <= 1 && gen.room.energyState < 3 && gen.upgraderDuty < 0.7) {
+                    const dutyScale = Math.max(0.5, gen.upgraderDuty + 0.15);
+                    work *= dutyScale;
+                }
+                if (gen.room.energyState >= 2) {
+                    const stockpileCap = gen.room.energyState >= 3 ? 5 : 10;
+                    const spareCap = gen.spareIncome > 0 ? Math.max(1, Math.floor(gen.spareIncome / 3)) : 1;
+                    work = Math.min(work, stockpileCap, spareCap);
+                }
+                work = Math.min(work, 15);
             } else {
-                work *= gen.flowScale(0.5, 10);
+                // RCL push: stored energy is upgrade fuel. Only shrink on a
+                // true pre-storage famine (empty spawn, no stock).
+                const stored = (gen.room.rawEnergy || 0) > 1000;
+                if (!gen.room.energyState && !stored) work *= 0.25;
+                work = Math.min(affordableWork, work);
             }
-            if (gen.room.energyState < 3 && gen.upgraderDuty < 0.7) {
-                const dutyScale = Math.max(0.5, gen.upgraderDuty + 0.15);
-                work *= dutyScale;
-            }
-            if (gen.room.level === 8 && gen.room.energyState >= 2) {
-                const stockpileCap = gen.room.energyState >= 3 ? 5 : 10;
-                // Floor of 3 WORK used to keep RCL8 rooms net-negative while "OK".
-                const spareCap = gen.spareIncome > 0 ? Math.max(1, Math.floor(gen.spareIncome / 3)) : 1;
-                work = Math.min(work, stockpileCap, spareCap);
-            }
-            work = gen.room.level === 8 ? Math.min(work, 15) : Math.min(affordableWork, work);
         }
 
         work = Math.max(Math.min(work, 49), 1);
@@ -340,4 +396,6 @@ module.exports = {
     shuttleCarryTarget,
     assessSourceHaulBacklog,
     planShuttleForSource,
+    maxStationaryUpgraderWork,
+    planUpgraderNeed,
 };

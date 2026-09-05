@@ -9,6 +9,7 @@ const {getCreepCount, creepExpiringSoon, invalidateCreepCountCache} = require('s
 const {collectGlobalOperations, releaseAssignmentIfStuck, generatedBodyMissingBoosts} = require('spawnOperations');
 const {spawnEnergyState} = require('spawnFlow');
 const {roomInSpawnRecovery} = require('bodyHelpers');
+const {roleNamePrefix} = require('prototype.creep');
 
 let queueCache = {};
 
@@ -183,9 +184,19 @@ function queueCreep(room = undefined, priority, options = {}, global = undefined
     return true;
 }
 
-function generateCreepName(role, level, operation) {
-    let name = role.slice(0, 3) + '' + level + '' + getRandomInt(100, 999);
-    if (operation) name = operation.slice(0, 3) + '' + level + '' + getRandomInt(100, 999);
+function generateCreepName(role, level) {
+    const prefix = roleNamePrefix(role);
+    const lvl = level || 0;
+    for (let i = 0; i < 20; i++) {
+        const name = prefix + lvl + getRandomInt(100, 999);
+        if (!Game.creeps[name]) return name;
+    }
+    let n = 0;
+    let name;
+    do {
+        name = prefix + lvl + Game.time.toString(36) + n.toString(36);
+        n++;
+    } while (Game.creeps[name] && n < 50);
     return name;
 }
 

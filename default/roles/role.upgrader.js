@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {planUpgraderNeed} = require('bodyEconomic');
 
 
 function resolveControllerLink(room) {
@@ -38,6 +39,47 @@ class RoleUpgrader {
     housekeeping() {
         // Boosting
         if (this.creep.tryToBoost()) return true;
+        if (this.shouldRetire()) {
+            if (!this.creep.hasActiveBodyparts(MOVE)) this.creep.suicide();
+            else this.creep.recycleCreep();
+            return true;
+        }
+        return false;
+    }
+
+    shouldRetire() {
+        if (this.creep.spawning) return false;
+        if ((this.creep.ticksToLive || 1500) < 200) return false;
+        const energyInfo = this.room.energyInfo;
+        const plan = planUpgraderNeed(this.room, {
+            spareIncome: (energyInfo && energyInfo.spareIncome) || 0,
+            trend: (energyInfo && energyInfo.trend) || 0,
+        });
+        const creeps = this.room.myCreeps || [];
+        const pack = [];
+        for (let i = 0; i < creeps.length; i++) {
+            const c = creeps[i];
+            if (!c || !c.memory || c.memory.role !== 'upgrader' || c.memory.recycling) continue;
+            pack.push(c);
+        }
+        if (pack.length > plan.count) {
+            pack.sort((a, b) => {
+                const dw = b.getActiveBodyparts(WORK) - a.getActiveBodyparts(WORK);
+                if (dw) return dw;
+                return a.id < b.id ? -1 : 1;
+            });
+            const keepIds = {};
+            for (let i = 0; i < plan.count; i++) keepIds[pack[i].id] = true;
+            if (!keepIds[this.creep.id]) return true;
+        }
+        // Reboot leftovers (2–3W) only. Flow-scaled bodies must not suicide.
+        const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
+        const myWork = this.creep.getActiveBodyparts(WORK);
+        if (rcl < 8 && plan.maxWork >= 8 && myWork <= 4 && (this.room.energyState || 0) >= 2) {
+            const cap = this.room.energyCapacityAvailable || 0;
+            const avail = this.room.energyAvailable || 0;
+            if (cap && avail >= cap * 0.85) return true;
+        }
         return false;
     }
 
