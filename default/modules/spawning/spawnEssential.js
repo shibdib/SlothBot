@@ -251,12 +251,13 @@ function essentialCreepQueue(room) {
         upgraderAmount = 0;
     } else if (room.controller.level === 8) {
         upgraderAmount = 1;
-    } else if (energyState) {
+    } else {
         const need = planUpgraderNeed(room, {spareIncome, trend: (energyInfo && energyInfo.trend) || 0});
-        upgraderAmount = need.count;
+        if (energyState) upgraderAmount = need.count;
         // Live body is a reboot leftover. Allow one overlap so a full-size
         // replacement can spawn; the small one retires once energy is ready.
-        if (need.maxWork >= 8 && energyState >= 2) {
+        const stored = (room.rawEnergy || 0) > 1000;
+        if (need.maxWork >= 8 && (energyState >= 1 || stored)) {
             const live = room.myCreeps || [];
             let bestWork = 0;
             let liveCount = 0;
@@ -280,7 +281,9 @@ function essentialCreepQueue(room) {
         queueCreepIfNeeded({
             room, role: 'upgrader', priority,
             numberNeeded: upgraderAmount, misc: {boosts: [WORK]},
-            rebootCondition: spawnReboot || !getCreepCount(room, 'upgrader')
+            // Do not reboot-cap just because the slot is empty. That turned a
+            // 100k RCL5 room into a 1W/4C egg (300 energy) every replacement.
+            rebootCondition: spawnReboot
         });
     }
 }

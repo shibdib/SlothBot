@@ -59,11 +59,20 @@ function buildRoadDroneWaller(gen) {
     return {work, carry, halfMove};
 }
 
+function upgraderCarryCount(room, energyAmount) {
+    const hasLink = !!(room && room.memory && room.memory.controllerLink);
+    if (!hasLink) return 1;
+    const energy = energyAmount != null ? energyAmount : ((room && room.energyCapacityAvailable) || 0);
+    const workWithBuffer = Math.floor((energy - BODYPART_COST[CARRY] * 4) / BODYPART_COST[WORK]) || 0;
+    // 4 CARRY is a link buffer for a real WORK body. On a 300-energy reboot
+    // egg it eats 200 and leaves 1 WORK.
+    return workWithBuffer >= 5 ? 4 : 1;
+}
+
 function maxStationaryUpgraderWork(room, energyAmount) {
     if (!room) return 1;
     const energy = energyAmount != null ? energyAmount : (room.energyCapacityAvailable || 0);
-    const hasLink = !!(room.memory && room.memory.controllerLink);
-    const carry = hasLink ? 4 : 1;
+    const carry = upgraderCarryCount(room, energy);
     const carryCost = BODYPART_COST[CARRY] * carry;
     return Math.max(1, Math.min(49, Math.floor((energy - carryCost) / BODYPART_COST[WORK]) || 1));
 }
@@ -110,7 +119,7 @@ function buildUpgrader(gen) {
         carry = 1;
         move = 0;
     } else if (hasLink || hasContainer) {
-        carry = hasLink ? 4 : 1;
+        carry = upgraderCarryCount(gen.room, gen.energyAmount);
         const affordableWork = maxStationaryUpgraderWork(gen.room, gen.energyAmount);
         work = affordableWork;
 

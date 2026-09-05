@@ -75,7 +75,8 @@ class RoleUpgrader {
         // Reboot leftovers (2–3W) only. Flow-scaled bodies must not suicide.
         const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
         const myWork = this.creep.getActiveBodyparts(WORK);
-        if (rcl < 8 && plan.maxWork >= 8 && myWork <= 4 && (this.room.energyState || 0) >= 2) {
+        const stored = (this.room.rawEnergy || 0) > 1000;
+        if (rcl < 8 && plan.maxWork >= 8 && myWork <= 4 && ((this.room.energyState || 0) >= 1 || stored)) {
             const cap = this.room.energyCapacityAvailable || 0;
             const avail = this.room.energyAvailable || 0;
             if (cap && avail >= cap * 0.85) return true;
