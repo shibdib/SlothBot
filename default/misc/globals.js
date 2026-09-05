@@ -448,6 +448,16 @@ let globals = function () {
             if (r.error) return r;
             return _plannerMod().placeOwnedRoads(r.room);
         },
+        pruneRoads(roomName, maxDestroy) {
+            const r = _plannerRoom(roomName);
+            if (r.error) return r;
+            const mod = _plannerMod();
+            mod.placeOwnedRoads(r.room, {verify: true});
+            return mod.removeOffPlanOwnedRoads(r.room, {
+                maxDestroy: maxDestroy == null ? 20 : maxDestroy,
+                force: true,
+            });
+        },
         ensureRamparts(roomName) {
             const r = _plannerRoom(roomName);
             if (r.error) return r;
@@ -1050,8 +1060,22 @@ let globals = function () {
             roadSites: countRoadConstructionSites(room),
             layoutPending,
             roadLimit: siteBudget.roadLimit(room, {layoutPending}),
+            strayRoads: (room.roads || []).filter((s) => s && !desired.has(`${s.pos.x}x${s.pos.y}`)).length,
             sampleMissing: plan.missing.slice(0, 5).map(p => `${p.x},${p.y}`),
         };
+    };
+
+    // Console: pruneOwnedRoads('E1N1') — destroy leftover roads not in the complete plan.
+    // Refuses unless the replacement net is built (same gates as the tick path).
+    global.pruneOwnedRoads = function (roomName, maxDestroy) {
+        const room = Game.rooms[roomName];
+        if (!room) return {error: 'no vision', roomName};
+        const planRoads = require('planRoads');
+        planRoads.placeOwnedRoads(room, {verify: true});
+        return planRoads.removeOffPlanOwnedRoads(room, {
+            maxDestroy: maxDestroy == null ? 20 : maxDestroy,
+            force: true,
+        });
     };
 
 

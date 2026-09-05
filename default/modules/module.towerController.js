@@ -142,7 +142,15 @@ module.exports.towerController = function (room) {
         }
         // Road repair is a discretionary 10-energy/tower sink — only when overflowing.
         if (!repairCandidates.length && repairAllowed) {
-            repairCandidates = room.structures.filter((s) => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5).sort(
+            let keep = null;
+            try {
+                keep = require('planGeomRoads').getOwnedRoadKeepSet(room);
+            } catch (e) { /* ignore */
+            }
+            repairCandidates = room.structures.filter((s) => {
+                if (s.structureType !== STRUCTURE_ROAD || s.hits >= s.hitsMax * 0.5) return false;
+                return !keep || keep.has(s.pos.x + 'x' + s.pos.y);
+            }).sort(
                 (a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax)
             );
         }

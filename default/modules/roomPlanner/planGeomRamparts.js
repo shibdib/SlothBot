@@ -27,6 +27,7 @@ const mincut = require('util.minCut');
 const {
     canPlaceConstructionSite, tryCreateConstructionSite, canPlaceConstructedWall,
     filterPerimeterBarrierSpots, roomConstructionSiteBudget,
+    isNaturalUnbuildableTile, isSiteDenylisted,
 } = require('planUtils');
 
 const PERIMETER_ORPHAN_EXIT_CLEARANCE = 5;
@@ -1191,13 +1192,54 @@ function getBuiltBarrierKeySet(room) {
     return set;
 }
 
+function isOnPerimeterPlanTile(room, x, y) {
+    if (!room) return false;
+    const key = xyKey(x, y);
+    const spots = getPerimeterSpots(room.name);
+    for (let i = 0; i < spots.length; i++) {
+        if (xyKey(spots[i].x, spots[i].y) === key) return true;
+    }
+    try {
+        return getWalkwayKeySet(room).has(key);
+    } catch (e) {
+        return false;
+    }
+}
+
+/** True when this planned hole can take a barrier site this tick. */
+function isPerimeterHolePlaceable(room, pos) {
+    if (shouldBuildPerimeterTile(pos, room) !== true) return false;
+    if (pos.lookFor(LOOK_CONSTRUCTION_SITES).length) return false;
+    return true;
+}
+
 function perimeterHasMissingBuilt(room) {
     const spots = getPerimeterSpots(room.name);
     if (!spots.length) return false;
     const built = getBuiltBarrierKeySet(room);
     for (let i = 0; i < spots.length; i++) {
         const p = spots[i];
-        if (!built.has(xyKey(p.x, p.y))) return true;
+        if (built.has(xyKey(p.x, p.y))) continue;
+        const pos = new RoomPosition(p.x, p.y, room.name);
+        const why = shouldBuildPerimeterTile(pos, room);
+        // Never-buildable / already sealed: do not keep the room "incomplete".
+        if (why === 'unbuildable' || why === 'denylist' || why === 'terrainWall' || why === 'towerHub') continue;
+        if (why === 'hasRampart' || why === 'hasBarrier' || why === 'hasBarrierSite') continue;
+        return true;
+    }
+    return false;
+}
+
+/** True when at least one seal hole can actually be sited this tick. */
+function perimeterHasPlaceableMissing(room) {
+    const spots = getPerimeterSpots(room.name);
+    if (!spots.length) return false;
+    const built = getBuiltBarrierKeySet(room);
+    for (let i = 0; i < spots.length; i++) {
+        const p = spots[i];
+        if (built.has(xyKey(p.x, p.y))) continue;
+        const pos = new RoomPosition(p.x, p.y, room.name);
+        if (isPerimeterHolePlaceable(room, pos)) return true;
     }
     return false;
 }
@@ -1549,6 +1591,8 @@ function shouldBuildPerimeterTile(pos, room) {
         return 'towerHub';
     }
     if (pos.checkForWall()) return 'terrainWall';
+    if (isNaturalUnbuildableTile(pos, room)) return 'unbuildable';
+    if (isSiteDenylisted(room, pos.x, pos.y)) return 'denylist';
     if (pos.checkForRampart()) return 'hasRampart';
     if (pos.checkForBarrierStructure && pos.checkForBarrierStructure()) return 'hasBarrier';
     if (pos.lookFor(LOOK_CONSTRUCTION_SITES).some(s =>
@@ -2002,6 +2046,9 @@ module.exports = {
     collectCombatFaceTraps,
     isCombatFaceTrapPos,
     perimeterHasMissingBuilt,
+    perimeterHasPlaceableMissing,
+    isOnPerimeterPlanTile,
+    isPerimeterHolePlaceable,
     bunkerLevelAllowsPerimeter,
     shouldComputeBunkerRampartSpots,
     getBuiltBarrierKeySet,

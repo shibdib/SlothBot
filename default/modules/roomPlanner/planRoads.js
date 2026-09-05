@@ -44,6 +44,7 @@ const {
     canPlaceRoadInRoom,
     tryCreateConstructionSite,
     listVisibleOwnedRooms,
+    invalidateRoomConstructionSiteCache,
 } = require('planUtils');
 
 // Round-robin cursor for cross-room road placement (heap — fine if reset).
@@ -158,8 +159,87 @@ function removeRoadsUnderObstacles(room) {
         clearRoomPathCache(room.name, 'owned');
         clearRoomPathCache(room.name, 'remote');
         pruneOwnedPlannedBlocked(room.name);
+        if (room._invalidateStructureCaches) room._invalidateStructureCaches();
     }
     return changed;
+}
+
+const MAX_OFF_PLAN_ROADS_PER_CALL = 3;
+
+/**
+ * Destroy live roads / cancel sites that are not in the complete desired set.
+ * Only after the replacement net is built (complete, 0 path failures) so we
+ * never delete pavement PathFinder still needs and then re-queue it.
+ */
+function removeOffPlanOwnedRoads(room, options) {
+    const opts = options || {};
+    if (!room) return {removed: 0, sites: 0, stray: 0, reason: 'no_room'};
+    if (!opts.force && isPlannerShadow(room)) return {removed: 0, sites: 0, stray: 0, reason: 'shadow'};
+    if (!isOwnedRoomRoadEligible(room)) return {removed: 0, sites: 0, stray: 0, reason: 'gated'};
+    if (!opts.force && computeLayoutPending(room)) {
+        return {removed: 0, sites: 0, stray: 0, reason: 'layout_pending'};
+    }
+
+    const plan = opts.plan || getRoadPlan(room);
+    if (!plan || !plan.desired || !plan.desired.size) {
+        return {removed: 0, sites: 0, stray: 0, reason: 'no_desired'};
+    }
+    if (!plan.complete || (plan.pathFailures || 0) > 0 || (plan.missing && plan.missing.length)) {
+        return {
+            removed: 0,
+            sites: 0,
+            stray: 0,
+            reason: 'plan_incomplete',
+            missing: plan.missing && plan.missing.length
+        };
+    }
+    if (plan.layout && plan.layout.size && plan.desired.size < plan.layout.size) {
+        return {removed: 0, sites: 0, stray: 0, reason: 'desired_lt_layout'};
+    }
+
+    const keep = plan.desired;
+    const maxDestroy = opts.maxDestroy != null ? opts.maxDestroy : MAX_OFF_PLAN_ROADS_PER_CALL;
+    let removed = 0;
+    let sites = 0;
+    let stray = 0;
+
+    const roads = room.roads || [];
+    for (let i = 0; i < roads.length; i++) {
+        const road = roads[i];
+        if (!road || keep.has(getPosKey(road.pos))) continue;
+        stray++;
+        if (removed >= maxDestroy) continue;
+        try {
+            if (road.destroy() === OK) removed++;
+        } catch (e) { /* ignore */
+        }
+    }
+
+    for (const site of room.constructionSites) {
+        if (site.structureType !== STRUCTURE_ROAD) continue;
+        if (keep.has(getPosKey(site.pos))) continue;
+        stray++;
+        try {
+            if (site.remove() === OK) sites++;
+        } catch (e) { /* ignore */
+        }
+    }
+
+    if (removed || sites) {
+        clearRoomMatrixCache(room.name, 'owned');
+        clearRoomPathCache(room.name, 'owned');
+        pruneOwnedPlannedBlocked(room.name);
+        if (sites) invalidateRoomConstructionSiteCache(room);
+        if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+        room._roadKeepTick = undefined;
+        room._roadKeepSet = undefined;
+        if (typeof log !== 'undefined' && log.a) {
+            log.a(`${room.name} removed ${removed} off-plan road(s)`
+                + (sites ? `, ${sites} site(s)` : '')
+                + ` (${stray} stray / ${keep.size} keep)`, 'PLANNER');
+        }
+    }
+    return {removed, sites, stray, keep: keep.size, reason: removed || sites ? 'ok' : 'none'};
 }
 
 function persistedRoadStale(room, fingerprint) {
@@ -270,6 +350,13 @@ function placeOwnedRoads(room, options) {
 
     const plan = getRoadPlan(room, {force: forceRebuild || stale});
     if (plan.complete) {
+        if (!layoutPending) {
+            const pruned = removeOffPlanOwnedRoads(room, {
+                plan,
+                maxDestroy: verify || stale || forceRebuild ? MAX_OFF_PLAN_ROADS_PER_CALL : 1,
+            });
+            cleaned += (pruned.removed || 0) + (pruned.sites || 0);
+        }
         return finish({
             plan,
             placed: 0,
@@ -406,6 +493,13 @@ function inspectRoads(room) {
         pathFailures: plan ? plan.pathFailures || 0 : undefined,
         fingerprint: plan ? plan.fingerprint : ownedRoadFingerprint(room),
         hydrated: plan ? !!plan.hydrated : undefined,
+        cleanupRev: room.memory.plan && room.memory.plan.layers && room.memory.plan.layers.roads
+        && room.memory.plan.layers.roads.extra
+            ? room.memory.plan.layers.roads.extra.cleanupRev
+            : null,
+        strayRoads: plan && plan.desired
+            ? (room.roads || []).filter(s => s && !plan.desired.has(getPosKey(s.pos))).length
+            : undefined,
         evaluate: evalPlan,
         planLayer: room.memory.plan && room.memory.plan.layers && room.memory.plan.layers.roads
             ? room.memory.plan.layers.roads.extra
@@ -422,6 +516,7 @@ module.exports = Object.assign({}, geom, {
     ensureOwnedRoadsProgress,
     tryPlaceNextRemoteRoad,
     removeRoadsUnderObstacles,
+    removeOffPlanOwnedRoads,
     clearOwnedRoomRoadNetwork,
     syncRemoteRoadBuiltFlag,
 });

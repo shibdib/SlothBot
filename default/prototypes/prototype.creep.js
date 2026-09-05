@@ -160,12 +160,18 @@ function getConstructionScan(room) {
     const intel = INTEL[room.name];
     const ownedByMe = !!(intel && intel.owner === MY_USERNAME);
     const claimedIds = getClaimedConstructionIds(room);
+    let roadKeep = null;
+    try {
+        roadKeep = require('planGeomRoads').getOwnedRoadKeepSet(room);
+    } catch (e) { /* planner optional during bootstrap */
+    }
     constructionScanCache[room.name] = {
         intel,
         ownedByMe,
         claimedIds,
         damage: collectStructureDamage(room, claimedIds, ownedByMe),
         sites: collectConstructionBuckets(room),
+        roadKeep,
     };
     return constructionScanCache[room.name];
 }
@@ -839,8 +845,10 @@ Creep.prototype.constructionWork = function (scope) {
 
     const wallBarrierSites = () => sites.barriers.filter(s => s.structureType === STRUCTURE_WALL);
     const allowRoads = allowRoadMaintenance(room, roadsOnly);
-    const roadSites = allowRoads ? sites.roads : [];
-    const damagedRoads = allowRoads ? damage.roads : [];
+    const roadKeep = scan.roadKeep;
+    const onPlanRoad = (s) => !roadKeep || roadKeep.has(s.pos.x + 'x' + s.pos.y);
+    const roadSites = allowRoads ? sites.roads.filter(onPlanRoad) : [];
+    const damagedRoads = allowRoads ? damage.roads.filter(onPlanRoad) : [];
 
     if (roadsOnly) {
         if (roadSites.length) return buildClosest(roadSites);

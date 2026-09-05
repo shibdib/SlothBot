@@ -40,6 +40,8 @@ const MATRIX_HEAP = {owned: Object.create(null), remote: Object.create(null)};
 const FAILED_PATH_RETRY = 50;
 /** Bump when desired-set geometry changes (lab collar, walkway, …) so packed plans rebuild. */
 const OWNED_ROAD_PLAN_REV = 2;
+/** One-shot: recompute packed without adopting leftover live roads, then prune extras. */
+const OWNED_ROAD_CLEANUP_REV = 1;
 
 const TARGET_ORDER = {controller: 0, source: 1, mineral: 2, exit: 3};
 
@@ -218,18 +220,21 @@ function buildTerrainMatrix(roomName, profile) {
     const blocked = collectBlockedRoadKeys(room);
     const containers = collectContainerRoadKeys(room);
 
-    // Roads first, then containers/blockers always win so a road stacked under
-    // an extension or container cannot keep a walkable cost on that tile.
-    for (const s of room.structures) {
-        if (s.structureType === STRUCTURE_ROAD) {
-            const key = getPosKey(s.pos);
-            if (!blocked.has(key) && !containers.has(key)) matrix.set(s.pos.x, s.pos.y, costs.road);
+    // Remotes follow existing pavement. Owned does not — leftover previous-owner
+    // roads would get adopted into packed and never become prunable.
+    // Planned tiles are painted separately (layout / packed seed / markPlannedTile).
+    if (profile !== 'owned') {
+        for (const s of room.structures) {
+            if (s.structureType === STRUCTURE_ROAD) {
+                const key = getPosKey(s.pos);
+                if (!blocked.has(key) && !containers.has(key)) matrix.set(s.pos.x, s.pos.y, costs.road);
+            }
         }
-    }
-    for (const site of room.constructionSites) {
-        if (site.structureType !== STRUCTURE_ROAD) continue;
-        const key = getPosKey(site.pos);
-        if (!blocked.has(key) && !containers.has(key)) matrix.set(site.pos.x, site.pos.y, costs.road);
+        for (const site of room.constructionSites) {
+            if (site.structureType !== STRUCTURE_ROAD) continue;
+            const key = getPosKey(site.pos);
+            if (!blocked.has(key) && !containers.has(key)) matrix.set(site.pos.x, site.pos.y, costs.road);
+        }
     }
     for (const key of containers) {
         const parts = key.split('x');
@@ -777,6 +782,19 @@ function desiredTilesForPack(room, desired) {
     return tiles;
 }
 
+function persistedCleanupRev(room) {
+    try {
+        const extra = getPersistedRoadLayer(room) && getPersistedRoadLayer(room).extra;
+        return extra && extra.cleanupRev;
+    } catch (e) {
+        return undefined;
+    }
+}
+
+function shouldSeedPackedPlan(room) {
+    return persistedCleanupRev(room) === OWNED_ROAD_CLEANUP_REV;
+}
+
 function persistOwnedRoadPlan(room, plan, extraMeta) {
     if (!room || !plan) return null;
     try {
@@ -787,6 +805,7 @@ function persistOwnedRoadPlan(room, plan, extraMeta) {
         const packedChanged = !packedNumsSame(doc.layers.roads.packed, packed);
         doc.layers.roads.packed = packed.length ? packed : [];
         if (packedChanged) doc.layers.roads.rev = (doc.layers.roads.rev || 0) + 1;
+        const prevCleanupRev = doc.layers.roads.extra && doc.layers.roads.extra.cleanupRev;
         const extra = Object.assign({}, doc.layers.roads.extra || {}, {
             missing: plan.missing ? plan.missing.length : 0,
             complete: !!plan.complete,
@@ -799,6 +818,10 @@ function persistOwnedRoadPlan(room, plan, extraMeta) {
             fingerprint: plan.fingerprint,
             computedTick: plan.computedTick || Game.time,
         }, extraMeta || {});
+        // Only stamp cleanupRev on a fresh compute. Hydrating leftover packed
+        // and then persisting would skip the one-shot strict replan.
+        if (!plan.hydrated) extra.cleanupRev = OWNED_ROAD_CLEANUP_REV;
+        else if (prevCleanupRev) extra.cleanupRev = prevCleanupRev;
         doc.layers.roads.extra = extra;
         setRoadsBuiltFlag(room, plan.complete ? true : undefined);
         return doc;
@@ -853,14 +876,29 @@ function shouldRetryFailedPaths(plan) {
     return Game.time - (plan.computedTick || 0) >= FAILED_PATH_RETRY;
 }
 
+function seedPackedRoadTiles(room, network) {
+    const layer = getPersistedRoadLayer(room);
+    if (!layer || !layer.packed || !layer.packed.length) return;
+    const tiles = unpackTiles(layer.packed);
+    for (let i = 0; i < tiles.length; i++) {
+        const pos = new RoomPosition(tiles[i].x, tiles[i].y, room.name);
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
+        network.add(getPosKey(pos));
+    }
+}
+
 function computeOwnedRoadPlan(room, fingerprint) {
     const layout = getLayoutRoadTiles(room);
-    const built = buildConnectorTiles(room, layout);
+    const networkSeed = new Set(layout);
+    // After the one-shot cleanup replan, follow the persisted net so equal-cost
+    // PathFinder ties do not rebuild a parallel corridor every fingerprint bump.
+    if (shouldSeedPackedPlan(room)) seedPackedRoadTiles(room, networkSeed);
+    const built = buildConnectorTiles(room, networkSeed);
     const labRing = getLabRingRoadTiles(room);
     for (const key of labRing) built.connector.add(key);
     const walkway = getWalkwayRoadTiles(room);
     for (const key of walkway) built.connector.add(key);
-    const desired = new Set([...layout, ...built.connector]);
+    const desired = new Set([...networkSeed, ...built.connector]);
     const targets = getRoadTargets(room);
     const origin = getRoadOrigin(room);
     const plan = {
@@ -884,12 +922,13 @@ function getRoadPlan(room, options) {
     const force = !!(options && options.force);
     const fingerprint = ownedRoadFingerprint(room);
     const heap = PLAN_CACHE[room.name];
+    const needsCleanupReplan = persistedCleanupRev(room) !== OWNED_ROAD_CLEANUP_REV;
 
-    if (!force && heap && heap.fingerprint === fingerprint && !shouldRetryFailedPaths(heap.plan)) {
+    if (!force && !needsCleanupReplan && heap && heap.fingerprint === fingerprint && !shouldRetryFailedPaths(heap.plan)) {
         return refreshRoadPlanMissing(room, heap.plan);
     }
 
-    if (!force) {
+    if (!force && !needsCleanupReplan) {
         const hydrated = hydrateRoadPlanFromDoc(room, fingerprint);
         if (hydrated && !shouldRetryFailedPaths(hydrated)) {
             PLAN_CACHE[room.name] = {fingerprint, plan: hydrated};
@@ -1627,6 +1666,7 @@ function isOwnedRoomRoadEligible(room) {
 function needsOwnedRoadWork(room) {
     if (!isOwnedRoomRoadEligible(room)) return false;
     if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return false;
+    if (persistedCleanupRev(room) !== OWNED_ROAD_CLEANUP_REV) return true;
     if (!getRoadsBuiltFlag(room)) return true;
     try {
         const extra = room.memory && room.memory.plan && room.memory.plan.layers
@@ -1636,6 +1676,28 @@ function needsOwnedRoadWork(room) {
         return true;
     }
     return false;
+}
+
+/**
+ * Packed desired tiles when it is safe to ignore leftover live roads.
+ * null = plan not trustworthy; repair/keep everything.
+ */
+function getOwnedRoadKeepSet(room) {
+    if (!room) return null;
+    if (room._roadKeepTick === Game.time) return room._roadKeepSet;
+    room._roadKeepTick = Game.time;
+    room._roadKeepSet = null;
+    if (!isOwnedRoomRoadEligible(room)) return null;
+    const layer = getPersistedRoadLayer(room);
+    if (!layer || !layer.packed || !layer.packed.length) return null;
+    const extra = layer.extra || {};
+    if (!extra.complete && extra.cleanupRev !== OWNED_ROAD_CLEANUP_REV) return null;
+    const tiles = unpackTiles(layer.packed);
+    if (!tiles.length) return null;
+    const keep = new Set();
+    for (let i = 0; i < tiles.length; i++) keep.add(tiles[i].x + 'x' + tiles[i].y);
+    room._roadKeepSet = keep;
+    return keep;
 }
 
 function clearOwnedMatrixHeap(roomName) {
@@ -1679,6 +1741,8 @@ module.exports = {
     tileHasRoadAvoid,
     isOwnedRoomRoadEligible,
     needsOwnedRoadWork,
+    getOwnedRoadKeepSet,
+    OWNED_ROAD_CLEANUP_REV,
     countRoadConstructionSites,
     getRoomRoadStructures,
     collectRoomRoadStructures,

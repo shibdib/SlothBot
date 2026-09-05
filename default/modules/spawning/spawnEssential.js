@@ -114,8 +114,18 @@ function essentialCreepQueue(room) {
     const roadLevel = typeof ROAD_LEVEL !== 'undefined' ? ROAD_LEVEL : 4;
     const maintainOwnedRoads = !!(room.storage && room.spawns && room.spawns.length
         && (room.controller.level || room.level || 0) >= roadLevel);
+    let keepRoads = null;
+    if (maintainOwnedRoads) {
+        try {
+            keepRoads = require('planGeomRoads').getOwnedRoadKeepSet(room);
+        } catch (e) { /* ignore */
+        }
+    }
     const hasRoadMaintenance = maintainOwnedRoads
-        ? _.filter(room.structures, s => s.structureType === STRUCTURE_ROAD && s.hits < s.hitsMax * 0.5)
+        ? _.filter(room.structures, s => {
+            if (s.structureType !== STRUCTURE_ROAD || s.hits >= s.hitsMax * 0.5) return false;
+            return !keepRoads || keepRoads.has(s.pos.x + 'x' + s.pos.y);
+        })
         : [];
     const harvesterCount = getCreepCount(room, 'stationaryHarvester');
     const earlyRush = isColonyEarlyRush(room);

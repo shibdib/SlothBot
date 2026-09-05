@@ -17,6 +17,8 @@ const {
     hasPerimeterSpots,
     getPerimeterSpots,
     perimeterHasMissingBuilt,
+    perimeterHasPlaceableMissing,
+    isPerimeterHolePlaceable,
     getBuiltBarrierKeySet,
     bunkerLevelAllowsPerimeter,
     shouldComputeBunkerRampartSpots,
@@ -49,6 +51,7 @@ const {
     isValidRampartPosition, bridgePerimeterGaps, isPerimeterBarrierTile,
     invalidateRoomConstructionSiteCache, roomConstructionSiteBudget,
     listVisibleOwnedRooms,
+    isOnOwnedRoadPlan,
 } = require('planUtils');
 
 /** Ticks to skip automatic off-plan destroy after a no-destroy replan. */
@@ -806,14 +809,21 @@ function freeSiteSlotsForPerimeter(room, want, options) {
     };
     // Prefer idle roads. Never remove spawn/tower/terminal/container/link sites —
     // economy immediately re-queues those on the same tile (visible flicker).
+    // Never cancel on-plan roads — the frozen layout re-queues them next tick.
     // Extensions only when the room is already at full extension count (deficit 0).
     // Roads first: ensureOwnedRoadsProgress can fill the room cap and leave seals empty.
     const prefer = extDeficit > 0
         ? [STRUCTURE_ROAD]
         : [STRUCTURE_ROAD, STRUCTURE_EXTENSION];
+    const keepSite = (s) => {
+        if (!s || !s.pos) return true;
+        if (s.structureType === STRUCTURE_ROAD && isOnOwnedRoadPlan(room, s.pos.x, s.pos.y)) return true;
+        return false;
+    };
     for (const type of prefer) {
         if (freed >= want) break;
-        removeSites(room.constructionSites.filter(s => s.structureType === type && !s.progress));
+        removeSites(room.constructionSites.filter(s =>
+            s.structureType === type && !s.progress && !keepSite(s)));
     }
     // In-progress road sites are kept — they re-queue slowly and drones already spent energy.
     if (freed) {
@@ -1105,6 +1115,32 @@ function ensurePerimeterSites(room, options = {}) {
         return 0;
     }
 
+    // Do not cannibalize other plan layers when no hole can take a site this tick
+    // (unbuildable, denylisted, or another construction site already on the tile).
+    const placeable = [];
+    for (let i = 0; i < buildPositions.length; i++) {
+        if (isPerimeterHolePlaceable(room, buildPositions[i])) placeable.push(buildPositions[i]);
+    }
+    if (!placeable.length) {
+        if (options.recordStatus) {
+            recordPerimeterPlaceStatus(room, {
+                reason: 'blocked',
+                placed: 0,
+                planned: spots.length,
+                missing: buildPositions.length,
+            });
+        }
+        if (options.report) {
+            options.report.placed = 0;
+            options.report.missing = buildPositions.length;
+            options.report.planned = spots.length;
+            options.report.inBuild = inBuild;
+            options.report.complete = false;
+            options.report.reason = 'blocked';
+        }
+        return 0;
+    }
+
     // V2: placementLimit replaces energy/extReserve siteCap (siteBudget owns reserves).
     let siteCap;
     if (typeof options.placementLimit === 'function') {
@@ -1113,7 +1149,7 @@ function ensurePerimeterSites(room, options = {}) {
     } else {
         // Incomplete perimeters always get a real site budget even at energyState 0.
         siteCap = Math.min(maxPlace, room.energyState >= 2 ? 10 : room.energyState ? 6 : 5);
-        if (buildPositions.length > 0) {
+        if (placeable.length > 0) {
             siteCap = Math.max(siteCap, Math.min(maxPlace, 5));
         }
 
@@ -1144,9 +1180,9 @@ function ensurePerimeterSites(room, options = {}) {
         siteCap = Math.min(siteCap, maxInBuild);
         want = Math.max(0, siteCap - inBuild);
     }
-    // Incomplete seal: free idle roads when the layer got 0 (full cap *or*
-    // reserve ate the last slot). Then recompute so replacements actually place.
-    if (want <= 0 && buildPositions.length && inBuild < maxInBuild) {
+    // Incomplete seal: free idle *off-plan* roads when the layer got 0 (full cap *or*
+    // reserve ate the last slot). Never run this unless a hole is actually placeable.
+    if (want <= 0 && placeable.length && inBuild < maxInBuild) {
         const freed = freeSiteSlotsForPerimeter(room, Math.min(5, maxPlace + 1), {force: true});
         if (freed > 0) {
             if (typeof options.placementLimit === 'function') {
@@ -1190,36 +1226,23 @@ function ensurePerimeterSites(room, options = {}) {
             continue;
         }
 
-        // Non-barrier sites on the perimeter tile block forever unless we clear idle ones.
-        // Never remove extension sites while the room still needs extensions.
-        // Never remove container/link sites — economy puts the same tile back next pass.
+        // Any construction site occupies the tile until end of tick. Removing then
+        // placing the same tick is ERR_INVALID_TARGET, and on-plan roads/extensions
+        // re-queue next tick — that was the slot-stealing loop. Wait instead.
         const otherSite = pos.lookFor(LOOK_CONSTRUCTION_SITES).find(s =>
             s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL);
         if (otherSite) {
-            let extDeficitHere = 0;
-            try {
-                extDeficitHere = require('planGeomExtensions').getExtensionDeficit(room);
-            } catch (e) { /* ignore */
-            }
-            const canClearExt = otherSite.structureType !== STRUCTURE_EXTENSION || extDeficitHere <= 0;
-            const canClearType = otherSite.structureType === STRUCTURE_ROAD
-                || otherSite.structureType === STRUCTURE_EXTENSION;
-            if (!otherSite.progress && canClearExt && canClearType) {
+            const onPlanRoad = otherSite.structureType === STRUCTURE_ROAD
+                && isOnOwnedRoadPlan(room, otherSite.pos.x, otherSite.pos.y);
+            if (!otherSite.progress && otherSite.structureType === STRUCTURE_ROAD && !onPlanRoad) {
                 try {
                     otherSite.remove();
                     invalidateRoomConstructionSiteCache(room);
-                } catch (e) {
-                    if (fails.length < 8) fails.push({
-                        x: pos.x,
-                        y: pos.y,
-                        result: 'otherSite:' + otherSite.structureType
-                    });
-                    continue;
+                } catch (e) { /* ignore */
                 }
-            } else {
-                if (fails.length < 8) fails.push({x: pos.x, y: pos.y, result: 'otherSite:' + otherSite.structureType});
-                continue;
             }
+            if (fails.length < 8) fails.push({x: pos.x, y: pos.y, result: 'otherSite:' + otherSite.structureType});
+            continue;
         }
 
         if (!canPlaceConstructionSite(room)) {
@@ -1364,7 +1387,7 @@ function ensureAllIncompletePerimetersDirect() {
         // Cheap incomplete: structure-list set, no lookFor per tile.
         // Stale rev must not be skipped: a finished old ring looks complete and
         // would never reach ensurePerimeterSites (the only place that replans).
-        if (!perimeterRevStale(room) && !perimeterHasMissingBuilt(room)) continue;
+        if (!perimeterRevStale(room) && !perimeterHasPlaceableMissing(room)) continue;
 
         try {
             // maxPlace 3, no bridge on the hot path (bridge runs at init/recalc).
@@ -1422,10 +1445,13 @@ function syncRampartPlanToDoc(room, meta) {
         const missingTiles = [];
         for (let i = 0; i < spots.length; i++) {
             const p = spots[i];
-            if (!built.has(p.x + ',' + p.y)) {
-                missing++;
-                if (missingTiles.length < 40) missingTiles.push({x: p.x, y: p.y});
-            }
+            if (built.has(p.x + ',' + p.y)) continue;
+            const pos = new RoomPosition(p.x, p.y, room.name);
+            const why = shouldBuildPerimeterTile(pos, room);
+            if (why === 'unbuildable' || why === 'denylist' || why === 'terrainWall' || why === 'towerHub') continue;
+            if (why === 'hasRampart' || why === 'hasBarrier' || why === 'hasBarrierSite') continue;
+            missing++;
+            if (missingTiles.length < 40) missingTiles.push({x: p.x, y: p.y});
         }
         samplePacked = missingTiles.length ? packTiles(missingTiles) : [];
         plan.layers.ramparts.extra = {
@@ -1768,7 +1794,7 @@ function ensureAllIncompletePerimeters() {
         }
 
         // Finished old rings look complete and would starve a geometry rev bump.
-        if (!perimeterRevStale(room) && !perimeterHasMissingBuilt(room)) continue;
+        if (!perimeterRevStale(room) && !perimeterHasPlaceableMissing(room)) continue;
 
         let placed = 0;
         try {
@@ -1826,7 +1852,8 @@ function inspectRamparts(room) {
         walkwayPlanned,
         walkwayMissing,
         complete: spots.length > 0 && missing === 0,
-        needsWork: perimeterHasMissingBuilt(room),
+        needsWork: perimeterHasPlaceableMissing(room),
+        sealIncomplete: perimeterHasMissingBuilt(room),
         barrierSites: countBarrierConstructionSites(room),
         layoutPending,
         availableBudget: siteBudget.available(room, 'ramparts', {layoutPending}),

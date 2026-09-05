@@ -440,15 +440,20 @@ function tryCreateConstructionSite(pos, structureType) {
     }
     const result = pos.createConstructionSite(structureType);
     if (result !== OK) {
-        if (structureType === STRUCTURE_WALL && result === ERR_INVALID_TARGET) {
+        if (result === ERR_INVALID_TARGET) {
             const hasRuin = typeof LOOK_RUINS !== 'undefined' && pos.lookFor(LOOK_RUINS).length;
-            // Ruins are temporary (~500 ticks). Denylisting for 5000 would skip
-            // wall fallback long after the tile is buildable again.
-            if (!hasRuin) {
-                if (!room.memory.plannerWallDenylist) room.memory.plannerWallDenylist = {};
-                room.memory.plannerWallDenylist[pos.x + ',' + pos.y] = Game.time;
+            const hasSite = pos.lookFor(LOOK_CONSTRUCTION_SITES).length;
+            // Same-tick site still occupies the tile after remove(); do not denylist.
+            // Ruins last ~500 ticks — a 5000 denylist would skip a valid tile.
+            if (!hasRuin && !hasSite) {
+                if (structureType === STRUCTURE_WALL) {
+                    if (!room.memory.plannerWallDenylist) room.memory.plannerWallDenylist = {};
+                    room.memory.plannerWallDenylist[pos.x + ',' + pos.y] = Game.time;
+                } else if (structureType === STRUCTURE_RAMPART) {
+                    rememberSiteDenylist(room, pos);
+                }
             }
-            return result;
+            if (structureType === STRUCTURE_WALL) return result;
         }
         recordSitePlacementFailure(room.name, structureType, pos, result);
     } else {
@@ -508,14 +513,82 @@ function isValidRampartPosition(position) {
 }
 
 /**
+ * Source / mineral (incl. thorium) / controller / reactor — walkable but
+ * createConstructionSite always returns ERR_INVALID_TARGET.
+ */
+function isNaturalUnbuildableTile(pos, room) {
+    if (!pos) return false;
+    if (pos.checkForMineral && pos.checkForMineral()) return true;
+    const rm = room || Game.rooms[pos.roomName];
+    if (!rm) return false;
+    if (rm.controller && rm.controller.pos.x === pos.x && rm.controller.pos.y === pos.y) return true;
+    const sources = rm.sources || [];
+    for (let i = 0; i < sources.length; i++) {
+        const s = sources[i];
+        if (s && s.pos && s.pos.x === pos.x && s.pos.y === pos.y) return true;
+    }
+    if (typeof LOOK_REACTORS !== 'undefined') {
+        try {
+            if (pos.lookFor(LOOK_REACTORS).length) return true;
+        } catch (e) { /* ignore */
+        }
+    }
+    return false;
+}
+
+const SITE_DENYLIST_TTL = 5000;
+
+function rememberSiteDenylist(room, pos) {
+    if (!room || !room.memory || !pos) return;
+    if (!room.memory.plannerSiteDenylist) room.memory.plannerSiteDenylist = {};
+    room.memory.plannerSiteDenylist[pos.x + ',' + pos.y] = Game.time;
+}
+
+function isSiteDenylisted(room, x, y) {
+    const tick = room && room.memory && room.memory.plannerSiteDenylist
+        && room.memory.plannerSiteDenylist[x + ',' + y];
+    if (!tick) return false;
+    if (Game.time - tick > SITE_DENYLIST_TTL) {
+        delete room.memory.plannerSiteDenylist[x + ',' + y];
+        return false;
+    }
+    return true;
+}
+
+/**
+ * True when this tile is in the persisted owned-road plan. Missing plan → false
+ * so wipe leftovers can still be reclaimed.
+ */
+function isOnOwnedRoadPlan(room, x, y) {
+    if (!room) return false;
+    try {
+        const packed = room.memory && room.memory.plan && room.memory.plan.layers
+            && room.memory.plan.layers.roads && room.memory.plan.layers.roads.packed;
+        if (packed && packed.length) {
+            const n = x + y * 50;
+            for (let i = 0; i < packed.length; i++) {
+                if (packed[i] === n) return true;
+            }
+            return false;
+        }
+        const desired = require('planGeomRoads').getDesiredRoadTiles(room);
+        return !!(desired && desired.has(x + 'x' + y));
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
  * Terrain-only: can this tile be part of the perimeter *plan*?
  * Structure-occupied tiles stay in the plan — placement uses a rampart on top
  * (old filter dropped them and left permanent seal gaps through extensions).
+ * Natural objects (source/mineral/controller) cannot take any site.
  */
 function isPerimeterPlanTile(pos) {
     if (!pos || pos.checkIfOutOfBounds()) return false;
     if (pos.isExit()) return false;
     if (pos.checkForWall()) return false; // terrain wall
+    if (isNaturalUnbuildableTile(pos)) return false;
     return true;
 }
 
@@ -1276,6 +1349,9 @@ module.exports = {
     filterPerimeterBarrierSpots,
     bridgePerimeterGaps,
     canPlaceConstructedWall,
+    isNaturalUnbuildableTile,
+    isSiteDenylisted,
+    isOnOwnedRoadPlan,
 
     cacheRoad,
 
