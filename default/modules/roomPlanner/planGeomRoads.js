@@ -1675,6 +1675,18 @@ function needsOwnedRoadWork(room) {
     } catch (e) {
         return true;
     }
+    if (hasOffPlanOwnedRoads(room)) return true;
+    return false;
+}
+
+function hasOffPlanOwnedRoads(room) {
+    const keep = getOwnedRoadKeepSet(room);
+    if (!keep) return false;
+    const roads = room.roads || [];
+    for (let i = 0; i < roads.length; i++) {
+        const road = roads[i];
+        if (road && !keep.has(getPosKey(road.pos))) return true;
+    }
     return false;
 }
 
@@ -1741,6 +1753,7 @@ module.exports = {
     tileHasRoadAvoid,
     isOwnedRoomRoadEligible,
     needsOwnedRoadWork,
+    hasOffPlanOwnedRoads,
     getOwnedRoadKeepSet,
     OWNED_ROAD_CLEANUP_REV,
     countRoadConstructionSites,

@@ -21,6 +21,8 @@ const {
     refreshRoadPlanMissing,
     needsOwnedRoadWork,
     isOwnedRoomRoadEligible,
+    getRoadOrigin,
+    getRoadTargets,
     countRoadConstructionSites,
     getRemoteRoadPlan,
     refreshRemotePlanMissing,
@@ -165,52 +167,102 @@ function removeRoadsUnderObstacles(room) {
 }
 
 const MAX_OFF_PLAN_ROADS_PER_CALL = 3;
+const MAX_ISOLATED_OFF_PLAN_PER_CALL = 5;
+/** Chebyshev tiles from the planned net (or a target) before a leftover is "isolated". */
+const ISOLATED_ROAD_RANGE = 3;
+
+function chebyshevRange(ax, ay, bx, by) {
+    const dx = ax > bx ? ax - bx : bx - ax;
+    const dy = ay > by ? ay - by : by - ay;
+    return dx > dy ? dx : dy;
+}
+
+function minRangeToKeep(x, y, keep) {
+    let best = Infinity;
+    for (const key of keep) {
+        const split = key.indexOf('x');
+        const range = chebyshevRange(x, y, Number(key.slice(0, split)), Number(key.slice(split + 1)));
+        if (range < best) {
+            best = range;
+            if (best === 0) return 0;
+        }
+    }
+    return best;
+}
+
+function targetGuardKeys(room) {
+    const keys = new Set();
+    const add = (pos) => {
+        if (pos) keys.add(getPosKey(pos));
+    };
+    add(getRoadOrigin(room));
+    const targets = getRoadTargets(room);
+    for (let i = 0; i < targets.length; i++) add(targets[i]);
+    return keys;
+}
 
 /**
- * Destroy live roads / cancel sites that are not in the complete desired set.
- * Only after the replacement net is built (complete, 0 path failures) so we
- * never delete pavement PathFinder still needs and then re-queue it.
+ * Destroy live roads / cancel sites not in the desired set.
+ * Complete net: any off-plan tile. Incomplete net: only isolated leftovers
+ * (far from packed tiles and from sources/exits) so old-iteration fragments
+ * in the corners go away without eating a corridor we have not paved yet.
  */
 function removeOffPlanOwnedRoads(room, options) {
     const opts = options || {};
     if (!room) return {removed: 0, sites: 0, stray: 0, reason: 'no_room'};
     if (!opts.force && isPlannerShadow(room)) return {removed: 0, sites: 0, stray: 0, reason: 'shadow'};
     if (!isOwnedRoomRoadEligible(room)) return {removed: 0, sites: 0, stray: 0, reason: 'gated'};
-    if (!opts.force && computeLayoutPending(room)) {
-        return {removed: 0, sites: 0, stray: 0, reason: 'layout_pending'};
-    }
 
     const plan = opts.plan || getRoadPlan(room);
     if (!plan || !plan.desired || !plan.desired.size) {
         return {removed: 0, sites: 0, stray: 0, reason: 'no_desired'};
     }
-    if (!plan.complete || (plan.pathFailures || 0) > 0 || (plan.missing && plan.missing.length)) {
-        return {
-            removed: 0,
-            sites: 0,
-            stray: 0,
-            reason: 'plan_incomplete',
-            missing: plan.missing && plan.missing.length
-        };
-    }
     if (plan.layout && plan.layout.size && plan.desired.size < plan.layout.size) {
         return {removed: 0, sites: 0, stray: 0, reason: 'desired_lt_layout'};
     }
 
-    const keep = plan.desired;
-    const maxDestroy = opts.maxDestroy != null ? opts.maxDestroy : MAX_OFF_PLAN_ROADS_PER_CALL;
-    let removed = 0;
-    let sites = 0;
-    let stray = 0;
+    const isolatedOnly = opts.isolatedOnly != null
+        ? !!opts.isolatedOnly
+        : (opts.force && !(plan.pathFailures > 0)
+            ? false
+            : (!plan.complete || (plan.pathFailures || 0) > 0
+                || !!(plan.missing && plan.missing.length)
+                || (!opts.force && computeLayoutPending(room))));
+    if (!isolatedOnly && !opts.force && computeLayoutPending(room)) {
+        return {removed: 0, sites: 0, stray: 0, reason: 'layout_pending'};
+    }
 
-    const roads = room.roads || [];
+    const keep = plan.desired;
+    const guards = isolatedOnly ? targetGuardKeys(room) : null;
+    const maxDestroy = opts.maxDestroy != null
+        ? opts.maxDestroy
+        : (isolatedOnly ? MAX_ISOLATED_OFF_PLAN_PER_CALL : MAX_OFF_PLAN_ROADS_PER_CALL);
+
+    const candidates = [];
+    const roads = collectRoomRoadStructures(room);
     for (let i = 0; i < roads.length; i++) {
         const road = roads[i];
         if (!road || keep.has(getPosKey(road.pos))) continue;
-        stray++;
-        if (removed >= maxDestroy) continue;
+        const rangeKeep = minRangeToKeep(road.pos.x, road.pos.y, keep);
+        if (isolatedOnly && rangeKeep < ISOLATED_ROAD_RANGE) continue;
+        if (isolatedOnly && guards && minRangeToKeep(road.pos.x, road.pos.y, guards) < ISOLATED_ROAD_RANGE) continue;
+        candidates.push({road, rangeKeep});
+    }
+
+    const origin = getRoadOrigin(room) || (room.spawns[0] && room.spawns[0].pos);
+    candidates.sort((a, b) => {
+        if (!origin) return b.rangeKeep - a.rangeKeep;
+        const da = origin.getRangeTo(a.road.pos);
+        const db = origin.getRangeTo(b.road.pos);
+        return db - da;
+    });
+
+    let removed = 0;
+    let sites = 0;
+    const stray = candidates.length;
+    for (let i = 0; i < candidates.length && removed < maxDestroy; i++) {
         try {
-            if (road.destroy() === OK) removed++;
+            if (candidates[i].road.destroy() === OK) removed++;
         } catch (e) { /* ignore */
         }
     }
@@ -218,7 +270,11 @@ function removeOffPlanOwnedRoads(room, options) {
     for (const site of room.constructionSites) {
         if (site.structureType !== STRUCTURE_ROAD) continue;
         if (keep.has(getPosKey(site.pos))) continue;
-        stray++;
+        if (isolatedOnly) {
+            const rangeKeep = minRangeToKeep(site.pos.x, site.pos.y, keep);
+            if (rangeKeep < ISOLATED_ROAD_RANGE) continue;
+            if (guards && minRangeToKeep(site.pos.x, site.pos.y, guards) < ISOLATED_ROAD_RANGE) continue;
+        }
         try {
             if (site.remove() === OK) sites++;
         } catch (e) { /* ignore */
@@ -235,11 +291,19 @@ function removeOffPlanOwnedRoads(room, options) {
         room._roadKeepSet = undefined;
         if (typeof log !== 'undefined' && log.a) {
             log.a(`${room.name} removed ${removed} off-plan road(s)`
+                + (isolatedOnly ? ' (isolated)' : '')
                 + (sites ? `, ${sites} site(s)` : '')
                 + ` (${stray} stray / ${keep.size} keep)`, 'PLANNER');
         }
     }
-    return {removed, sites, stray, keep: keep.size, reason: removed || sites ? 'ok' : 'none'};
+    return {
+        removed,
+        sites,
+        stray,
+        isolatedOnly,
+        keep: keep.size,
+        reason: removed || sites ? 'ok' : (stray ? 'none' : 'none'),
+    };
 }
 
 function persistedRoadStale(room, fingerprint) {
@@ -349,14 +413,15 @@ function placeOwnedRoads(room, options) {
     }
 
     const plan = getRoadPlan(room, {force: forceRebuild || stale});
+    const pruned = removeOffPlanOwnedRoads(room, {
+        plan,
+        isolatedOnly: !plan.complete || layoutPending,
+        maxDestroy: verify || stale || forceRebuild
+            ? (plan.complete && !layoutPending ? MAX_OFF_PLAN_ROADS_PER_CALL : MAX_ISOLATED_OFF_PLAN_PER_CALL)
+            : (plan.complete && !layoutPending ? 1 : MAX_ISOLATED_OFF_PLAN_PER_CALL),
+    });
+    cleaned += (pruned.removed || 0) + (pruned.sites || 0);
     if (plan.complete) {
-        if (!layoutPending) {
-            const pruned = removeOffPlanOwnedRoads(room, {
-                plan,
-                maxDestroy: verify || stale || forceRebuild ? MAX_OFF_PLAN_ROADS_PER_CALL : 1,
-            });
-            cleaned += (pruned.removed || 0) + (pruned.sites || 0);
-        }
         return finish({
             plan,
             placed: 0,
@@ -499,6 +564,12 @@ function inspectRoads(room) {
             : null,
         strayRoads: plan && plan.desired
             ? (room.roads || []).filter(s => s && !plan.desired.has(getPosKey(s.pos))).length
+            : undefined,
+        isolatedStrayRoads: plan && plan.desired
+            ? (room.roads || []).filter((s) => {
+                if (!s || plan.desired.has(getPosKey(s.pos))) return false;
+                return minRangeToKeep(s.pos.x, s.pos.y, plan.desired) >= ISOLATED_ROAD_RANGE;
+            }).length
             : undefined,
         evaluate: evalPlan,
         planLayer: room.memory.plan && room.memory.plan.layers && room.memory.plan.layers.roads
