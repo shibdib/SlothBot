@@ -23,6 +23,8 @@ const {
     countRoomConstructionSites,
     canPlaceConstructionSite,
     roomConstructionSiteBudget,
+    invalidateRoomConstructionSiteCache,
+    markFreedSiteSlots,
 } = require('planUtils');
 
 const {
@@ -122,6 +124,7 @@ function commitTowerHubs(room, hubs) {
     }
     // Version gate still on memory for clearance/reset consumers.
     room.memory.towerLayoutVersion = TOWER_LAYOUT_VERSION;
+    room._towerDeficitTick = undefined;
     // Do not clear ROOM_RAMPART_SPOTS: currentSealKey would fall back to the
     // stamp ring and the next tick would destroy the towers just committed.
     return list;
@@ -1181,6 +1184,18 @@ function selectTowerHubs(room) {
         const interior = floodInteriorBehindSeal(hubXY, sealSet, terrain);
         candidates = collectSealBandCandidates(
             room, hubXY, walls, sealSet, interior, blocked, srcPos, ctrlPos, extensionStamp);
+        // Hub-on-seal or a packed interior yields 0 band tiles. Fill from the
+        // hub ring so high-RCL rooms still get towers.
+        if (candidates.length < MAX_TOWER_HUBS) {
+            const ring = collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensionStamp);
+            const seen = new Set();
+            for (let i = 0; i < candidates.length; i++) seen.add(candidates[i].key);
+            for (let i = 0; i < ring.length; i++) {
+                if (seen.has(ring[i].key)) continue;
+                seen.add(ring[i].key);
+                candidates.push(ring[i]);
+            }
+        }
     } else {
         candidates = collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensionStamp);
     }
@@ -1486,18 +1501,79 @@ function getTowerDeficit(room) {
 
 function invalidateRoomCaches(room) {
     if (room._invalidateStructureCaches) room._invalidateStructureCaches();
-    room._constructionSites = undefined;
-    room._constructionSites_ts = undefined;
-    room._extDeficitTick = undefined;
-    room._towerDeficitTick = undefined;
-    room._needsSpawnSiteTick = undefined;
-    room._needsCriticalCoreTick = undefined;
+    invalidateRoomConstructionSiteCache(room);
+}
+
+/**
+ * Drop idle (then low-progress) roads/barriers so a tower can take a room-cap
+ * slot. Same-tick layer priority does not evict sites already sitting in the
+ * cap (5 on shardX) — high-RCL rooms otherwise stay at 0 towers forever.
+ * @returns {number} sites removed
+ */
+function freeSiteSlotsForTowers(room, want) {
+    if (want <= 0 || isPlannerShadow(room)) return 0;
+    if (canPlaceConstructionSite(room)) return 0;
+
+    let freed = 0;
+    const sites = room.constructionSites || [];
+    const removeSites = (list) => {
+        for (let i = 0; i < list.length; i++) {
+            if (freed >= want) break;
+            try {
+                if (list[i].remove() === OK) freed++;
+            } catch (e) { /* ignore */
+            }
+        }
+    };
+
+    const reclaim = [STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART];
+    for (let t = 0; t < reclaim.length; t++) {
+        if (freed >= want) break;
+        const type = reclaim[t];
+        removeSites(sites.filter(s => s.structureType === type && !s.progress));
+    }
+    if (freed < want) {
+        const low = sites
+            .filter(s =>
+                (s.structureType === STRUCTURE_ROAD
+                    || s.structureType === STRUCTURE_WALL
+                    || s.structureType === STRUCTURE_RAMPART)
+                && s.progress > 0
+                && s.progress < Math.max(1, (s.progressTotal || 1) * 0.25))
+            .sort((a, b) => a.progress - b.progress);
+        removeSites(low);
+    }
+
+    if (freed) {
+        markFreedSiteSlots(room);
+        invalidateRoomCaches(room);
+        if (typeof log !== 'undefined' && log.a) {
+            log.a(room.name + ' removed ' + freed + ' site(s) to free slots for towers', 'PLANNER');
+        }
+    }
+    return freed;
+}
+
+function towerTileBlockedForPlacement(pos) {
+    if (!pos || !pos.lookFor) {
+        return !!(pos.checkForAllStructure && pos.checkForAllStructure())
+            || !!(pos.checkForConstructionSites && pos.checkForConstructionSites());
+    }
+    const structs = pos.lookFor(LOOK_STRUCTURES) || [];
+    for (let i = 0; i < structs.length; i++) {
+        const t = structs[i].structureType;
+        if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
+        return true;
+    }
+    if (typeof LOOK_RUINS !== 'undefined' && pos.lookFor(LOOK_RUINS).length) return true;
+    return (pos.lookFor(LOOK_CONSTRUCTION_SITES) || []).length > 0;
 }
 
 /**
  * Free a tower hub tile for STRUCTURE_TOWER (parity with spawn clearSpawnTile).
- * V1 only removed idle rampart/wall/road sites; extensions on the tile blocked forever.
- * Chunk 6: also remove other wrong-type idle sites and soft obstacles (extension/container).
+ * Any non-tower site occupies the tile — a progressed rampart/wall site would
+ * otherwise block the hub forever. Soft obstacles (extension/container/wall)
+ * are destroyed; roads and built ramparts can share the tile.
  * @returns {boolean} true if anything was removed/destroyed
  */
 function clearTowerHubBlockers(room, pos) {
@@ -1507,8 +1583,6 @@ function clearTowerHubBlockers(room, pos) {
     for (let i = 0; i < sites.length; i++) {
         const site = sites[i];
         if (site.structureType === STRUCTURE_TOWER) continue;
-        // Keep progressed non-extension sites (expensive to re-queue).
-        if (site.progress && site.structureType !== STRUCTURE_EXTENSION) continue;
         try {
             site.remove();
             changed = true;
@@ -1562,7 +1636,11 @@ function placeTowerSites(room, maxPerCall) {
     for (let n = 0; n < limit; n++) {
         if (getTowerDeficit(room) <= 0) break;
 
-        const req = siteBudget.request(room, 'towers', 1);
+        let req = siteBudget.request(room, 'towers', 1);
+        if (req.allowed < 1 && !shadow) {
+            const freed = freeSiteSlotsForTowers(room, 1);
+            if (freed > 0) req = siteBudget.request(room, 'towers', 1);
+        }
         if (req.allowed < 1) {
             attempts.push({ok: false, code: req.code, budget: true});
             const plan = getPlan(room);
@@ -1585,8 +1663,7 @@ function placeTowerSites(room, maxPerCall) {
             const pos = new RoomPosition(x, y, room.name);
             // Shadow: never remove blocking sites (world mutate).
             if (!shadow) clearTowerHubBlockers(room, pos);
-            if (pos.checkForAllStructure && pos.checkForAllStructure()) continue;
-            if (pos.checkForConstructionSites && pos.checkForConstructionSites()) continue;
+            if (towerTileBlockedForPlacement(pos)) continue;
 
             if (shadow) {
                 attempts.push({ok: true, shadow: true, x, y});
