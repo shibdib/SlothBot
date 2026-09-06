@@ -1617,6 +1617,20 @@ function applyBoost(creep, entryKey) {
         const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
         if (!(waitFor > 1) && !creep.memory.hasBoosted && creep.hasActiveBodyparts(MOVE) &&
             creep.handleRenewing(BOOST_RENEW_WAITING)) return true;
+        // 0-MOVE on a lab access tile (often the only one) blocks labTech fill.
+        if (!creep.hasActiveBodyparts(MOVE)) {
+            if (creep.pos.isNearTo(lab)) {
+                const spawns = creep.room.spawns;
+                for (let i = 0; i < (spawns ? spawns.length : 0); i++) {
+                    const spawn = spawns[i];
+                    if (spawn && !spawn.pos.isNearTo(lab)) {
+                        creep.say(ICONS.boost);
+                        return creep.shibMove(spawn, {range: 1, forceSolo: true});
+                    }
+                }
+            }
+            return true;
+        }
         if (!creep.pos.isNearTo(lab)) {
             creep.say(ICONS.boost);
             return creep.shibMove(lab, {forceSolo: true});
