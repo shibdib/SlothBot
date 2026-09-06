@@ -112,6 +112,7 @@ class RoleRemoteHauler {
         const other = this.memory.other || (this.memory.other = {});
         const remoteRoom = other.remoteRoom;
         if (remoteRoom && this.room.name !== remoteRoom) {
+            if (this.pickupColonyDroppedEnergy()) return true;
             const colony = this.memory.colony;
             const route = colony ? getMiningRouteRooms(colony, remoteRoom) : [];
             return travelRouteHops(this.creep, remoteRoom, route, {range: 20});
@@ -186,6 +187,31 @@ class RoleRemoteHauler {
         }
         this.findResource();
         return this.memory.energyDestination && this.creep.withdrawResource();
+    }
+
+    // Empty in colony: grab a large dropped pile before returning to the remote.
+    pickupColonyDroppedEnergy() {
+        if (this.room.name !== this.memory.colony) return false;
+        if (this.memory.energyDestination && this.creep.withdrawResource()) return true;
+
+        const piles = this.room.droppedEnergy;
+        if (!piles || !piles.length) return false;
+
+        const minAmount = 500;
+        let best = null;
+        let bestRange = Infinity;
+        for (let i = 0; i < piles.length; i++) {
+            const r = piles[i];
+            if (r.amount < minAmount) continue;
+            const range = this.creep.pos.getRangeTo(r);
+            if (range < bestRange) {
+                best = r;
+                bestRange = range;
+            }
+        }
+        if (!best) return false;
+        this.memory.energyDestination = best.id;
+        return this.creep.withdrawResource();
     }
 
     randomLoot() {
