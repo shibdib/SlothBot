@@ -947,7 +947,46 @@ function shouldSkipRemotePrune(colonyRoom, remoteName) {
     return false;
 }
 
+// Heap list is wiped on global reset. Vision can re-paper one source before
+// the rest, which looks like a prune to empty haulers. Re-add live workers first.
+function seedTargetsFromLiveWorkers(colonyName) {
+    if (!ROOM_REMOTE_TARGETS[colonyName]) ROOM_REMOTE_TARGETS[colonyName] = [];
+    const targets = ROOM_REMOTE_TARGETS[colonyName];
+    const have = new Set();
+    for (let i = 0; i < targets.length; i++) {
+        if (targets[i] && targets[i].source) have.add(targets[i].source);
+    }
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory || c.memory.colony !== colonyName || c.memory.recycling) continue;
+        const role = c.memory.role;
+        let source;
+        let remote;
+        if (role === 'remoteHauler') {
+            source = c.memory.other && c.memory.other.source;
+            remote = c.memory.other && c.memory.other.remoteRoom;
+        } else if (role === 'remoteHarvester') {
+            source = (c.memory.other && c.memory.other.source) || c.memory.assignment;
+            remote = c.memory.destination;
+        } else continue;
+        if (!source || !remote || have.has(source)) continue;
+        let score = 99;
+        const data = INTEL[remote] && INTEL[remote].remoteSourceData;
+        if (data) {
+            for (let j = 0; j < data.length; j++) {
+                if (data[j].source === source) {
+                    if (data[j].score) score = data[j].score;
+                    break;
+                }
+            }
+        }
+        targets.push({room: remote, source, score});
+        have.add(source);
+    }
+}
+
 function pruneRoomRemoteTargets(colonyName, colonyRoom) {
+    seedTargetsFromLiveWorkers(colonyName);
     const targets = ROOM_REMOTE_TARGETS[colonyName];
     if (!targets || !targets.length) return;
     ensureClaimIndex();

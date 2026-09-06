@@ -29,8 +29,8 @@ class RoleRemoteHauler {
 
     housekeeping() {
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
+        const remoteRoom = this.memory.other && this.memory.other.remoteRoom;
         if (!this.store.getUsedCapacity()) {
-            const remoteRoom = this.memory.other && this.memory.other.remoteRoom;
             const guard = (this.memory.other && this.memory.other.skRoom)
                 || (remoteRoom && skGuardRoom(this.memory.colony, remoteRoom));
             if (guard && !hasSkAttackerOnSite(guard)) {
@@ -41,22 +41,34 @@ class RoleRemoteHauler {
                 this.creep.idleFor(10);
                 return true;
             }
+            // Spawn already skips combat; recycling here restaffed after every invader wave.
+            if (remoteRoom && remoteCombatBlocksMining(remoteRoom)) {
+                if (this.room.name !== this.memory.colony) {
+                    this.creep.fleeHome(true);
+                    return true;
+                }
+                this.creep.idleFor(10);
+                return true;
+            }
         }
         if (Game.time % 50 === 0 && safemodeGeneration(this.creep)) return true;
         // Recycle if the assigned remote is no longer viable (destination is the colony, not the remote).
-        const remoteRoom = this.memory.other && this.memory.other.remoteRoom;
         if (Game.time % 30 === 0 && remoteRoom && INTEL[remoteRoom]) {
             const intel = INTEL[remoteRoom];
             const hostile = intel.level || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader');
-            const blocked = intel.obstacles || remoteCombatBlocksMining(remoteRoom);
             const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(remoteRoom);
-            if (hostile || blocked || dropped || !intel.sources) return this.creep.recycleCreep();
+            if (hostile || intel.obstacles || dropped) return this.creep.recycleCreep();
         }
         if (Game.time % 50 === 0 && this.memory.colony && this.memory.other && this.memory.other.source) {
             const targets = ROOM_REMOTE_TARGETS[this.memory.colony];
             const stillAssigned = targets && targets.some(s => s.source === this.memory.other.source);
             if (targets && targets.length && !stillAssigned && !this.store.getUsedCapacity()) {
-                return this.creep.recycleCreep();
+                // Empty list is a cache miss. A short post-reset list is too —
+                // vision re-papers one source before the rest are ingested.
+                const postReset = global.isPostResetDangerWindow && global.isPostResetDangerWindow();
+                if (!postReset && !getRemoteHarvesterForSource(this.memory.other.source)) {
+                    return this.creep.recycleCreep();
+                }
             }
         }
         if (!this.memory.exitLinkCheck && this.store.getUsedCapacity() > 0 && this.room.name === this.memory.colony) this.exitLinkCheck();

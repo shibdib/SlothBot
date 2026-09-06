@@ -148,7 +148,9 @@ class RoleRemoteHarvester {
             const dest = this.creep.memory.destination;
             const stillAssigned = targets && targets.some(s => s.source === sourceId);
             if (targets && targets.length && !stillAssigned && (!dest || this.creep.room.name === dest)) {
-                return this.creep.recycleCreep();
+                if (!(global.isPostResetDangerWindow && global.isPostResetDangerWindow())) {
+                    return this.creep.recycleCreep();
+                }
             }
         }
 

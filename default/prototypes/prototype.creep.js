@@ -219,6 +219,34 @@ function isNearRoomSource(creep) {
     return false;
 }
 
+// Parked work tiles: 0-MOVE harvesters/upgraders and the hub manager.
+function isIdleParked(creep) {
+    const mem = creep.memory;
+    if (!mem) return false;
+    return !!(mem.onContainer || mem.inPosition || mem.inPlace || mem.role === 'hubManager');
+}
+
+// Access tiles around bunker obstacles. Walls/controller/power banks are
+// excluded: almost every bunker tile is next to a wall, and combat waits on banks.
+function nearIdleBlockingStructure(creep) {
+    let nearby;
+    try {
+        nearby = creep.pos.lookForNearby(LOOK_STRUCTURES, true, 1);
+    } catch (e) {
+        return false;
+    }
+    if (!nearby || !nearby.length) return false;
+    for (let i = 0; i < nearby.length; i++) {
+        const s = nearby[i].structure;
+        if (!s) continue;
+        const type = s.structureType;
+        if (type === STRUCTURE_WALL || type === STRUCTURE_CONTROLLER ||
+            type === STRUCTURE_POWER_BANK || type === STRUCTURE_INVADER_CORE) continue;
+        if (OBSTACLE_OBJECT_TYPES.includes(type)) return true;
+    }
+    return false;
+}
+
 function creepIdleState(creep) {
     const heap = global.creepHeap ? global.creepHeap(creep.name) : {};
     if (creep.memory) {
@@ -261,6 +289,8 @@ Object.defineProperty(Creep.prototype, "idle", {
 
         if (!heap.idleSet) {
             const militaryCreep = this.hasActiveBodyparts(ATTACK) || this.hasActiveBodyparts(RANGED_ATTACK);
+            const noMove = !this.hasActiveBodyparts(MOVE);
+            const parked = isIdleParked(this);
             const role = (this.memory && this.memory.role) || '';
             let nearSource = false;
             try {
@@ -268,9 +298,18 @@ Object.defineProperty(Creep.prototype, "idle", {
                 nearSource = !!(nearby && nearby[0]);
             } catch (e) { /* look can throw on some servers */
             }
-            if ((militaryCreep && this.pos.checkForRampart()) || !this.hasActiveBodyparts(MOVE)) {
+            // Only sit next to impassible buildings when in position with no MOVE
+            // (harvesters, upgraders, hub). Military holding a rampart stays put.
+            if ((militaryCreep && this.pos.checkForRampart()) || (noMove && parked)) {
                 heap.idleSet = true;
-            } else if (!role.includes('Harvester') && (this.pos.checkForRoad() || this.pos.checkForContainer() || nearSource)) {
+            } else if ((!parked && nearIdleBlockingStructure(this)) ||
+                (!role.includes('Harvester') && (this.pos.checkForRoad() || this.pos.checkForContainer() || nearSource))) {
+                // 0-MOVE and not on a work tile: keep the role running so they can be towed.
+                if (noMove) {
+                    delete heap.idle;
+                    delete heap.idleSet;
+                    return 0;
+                }
                 return this.moveRandom();
             } else {
                 heap.idleSet = true;
