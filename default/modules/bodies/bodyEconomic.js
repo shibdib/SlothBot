@@ -346,6 +346,28 @@ function buildStationaryHarvester(gen) {
     return {work, carry: 1, move};
 }
 
+// 16 CARRY empties a full hub link in one withdraw. Extra parts do not
+// speed spawn/extension fills (one transfer per tick).
+function hubManagerCarry(energyCapacity) {
+    let carry = 16;
+    if (energyCapacity > 0) {
+        carry = Math.min(carry, Math.max(1, Math.floor(energyCapacity / BODYPART_COST[CARRY])));
+    }
+    return carry;
+}
+
+function hubManagerNeedsBiggerBody(creep) {
+    if (!creep || !creep.body) return false;
+    const room = creep.room;
+    const desired = hubManagerCarry((room && room.energyCapacityAvailable) || 0);
+    let carry = 0;
+    const body = creep.body;
+    for (let i = 0; i < body.length; i++) {
+        if (body[i].type === CARRY) carry++;
+    }
+    return carry < desired;
+}
+
 const builders = {
     explorer: () => ({move: 1}),
     scout: () => ({move: 1}),
@@ -363,8 +385,9 @@ const builders = {
         return {carry, halfMove};
     },
     hauler: buildHauler,
-    hubManager() {
-        return {carry: 16, move: 0};
+    hubManager(gen) {
+        const energy = (gen.room && gen.room.energyCapacityAvailable) || gen.energyAmount || 0;
+        return {carry: hubManagerCarry(energy), move: 0};
     },
     shuttle: buildShuttle,
     stationaryHarvester: buildStationaryHarvester,
@@ -407,4 +430,6 @@ module.exports = {
     planShuttleForSource,
     maxStationaryUpgraderWork,
     planUpgraderNeed,
+    hubManagerCarry,
+    hubManagerNeedsBiggerBody,
 };

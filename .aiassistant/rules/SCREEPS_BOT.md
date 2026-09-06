@@ -372,6 +372,8 @@ points = 1 + Math.floor(Math.log10(ticksOfContinuousOperation))
   `cpuOverage` scales staff/rooms 4→3→2→1 before penalty/noRemote; RCL7+ road remotes spawn one hauler.
 - **2026-09-05** — Remote CPU chunk 2: parked harvester/reserver skip scans; haulers idle 10 on empty
   containers instead of room-loot; remoteBuilder skSafety only in SK rooms; builders cap 1 when overage/bucket.
+- **2026-09-05** — Hub managers renew in place (hold adjacent spawn). Recycle at low TTL
+  only when the live body is under the 16-CARRY target.
 
 ---
 

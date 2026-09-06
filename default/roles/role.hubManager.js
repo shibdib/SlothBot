@@ -2,7 +2,8 @@
  * Copyright for Bob "Shibdib" Sardinia - See license file for more information,(c) 2023.
  *
  * 0-MOVE bunker/dynamic-center balancer. Spawns onto hub (0,0) once the
- * hub link is built and never walks. Owns hub-link drain, adjacent spawns,
+ * hub link is built and never walks. Renews in place unless the body is
+ * under the 16-CARRY target. Owns hub-link drain, adjacent spawns,
  * storage↔terminal warehouse (energy, minerals, batteries) when a terminal
  * exists, and surplus nuker / power-spawn energy when those structures are
  * in range. Dynamic rooms often place nuker and power spawn off the hub;
@@ -12,6 +13,23 @@
 const profiler = require('tools.profiler');
 const {roomCanBurnSurplus} = require('spawnFlow');
 const RoleLabTech = require('role.labTech');
+const {hubManagerNeedsBiggerBody} = require('bodyEconomic');
+
+const HUB_RENEW_START = 400;
+const HUB_RENEW_TARGET = CREEP_LIFE_TIME - 50;
+
+function idleAdjacentSpawn(creep) {
+    const spawns = creep.room.spawns || [];
+    for (let i = 0; i < spawns.length; i++) {
+        const spawn = spawns[i];
+        if (!spawn || spawn.spawning) continue;
+        try {
+            if (spawn.my && creep.pos.isNearTo(spawn)) return spawn;
+        } catch (e) { /* spawn gone */
+        }
+    }
+    return null;
+}
 
 class RoleHubManager {
     constructor(creep) {
@@ -24,8 +42,56 @@ class RoleHubManager {
         if (!this.creep.memory.other) this.creep.memory.other = {};
         this.creep.memory.other.stationary = true;
         this.creep.say(ICONS.haul, true);
-        if (this.creep.store.getUsedCapacity() > 0) this.deliverCargo();
-        else this.pickup();
+        if (this.creep.store.getUsedCapacity() > 0) {
+            this.deliverCargo();
+            return;
+        }
+        if (this.maybeRenew()) return;
+        this.pickup();
+    }
+
+    maybeRenew() {
+        const creep = this.creep;
+        const ttl = creep.ticksToLive;
+        if (!ttl || ttl >= CREEP_LIFE_TIME) {
+            creep.memory.needsRenewal = undefined;
+            return false;
+        }
+
+        const needsBigger = hubManagerNeedsBiggerBody(creep);
+        if (needsBigger) {
+            creep.memory.needsRenewal = undefined;
+            if (ttl > HUB_RENEW_START) return false;
+            const spawn = idleAdjacentSpawn(creep);
+            if (spawn && spawn.recycleCreep(creep) === OK) return true;
+            return false;
+        }
+
+        if (ttl > HUB_RENEW_TARGET) {
+            creep.memory.needsRenewal = undefined;
+            return false;
+        }
+        if (ttl > HUB_RENEW_START && !creep.memory.needsRenewal) return false;
+
+        creep.memory.needsRenewal = true;
+        const spawn = idleAdjacentSpawn(creep);
+        if (!spawn) return false;
+
+        const before = spawn.store[RESOURCE_ENERGY] || 0;
+        switch (spawn.renewCreep(creep)) {
+            case OK: {
+                const cost = before - (spawn.store[RESOURCE_ENERGY] || 0);
+                if (cost > 0 && global.bumpEnergyExpense) {
+                    global.bumpEnergyExpense('renewal', creep.room.name, cost);
+                }
+                return true;
+            }
+            case ERR_NOT_ENOUGH_ENERGY:
+                return false;
+            default:
+                creep.memory.needsRenewal = undefined;
+                return false;
+        }
     }
 
     spawnNeed() {

@@ -18,7 +18,7 @@ const {
 const {spawnDirectionsForRole, hubSlotSpawnDirection} = require('spawnHub');
 
 const RENEW_ROLES = new Set(['hauler', 'shuttle', 'stationaryHarvester', 'upgrader', 'hubManager']);
-const {assessSourceHaulBacklog} = require('bodyEconomic');
+const {assessSourceHaulBacklog, hubManagerNeedsBiggerBody} = require('bodyEconomic');
 
 function shuttleNeedsRenew(creep) {
     if (creep.memory.role !== 'shuttle' || !creep.memory.assignment) return false;
@@ -80,6 +80,8 @@ function renewNearbyCreepIfNeeded(room, availableSpawn) {
 
     const nearbyCreeps = _.filter(room.myCreeps, c => {
         if (!RENEW_ROLES.has(c.memory.role) || _.find(c.body, b => b.boost) || !c.pos.isNearTo(availableSpawn) || c.ticksToLive >= CREEP_LIFE_TIME) return false;
+        // Stale 0-MOVE hub managers must die so a larger RCL body can land.
+        if (c.memory.role === 'hubManager' && hubManagerNeedsBiggerBody(c)) return false;
         if (!strict) return true;
         // In strict/lean: renew income producers, the hub manager, and shuttles clearing source backlog
         return c.memory.role === 'stationaryHarvester' || c.memory.role === 'hubManager' || shuttleNeedsRenew(c);
