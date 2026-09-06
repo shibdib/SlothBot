@@ -26,7 +26,7 @@ const mincut = require('util.minCut');
 
 const {
     canPlaceConstructionSite, tryCreateConstructionSite, canPlaceConstructedWall,
-    filterPerimeterBarrierSpots, roomConstructionSiteBudget,
+    filterPerimeterBarrierSpots, isPerimeterPlanTile, roomConstructionSiteBudget,
     isNaturalUnbuildableTile, isSiteDenylisted,
 } = require('planUtils');
 
@@ -82,7 +82,7 @@ function resolveLabHubXY(room) {
 /**
  * Bump when the perimeter algorithm changes so owned rooms replan.
  */
-const PERIMETER_PLAN_REV = 12;
+const PERIMETER_PLAN_REV = 13;
 
 function chebyDistance(ax, ay, bx, by) {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -810,22 +810,28 @@ function hubLeaksToExit(terrain, hub, spotSet) {
     return !!findHubLeakPath(terrain, hub, spotSet);
 }
 
-function plugHubLeaks(terrain, hub, spots, interior) {
+function plugHubLeaks(terrain, hub, spots, room) {
     const out = spots ? spots.slice() : [];
     const spotSet = new Set();
     for (let i = 0; i < out.length; i++) spotSet.add(xyKey(out[i].x, out[i].y));
-    for (let n = 0; n < 16; n++) {
+    const hubKey = hub ? xyKey(hub.x, hub.y) : '';
+    for (let n = 0; n < 24; n++) {
         const path = findHubLeakPath(terrain, hub, spotSet);
         if (!path) return out;
+        // path is exit → hub. First buildable tile closes the hole even if it
+        // currently sits in the flooded interior (that is the leak).
         let added = false;
         for (let i = 0; i < path.length; i++) {
             const t = path[i];
             if (t.x < PERIMETER_EDGE || t.x > 49 - PERIMETER_EDGE
                 || t.y < PERIMETER_EDGE || t.y > 49 - PERIMETER_EDGE) continue;
             const k = xyKey(t.x, t.y);
-            if (spotSet.has(k)) continue;
-            if (interior && interior.has(k)) continue;
+            if (spotSet.has(k) || k === hubKey) continue;
             if (isTerrainWall(terrain, t.x, t.y)) continue;
+            if (room) {
+                const pos = new RoomPosition(t.x, t.y, room.name);
+                if (!isPerimeterPlanTile(pos)) continue;
+            }
             spotSet.add(k);
             out.push({x: t.x, y: t.y});
             added = true;
@@ -861,6 +867,8 @@ function contourFallbackPerimeter(room, hub, valid, flood, terrain) {
     spots = filterHubReachableSpots(spots, flood);
     spots = snapSpotsToExisting(room, spots, interior, terrain, exterior, flood.set);
     spots = filterPerimeterBarrierSpots(room, spots);
+    spots = plugHubLeaks(terrain, hub, spots, room);
+    spots = filterPerimeterBarrierSpots(room, spots);
     spots = filterHubReachableSpots(spots, flood);
     return {spots, interior, bounds: wrap.bounds, radius: wrap.radius, algorithm: 'hub-floodfill-nowrap'};
 }
@@ -887,29 +895,34 @@ function computeFloodfillPerimeter(room, layout) {
     let algorithm = 'mincut-tiles';
 
     if (spots && spots.length) {
-        let cutSet = new Set();
-        for (let i = 0; i < spots.length; i++) cutSet.add(xyKey(spots[i].x, spots[i].y));
-        interior = floodInteriorFromHub(terrain, hub, cutSet);
-        spots = spots.filter(p => touchesInterior(interior, p.x, p.y));
-        spots = filterPerimeterBarrierSpots(room, spots);
-        spots = plugHubLeaks(terrain, hub, spots, interior);
-        cutSet = new Set();
+        for (let round = 0; round < 4; round++) {
+            const cutSet = new Set();
+            for (let i = 0; i < spots.length; i++) cutSet.add(xyKey(spots[i].x, spots[i].y));
+            interior = floodInteriorFromHub(terrain, hub, cutSet);
+            spots = spots.filter(p => touchesInterior(interior, p.x, p.y));
+            spots = filterPerimeterBarrierSpots(room, spots);
+            const before = spots.length;
+            spots = plugHubLeaks(terrain, hub, spots, room);
+            spots = filterPerimeterBarrierSpots(room, spots);
+            const sealed = new Set();
+            for (let i = 0; i < spots.length; i++) sealed.add(xyKey(spots[i].x, spots[i].y));
+            if (!hubLeaksToExit(terrain, hub, sealed)) break;
+            if (spots.length === before) break;
+        }
+        const cutSet = new Set();
         for (let i = 0; i < spots.length; i++) cutSet.add(xyKey(spots[i].x, spots[i].y));
         interior = floodInteriorFromHub(terrain, hub, cutSet);
         const exterior = floodExteriorFromExits(terrain, interior);
         spots = snapSpotsToExisting(room, spots, interior, terrain, exterior, null);
         spots = filterPerimeterBarrierSpots(room, spots);
-        spots = plugHubLeaks(terrain, hub, spots, interior);
+        spots = plugHubLeaks(terrain, hub, spots, room);
+        spots = filterPerimeterBarrierSpots(room, spots);
         const sealed = new Set();
         for (let i = 0; i < spots.length; i++) sealed.add(xyKey(spots[i].x, spots[i].y));
-        if (spots.length && !hubLeaksToExit(terrain, hub, sealed)) {
+        if (spots.length) {
+            if (hubLeaksToExit(terrain, hub, sealed)) algorithm = 'mincut-tiles-plugged';
             bounds = interiorBounds(interior, hub);
             radius = Math.max(bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
-        } else if (spots.length) {
-            // Keep the choke even if a diagonal leak remains — do not balloon into a hub box.
-            bounds = interiorBounds(interior, hub);
-            radius = Math.max(bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
-            algorithm = 'mincut-tiles-plugged';
         } else {
             spots = null;
         }
@@ -1275,18 +1288,27 @@ function isNearNewPerimeterSpot(pos, newSpotSet) {
 function getQuadTrapKeySet(room) {
     if (room._quadTrapKeySetTick === Game.time && room._quadTrapKeySet) return room._quadTrapKeySet;
     const set = new Set();
+    const live = quadTraps[room.name];
+    if (live) {
+        for (let i = 0; i < live.length; i++) {
+            const p = live[i];
+            if (p) set.add(xyKey(p.x, p.y));
+        }
+        room._quadTrapKeySet = set;
+        room._quadTrapKeySetTick = Game.time;
+        return set;
+    }
     const mem = room.memory && room.memory.quadTrapWalls;
+    const spots = getPerimeterSpots(room.name);
     if (mem) {
         for (let i = 0; i < mem.length; i++) {
             const p = mem[i];
-            if (p) set.add(xyKey(p.x, p.y));
-        }
-    }
-    const traps = quadTraps[room.name];
-    if (traps) {
-        for (let i = 0; i < traps.length; i++) {
-            const p = traps[i];
-            if (p) set.add(xyKey(p.x, p.y));
+            if (!p) continue;
+            let nearSeal = !spots.length;
+            for (let s = 0; s < spots.length && !nearSeal; s++) {
+                if (chebyDistance(p.x, p.y, spots[s].x, spots[s].y) <= 1) nearSeal = true;
+            }
+            if (nearSeal) set.add(xyKey(p.x, p.y));
         }
     }
     room._quadTrapKeySet = set;
@@ -2075,6 +2097,7 @@ module.exports = {
     getProtectedAreaBounds,
     resolveTowerHubList,
     resolveLabHubXY,
+    floodExteriorFromExits,
     estimateHubSealCost,
     countOpenStampRing,
     countOpenExitSectors,

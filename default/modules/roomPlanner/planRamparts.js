@@ -144,6 +144,16 @@ function cleanupOffPlanBarriers(room, options) {
     }
     const planSet = new Set(spots.map(p => `${p.x},${p.y}`));
     const ctx = buildOrphanContext(room, planSet);
+    const exteriorOnly = !!opts.exteriorOnly;
+    let exterior = null;
+    try {
+        const terrain = Game.map.getRoomTerrain(room.name);
+        exterior = geom.floodExteriorFromExits(terrain, planSet);
+        if (room.hub && exterior.has(room.hub.x + ',' + room.hub.y)) {
+            exterior = null;
+        }
+    } catch (e) { /* treat as full cleanup */
+    }
     let orphans = 0;
     let strays = 0;
     let stale = 0;
@@ -165,14 +175,25 @@ function cleanupOffPlanBarriers(room, options) {
         return false;
     };
 
+    const canRemove = (pos) => {
+        if (!isRemovableStrayBarrier(pos, room, planSet)
+            && !isOrphanedUncachedBarrier(pos, room, planSet, ctx)) {
+            return false;
+        }
+        if (exteriorOnly) {
+            return !!(exterior && exterior.has(pos.x + ',' + pos.y));
+        }
+        return true;
+    };
+
     for (const s of room.structures || []) {
         if (removed >= maxDestroy) break;
         if (s.structureType !== STRUCTURE_RAMPART && s.structureType !== STRUCTURE_WALL) continue;
         if (isOrphanedUncachedBarrier(s.pos, room, planSet, ctx)) {
-            tryDestroy(s, 'orphan');
+            if (canRemove(s.pos)) tryDestroy(s, 'orphan');
             continue;
         }
-        if (isRemovableStrayBarrier(s.pos, room, planSet)) {
+        if (isRemovableStrayBarrier(s.pos, room, planSet) && canRemove(s.pos)) {
             tryDestroy(s, 'stray');
         }
     }
@@ -180,8 +201,7 @@ function cleanupOffPlanBarriers(room, options) {
     for (let i = 0; i < sites.length; i++) {
         if (removed >= maxDestroy) break;
         const site = sites[i];
-        if (isOrphanedUncachedBarrier(site.pos, room, planSet, ctx)
-            || isRemovableStrayBarrier(site.pos, room, planSet)) {
+        if (canRemove(site.pos)) {
             if (removeBarrierSite(site)) {
                 removed++;
                 strays++;
@@ -749,6 +769,14 @@ function rampartBuilder(room, layout = undefined, count = false, options = {}) {
             }
         }
         quadTraps[room.name] = trapLocations;
+        const liveKeys = new Set();
+        for (let i = 0; i < trapLocations.length; i++) {
+            liveKeys.add(trapLocations[i].x + ',' + trapLocations[i].y);
+        }
+        if (room.memory.quadTrapWalls && room.memory.quadTrapWalls.length) {
+            room.memory.quadTrapWalls = room.memory.quadTrapWalls.filter(p =>
+                p && liveKeys.has(p.x + ',' + p.y));
+        }
         try {
             room.memory.quadTrapCombatFaces = collectCombatFaceTraps(room, trapLocations);
         } catch (e) {
@@ -1640,12 +1668,15 @@ function placeRamparts(room, options) {
     // Healthy: every ~50 ticks. Soft: ~100. Below 3k: never (cleanupOffPlan also guards).
     const cleanInterval = bucket < 5000 ? 100 : 50;
     const cleanupDue = bucket >= 3000
-        && builtSeal
+        && hasPerimeterSpots(room.name)
         && !holdActive
         && (Game.time - lastClean) >= cleanInterval;
     if (cleanupDue) {
         try {
-            cleanup = cleanupOffPlanBarriers(room, {maxDestroy: 8});
+            cleanup = cleanupOffPlanBarriers(room, {
+                maxDestroy: 8,
+                exteriorOnly: !builtSeal,
+            });
             room.memory._offPlanCleanupTick = Game.time;
         } catch (e) {
             cleanup = {error: (e && e.message) || String(e)};
