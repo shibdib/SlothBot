@@ -554,7 +554,11 @@ function runRoomPhases(room, lastRun, ctx, report) {
     const towerFirst = typeof TOWER_FIRST !== 'undefined' && TOWER_FIRST;
     // RCL3: last extensions unlock 800-energy 5W bodies. A 3k tower first
     // delays that unless we are under threat or TOWER_FIRST is set.
+    // New claims stay on rebuild until a tower exists. Do not spend that
+    // window on leftover extensions first.
+    const bootstrapNoTower = !(room.towers && room.towers.length);
     const deferTowerForExtensions = !towerFirst
+        && !bootstrapNoTower
         && !!(room.controller && room.controller.level === 3 && !room.storage && extDeficit > 0)
         && !(intel && intel.threatLevel);
     report.deferTowerForExtensions = deferTowerForExtensions;

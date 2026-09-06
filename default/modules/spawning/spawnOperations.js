@@ -372,6 +372,10 @@ function computeOpLevelTarget(target, opMemory, intel) {
             return 1;
         case 'claim':
             return 5;
+        case 'rebuild':
+            // Drones can come from any expansion-capable room. MAX_LEVEL-1
+            // left rebuilds unassigned unless an RCL 7+ origin was aux-ready.
+            return 4;
         case 'power':
             // 20 HEAL + 20 MOVE is 6000 energy; RCL 7 caps at 5600.
             return 8;
@@ -398,7 +402,7 @@ function clearAssignmentWaitState(opMemory) {
 }
 
 function assignmentAllowsMissingIntel(opMemory, entry) {
-    return opMemory.type === 'scout' || !!(entry && entry.role === 'scout');
+    return opMemory.type === 'scout' || opMemory.type === 'rebuild' || !!(entry && entry.role === 'scout');
 }
 
 function creepOpDest(c) {
@@ -512,7 +516,7 @@ function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
                     }
                     return handleAssignmentReadinessWait(target, opMemory, 'Room is not combat ready.', levelTarget, entry);
                 }
-            } else if (Memory.auxiliaryTargets[target] && opMemory.type !== 'power' && !isLiveAuxReady(assigned)) {
+            } else if (Memory.auxiliaryTargets[target] && opMemory.type !== 'power' && opMemory.type !== 'rebuild' && !isLiveAuxReady(assigned)) {
                 if (stealCheckDue(target, opMemory.assignedAt)) {
                     const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, 'Room is not auxiliary ready.');
                     if (stolen) return stolen;
@@ -605,6 +609,20 @@ function roleAssignWeight(role) {
 }
 
 function heaviestQueuedEntry(targetRoom, fallback) {
+    const aux = Memory.auxiliaryTargets && Memory.auxiliaryTargets[targetRoom];
+    // Combat bodies must not be the assignment probe for rebuild — a longbow
+    // that fails generation used to leave the room with zero drones.
+    if (aux && aux.type === 'rebuild') {
+        const globalQueue = CREEP_QUEUES['global'];
+        if (globalQueue) {
+            for (const key in globalQueue) {
+                const e = globalQueue[key];
+                if (entryTarget(e) === targetRoom && e.role === 'drone') return e;
+            }
+        }
+        if (fallback && fallback.role === 'drone') return fallback;
+        return {role: 'drone', destination: targetRoom};
+    }
     const globalQueue = CREEP_QUEUES['global'];
     let best = fallback;
     let bestW = roleAssignWeight(fallback && fallback.role);
@@ -680,6 +698,7 @@ function assignmentFlags(targetRoom, creepInfo) {
     return {
         isAuxiliary: !!aux,
         isPower: !!(aux && aux.type === 'power'),
+        isRebuild: !!(aux && aux.type === 'rebuild'),
         opType,
         isHelper: HELPER_ROLES.has(creepInfo.role),
         isScout: opType === 'scout' || creepInfo.role === 'scout',
@@ -696,12 +715,13 @@ function evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads
     // extensions. Inactive extras after an RCL dip (nuker, observer, 60th
     // extension) do not change room.level when the remaining cap still matches
     // — those rooms can still spawn and should still assign.
-    if (myRoom.controller.level !== myRoom.level) return null;
-    if (myRoom.level < level) return null;
+    if (!flags.isRebuild && myRoom.controller.level !== myRoom.level) return null;
+    if (myRoom.level < level && !(flags.isRebuild && myRoom.controller.level >= level)) return null;
 
     // Power is RCL 8 + a 6k healer body. HARASS readiness also requires
     // energyState >= 1 (>250k at RCL 8), which left planned banks unassigned.
-    if (!flags.isPower) {
+    // Rebuild must still assign from a plain RCL 4+ spawn.
+    if (!flags.isPower && !flags.isRebuild) {
         const tier = flags.isHelper || flags.isAuxiliary || flags.isScout
             ? OP_TIER.HARASS
             : getOpTier({type: flags.opType}, creepInfo);
@@ -717,7 +737,7 @@ function evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads
 
     const spawnCap = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level] || 1;
     const load = loads[key] || 0;
-    if (load >= spawnCap * LOAD_PER_SPAWN_CAP) return null;
+    if (!flags.isRebuild && load >= spawnCap * LOAD_PER_SPAWN_CAP) return null;
 
     const generated = tryGenerateAssignableBody(myRoom, creepInfo);
     if (!generated) return null;

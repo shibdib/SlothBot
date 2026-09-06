@@ -122,6 +122,8 @@ function canActAsTowTruck(creep, trailer) {
     if (needsTow(creep) && creep.memory.towDestination) return false;
     if (!creep.hasActiveBodyparts(MOVE)) return false;
     if (isCombatTowExempt(creep)) return false;
+    // runTowTruck refuses loaded trucks, so assigning them never results in a pull.
+    if (creep.store.getUsedCapacity()) return false;
     return true;
 }
 

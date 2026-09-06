@@ -30,7 +30,8 @@ class RoleClaimer {
         // If you lost your claim part... die
         if (!this.creep.hasActiveBodyparts(CLAIM)) this.creep.suicide();
         if (Game.gcl.level <= MY_ROOMS.length) {
-            delete Memory.auxiliaryTargets[this.creep.room.name];
+            const aux = Memory.auxiliaryTargets && Memory.auxiliaryTargets[this.creep.room.name];
+            if (aux && aux.type !== 'rebuild') delete Memory.auxiliaryTargets[this.creep.room.name];
             return this.creep.recycleCreep();
         }
     }
@@ -67,8 +68,15 @@ class RoleClaimer {
                 case ERR_INVALID_TARGET:
                     break;
                 case OK:
-                    Memory.auxiliaryTargets[this.room.name] = undefined;
+                    if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
+                    Memory.auxiliaryTargets[this.room.name] = {
+                        tick: Game.time,
+                        type: 'rebuild',
+                        level: 1,
+                        priority: PRIORITIES.priority
+                    };
                     Memory.targetRooms[this.room.name] = undefined;
+                    this.room.memory.buildersNeeded = true;
                     MY_ROOMS.push(this.room.name);
                     this.room.structures.forEach((s) => (![STRUCTURE_TERMINAL, STRUCTURE_STORAGE].includes(s.structureType) || !s.store[RESOURCE_ENERGY]) && s.destroy());
             }

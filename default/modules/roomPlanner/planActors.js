@@ -86,6 +86,81 @@ function needsSpawnSite(room) {
     return !room.constructionSites.some(s => s.structureType === STRUCTURE_SPAWN);
 }
 
+function spawnRampartHitsTarget() {
+    return typeof SAFE_RAMPART_HITS === 'number' ? SAFE_RAMPART_HITS : 10000;
+}
+
+function spawnControllerLevel(room) {
+    return (room.controller && room.controller.level) || 0;
+}
+
+function spawnTileRampart(pos) {
+    if (!pos) return null;
+    if (pos.checkForRampart) {
+        const rampart = pos.checkForRampart();
+        return rampart || null;
+    }
+    const structs = pos.lookFor ? pos.lookFor(LOOK_STRUCTURES) : [];
+    for (let i = 0; i < structs.length; i++) {
+        if (structs[i].structureType === STRUCTURE_RAMPART) return structs[i];
+    }
+    return null;
+}
+
+function spawnTileRampartSite(pos) {
+    if (!pos || !pos.lookFor) return null;
+    const sites = pos.lookFor(LOOK_CONSTRUCTION_SITES) || [];
+    for (let i = 0; i < sites.length; i++) {
+        if (sites[i].structureType === STRUCTURE_RAMPART) return sites[i];
+    }
+    return null;
+}
+
+function isSpawnRampartReady(pos) {
+    const rampart = spawnTileRampart(pos);
+    return !!(rampart && rampart.hits >= spawnRampartHitsTarget());
+}
+
+function spawnAnchorRampartReady(room) {
+    const pos = getSpawnAnchor(room);
+    return !!(pos && isSpawnRampartReady(pos));
+}
+
+function removeSpawnSites(room) {
+    let removed = 0;
+    const sites = room.constructionSites.filter(s => s.structureType === STRUCTURE_SPAWN);
+    for (let i = 0; i < sites.length; i++) {
+        try {
+            sites[i].remove();
+            removed++;
+        } catch (e) { /* ignore */
+        }
+    }
+    if (removed) invalidateRoomSiteCache(room);
+    return removed;
+}
+
+function ensureSpawnRampartSite(room, pos) {
+    if (spawnTileRampart(pos)) return {ok: true, reason: 'rampart-exists'};
+    if (spawnTileRampartSite(pos)) return {ok: true, reason: 'rampart-site-exists'};
+    if (spawnControllerLevel(room) < 2) return {ok: false, reason: 'need-rcl2'};
+    if (isPlannerShadow(room)) {
+        const req = siteBudget.request(room, 'spawn', 1);
+        return {ok: true, reason: 'shadow', shadow: true, budgetOk: req.allowed >= 1};
+    }
+    const req = siteBudget.request(room, 'spawn', 1);
+    if (req.allowed < 1) return {ok: false, reason: 'no-site-budget', code: req.code};
+    const res = siteBudget.tryPlace(room, 'spawn', pos, STRUCTURE_RAMPART);
+    if (res.ok) {
+        invalidateRoomSiteCache(room);
+        if (typeof log !== 'undefined' && log.a) {
+            log.a(`${room.name}: placed spawn-tile rampart at (${pos.x},${pos.y})`, 'PLANNER');
+        }
+        return {ok: true, reason: 'placed', x: pos.x, y: pos.y};
+    }
+    return {ok: false, reason: 'create-failed', result: res.result, code: res.code};
+}
+
 function writeSpawnLayer(room, tiles) {
     const plan = ensurePlan(room, {resync: false}) || getPlan(room);
     if (!plan || !plan.layers || !plan.layers.spawn) return;
@@ -135,8 +210,10 @@ function freeSitesForSpawn(room) {
     for (let t = 0; t < prefer.length; t++) {
         const type = prefer[t];
         const sites = room.constructionSites.filter(s => s.structureType === type);
+        const spawnPos = type === STRUCTURE_RAMPART ? getSpawnAnchor(room) : null;
         for (let i = 0; i < sites.length; i++) {
             const site = sites[i];
+            if (spawnPos && site.pos.x === spawnPos.x && site.pos.y === spawnPos.y) continue;
             if (type !== STRUCTURE_EXTENSION && site.progress) continue;
             try {
                 site.remove();
@@ -205,10 +282,6 @@ function ensureSpawnSite(room) {
         writeSpawnLayer(room, getSpawnPlanTiles(room));
         return {ok: true, reason: 'spawn-exists'};
     }
-    if (room.constructionSites.some(s => s.structureType === STRUCTURE_SPAWN)) {
-        writeSpawnLayer(room, getSpawnPlanTiles(room));
-        return {ok: true, reason: 'spawn-site-exists'};
-    }
 
     const pos = getSpawnAnchor(room);
     const planTiles = getSpawnPlanTiles(room);
@@ -229,6 +302,45 @@ function ensureSpawnSite(room) {
             log.a(`${room.name}: spawn blocked (terrain wall) at (${pos.x},${pos.y})`, 'PLANNER');
         }
         return {ok: false, reason: 'wall', x: pos.x, y: pos.y};
+    }
+
+    const rcl = spawnControllerLevel(room);
+    if (rcl < 2) {
+        if (!isPlannerShadow(room)) removeSpawnSites(room);
+        room.memory.plannerSpawnBlocked = {tick: Game.time, reason: 'need-rcl2', x: pos.x, y: pos.y};
+        return {ok: false, reason: 'need-rcl2', x: pos.x, y: pos.y};
+    }
+
+    if (!isSpawnRampartReady(pos)) {
+        const spawnSite = room.constructionSites.find(s => s.structureType === STRUCTURE_SPAWN);
+        if (spawnSite && spawnSite.progress) {
+            delete room.memory.plannerSpawnBlocked;
+            return {ok: true, reason: 'spawn-site-exists', x: pos.x, y: pos.y};
+        }
+        if (!isPlannerShadow(room)) removeSpawnSites(room);
+        const ramp = ensureSpawnRampartSite(room, pos);
+        const hits = spawnTileRampart(pos);
+        room.memory.plannerSpawnBlocked = {
+            tick: Game.time,
+            reason: 'need-spawn-rampart',
+            x: pos.x,
+            y: pos.y,
+            rampart: ramp.reason,
+            hits: hits && hits.hits,
+        };
+        return {
+            ok: false,
+            reason: hits ? 'need-spawn-rampart-hits' : 'need-spawn-rampart',
+            x: pos.x,
+            y: pos.y,
+            rampart: ramp,
+            hits: hits && hits.hits,
+        };
+    }
+
+    if (room.constructionSites.some(s => s.structureType === STRUCTURE_SPAWN)) {
+        delete room.memory.plannerSpawnBlocked;
+        return {ok: true, reason: 'spawn-site-exists', x: pos.x, y: pos.y};
     }
 
     // Shadow: compute-only — no site.remove / structure.destroy / createConstructionSite.
@@ -342,6 +454,12 @@ function inspectSpawn(room) {
         spawnCount: room.spawns ? room.spawns.length : 0,
         hasSpawnSite: room.constructionSites.some(s => s.structureType === STRUCTURE_SPAWN),
         needsSpawnSite: needsSpawnSite(room),
+        spawnRampart: pos ? {
+            ready: isSpawnRampartReady(pos),
+            hits: spawnTileRampart(pos) && spawnTileRampart(pos).hits,
+            site: !!spawnTileRampartSite(pos),
+            target: spawnRampartHitsTarget(),
+        } : null,
         blocked: room.memory.plannerSpawnBlocked || null,
         tileBlockers,
         siteBudget: siteBudget.snapshot(room),
@@ -355,6 +473,10 @@ module.exports = {
     getSpawnPlanTiles,
     hasSpawnOrSpawnSite,
     needsSpawnSite,
+    spawnAnchorRampartReady,
+    spawnTileRampart,
+    spawnTileRampartSite,
+    spawnRampartHitsTarget,
     freeSitesForSpawn,
     clearSpawnTile,
     ensureSpawnSite,

@@ -241,9 +241,17 @@ class StateManager {
         // `room.downgraded` is "any structure isActive() === false". An RCL 8→7
         // dip leaves nuker/observer/extra extensions inactive even though
         // nothing was destroyed and the room can still spawn — that is not a
-        // rebuild. Empire drones only when there is no active spawn, or the
-        // room is still a baby vs empire max.
-        room.memory.buildersNeeded = !hasSpawn || (room.level < 3);
+        // rebuild. Empire drones until the room can defend itself (live spawn
+        // AND live tower). Towers unlock at RCL3; RCL1–2 always need help.
+        const hasTower = (room.towers || []).some(t => {
+            try {
+                const mine = t.safeIsMy ? t.safeIsMy() : t.my;
+                return mine && t.isActive();
+            } catch (e) {
+                return false;
+            }
+        });
+        room.memory.buildersNeeded = !hasSpawn || !hasTower;
     }
 
     funnelRequest(room) {

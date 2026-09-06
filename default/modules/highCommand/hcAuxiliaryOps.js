@@ -178,13 +178,15 @@ function auxiliaryOperations() {
         }
     }
 
-    // Rebuild — always allowed regardless of empire stress
+    // Rebuild — always allowed regardless of empire stress. Every baby room
+    // gets its own mission so drones actually assign.
     for (const r of MY_ROOMS) {
-        if (Game.rooms[r].memory.buildersNeeded && INTEL[r] && !INTEL[r].hostile && !cache[r]) {
-            cache[r] = {tick: Game.time, type: 'rebuild', level: 1, priority: PRIORITIES.priority};
-            log.a(`Rebuild planned for ${roomLink(r)}`, 'HIGH COMMAND: ');
-            break;
-        }
+        const room = Game.rooms[r];
+        if (!room || !room.memory.buildersNeeded) continue;
+        const existing = cache[r];
+        if (existing && existing.type === 'rebuild') continue;
+        cache[r] = {tick: Game.time, type: 'rebuild', level: 1, priority: PRIORITIES.priority};
+        log.a(`Rebuild planned for ${roomLink(r)}`, 'HIGH COMMAND: ');
     }
 
     Memory.auxiliaryTargets = cache;

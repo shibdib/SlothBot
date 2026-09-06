@@ -14,6 +14,21 @@ const {buildOperationsSignature, pruneEmptyOperations, getPriority, resolvePendi
 const {getSiegeTowerDamage} = require('module.bodyGenerator');
 const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS, siegeLabBoosts} = require('bodySiegeBoosts');
 const {isNukeHold} = require('hcNukes');
+const {getColonyProfile} = require('module.colonyProfile');
+
+function rebuildNeedsGuard(roomName) {
+    const intel = typeof INTEL !== 'undefined' ? INTEL[roomName] : null;
+    if (intel && intel.threatLevel) return true;
+    let profile;
+    try {
+        profile = getColonyProfile(roomName);
+    } catch (e) {
+        profile = null;
+    }
+    if (!profile) return false;
+    if (Number.isFinite(profile.hostileHops) && profile.hostileHops <= 3) return true;
+    return (profile.pressure || 0) >= 15;
+}
 
 function queueHarassmentCreeps() {
     // Harassment is independent of OFFENSIVE_OPERATIONS so live shards can raid
@@ -95,7 +110,7 @@ function globalCreepQueue() {
         // Heavy `cached` often never lands (1 slot/tick, owned rooms first),
         // which used to queue a scout forever and skip the mining team.
         const powerVisible = operation.type === 'power' && intel && intel.power > Game.time;
-        if (!intel || (intel.cached == null && !powerVisible)) {
+        if (operation.type !== 'rebuild' && (!intel || (intel.cached == null && !powerVisible))) {
             queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
             continue;
         }
@@ -110,40 +125,38 @@ function globalCreepQueue() {
                     closestRoom: true, operation: 'claim'
                 });
                 break;
-            case 'rebuild':
-                if (!INTEL[key] || !INTEL[key].lastPlayerSighting || INTEL[key].lastPlayerSighting + 750 < Game.time || INTEL[key].safemode) {
-                    const rebuildRoom = Game.rooms[key];
-                    let rebuildPriority = 2;
-                    if (rebuildRoom) {
-                        const hasSpawn = rebuildRoom.spawns.length > 0;
-                        if (!hasSpawn) rebuildPriority = 1;
-                        else if (rebuildRoom.storage && rebuildRoom.terminal) rebuildPriority = PRIORITIES.drone;
-                        else rebuildPriority = 3;
-                    }
-                    queueCreepIfNeeded({
-                        role: 'drone', priority: rebuildPriority + getCreepCount(undefined, 'drone', key),
-                        numberNeeded: 6, destination: key, misc: {boosts: [WORK]}, closestRoom: true
-                    });
+            case 'rebuild': {
+                const rebuildRoom = Game.rooms[key];
+                let rebuildPriority = 2;
+                if (rebuildRoom) {
+                    const hasSpawn = rebuildRoom.spawns.length > 0;
+                    if (!hasSpawn) rebuildPriority = 1;
+                    else if (rebuildRoom.storage && rebuildRoom.terminal) rebuildPriority = PRIORITIES.drone;
+                    else rebuildPriority = 3;
                 }
-                if (INTEL[key].threatLevel) {
-                    if (INTEL[key].threatLevel > 1) {
-                        const owners = INTEL[key].hostileOwners;
-                        if (!owners || !owners.length) break;
+                queueCreepIfNeeded({
+                    role: 'drone', priority: rebuildPriority + getCreepCount(undefined, 'drone', key),
+                    numberNeeded: 6, destination: key, misc: {boosts: [WORK]}, closestRoom: true
+                });
+                let skipGuard = false;
+                const intel = INTEL[key];
+                if (intel && intel.threatLevel > 1) {
+                    const owners = intel.hostileOwners;
+                    if (owners && owners.length) {
                         const maxLevelOfAttacker = userStrength(_.max(owners, (o) => userStrength(o)));
-                        if ((maxLevelOfAttacker >= 7 && MAX_LEVEL < 7) || (maxLevelOfAttacker > MAX_LEVEL + 1)) continue;
+                        if ((maxLevelOfAttacker >= 7 && MAX_LEVEL < 7) || (maxLevelOfAttacker > MAX_LEVEL + 1)) {
+                            skipGuard = true;
+                        }
                     }
-                    const count = 4;
-                    const boosted = INTEL[key].threatLevel > 2;
-                    if (boosted) {
-                        operation.boosts = [HEAL];
-                        operation.optionalBoosts = [RANGED_ATTACK];
-                    }
+                }
+                if (!skipGuard && rebuildNeedsGuard(key)) {
                     queueCreepIfNeeded({
-                        role: 'longbowSquad', priority: priority + 1, numberNeeded: count, destination: key,
-                        misc: {waitFor: count, boosts: boosted ? [RANGED_ATTACK, HEAL] : undefined}, closestRoom: true
+                        role: 'longbowSquad', priority: priority + 1, numberNeeded: 2, destination: key,
+                        misc: {waitFor: 2}, closestRoom: true
                     });
                 }
                 break;
+            }
             case 'commodity':
             case 'mineral':
                 queueCreepIfNeeded({

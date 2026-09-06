@@ -114,6 +114,22 @@ class RoleDrone {
             delete this.creep.memory.targetWallHits;
         }
 
+        if (isRebuildBootstrap(this.creep, this.room) && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+            const rcl = this.room.controller.level;
+            if (rcl < 2) {
+                if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') clearDroneTaskForUpgrade(this.creep);
+                if (this.upgrading(true)) return;
+            } else if (needsSpawnAnchorRampart(this.room)) {
+                const task = this.creep.memory.task;
+                if (task && task !== 'build' && task !== 'repair') {
+                    delete this.creep.memory.task;
+                    delete this.creep.memory.constructionSite;
+                    delete this.creep.memory.sitePos;
+                }
+                if (spawnAnchorRampartWork(this.creep, this.room)) return;
+            }
+        }
+
         if (this.creep.memory.task && this.taskedOut()) return;
 
         // Fill spawn/extensions before sites until a live shuttle or hauler exists.
@@ -439,6 +455,58 @@ class RoleDrone {
 
 profiler.registerClass(RoleDrone, 'Drone');
 module.exports = RoleDrone;
+
+function isRebuildBootstrap(creep, room) {
+    if (!room || !room.controller || !room.controller.my) return false;
+    if (creep.memory.destination && creep.memory.destination !== room.name) return false;
+    const aux = Memory.auxiliaryTargets && Memory.auxiliaryTargets[room.name];
+    if (aux && aux.type === 'rebuild') return true;
+    return !!room.memory.buildersNeeded;
+}
+
+function spawnAnchorHelpers() {
+    try {
+        return require('planActors');
+    } catch (e) {
+        return null;
+    }
+}
+
+function needsSpawnAnchorRampart(room) {
+    if (room.spawns && room.spawns.length) return false;
+    const actors = spawnAnchorHelpers();
+    if (!actors || !actors.getSpawnAnchor) return false;
+    const pos = actors.getSpawnAnchor(room);
+    if (!pos) return false;
+    const rampart = actors.spawnTileRampart(pos);
+    const need = actors.spawnRampartHitsTarget();
+    if (rampart && rampart.hits >= need) return false;
+    return true;
+}
+
+function spawnAnchorRampartWork(creep, room) {
+    const actors = spawnAnchorHelpers();
+    if (!actors || !actors.getSpawnAnchor) return false;
+    const pos = actors.getSpawnAnchor(room);
+    if (!pos) return false;
+    const site = actors.spawnTileRampartSite(pos);
+    if (site) {
+        creep.memory.task = 'build';
+        creep.memory.constructionSite = site.id;
+        creep.memory.sitePos = {x: site.pos.x, y: site.pos.y, roomName: site.pos.roomName};
+        return creep.builderFunction();
+    }
+    const rampart = actors.spawnTileRampart(pos);
+    const need = actors.spawnRampartHitsTarget();
+    if (rampart && rampart.hits < need) {
+        creep.memory.task = 'repair';
+        creep.memory.constructionSite = rampart.id;
+        creep.memory.targetHits = need;
+        creep.memory.sitePos = {x: rampart.pos.x, y: rampart.pos.y, roomName: rampart.pos.roomName};
+        return creep.builderFunction();
+    }
+    return false;
+}
 
 function hasLiveHauler(room) {
     const creeps = room.myCreeps || [];

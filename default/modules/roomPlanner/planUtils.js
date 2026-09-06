@@ -1407,6 +1407,7 @@ module.exports = {
     getUndefendedExits,
 
     isValidRampartPosition,
+    isPerimeterPlanTile,
     isPerimeterBarrierTile,
     filterPerimeterBarrierSpots,
     bridgePerimeterGaps,

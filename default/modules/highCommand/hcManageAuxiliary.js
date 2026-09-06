@@ -122,11 +122,6 @@ function manageAuxiliary() {
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }
-                if (INTEL[key].hostile) {
-                    log.a(`Canceling rebuild in ${roomLink(key)} â€” under attack.`, 'HIGH COMMAND: ');
-                    delete Memory.auxiliaryTargets[key];
-                    continue;
-                }
                 if (Game.rooms[key] && !Game.rooms[key].memory.buildersNeeded) {
                     log.a(`Canceling rebuild in ${roomLink(key)} â€” rebuilt.`, 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
@@ -165,7 +160,7 @@ function manageAuxiliary() {
                 break;
         }
 
-        if (target.tick + CREEP_LIFE_TIME * 3 < Game.time) {
+        if (type !== 'rebuild' && target.tick + CREEP_LIFE_TIME * 3 < Game.time) {
             delete Memory.auxiliaryTargets[key];
             log.a(`Canceling auxiliary op in ${roomLink(key)} â€” stale.`, 'HIGH COMMAND: ');
         }
