@@ -6,6 +6,7 @@ const {notifySiegeEnd} = require('module.notifications');
 const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS} = require('bodySiegeBoosts');
 const {canLaunchNewRoomDenial} = require('hcMilitaryOps');
 const {promoteToRoomDenial} = require('hcTargets');
+const {markAsPending} = require('hcSustainability');
 
 Creep.prototype.scoutRoom = function () {
     if (this.room.name !== this.memory.destination) {
@@ -85,17 +86,7 @@ function forwardObserver(room) {
 }
 
 function updateRoomSafemode(room) {
-    const tick = Game.time;
-    let targetRoom = Memory.targetRooms[room.name] || {};
-    const wasSiege = targetRoom.type === 'roomDenial';
-    targetRoom = {
-        ...targetRoom,
-        tick,
-        type: 'remoteDenial',
-        dDay: tick + room.controller.safeMode
-    };
-    Memory.targetRooms[room.name] = targetRoom;
-    if (wasSiege) notifySiegeEnd(room.name, 'SAFEMODE', targetRoom);
+    markAsPending(room.name, room);
 }
 
 function updateHostileUsers(room) {

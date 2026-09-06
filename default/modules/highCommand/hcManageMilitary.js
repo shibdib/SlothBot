@@ -12,6 +12,8 @@ const {
     SIEGE_RING,
     minEmpireDist,
     warTargetUserSet,
+    keepOffensiveOp,
+    isSiegeCounted,
 } = require('hcUtils');
 const {stampOperationCooldown} = require('hcTargets');
 const {notifySiegeEnd} = require('module.notifications');
@@ -26,7 +28,7 @@ function manageMilitary() {
     for (const key in Memory.targetRooms) {
         const op = Memory.targetRooms[key];
         if (!op) continue;
-        if (op.type === 'roomDenial' || op.dDay) activeSiege++;
+        if (isSiegeCounted(op)) activeSiege++;
         else if (!['stronghold', 'nukes'].includes(op.type)) activeNonSiege++;
     }
 
@@ -60,12 +62,12 @@ function manageMilitary() {
                 log.a(`${roomLink(key)} nuke landed — switching to scout.`, 'HIGH COMMAND: ');
                 continue;
             }
-        } else if (target.dDay && !target.nukeLaunched && target.dDay - 50 <= Game.time) {
-            target.type = 'scout';
-            target.tick = Game.time;
-            target.dDay = undefined;
-            log.a(`${roomLink(key)} d-day expired — switching to scout.`, 'HIGH COMMAND: ');
-            continue;
+            if (!target.nukeLaunched && type === 'remoteDenial') {
+                target.type = 'scout';
+                target.tick = Game.time;
+                log.a(`${roomLink(key)} d-day expired — switching to scout.`, 'HIGH COMMAND: ');
+                continue;
+            }
         }
 
         switch (type) {
@@ -76,24 +78,27 @@ function manageMilitary() {
                 if (target.camping) staleMulti = 9999;
                 else staleMulti = 8;
 
-                if (INTEL[key] && FRIENDLIES.includes(INTEL[key].owner)) {
+                if (INTEL[key] && FRIENDLIES.includes(intelOwner(INTEL[key]))) {
                     log.a(`Canceling roomDenial in ${roomLink(key)} — too many sieges or non-hostile.`, 'HIGH COMMAND: ');
                     stampOperationCooldown(key, target);
                     delete Memory.targetRooms[key];
                     activeSiege--;
                     continue;
                 }
-                if (!nukePending && (!INTEL[key] || !warTargetUsers.has(INTEL[key].owner))) {
-                    log.a(`Canceling roomDenial in ${roomLink(key)} — too many sieges or non-hostile.`, 'HIGH COMMAND: ');
-                    stampOperationCooldown(key, target);
-                    delete Memory.targetRooms[key];
-                    activeSiege--;
-                    continue;
+                if (!nukePending && INTEL[key]) {
+                    const siegeOwner = intelOwner(INTEL[key]);
+                    if (siegeOwner && !keepOffensiveOp(siegeOwner, key, warTargetUsers)) {
+                        log.a(`Canceling roomDenial in ${roomLink(key)} — too many sieges or non-hostile.`, 'HIGH COMMAND: ');
+                        stampOperationCooldown(key, target);
+                        delete Memory.targetRooms[key];
+                        activeSiege--;
+                        continue;
+                    }
                 }
                 break;
 
             case 'harass':
-            case 'remoteDenial':
+            case 'remoteDenial': {
                 if (target.dDay) staleMulti = SAFE_MODE_DURATION;
                 if (!nukePending && activeNonSiege > operationLimit) {
                     log.a(`Canceling ${type} in ${roomLink(key)} — too many operations.`, 'HIGH COMMAND: ');
@@ -102,19 +107,26 @@ function manageMilitary() {
                     activeNonSiege--;
                     continue;
                 }
-                if (INTEL[key] && FRIENDLIES.includes(INTEL[key].owner)) {
+                if (INTEL[key] && FRIENDLIES.includes(intelOwner(INTEL[key]))) {
                     log.a(`Canceling ${type} in ${roomLink(key)} — not a war target.`, 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     activeNonSiege--;
                     continue;
                 }
-                if (!nukePending && (!INTEL[key] || !warTargetUsers.has(INTEL[key].owner))) {
-                    log.a(`Canceling ${type} in ${roomLink(key)} — not a war target.`, 'HIGH COMMAND: ');
-                    delete Memory.targetRooms[key];
-                    activeNonSiege--;
-                    continue;
+                // Safemode hold stays until dDay. Missing intel falls through.
+                // Keep if still a threat/neighbor even after dropping off WAR_TARGETS.
+                const denialHold = nukePending || (target.dDay && target.dDay > Game.time);
+                if (!denialHold && INTEL[key]) {
+                    const denialOwner = intelOwner(INTEL[key]);
+                    if (denialOwner && !keepOffensiveOp(denialOwner, key, warTargetUsers)) {
+                        log.a(`Canceling ${type} in ${roomLink(key)} — not a war target.`, 'HIGH COMMAND: ');
+                        delete Memory.targetRooms[key];
+                        activeNonSiege--;
+                        continue;
+                    }
                 }
                 break;
+            }
 
             case 'guard':
                 staleMulti *= (target.level + 1);
@@ -141,7 +153,7 @@ function manageMilitary() {
                 // sit-guards (scout fallback) have no owner and stay until stale.
                 if (INTEL[key] && INTEL[key].owner
                     && !FRIENDLIES.includes(INTEL[key].owner)
-                    && !warTargetUsers.has(INTEL[key].owner)) {
+                    && !keepOffensiveOp(INTEL[key].owner, key, warTargetUsers)) {
                     log.a(`Canceling guard in ${roomLink(key)} — not a war target.`, 'HIGH COMMAND: ');
                     delete Memory.targetRooms[key];
                     activeNonSiege--;
@@ -216,9 +228,9 @@ function manageMilitary() {
             continue;
         }
 
-        if (type !== 'scout' && type !== 'guard' && type !== 'roomDenial' && owner &&
-            !THREATS.includes(owner) && empireDistance(key) > DEFENSIVE_BUBBLE &&
-            !_.pluck(WAR_TARGETS, 'user').includes(owner)) {
+        if (!nukePending && !(target.dDay && target.dDay > Game.time) &&
+            type !== 'scout' && type !== 'guard' && type !== 'roomDenial' && owner &&
+            !keepOffensiveOp(owner, key, warTargetUsers)) {
             log.a(`Canceling operation in ${roomLink(key)} — ${owner} no longer a threat.`, 'HIGH COMMAND: ');
             delete Memory.targetRooms[key];
             continue;

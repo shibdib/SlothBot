@@ -25,6 +25,7 @@ const {
     minEmpireDist,
     allowSiegeStretch,
     siegeLaunchAllowed,
+    isSiegeCounted,
 } = require('hcUtils');
 const {setTarget} = require('hcTargets');
 const {notifySiegeLaunch} = require('module.notifications');
@@ -218,7 +219,7 @@ function militaryOperations() {
         const op = Memory.targetRooms[key];
         if (!op) continue;
         if (op.type === 'stronghold') activeStrongholds++;
-        else if (op.type === 'roomDenial' || op.dDay) activeSiege++;
+        else if (isSiegeCounted(op)) activeSiege++;
         else {
             activeNonSiege++;
             if (op.type === 'remoteDenial') activeRemoteDenials++;

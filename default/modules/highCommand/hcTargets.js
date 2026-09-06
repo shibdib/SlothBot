@@ -4,7 +4,7 @@
  * Target room assignment for military and auxiliary ops.
  */
 
-const {getPriority, scoreOriginDistance, siegeOpLevel} = require('hcUtils');
+const {getPriority, scoreOriginDistance, siegeOpLevel, isSiegeCounted} = require('hcUtils');
 const {notifySiegeLaunch} = require('module.notifications');
 const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS} = require('bodySiegeBoosts');
 
@@ -19,6 +19,10 @@ function setTarget(room, operation, level = 1, military = true) {
         // Sieges need more waves to break fortified rooms; harassment ops can cancel sooner
         waveLimit: operation === 'roomDenial' ? 12 : (operation === 'stronghold' ? 8 : 4)
     };
+    if (operation === 'remoteDenial') {
+        const sm = INTEL[room] && INTEL[room].safemode;
+        if (sm > Game.time) cache[room].dDay = sm;
+    }
     if (military) Memory.targetRooms = cache; else Memory.auxiliaryTargets = cache;
     // Guard remotes may have no intel (unscanned neighbors are valid targets)
     if (!INTEL[room]) {
@@ -75,7 +79,7 @@ function operationRan(target) {
     if (!target) return false;
     if (target.waves || target.lastEnemyKilled) return true;
     if ((target.friendlyDead || 0) > 0 || (target.enemyDead || 0) > 0) return true;
-    const siege = target.type === 'roomDenial' || !!target.dDay;
+    const siege = isSiegeCounted(target);
     // Sieges must actually wave or fight before lastSiege locks the room.
     // Assignment-only (labs empty, never spawned) used to stamp a 3000-tick lock.
     if (siege) return false;
@@ -92,7 +96,7 @@ function stampOperationCooldown(roomName, target, force) {
     if (!force && !operationRan(target)) return;
     const rooms = [roomName];
     if (target.ownerRoom && target.ownerRoom !== roomName) rooms.push(target.ownerRoom);
-    const siege = target.type === 'roomDenial' || !!target.dDay;
+    const siege = isSiegeCounted(target);
     for (let i = 0; i < rooms.length; i++) {
         const intel = INTEL[rooms[i]];
         if (!intel) continue;

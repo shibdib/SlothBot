@@ -12,6 +12,7 @@
 const {recordSiegeCancellation} = require('hcReadiness');
 const {stampOperationCooldown} = require('hcTargets');
 const {notifySiegeEnd} = require('module.notifications');
+const {intelOwner, keepOffensiveOp, warTargetUserSet} = require('hcUtils');
 
 function operationSustainability(room, operationRoom = room.name) {
     let operation = Memory.targetRooms[operationRoom] || Memory.auxiliaryTargets[operationRoom]
@@ -20,13 +21,14 @@ function operationSustainability(room, operationRoom = room.name) {
     if (!operation) return;
 
     if (room.controller?.safeMode) {
-        if (operation.nukeLaunched || (operation.dDay && operation.dDay > Game.time)) {
-            saveOperation(operationRoom, operation);
-            return;
-        }
-        if (!(operation.type === 'guard' && operation.camping)) {
-            markAsPending(operationRoom, room);
-            return 'remoteDenial';
+        const military = Memory.targetRooms[operationRoom] || Memory.targetRooms[room.name];
+        if (military && !(military.type === 'guard' && military.camping)) {
+            if (military.nukeLaunched || (military.dDay && military.dDay > Game.time)) {
+                saveOperation(operationRoom, military);
+                return;
+            }
+            const convertKey = Memory.targetRooms[operationRoom] ? operationRoom : room.name;
+            if (markAsPending(convertKey, room)) return 'remoteDenial';
         }
     }
 
@@ -101,15 +103,27 @@ function operationSustainability(room, operationRoom = room.name) {
 
 function markAsPending(operationRoom, room) {
     const previous = Memory.targetRooms[operationRoom];
-    const wasSiege = previous && previous.type === 'roomDenial';
-    Memory.targetRooms[operationRoom] = {
-        tick: Game.time,
-        type: 'remoteDenial',
-        level: 1,
-        dDay: Game.time + room.controller.safeMode
-    };
-    log.a(`${room.name} marked as Remote Denial due to safemode.`, 'OPERATION PLANNER: ');
-    if (wasSiege) notifySiegeEnd(operationRoom, 'SAFEMODE', Memory.targetRooms[operationRoom]);
+    if (!previous) return false;
+    if (previous.type === 'guard' && previous.camping) return false;
+
+    const owner = (room.controller && room.controller.owner && room.controller.owner.username)
+        || intelOwner(typeof INTEL !== 'undefined' ? INTEL[operationRoom] : null);
+    if (owner && FRIENDLIES.includes(owner)) return false;
+    if (owner && !keepOffensiveOp(owner, operationRoom, warTargetUserSet())) return false;
+
+    const dDay = Game.time + (room.controller.safeMode || 0);
+    const already = previous.type === 'remoteDenial';
+    if (already && previous.dDay && previous.dDay >= dDay) return true;
+
+    const wasSiege = previous.type === 'roomDenial';
+    previous.type = 'remoteDenial';
+    if (previous.level == null) previous.level = 1;
+    previous.dDay = dDay;
+    if (!already) {
+        log.a(`${room.name} marked as Remote Denial due to safemode.`, 'OPERATION PLANNER: ');
+        if (wasSiege) notifySiegeEnd(operationRoom, 'SAFEMODE', previous);
+    }
+    return true;
 }
 
 function processTombstones(tombstones, friendlyList, deadCount, trackedList) {

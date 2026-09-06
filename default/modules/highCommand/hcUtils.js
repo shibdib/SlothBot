@@ -25,13 +25,19 @@ function warPriorityMap() {
     return map;
 }
 
+function isSiegeCounted(op) {
+    if (!op) return false;
+    if (op.type === 'roomDenial') return true;
+    // Nuke follow-up holds a siege slot. Safemode remoteDenial dDay does not.
+    return !!(op.nukeLaunched && op.dDay);
+}
+
 function countActiveSieges() {
     const targets = Memory.targetRooms;
     if (!targets) return 0;
     let n = 0;
     for (const key in targets) {
-        const op = targets[key];
-        if (op && (op.type === 'roomDenial' || op.dDay)) n++;
+        if (isSiegeCounted(targets[key])) n++;
     }
     return n;
 }
@@ -73,6 +79,19 @@ function warTargetUserSet() {
         if (t && t.user) set.add(t.user);
     }
     return set;
+}
+
+/**
+ * Start requires WAR_TARGETS (top 3). Cancel/safemode-convert is looser so
+ * list flicker does not immediately drop a live op.
+ */
+function keepOffensiveOp(owner, roomName, warUsers) {
+    if (!owner) return false;
+    if (warUsers && warUsers.has(owner)) return true;
+    if (typeof THREATS !== 'undefined' && THREATS && THREATS.includes(owner)) return true;
+    const bubble = typeof DEFENSIVE_BUBBLE !== 'undefined' ? DEFENSIVE_BUBBLE : 1;
+    const dist = empireDistance(roomName);
+    return Number.isFinite(dist) && dist <= bubble;
 }
 
 function minEmpireDist(owners) {
@@ -534,5 +553,7 @@ module.exports = {
     listAutoSieges,
 
     warTargetUserSet,
+    keepOffensiveOp,
+    isSiegeCounted,
 
 };
