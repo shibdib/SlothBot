@@ -40,6 +40,7 @@ const {
     isPlannedConstructionSite,
     alreadyFreedSiteSlots,
     markFreedSiteSlots,
+    invalidateRoomConstructionSiteCache,
 } = require('planUtils');
 const {invalidateRampartSpots} = require('planGeomRamparts');
 
@@ -96,14 +97,66 @@ function freeSiteSlotsForContainers(room, want) {
 
     if (freed) {
         markFreedSiteSlots(room);
-        try {
-            const {invalidateRoomConstructionSiteCache} = require('planUtils');
-            invalidateRoomConstructionSiteCache(room);
-        } catch (e) { /* ignore */
-        }
+        invalidateRoomConstructionSiteCache(room);
         if (room._invalidateStructureCaches) room._invalidateStructureCaches();
         if (typeof log !== 'undefined' && log.a) {
             log.a(`${room.name} removed ${freed} site(s) to free slots for containers`, 'PLANNER');
+        }
+    }
+    return freed;
+}
+
+/**
+ * Labs lose to a full road/rampart queue: priority only covers same-tick
+ * reserves, not sites already sitting in the room cap (5 on shardX).
+ * Drop idle (then low-progress) roads/barriers, including planned ones —
+ * they re-queue after the lab site is down.
+ * @param {Room} room
+ * @param {number} want
+ * @returns {number} sites removed
+ */
+function freeSiteSlotsForLabs(room, want) {
+    if (want <= 0 || isPlannerShadow(room)) return 0;
+    if (siteBudget.canPlaceConstructionSite(room)) return 0;
+    if (alreadyFreedSiteSlots(room)) return 0;
+
+    let freed = 0;
+    const removeSites = (sites) => {
+        for (let i = 0; i < sites.length; i++) {
+            if (freed >= want) break;
+            const site = sites[i];
+            try {
+                if (site.remove() === OK) freed++;
+            } catch (e) { /* ignore */
+            }
+        }
+    };
+
+    const sites = room.constructionSites || [];
+    const reclaim = [STRUCTURE_ROAD, STRUCTURE_WALL, STRUCTURE_RAMPART];
+    for (let t = 0; t < reclaim.length; t++) {
+        if (freed >= want) break;
+        const type = reclaim[t];
+        removeSites(sites.filter(s => s.structureType === type && !s.progress));
+    }
+    if (freed < want) {
+        const low = sites
+            .filter(s =>
+                (s.structureType === STRUCTURE_ROAD
+                    || s.structureType === STRUCTURE_WALL
+                    || s.structureType === STRUCTURE_RAMPART)
+                && s.progress > 0
+                && s.progress < Math.max(1, (s.progressTotal || 1) * 0.25))
+            .sort((a, b) => a.progress - b.progress);
+        removeSites(low);
+    }
+
+    if (freed) {
+        markFreedSiteSlots(room);
+        invalidateRoomConstructionSiteCache(room);
+        if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+        if (typeof log !== 'undefined' && log.a) {
+            log.a(`${room.name} removed ${freed} site(s) to free slots for labs`, 'PLANNER');
         }
     }
     return freed;
@@ -115,12 +168,15 @@ function tryPlace(room, layer, pos, structureType) {
     }
     let req = siteBudget.request(room, layer, 1);
     if (req.allowed < 1) {
-        // One reclaim pass for container layers only — layout must not starve economy.
+        // One reclaim pass — layout must not starve economy / labs.
+        let freed = 0;
         if (layer === 'controller' || layer === 'sources') {
-            const freed = freeSiteSlotsForContainers(room, 1);
-            if (freed > 0) {
-                req = siteBudget.request(room, layer, 1);
-            }
+            freed = freeSiteSlotsForContainers(room, 1);
+        } else if (layer === 'labs') {
+            freed = freeSiteSlotsForLabs(room, 1);
+        }
+        if (freed > 0) {
+            req = siteBudget.request(room, layer, 1);
         }
     }
     if (req.allowed < 1) {
@@ -1672,8 +1728,9 @@ function placeLinks(room) {
 // ---------------------------------------------------------------------------
 
 function placeLabs(room) {
-    // V1 labBuilder: CONTROLLER_STRUCTURES[STRUCTURE_LAB][room.level]; aux gates RCL>=6.
-    const level = room.level != null ? room.level : (room.controller && room.controller.level);
+    // Controller RCL, not energy-tier room.level — incomplete extensions at
+    // RCL7 otherwise report as <6 and never unlock labs.
+    const level = controllerRcl(room);
     if (level < 6) return {placed: 0, reason: 'rcl'};
     // C4: plan.anchors.lab first.
     let labXY = null;
@@ -1690,7 +1747,6 @@ function placeLabs(room) {
 
     const builtLabs = room.labs ? room.labs.length : 0;
     const allowed = CONTROLLER_STRUCTURES[STRUCTURE_LAB][level] || 0;
-    // V1: CONTROLLER_STRUCTURES[...] <= builtLabs || labInBuild → return
     if (allowed <= builtLabs) return {placed: 0, reason: 'have'};
 
     const labInBuild = (room.constructionSites || []).some(s => s.structureType === STRUCTURE_LAB);
@@ -1715,8 +1771,42 @@ function placeLabs(room) {
             } catch (e) { /* ignore */
             }
         }
-        if (pos.checkForConstructionSites && pos.checkForConstructionSites()) continue;
-        if (pos.checkForAllStructure && pos.checkForAllStructure()) continue;
+        const site = pos.checkForConstructionSites && pos.checkForConstructionSites();
+        if (site) {
+            // Rampart/wall/road sites occupy the tile (one site per tile) and
+            // starve labs forever on a 5-site cap. Lab first; rampart re-sites
+            // on the finished lab.
+            if (site.structureType === STRUCTURE_LAB) {
+                return {placed: 0, reason: 'site', busy: true};
+            }
+            if (site.structureType === STRUCTURE_RAMPART
+                || site.structureType === STRUCTURE_WALL
+                || site.structureType === STRUCTURE_ROAD) {
+                if (!isPlannerShadow(room)) {
+                    try {
+                        if (site.remove() === OK) {
+                            invalidateRoomConstructionSiteCache(room);
+                        } else {
+                            continue;
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+            } else {
+                continue;
+            }
+        }
+        // lookFor is live; checkForAllStructure can still see a wall we just destroyed.
+        const structs = pos.lookFor(LOOK_STRUCTURES);
+        let blocked = false;
+        for (let s = 0; s < structs.length; s++) {
+            const t = structs[s].structureType;
+            if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
+            blocked = true;
+            break;
+        }
+        if (blocked) continue;
 
         const res = tryPlace(room, 'labs', pos, STRUCTURE_LAB);
         if (res.ok) {
@@ -1754,8 +1844,8 @@ function extractorOn(pos) {
 }
 
 function placeMineral(room) {
-    const level = room.level != null ? room.level : (room.controller && room.controller.level);
-    // V1 mineralBuilder has no RCL gate; aux only calls at room.level >= 6.
+    const level = controllerRcl(room);
+    // V1 mineralBuilder has no RCL gate; aux only calls at controller RCL >= 6.
     if (level < 6) return {placed: 0, reason: 'rcl'};
     if (!room.mineral) return {placed: 0, reason: 'no-mineral'};
 
@@ -1878,8 +1968,7 @@ function placeEconomy(room) {
     let links = {placed: 0, reason: 'no-storage'};
 
     if (room.storage) {
-        const level = room.level != null ? room.level : (room.controller && room.controller.level);
-        if (level >= 6) {
+        if (controllerRcl(room) >= 6) {
             mineral = placeMineral(room);
             labs = placeLabs(room);
         }
@@ -1902,6 +1991,7 @@ function placeEconomy(room) {
             controllerXY: controller.x != null ? {x: controller.x, y: controller.y} : undefined,
             mineral: mineral.placed,
             labs: labs.placed,
+            labsReason: labs.reason,
             links: links.placed,
             linkCleanup: linkCleanup.removed || linkCleanup.sites
                 ? {removed: linkCleanup.removed, sites: linkCleanup.sites, reason: linkCleanup.reason}
