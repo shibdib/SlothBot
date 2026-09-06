@@ -158,9 +158,9 @@ class RoleWaller {
             this.creep.memory.working = true;
         } else if (usedCapacity === 0) {
             delete this.creep.memory.working;
-            delete this.creep.memory.currentTarget;
             delete this.creep.memory.task;
-            delete this.creep.memory.targetWallHits;
+            // Keep currentTarget / targetWallHits across refills so a solo waller
+            // finishes a tile instead of hopping to whichever rampart is lowest.
         }
 
         // If damaged move to safety
@@ -250,16 +250,10 @@ class RoleWaller {
             this.creep.memory.targetWallHits = floor;
         } else if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
             this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
-        } else if (!this.creep.memory.targetWallHits) {
-            if (target.structureType === STRUCTURE_WALL) {
-                this.creep.memory.targetWallHits = Math.min(
-                    target.hits + 50000,
-                    this.barrierRepairCap(maintenance),
-                    RAMPART_HITS_MAX[rcl] || 300000000
-                );
-            } else {
-                this.creep.memory.targetWallHits = Math.min(target.hits + 50000, RAMPART_HITS_MAX[rcl] || 300000000);
-            }
+        } else if (!this.creep.memory.targetWallHits || target.hits >= this.creep.memory.targetWallHits) {
+            const cap = Math.min(this.barrierRepairCap(maintenance), RAMPART_HITS_MAX[rcl] || 300000000);
+            const chunk = maintenance ? 100000 : 200000;
+            this.creep.memory.targetWallHits = Math.min(target.hits + chunk, cap);
         }
 
         this.creep.say(ICONS.castle, true);
@@ -423,14 +417,15 @@ class RoleWaller {
             if (target) {
                 this.creep.memory.currentTarget = target.id;
                 this.creep.memory.task = 'waller';
+                const rcl = roomRcl(this.room);
+                const cap = Math.min(this.barrierRepairCap(maintenance), RAMPART_HITS_MAX[rcl] || 300000000);
                 if (target.structureType === STRUCTURE_RAMPART && target.hits < floor) {
                     this.creep.memory.targetWallHits = floor;
                 } else if (target.structureType === STRUCTURE_RAMPART && target.hits < SAFE_RAMPART_HITS) {
                     this.creep.memory.targetWallHits = SAFE_RAMPART_HITS;
-                } else if (maintenance) {
-                    this.creep.memory.targetWallHits = target.hits + 100000;
                 } else {
-                    delete this.creep.memory.targetWallHits;
+                    const chunk = maintenance ? 100000 : 200000;
+                    this.creep.memory.targetWallHits = Math.min(target.hits + chunk, cap);
                 }
             }
         }
