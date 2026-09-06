@@ -57,7 +57,7 @@ function getBarrierRepairList(room, maintenance) {
     const rcl = roomRcl(room);
     if (rcl >= 8) targetLimit = 10000000;
     else if (rcl >= 6) targetLimit = 5000000;
-    if (spawnEnergyState(room) === 1) targetLimit = Math.min(targetLimit, 200000);
+    if (spawnEnergyState(room) < 2) targetLimit = Math.min(targetLimit, 200000);
     if (maintenance && rcl >= 8) targetLimit = RAMPART_HITS_MAX[rcl] || targetLimit;
 
     barrierListCache[key] = room.barriers.filter((s) => {
@@ -349,7 +349,7 @@ class RoleWaller {
         let targetLimit = 100000;
         if (rcl >= 8) targetLimit = 10000000;
         else if (rcl >= 6) targetLimit = 5000000;
-        if (spawnEnergyState(this.room) === 1) targetLimit = Math.min(targetLimit, 200000);
+        if (spawnEnergyState(this.room) < 2) targetLimit = Math.min(targetLimit, 200000);
         if (maintenance && rcl >= 8) targetLimit = RAMPART_HITS_MAX[rcl] || targetLimit;
         return targetLimit;
     }

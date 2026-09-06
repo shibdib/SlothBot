@@ -166,12 +166,13 @@ function essentialCreepQueue(room) {
         } catch (e) { /* optional */
         }
         const bootstrap = roomNeedsRampartBootstrap(room) || missingSeal || barrierSites > 0;
-        let wallerCount = 0;
-        if (energyState >= 1 || bootstrap) wallerCount = 1;
+        // Ramparts decay every tick. energyState 0 / low spareIncome used to
+        // drop this to 0 until hits hit the 3k bootstrap floor.
+        let wallerCount = 1;
         if (energyState >= 1 && bootstrap && (barrierSites >= 5 || missingSeal)) wallerCount = 2;
         if (energyState >= 2 && room.controller.level >= 8 && barrierSites >= 8) wallerCount = 3;
         if (room.controller.level < 7 && spareIncome < 10) {
-            wallerCount = Math.min(wallerCount, spareIncome >= 4 ? 1 : (bootstrap ? 1 : 0));
+            wallerCount = 1;
         }
         if (wallerCount) {
             queueCreepIfNeeded({
