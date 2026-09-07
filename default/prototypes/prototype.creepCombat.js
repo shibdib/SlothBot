@@ -1,3 +1,5 @@
+const {stepInlandOffExit} = require('pathFormation');
+
 function structOwner(s) {
     if (s && typeof s.safeOwnerName === 'function') return s.safeOwnerName();
     try {
@@ -714,6 +716,20 @@ Creep.prototype.fightRanged = function (target) {
             this.rangedAttack(target);
             return true;
         }
+    }
+
+    // Exit tiles teleport at tick end. Shooting or kiting from here walks
+    // back into the room we just left.
+    if (this.pos.isExit()) {
+        if (range <= 3) {
+            const nearby = this.pos.findInRange(this.room.hostileCreeps, 2);
+            if (nearby.length >= 2) this.rangedMassAttack();
+            else this.rangedAttack(target);
+        } else {
+            this.attackInRange();
+        }
+        stepInlandOffExit(this);
+        return true;
     }
 
     if (!MY_ROOMS.includes(this.room.name)) {

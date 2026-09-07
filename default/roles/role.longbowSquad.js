@@ -437,6 +437,11 @@ class RoleLongbowSquad {
             }
             return;
         }
+        // Already in dest. Chasing a leader still in staging walks us back out.
+        if (dest && this.creep.room.name === dest && leader.room.name !== dest) {
+            if (this.creep.handleMilitaryCreep(false, true, false)) return;
+            return;
+        }
         // Duo/snake on dest-facing staging: step inland so we don't hop alone.
         // Packed quads stay in the blob — squadMove walks the 2×2 through.
         if (grouped && dest && this.creep.room.name !== dest && this.onDestFacingExit(this.creep, dest)

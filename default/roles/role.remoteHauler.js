@@ -34,12 +34,11 @@ class RoleRemoteHauler {
             const guard = (this.memory.other && this.memory.other.skRoom)
                 || (remoteRoom && skGuardRoom(this.memory.colony, remoteRoom));
             if (guard && !hasSkAttackerOnSite(guard)) {
-                if (this.room.name === remoteRoom || this.room.name === guard) {
+                if (this.room.name !== this.memory.colony) {
                     this.creep.fleeHome(true);
                     return true;
                 }
-                this.creep.idleFor(10);
-                return true;
+                return waitOffOwnedExit(this.creep);
             }
             // Spawn already skips combat; recycling here restaffed after every invader wave.
             if (remoteRoom && remoteCombatBlocksMining(remoteRoom)) {
@@ -47,8 +46,7 @@ class RoleRemoteHauler {
                     this.creep.fleeHome(true);
                     return true;
                 }
-                this.creep.idleFor(10);
-                return true;
+                return waitOffOwnedExit(this.creep);
             }
         }
         if (Game.time % 50 === 0 && safemodeGeneration(this.creep)) return true;
@@ -262,6 +260,17 @@ class RoleRemoteHauler {
             if (closestLink) this.memory.exitLink = closestLink.id;
         }
     }
+}
+
+function waitOffOwnedExit(creep) {
+    const {x, y} = creep.pos;
+    if (x <= 2 || x >= 47 || y <= 2 || y >= 47) {
+        const dest = creep.room.storage || creep.room.terminal
+            || (creep.room.spawns && creep.room.spawns[0]);
+        creep.shibMove(dest || new RoomPosition(25, 25, creep.room.name), {range: 15});
+        return true;
+    }
+    return creep.idleFor(10);
 }
 
 function dropOff(creep) {

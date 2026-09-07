@@ -26,6 +26,7 @@ module.exports = {
     wouldEnterDest: pathFormation.wouldEnterDest,
     onExitTile: pathFormation.onExitTile,
     inlandOffExit: pathFormation.inlandOffExit,
+    stepInlandOffExit: pathFormation.stepInlandOffExit,
     findRoute: pathRoute.findRoute,
     deleteRoute: pathRoute.deleteRoute,
     getRoute: pathRoute.getRoute,

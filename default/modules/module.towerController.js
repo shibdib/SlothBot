@@ -101,27 +101,28 @@ module.exports.towerController = function (room) {
 
         let attacked = false;
         if (cache.hasHostiles) {
-            const target = findBestTarget(room, towers, cache.hostiles, roomDrain);
-            if (target) {
-                updateDrainTracking(roomDrain, target, currentTime);
+            const pick = findBestTarget(room, towers, cache.hostiles, roomDrain, room.friendlyCreeps);
+            if (pick && pick.target) {
+                updateDrainTracking(roomDrain, pick.target, currentTime, pick.expectProgress);
                 for (const tower of towers) {
-                    if (tower.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST) tower.attack(target);
+                    if (tower.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST) tower.attack(pick.target);
                 }
                 attacked = true;
             }
         }
 
-        // Heal beats repair: a dead defender costs more than a damaged barrier, and the heal
-        // path has no storage floor — we top creeps up to full whenever we aren't attacking.
+        // Heal beats repair, but not attack. While hostiles are in the room, topping a
+        // combat creep to full is how invader pairs live — the friendly cannot break
+        // their heal and the towers are not shooting. Emergency-only in combat.
         if (!attacked && cache.injuredFriendlies.length) {
-            const healCandidates = cache.injuredFriendlies
-                .slice()
-                .sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
-            let i = 0;
-            for (const tower of towers) {
-                if (tower.store[RESOURCE_ENERGY] < TOWER_ENERGY_COST) continue;
-                tower.heal(healCandidates[i % healCandidates.length]);
-                i++;
+            const healCandidates = selectHealCandidates(cache.injuredFriendlies, cache.hasHostiles);
+            if (healCandidates.length) {
+                let i = 0;
+                for (const tower of towers) {
+                    if (tower.store[RESOURCE_ENERGY] < TOWER_ENERGY_COST) continue;
+                    tower.heal(healCandidates[i % healCandidates.length]);
+                    i++;
+                }
             }
         }
         if (currentTime % 200 === 0) cleanupDrainState(roomDrain, currentTime);
@@ -178,46 +179,79 @@ function wallerClaimedTargetIds(room) {
     return ids;
 }
 
-function findBestTarget(room, towers, hostiles, roomDrain) {
+function selectHealCandidates(injured, hasHostiles) {
+    const list = hasHostiles
+        ? injured.filter(c => c.hits / c.hitsMax <= 0.3 || c.hits <= 200)
+        : injured;
+    return list.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
+}
+
+function armedFriendlyNear(hostile, friendlies) {
+    if (!friendlies || !friendlies.length) return false;
+    for (let i = 0; i < friendlies.length; i++) {
+        const f = friendlies[i];
+        if (!f || f.pos.getRangeTo(hostile) > 3) continue;
+        if (f.hasActiveBodyparts(ATTACK) || f.hasActiveBodyparts(RANGED_ATTACK) || f.hasActiveBodyparts(HEAL)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Player edge-dancers with no fight in range. Invaders walking in are not drain. */
+function isEdgeDrain(hostile, friendlies) {
+    const owner = hostile.owner && hostile.owner.username;
+    if (owner === 'Invader') return false;
+    return !armedFriendlyNear(hostile, friendlies);
+}
+
+function findBestTarget(room, towers, hostiles, roomDrain, friendlies) {
     const currentTime = Game.time;
     const storageLow = !room.energyState;
 
-    let bestTarget = null;
-    let bestScore = -Infinity;
+    let bestKillable = null;
+    let bestKillableScore = -Infinity;
+    let bestFallback = null;
+    let bestFallbackScore = -Infinity;
 
     for (const hostile of hostiles) {
         const x = hostile.pos.x;
         const y = hostile.pos.y;
-        if (x === 0 || x === 49 || y === 0 || y === 49) continue;
+        if ((x === 0 || x === 49 || y === 0 || y === 49) && isEdgeDrain(hostile, friendlies)) continue;
 
         const ds = roomDrain[hostile.id];
-        if (ds && ds.blacklistedUntil > currentTime) continue;
+        const blacklisted = !!(ds && ds.blacklistedUntil > currentTime);
 
-        // Kill-feasibility: damage after TOUGH reduction must exceed self + ally heal,
-        // otherwise the volley is wasted (and a drain attack profits).
         const rawDamage = computeTowerDamageTo(hostile, towers);
         const effectiveDamage = rawDamage * computeToughMultiplier(hostile);
         const totalHeal = computeHealCapacity(hostile) + computeNearbyAllyHeal(hostile, hostiles);
+        const net = effectiveDamage - totalHeal;
 
-        if (effectiveDamage <= totalHeal) continue;
-
-        // Under storage pressure, demand a wider margin so we don't bleed reserves on
-        // marginal engagements.
-        if (storageLow && effectiveDamage - totalHeal < rawDamage * 0.25) continue;
-
-        let score = effectiveDamage - totalHeal;
+        let score = net;
         if (hostile.hasActiveBodyparts(HEAL)) score += 5000;
         else if (hostile.hasActiveBodyparts(ATTACK) || hostile.hasActiveBodyparts(RANGED_ATTACK)) score += 3000;
         else if (hostile.hasActiveBodyparts(WORK)) score += 1500;
         score += (1 - hostile.hits / hostile.hitsMax) * 500;
 
-        if (score > bestScore) {
-            bestScore = score;
-            bestTarget = hostile;
+        const killable = !blacklisted && net > 0
+            && !(storageLow && net < rawDamage * 0.25);
+        if (killable && score > bestKillableScore) {
+            bestKillableScore = score;
+            bestKillable = hostile;
+        }
+
+        // Unkillable / blacklisted tank: still shoot healers so they self-heal
+        // instead of topping the partner. That is how a pair gets broken.
+        if (blacklisted && !hostile.hasActiveBodyparts(HEAL)) continue;
+        if (score > bestFallbackScore) {
+            bestFallbackScore = score;
+            bestFallback = hostile;
         }
     }
 
-    return bestTarget;
+    if (bestKillable) return {target: bestKillable, expectProgress: true};
+    if (bestFallback) return {target: bestFallback, expectProgress: false};
+    return null;
 }
 
 function computeTowerDamageTo(target, towers) {
@@ -240,6 +274,7 @@ function getTowerBoost(tower) {
 function computeToughMultiplier(creep) {
     // Damage hits TOUGH first; once the front TOUGH dies, the next absorbs.
     // Use the most-protective alive TOUGH as the worst-case (conservative) multiplier.
+    if (!creep.body) return 1;
     let mult = 1;
     for (const part of creep.body) {
         if (part.type !== TOUGH || part.hits === 0) continue;
@@ -256,16 +291,24 @@ function healPartMultiplier(partType, boost) {
     return BOOSTS[partType][boost].heal;
 }
 
-function computeHealCapacity(creep) {
+function healPartsPower(creep) {
     let melee = 0;
     let ranged = 0;
-    for (const part of creep.body) {
-        if (part.hits === 0) continue;
-        const mult = healPartMultiplier(part.type, part.boost);
-        if (part.type === HEAL) melee += HEAL_POWER * mult;
+    const body = creep.body;
+    if (!body) return {melee: 0, ranged: 0};
+    for (let i = 0; i < body.length; i++) {
+        const part = body[i];
+        if (part.type !== HEAL || part.hits === 0) continue;
+        const mult = healPartMultiplier(HEAL, part.boost);
+        melee += HEAL_POWER * mult;
+        ranged += RANGED_HEAL_POWER * mult;
     }
-    // One heal action per tick — use the stronger of melee heal vs rangedHeal on self.
-    return Math.max(melee, ranged);
+    return {melee, ranged};
+}
+
+function computeHealCapacity(creep) {
+    // Self-heal is always the melee action.
+    return healPartsPower(creep).melee;
 }
 
 function computeNearbyAllyHeal(target, hostiles) {
@@ -274,22 +317,13 @@ function computeNearbyAllyHeal(target, hostiles) {
         if (h.id === target.id) continue;
         const range = h.pos.getRangeTo(target);
         if (range > 3) continue;
-
-        let melee = 0;
-        let ranged = 0;
-        for (const part of h.body) {
-            if (part.hits === 0) continue;
-            const mult = healPartMultiplier(part.type, part.boost);
-            if (part.type === HEAL) melee += HEAL_POWER * mult;
-        }
-
-        if (range <= 1) total += Math.max(melee, ranged);
-        else total += ranged;
+        const power = healPartsPower(h);
+        total += range <= 1 ? power.melee : power.ranged;
     }
     return total;
 }
 
-function updateDrainTracking(roomDrain, target, currentTime) {
+function updateDrainTracking(roomDrain, target, currentTime, expectProgress) {
     let ds = roomDrain[target.id];
     if (!ds) {
         ds = roomDrain[target.id] = {
@@ -300,13 +334,15 @@ function updateDrainTracking(roomDrain, target, currentTime) {
         };
     }
     ds.shotsFired++;
-    if (target.hits >= ds.lastHits) ds.consecutiveNoProgress++;
-    else ds.consecutiveNoProgress = 0;
-    if (ds.consecutiveNoProgress >= DRAIN_NO_PROGRESS_SHOTS) {
-        // The kill-feasibility check thought this was killable but reality says otherwise
-        // (boost decay, healer joined, target moved). Park it.
-        ds.blacklistedUntil = currentTime + DRAIN_BLACKLIST_TICKS;
-        ds.consecutiveNoProgress = 0;
+    if (expectProgress) {
+        if (target.hits >= ds.lastHits) ds.consecutiveNoProgress++;
+        else ds.consecutiveNoProgress = 0;
+        if (ds.consecutiveNoProgress >= DRAIN_NO_PROGRESS_SHOTS) {
+            // Kill-feasibility thought this was killable but HP did not drop
+            // (healer joined, boost, moved). Stop treating it as a kill.
+            ds.blacklistedUntil = currentTime + DRAIN_BLACKLIST_TICKS;
+            ds.consecutiveNoProgress = 0;
+        }
     }
     ds.lastHits = target.hits;
 }

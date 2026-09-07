@@ -32,7 +32,7 @@ const {
     applySameRoomDetour,
 } = require('pathRoute');
 
-const {isSquadCreep, wouldEnterDest, posAfterMove} = require('pathFormation');
+const {isSquadCreep, wouldEnterDest, posAfterMove, stepInlandOffExit} = require('pathFormation');
 
 /**
  * Claim/reserver TTL gate for *mission* travel only.
@@ -433,6 +433,18 @@ function executePath(creep, pathInfo, options, origin, heading) {
     if (dest && isSquadCreep(creep) && wouldEnterDest(creep.pos, nextDirection, dest)) {
         clearShibMove(creep);
         return false;
+    }
+
+    // Same-room path (combat, 25,25) must not leave dest through a neighbor
+    // corridor. fleeHome targets another room and is unaffected.
+    const pathTargetRoom = pathInfo.target && pathInfo.target.roomName;
+    if (dest && creep.pos.roomName === dest && pathTargetRoom === dest) {
+        const leavePos = posAfterMove(creep.pos, nextDirection);
+        if (leavePos && leavePos.roomName !== dest) {
+            clearShibMove(creep);
+            if (stepInlandOffExit(creep)) return true;
+            return false;
+        }
     }
 
     const nextPos = creep.pos.positionAtDirection(nextDirection);

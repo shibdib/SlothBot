@@ -23,6 +23,7 @@
 
 const {runTowTruck} = require('pathTow');
 const {clearShibMove, getShibMove} = require('pathUtils');
+const {stepInlandOffExit} = require('pathFormation');
 const {roomCanBurnSurplus} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 
@@ -275,6 +276,12 @@ Object.defineProperty(Creep.prototype, "idle", {
             (hostiles && hostiles.length) ||
             (INTEL[this.room.name] && INTEL[this.room.name].threatLevel)) {
             delete heap.idle;
+            delete heap.idleSet;
+            return 0;
+        }
+
+        // Sitting on an exit skips borderCheck and bounces between rooms.
+        if (this.pos.isExit()) {
             delete heap.idleSet;
             return 0;
         }
@@ -1083,6 +1090,19 @@ Creep.prototype.towTruck = function () {
     return runTowTruck(this);
 };
 
+function forceOffExit(creep) {
+    if (stepInlandOffExit(creep)) return;
+    const {x, y} = creep.pos;
+    if (x === 0 && y === 0) creep.move(BOTTOM_RIGHT);
+    else if (x === 0 && y === 49) creep.move(TOP_RIGHT);
+    else if (x === 49 && y === 0) creep.move(BOTTOM_LEFT);
+    else if (x === 49 && y === 49) creep.move(TOP_LEFT);
+    else if (x === 49) creep.move(LEFT);
+    else if (x === 0) creep.move(RIGHT);
+    else if (y === 0) creep.move(BOTTOM);
+    else creep.move(TOP);
+}
+
 Creep.prototype.borderCheck = function () {
     const {x, y} = this.pos;
     if (x !== 0 && y !== 0 && x !== 49 && y !== 49) {
@@ -1091,34 +1111,25 @@ Creep.prototype.borderCheck = function () {
     }
     this.attackInRange();
     this.healInRange(true);
+
+    const dest = this.memory && this.memory.destination;
+    // Dest landing is a portal. Sitting here teleports back out.
+    if (dest === this.room.name) {
+        this.memory.borderCountDown = undefined;
+        clearShibMove(this);
+        this.memory.moveBlocked = Game.time;
+        forceOffExit(this);
+        return true;
+    }
+
     if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;
     if (this.memory.borderCountDown < 5 && getShibMove(this)) return false;
 
     clearShibMove(this);
     this.memory.moveBlocked = Game.time;
-
-    if (x === 0 && y === 0) this.move(BOTTOM_RIGHT);
-    else if (x === 0 && y === 49) this.move(TOP_RIGHT);
-    else if (x === 49 && y === 0) this.move(BOTTOM_LEFT);
-    else if (x === 49 && y === 49) this.move(TOP_LEFT);
-    else {
-        const road = findRoadNearCreep(this);
-        if (road) this.move(this.pos.getDirectionTo(road));
-        else {
-            let options;
-            if (x === 49) options = [LEFT, TOP_LEFT, BOTTOM_LEFT];
-            else if (x === 0) options = [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
-            else if (y === 0) options = [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
-            else options = [TOP, TOP_LEFT, TOP_RIGHT];
-            this.move(_.sample(options));
-        }
-    }
+    forceOffExit(this);
     return true;
 };
-
-function findRoadNearCreep(creep) {
-    return _.find(creep.room.roads, (s) => s.pos.isNearTo(creep) && !s.pos.checkForImpassible());
-}
 
 const BOOST_AMOUNT_PER_PART = LAB_BOOST_MINERAL;
 const BOOST_TTL_FLOOR = CREEP_LIFE_TIME * 0.6;

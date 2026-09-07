@@ -20,9 +20,11 @@ const {
     isAttackRecoveryMode,
     safeStructureOwner,
     countRoomConstructionSitesOfType,
+    countLiveRoomConstructionSitesOfType,
     countRoomConstructionSites,
     canPlaceConstructionSite,
     roomConstructionSiteBudget,
+    globalConstructionSiteBudget,
     invalidateRoomConstructionSiteCache,
     markFreedSiteSlots,
 } = require('planUtils');
@@ -60,6 +62,7 @@ const HUB_SEAL_WEIGHT = 4;
 const HUB_SECTOR_WEIGHT = 10;
 // Fallback ring around the hub when no seal exists yet (RCL < bunker).
 const TOWER_HUB_MIN_DIST = 2;
+const TOWER_HUB_FALLBACK_MIN_DIST = 4;
 const TOWER_HUB_MAX_DIST = 5;
 // Sit just inside the seal so each wall tile is in high tower damage.
 const TOWER_SEAL_BAND_MIN = 1;
@@ -70,6 +73,8 @@ const MAX_TOWER_HUBS = 6;
 const TOWER_HUB_SEPARATION = 2;
 const TOWER_EXIT_CLEARANCE = 5;
 const TOWER_ANCHOR_CLEARANCE = 3;
+// Hub manager stands on spawn-adjacent tiles; a tower there blocks spawning and the 0-MOVE.
+const TOWER_SPAWN_CLEARANCE = 2;
 const LAB_HUB_INPUT_INDICES = [0, 1];
 
 // ---------------------------------------------------------------------------
@@ -888,6 +893,17 @@ function cheby(ax, ay, bx, by) {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }
 
+/** Distance to the sampled seal / stamp-ring. Not hub range — those must not share sealDist. */
+function minDistToWalls(x, y, walls) {
+    if (!walls || !walls.length) return 99;
+    let min = 99;
+    for (let i = 0; i < walls.length; i++) {
+        const d = cheby(x, y, walls[i].x, walls[i].y);
+        if (d < min) min = d;
+    }
+    return min;
+}
+
 function towerTileKey(x, y) {
     return x + ',' + y;
 }
@@ -936,15 +952,19 @@ function collectExtensionStampKeys(room, hubX, hubY) {
 }
 
 function isTowerTileBlockedByWorld(room, x, y) {
-    const pos = new RoomPosition(x, y, room.name);
-    if (!pos.lookFor) return false;
-    const structs = pos.lookFor(LOOK_STRUCTURES) || [];
-    for (let i = 0; i < structs.length; i++) {
-        const t = structs[i].structureType;
-        if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
-        if (t === STRUCTURE_EXTENSION || t === STRUCTURE_CONTAINER || t === STRUCTURE_WALL) continue;
-        if (t === STRUCTURE_TOWER) continue;
-        return true;
+    try {
+        const pos = new RoomPosition(x, y, room.name);
+        if (!pos.lookFor) return false;
+        const structs = pos.lookFor(LOOK_STRUCTURES) || [];
+        for (let i = 0; i < structs.length; i++) {
+            const t = structs[i].structureType;
+            if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
+            if (t === STRUCTURE_EXTENSION || t === STRUCTURE_CONTAINER || t === STRUCTURE_WALL) continue;
+            if (t === STRUCTURE_TOWER) continue;
+            return true;
+        }
+    } catch (e) {
+        return false;
     }
     return false;
 }
@@ -1038,6 +1058,60 @@ function floodInteriorBehindSeal(hubXY, sealSet, terrain) {
     return interior;
 }
 
+function collectSpawnTiles(room, hubX, hubY) {
+    const tiles = [];
+    const seen = new Set();
+    const add = (x, y) => {
+        const key = towerTileKey(x, y);
+        if (seen.has(key)) return;
+        seen.add(key);
+        tiles.push({x, y});
+    };
+    const tmpl = room.memory && room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+    for (let e = 0; e < tmpl.length; e++) {
+        const entry = tmpl[e];
+        if (!entry || entry.structureType !== STRUCTURE_SPAWN) continue;
+        const pos = entry.pos || [];
+        for (let i = 0; i < pos.length; i++) add(hubX + pos[i].x, hubY + pos[i].y);
+    }
+    const spawns = room.spawns || [];
+    for (let i = 0; i < spawns.length; i++) {
+        if (spawns[i] && spawns[i].pos) add(spawns[i].pos.x, spawns[i].pos.y);
+    }
+    return tiles;
+}
+
+function tooCloseToSpawn(x, y, spawnTiles) {
+    for (let i = 0; i < spawnTiles.length; i++) {
+        if (cheby(x, y, spawnTiles[i].x, spawnTiles[i].y) < TOWER_SPAWN_CLEARANCE) return true;
+    }
+    return false;
+}
+
+function spawnTilesForTowers(room, hubXY) {
+    if (!hubXY) return [];
+    const key = hubXY.x + ',' + hubXY.y;
+    if (room._towerSpawnTilesTick === Game.time && room._towerSpawnTilesHub === key) {
+        return room._towerSpawnTiles;
+    }
+    const tiles = collectSpawnTiles(room, hubXY.x, hubXY.y);
+    room._towerSpawnTiles = tiles;
+    room._towerSpawnTilesTick = Game.time;
+    room._towerSpawnTilesHub = key;
+    return tiles;
+}
+
+function towerHubsTooCloseToSpawn(room, hubs) {
+    if (!hubs || !hubs.length) return false;
+    const hub = resolveHub(room);
+    if (!hub) return false;
+    const spawnTiles = spawnTilesForTowers(room, hub);
+    for (let i = 0; i < hubs.length; i++) {
+        if (tooCloseToSpawn(hubs[i].x, hubs[i].y, spawnTiles)) return true;
+    }
+    return false;
+}
+
 function candidateAllowed(room, x, y, blocked, srcPos, ctrlPos, extensionStamp, hubXY, skipExit) {
     if (x < 2 || x > 47 || y < 2 || y > 47) return null;
     const terrain = Game.map.getRoomTerrain(room.name);
@@ -1045,6 +1119,7 @@ function candidateAllowed(room, x, y, blocked, srcPos, ctrlPos, extensionStamp, 
     const key = towerTileKey(x, y);
     if (blocked.has(key)) return null;
     if (isTowerTileBlockedByWorld(room, x, y)) return null;
+    if (tooCloseToSpawn(x, y, spawnTilesForTowers(room, hubXY))) return null;
     for (let i = 0; i < srcPos.length; i++) {
         if (cheby(x, y, srcPos[i].x, srcPos[i].y) < TOWER_ANCHOR_CLEARANCE) return null;
     }
@@ -1090,14 +1165,16 @@ function collectSealBandCandidates(room, hubXY, walls, sealSet, interior, blocke
     return candidates;
 }
 
-function collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensionStamp) {
+function collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensionStamp, skipExit, maxDist, walls) {
     const candidates = [];
-    for (let r = TOWER_HUB_MIN_DIST; r <= TOWER_HUB_MAX_DIST; r++) {
+    const minR = TOWER_HUB_FALLBACK_MIN_DIST;
+    const maxR = maxDist || TOWER_HUB_MAX_DIST;
+    for (let r = minR; r <= maxR; r++) {
         forEachChebyshevRing(hubXY.x, hubXY.y, r, 2, 47, 2, 47, function (x, y) {
-            const c = candidateAllowed(room, x, y, blocked, srcPos, ctrlPos, extensionStamp, hubXY, false);
+            const c = candidateAllowed(room, x, y, blocked, srcPos, ctrlPos, extensionStamp, hubXY, !!skipExit);
             if (!c) return;
-            c.sealDist = r;
             c.hubDist = r;
+            c.sealDist = minDistToWalls(x, y, walls);
             candidates.push(c);
         });
     }
@@ -1185,9 +1262,12 @@ function selectTowerHubs(room) {
         candidates = collectSealBandCandidates(
             room, hubXY, walls, sealSet, interior, blocked, srcPos, ctrlPos, extensionStamp);
         // Hub-on-seal or a packed interior yields 0 band tiles. Fill from the
-        // hub ring so high-RCL rooms still get towers.
+        // hub ring so rooms still get towers. skipExit: pre-bunker hubs sit
+        // closer to exits than the RCL6 seal, and exit clearance of 5 wipes
+        // the whole ring.
         if (candidates.length < MAX_TOWER_HUBS) {
-            const ring = collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensionStamp);
+            const ring = collectHubRingCandidates(
+                room, hubXY, blocked, srcPos, ctrlPos, extensionStamp, true, undefined, walls);
             const seen = new Set();
             for (let i = 0; i < candidates.length; i++) seen.add(candidates[i].key);
             for (let i = 0; i < ring.length; i++) {
@@ -1197,14 +1277,76 @@ function selectTowerHubs(room) {
             }
         }
     } else {
-        candidates = collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensionStamp);
+        const preBunker = !room.controller
+            || room.controller.level < (typeof BUNKER_LEVEL === 'number' ? BUNKER_LEVEL : 6);
+        candidates = collectHubRingCandidates(
+            room, hubXY, blocked, srcPos, ctrlPos, extensionStamp, preBunker, undefined, walls);
     }
 
-    const picked = pickEvenSealTowers(candidates, walls);
+    if (candidates.length < MAX_TOWER_HUBS) {
+        const wide = collectHubRingCandidates(
+            room, hubXY, blocked, srcPos, ctrlPos, extensionStamp, true, TOWER_HUB_MAX_DIST + 3, walls);
+        const seen = new Set();
+        for (let i = 0; i < candidates.length; i++) seen.add(candidates[i].key);
+        for (let i = 0; i < wide.length; i++) {
+            if (seen.has(wide[i].key)) continue;
+            seen.add(wide[i].key);
+            candidates.push(wide[i]);
+        }
+    }
+
+    let picked = pickEvenSealTowers(candidates, walls);
+    let emergency = false;
+    if (!picked.length) {
+        // Source/mineral/exit clearance can wipe the band. Last resort still
+        // rejects spawn/storage/terminal; extensions are soft, not skipped.
+        const loose = collectEmergencyTowerCandidates(room, hubXY, blocked, extensionStamp, walls);
+        picked = pickEvenSealTowers(loose, walls.length ? walls : loose);
+        if (picked.length) {
+            candidates = loose;
+            emergency = true;
+        }
+    }
     const selected = picked.map(function (c) {
         return {x: c.x, y: c.y};
     });
-    return {hubs: selected, candidateCount: candidates.length, alongSeal: walls.length > 0};
+    return {
+        hubs: selected,
+        candidateCount: candidates.length,
+        alongSeal: walls.length > 0,
+        emergency: emergency || undefined,
+        reason: selected.length ? (emergency ? 'emergency' : undefined) : 'no_candidates',
+    };
+}
+
+/**
+ * Last-resort tower tiles: walkable, not a core stamp. Hard world structures
+ * (spawn/storage/terminal/…) still block; extensions/containers/walls do not.
+ */
+function collectEmergencyTowerCandidates(room, hubXY, blocked, extensionStamp, walls) {
+    const candidates = [];
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const spawnTiles = spawnTilesForTowers(room, hubXY);
+    const minR = TOWER_HUB_FALLBACK_MIN_DIST;
+    for (let r = minR; r <= TOWER_HUB_MAX_DIST + 5; r++) {
+        forEachChebyshevRing(hubXY.x, hubXY.y, r, 2, 47, 2, 47, function (x, y) {
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) return;
+            const key = towerTileKey(x, y);
+            if (blocked.has(key)) return;
+            if (tooCloseToSpawn(x, y, spawnTiles)) return;
+            if (isTowerTileBlockedByWorld(room, x, y)) return;
+            const extensionTile = (extensionStamp && extensionStamp.has(key))
+                || (room.memory && room.memory.dynamicLayout && isHubRelativeExtensionParity(hubXY, x, y));
+            candidates.push({
+                x, y, key,
+                soft: extensionTile ? 1 : 0,
+                sealDist: minDistToWalls(x, y, walls),
+                hubDist: r,
+            });
+        });
+        if (candidates.length >= MAX_TOWER_HUBS * 2) break;
+    }
+    return candidates;
 }
 
 function recoverTowerHubsFromWorld(room) {
@@ -1375,10 +1517,13 @@ function ensureTowerHubs(room, options) {
         return {ok: false, hubs: [], reason: 'no_hub'};
     }
 
-    const stale = opts.forceSearch || towerLayoutStale(room);
+    const existingNow = resolveTowerHubs(room);
+    const reseatSpawn = existingNow.length && towerHubsTooCloseToSpawn(room, existingNow);
+    const stale = opts.forceSearch || towerLayoutStale(room) || reseatSpawn;
     if (!stale) {
-        const existing = resolveTowerHubs(room);
+        const existing = existingNow;
         if (existing.length) {
+            if (getTowerDeficit(room) > 0) placeTowerSites(room, Math.min(2, getTowerDeficit(room)));
             ensureTowerRamparts(room, existing);
             return {ok: true, hubs: existing.slice(), reason: 'existing'};
         }
@@ -1483,17 +1628,26 @@ function ensureAllAnchors(room, options) {
 // Tower placement (siteBudget only)
 // ---------------------------------------------------------------------------
 
+function countMyTowers(room) {
+    const list = room.towers || [];
+    let n = 0;
+    for (let i = 0; i < list.length; i++) {
+        const t = list[i];
+        if (t && t.my) n++;
+    }
+    return n;
+}
+
 function getTowerDeficit(room) {
     if (!room.controller || !room.controller.my) return 0;
     if (room._towerDeficitTick === Game.time) return room._towerDeficit;
-    const hubs = resolveTowerHubs(room);
-    let n = 0;
-    if (hubs && hubs.length) {
-        const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] || 0;
-        const current = (room.towers ? room.towers.length : 0)
-            + countRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER);
-        n = Math.max(0, allowed - current);
-    }
+    // Missing towers count even with no hubs — otherwise the room never enters
+    // SOFT_LAYOUT. Ignore same-tick pending: createConstructionSite OK on
+    // memhack does not mean a site exists, and it was zeroing the deficit.
+    const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] || 0;
+    const current = countMyTowers(room)
+        + countLiveRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER);
+    const n = Math.max(0, allowed - current);
     room._towerDeficit = n;
     room._towerDeficitTick = Game.time;
     return n;
@@ -1505,17 +1659,14 @@ function invalidateRoomCaches(room) {
 }
 
 /**
- * Drop idle (then low-progress) roads/barriers so a tower can take a room-cap
- * slot. Same-tick layer priority does not evict sites already sitting in the
- * cap (5 on shardX) — high-RCL rooms otherwise stay at 0 towers forever.
+ * Drop idle (then low-progress) roads/barriers in `target` so a tower can take
+ * a construction-site slot. Used for both the local room cap and the global 100.
  * @returns {number} sites removed
  */
-function freeSiteSlotsForTowers(room, want) {
-    if (want <= 0 || isPlannerShadow(room)) return 0;
-    if (canPlaceConstructionSite(room)) return 0;
-
+function removeReclaimableSitesInRoom(target, want) {
+    if (want <= 0 || !target) return 0;
     let freed = 0;
-    const sites = room.constructionSites || [];
+    const sites = target.constructionSites || [];
     const removeSites = (list) => {
         for (let i = 0; i < list.length; i++) {
             if (freed >= want) break;
@@ -1543,13 +1694,60 @@ function freeSiteSlotsForTowers(room, want) {
             .sort((a, b) => a.progress - b.progress);
         removeSites(low);
     }
-
     if (freed) {
-        markFreedSiteSlots(room);
-        invalidateRoomCaches(room);
-        if (typeof log !== 'undefined' && log.a) {
-            log.a(room.name + ' removed ' + freed + ' site(s) to free slots for towers', 'PLANNER');
+        markFreedSiteSlots(target);
+        invalidateRoomCaches(target);
+    }
+    return freed;
+}
+
+/**
+ * Free a site slot for a tower. Local reclaim first; if this room has nothing
+ * to drop and the global cap is full, steal idle roads/barriers from other
+ * owned rooms (0 local sites otherwise starve towers forever).
+ * @returns {number} sites removed
+ */
+function freeSiteSlotsForTowers(room, want) {
+    if (want <= 0 || isPlannerShadow(room)) return 0;
+    if (canPlaceConstructionSite(room)) return 0;
+
+    let freed = removeReclaimableSitesInRoom(room, want);
+    if (freed < want && globalConstructionSiteBudget() <= 0) {
+        const idle = [];
+        const low = [];
+        for (const id in Game.constructionSites) {
+            const s = Game.constructionSites[id];
+            if (!s || !s.pos || s.pos.roomName === room.name) continue;
+            const t = s.structureType;
+            if (t !== STRUCTURE_ROAD && t !== STRUCTURE_WALL && t !== STRUCTURE_RAMPART) continue;
+            if (!s.progress) idle.push(s);
+            else if (s.progress < Math.max(1, (s.progressTotal || 1) * 0.25)) low.push(s);
         }
+        low.sort((a, b) => a.progress - b.progress);
+        const steal = idle.concat(low);
+        const stolenFrom = Object.create(null);
+        for (let i = 0; i < steal.length && freed < want; i++) {
+            try {
+                if (steal[i].remove() !== OK) continue;
+                freed++;
+                stolenFrom[steal[i].pos.roomName] = (stolenFrom[steal[i].pos.roomName] || 0) + 1;
+            } catch (e) { /* ignore */
+            }
+        }
+        if (freed) {
+            markFreedSiteSlots(room);
+            invalidateRoomCaches(room);
+            for (const name in stolenFrom) {
+                const other = Game.rooms[name];
+                if (other) invalidateRoomCaches(other);
+                if (typeof log !== 'undefined' && log.a) {
+                    log.a(room.name + ' reclaimed ' + stolenFrom[name] + ' site(s) from '
+                        + name + ' for towers', 'PLANNER');
+                }
+            }
+        }
+    } else if (freed && typeof log !== 'undefined' && log.a) {
+        log.a(room.name + ' removed ' + freed + ' site(s) to free slots for towers', 'PLANNER');
     }
     return freed;
 }
@@ -1625,12 +1823,38 @@ function placeTowerSites(room, maxPerCall) {
         return {placed: 0, attempts, code: FailureCodes.RCL_GATE};
     }
 
-    const hubs = resolveTowerHubs(room);
+    let hubs = resolveTowerHubs(room);
+    let search = null;
+    const coreHub = resolveHub(room);
+    if (hubs && hubs.length && towerHubsTooCloseToSpawn(room, hubs)) {
+        hubs = [];
+    }
     if (!hubs || !hubs.length) {
-        return {placed: 0, attempts, code: FailureCodes.PLAN_EMPTY};
+        search = selectTowerHubs(room);
+        if (search.hubs && search.hubs.length) {
+            commitTowerHubs(room, search.hubs);
+            if (!isPlannerShadow(room)) {
+                relocateOffPlanTowers(room, search.hubs);
+                refreshPerimeterAfterTowerHubs(room);
+            }
+            hubs = search.hubs;
+        } else {
+            return {
+                placed: 0,
+                attempts,
+                code: FailureCodes.PLAN_EMPTY,
+                search,
+            };
+        }
+    }
+    if (coreHub) {
+        const spawnTiles = spawnTilesForTowers(room, coreHub);
+        hubs = hubs.filter(h => !tooCloseToSpawn(h.x, h.y, spawnTiles));
+        if (!hubs.length) {
+            return {placed: 0, attempts, code: FailureCodes.PLAN_EMPTY, reason: 'spawn_clearance'};
+        }
     }
 
-    const allowed = CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.controller.level] || 0;
     const shadow = isPlannerShadow(room);
 
     for (let n = 0; n < limit; n++) {
@@ -1657,12 +1881,14 @@ function placeTowerSites(room, maxPerCall) {
         }
 
         let didPlace = false;
-        for (let i = 0; i < Math.min(hubs.length, allowed); i++) {
+        // Try every hub, not just the first `allowed`. At RCL5 only 2 towers
+        // are allowed; if those two tiles are extensions the rest were never
+        // attempted. Prefer tiles that are already clear — same-tick
+        // destroy/remove still occupies the tile on memhack.
+        for (let i = 0; i < hubs.length; i++) {
             const x = hubs[i].x;
             const y = hubs[i].y;
             const pos = new RoomPosition(x, y, room.name);
-            // Shadow: never remove blocking sites (world mutate).
-            if (!shadow) clearTowerHubBlockers(room, pos);
             if (towerTileBlockedForPlacement(pos)) continue;
 
             if (shadow) {
@@ -1689,10 +1915,41 @@ function placeTowerSites(room, maxPerCall) {
                 break;
             }
         }
+        if (didPlace) continue;
+
+        // Clear blocked hubs, then retry once (official destroy is same-tick;
+        // memhack may still fail and land the site next tick).
+        if (!shadow) {
+            const need = Math.max(1, getTowerDeficit(room));
+            let cleared = 0;
+            for (let i = 0; i < hubs.length && cleared < need; i++) {
+                const pos = new RoomPosition(hubs[i].x, hubs[i].y, room.name);
+                if (!towerTileBlockedForPlacement(pos)) continue;
+                if (clearTowerHubBlockers(room, pos)) cleared++;
+            }
+            if (cleared) attempts.push({ok: false, code: FailureCodes.TILE_BLOCKED, cleared});
+            for (let i = 0; i < hubs.length; i++) {
+                const x = hubs[i].x;
+                const y = hubs[i].y;
+                const pos = new RoomPosition(x, y, room.name);
+                if (towerTileBlockedForPlacement(pos)) continue;
+                const res = siteBudget.tryPlace(room, 'towers', pos, STRUCTURE_TOWER);
+                attempts.push({ok: res.ok, result: res.result, code: res.code, x, y, retry: true});
+                if (res.ok) {
+                    placed++;
+                    didPlace = true;
+                    try {
+                        siteBudget.tryPlace(room, 'ramparts', pos, STRUCTURE_RAMPART);
+                    } catch (e) { /* optional */
+                    }
+                    break;
+                }
+            }
+        }
         if (!didPlace) break;
     }
 
-    return {placed, shadow: shadow || undefined, attempts};
+    return {placed, shadow: shadow || undefined, attempts, search: search || undefined};
 }
 
 /** Legacy API: number of sites placed. */
@@ -1707,15 +1964,27 @@ function buildTowersFromHubs(room) {
 
 function auditTowerHubTiles(room) {
     const hubs = resolveTowerHubs(room);
+    const coreHub = resolveHub(room);
     const level = room.controller && room.controller.level;
     const allowed = level ? CONTROLLER_STRUCTURES[STRUCTURE_TOWER][level] : 0;
     const terrain = Game.map.getRoomTerrain(room.name);
     const lastSiteError = room.memory.plannerLastSiteError;
+    const search = (!hubs || !hubs.length) ? selectTowerHubs(room) : null;
     return {
         rcl: level,
         allowed,
-        current: (room.towers ? room.towers.length : 0)
-            + countRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER),
+        coreHub: coreHub ? {x: coreHub.x, y: coreHub.y} : null,
+        search: search && {
+            reason: search.reason,
+            candidateCount: search.candidateCount,
+            alongSeal: search.alongSeal,
+            emergency: search.emergency,
+            found: (search.hubs || []).length,
+        },
+        current: countMyTowers(room)
+            + countLiveRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER),
+        pendingSites: countRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER)
+            - countLiveRoomConstructionSitesOfType(room.name, STRUCTURE_TOWER),
         siteBudget: roomConstructionSiteBudget(room),
         canPlace: canPlaceConstructionSite(room),
         totalSites: countRoomConstructionSites(room.name),

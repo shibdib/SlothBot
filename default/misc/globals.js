@@ -952,8 +952,16 @@ let globals = function () {
                 results.push({roomName: name, error: 'no vision'});
                 continue;
             }
-            if (!getTowerDeficit(room)) {
-                results.push({roomName: name, placed: 0, skipped: true, reason: 'no deficit'});
+            room._towerDeficitTick = undefined;
+            const deficit = getTowerDeficit(room);
+            if (!deficit) {
+                results.push({
+                    roomName: name,
+                    placed: 0,
+                    skipped: true,
+                    reason: 'no deficit',
+                    ...auditTowerHubTiles(room),
+                });
                 continue;
             }
             if (globalConstructionSiteBudget() <= 0) {

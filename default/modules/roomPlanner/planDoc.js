@@ -184,6 +184,9 @@ function getTowerHubs(room) {
     if (plan && plan.anchors.towers && plan.anchors.towers.length) {
         return cloneTowers(plan.anchors.towers);
     }
+    // getPlan() rejects invalid docs; Memory still has anchors.towers.
+    const raw = room.memory.plan && room.memory.plan.anchors && room.memory.plan.anchors.towers;
+    if (raw && raw.length) return cloneTowers(raw);
     return cloneTowers(room.memory.towerHubs);
 }
 

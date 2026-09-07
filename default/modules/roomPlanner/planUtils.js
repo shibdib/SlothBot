@@ -247,6 +247,13 @@ function countRoomConstructionSitesOfType(roomName, structureType) {
     return base + pending;
 }
 
+/** World sites only — excludes same-tick pending (memhack OK that never materializes). */
+function countLiveRoomConstructionSitesOfType(roomName, structureType) {
+    resetPendingSitePlacementsIfNeeded();
+    rebuildSiteCountCacheIfNeeded();
+    return (siteCountByRoomType[roomName] && siteCountByRoomType[roomName][structureType]) || 0;
+}
+
 function globalConstructionSiteBudget() {
     return Math.max(0, globalConstructionSiteLimit() - countGlobalConstructionSites());
 }
@@ -1384,6 +1391,8 @@ module.exports = {
     countRoomConstructionSites,
 
     countRoomConstructionSitesOfType,
+
+    countLiveRoomConstructionSitesOfType,
 
     globalConstructionSiteBudget,
 

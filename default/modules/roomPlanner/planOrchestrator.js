@@ -838,8 +838,6 @@ function buildRoom() {
         }
     }, report);
 
-    runGlobalPhases(report);
-
     // V1: tower reset only after throttle (not during hub/spawn bootstrap ticks).
     if (Memory.towerLayoutResetQueue && Memory.towerLayoutResetQueue.length) {
         safeRun(PHASE.TOWER_RESET_QUEUE, () => {
@@ -870,6 +868,7 @@ function buildRoom() {
         if (!picked || !picked.room) {
             report.skipped = true;
             report.skipReason = 'no_room';
+            runGlobalPhases(report);
             report.cpu = Math.round((Game.cpu.getUsed() - cpuStart) * 1000) / 1000;
             return report;
         }
@@ -916,6 +915,10 @@ function buildRoom() {
         }, report);
     }
     tickTracker[room.name] = lastRun;
+
+    // After the selected room so towers/spawn/extensions take leftover global
+    // site slots before empire roads/perimeters fill the 100-cap.
+    runGlobalPhases(report);
 
     // Soak aid: recent room-turns (RR coverage across empire).
     noteRecentRoomTurn(room.name, queue, report.v2, forced);

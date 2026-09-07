@@ -87,6 +87,9 @@ function allowSameRoomDetour(options, origin, target) {
     if (options.hopExitDir) return false;
     // Caller pinned a 1-room search (exit hops, hide, road planner).
     if (options.maxRooms === 1) return false;
+    // From an exit tile the neighbor is one step. A "detour" is walking
+    // back through the portal we just used.
+    if (origin.x === 0 || origin.x === 49 || origin.y === 0 || origin.y === 49) return false;
     return true;
 }
 

@@ -32,7 +32,10 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE) {
         return {pos: a.pos, range: pureMelee ? fleeRange + 3 : fleeRange + 2};
     });
 
-    const allowedRooms = [currentRoom].concat(Object.values(Game.map.describeExits(currentRoom)));
+    const dest = this.memory && this.memory.destination;
+    const allowedRooms = (dest && dest === currentRoom)
+        ? [currentRoom]
+        : [currentRoom].concat(Object.values(Game.map.describeExits(currentRoom)));
 
     const result = PathFinder.search(this.pos, fleeGoals, {
         flee: true,

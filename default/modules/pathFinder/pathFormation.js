@@ -445,6 +445,33 @@ function inlandOffExit(pos) {
     return 0;
 }
 
+function inlandExitDirections(pos) {
+    if (!pos) return [];
+    const x = pos.x, y = pos.y;
+    if (x === 0 && y === 0) return [BOTTOM_RIGHT, RIGHT, BOTTOM];
+    if (x === 0 && y === 49) return [TOP_RIGHT, RIGHT, TOP];
+    if (x === 49 && y === 0) return [BOTTOM_LEFT, LEFT, BOTTOM];
+    if (x === 49 && y === 49) return [TOP_LEFT, LEFT, TOP];
+    if (x === 0) return [RIGHT, TOP_RIGHT, BOTTOM_RIGHT];
+    if (x === 49) return [LEFT, TOP_LEFT, BOTTOM_LEFT];
+    if (y === 0) return [BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT];
+    if (y === 49) return [TOP, TOP_LEFT, TOP_RIGHT];
+    return [];
+}
+
+// Step off an exit into this room. Last move() wins — call after combat fire.
+function stepInlandOffExit(creep) {
+    if (!creep || creep.fatigue) return false;
+    const dirs = inlandExitDirections(creep.pos);
+    for (let i = 0; i < dirs.length; i++) {
+        const next = posAfterMove(creep.pos, dirs[i]);
+        if (!next || next.roomName !== creep.pos.roomName || onExitTile(next)) continue;
+        if (next.checkForImpassible && next.checkForImpassible(false, true)) continue;
+        if (creep.move(dirs[i]) === OK) return true;
+    }
+    return false;
+}
+
 // PathFinder emits diagonal exit steps ((49,25) → (0,24) next room). Encoding
 // only the edge cardinal walked the 2×2 one tile off the rest of the path.
 function directionBetween(from, to) {
@@ -562,6 +589,8 @@ module.exports = {
     onExitTile,
 
     inlandOffExit,
+
+    stepInlandOffExit,
 
     formationRange,
 

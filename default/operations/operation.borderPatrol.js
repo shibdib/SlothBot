@@ -35,14 +35,15 @@ Creep.prototype.borderPatrol = function () {
     }
     // Movement
     if (this.memory.destination) {
-        // If we can't win, let's move back home
-        if (INTEL[this.memory.destination] && INTEL[this.memory.destination].hostilePower > combatPower) {
-            if (!this.memory.squadMembers || this.memory.squadMembers.length < 3) this.memory.needsMoreSquadMembers = true;
-            return this.fleeHome(true);
-        } else if (this.room.name !== this.memory.destination) {
-            this.memory.needsMoreSquadMembers = undefined;
-            return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {range: 20});
-        } else {
+        const dest = this.memory.destination;
+        const destIntel = INTEL[dest];
+        // In dest, kite/range beats raw power (melee invaders look "stronger"
+        // than a blinky). From outside, only refuse tower rooms we cannot tank.
+        if (this.room.name === dest) {
+            if (!this.canIWin(50)) {
+                if (!this.memory.squadMembers || this.memory.squadMembers.length < 3) this.memory.needsMoreSquadMembers = true;
+                return this.fleeHome(true);
+            }
             if (!this.room.hostileCreeps.length && !this.room.hostileStructures.length) {
                 if (!this.memory.standingGuard) this.memory.standingGuard = Game.time;
                 else if (this.memory.standingGuard + 100 < Game.time) {
@@ -51,6 +52,12 @@ Creep.prototype.borderPatrol = function () {
                 this.idleFor(5);
                 return;
             }
+        } else if (destIntel && destIntel.towers && destIntel.hostilePower > combatPower) {
+            if (!this.memory.squadMembers || this.memory.squadMembers.length < 3) this.memory.needsMoreSquadMembers = true;
+            return this.fleeHome(true);
+        } else {
+            this.memory.needsMoreSquadMembers = undefined;
+            return this.shibMove(new RoomPosition(25, 25, dest), {range: 20});
         }
     }
 
