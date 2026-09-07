@@ -298,7 +298,8 @@ class RoleLongbowSquad {
             return;
         }
 
-        if (!forming && !lockingEntry && this.kiteFromMelee(creep)) return;
+        // Melee on the dest pad still kites inland. Skipping here ate ATTACK hits.
+        if (!forming && this.kiteFromMelee(creep)) return;
 
         // New waitFor waves stay in the colony until full, renewed, and boosted.
         if (this.holdForWave(creep)) return;
@@ -337,14 +338,9 @@ class RoleLongbowSquad {
                 creep.memory.waitingToAssemble = true;
                 if (this.snakeTerrainChoke(creep, squad)) return;
                 if (creep.memory.quadWiden) return;
-                // In dest an unpacked quad lost the hop. Do not walk back onto
-                // dest-exit while anyone is still entering — that occupies the
-                // landings the back row needs. Stay inland (or on dest-exit if
-                // we never left it) and keep sliding.
+                // In dest an unpacked quad lost the hop. Stay inland — walking
+                // to the staging exit teleports out of dest.
                 if (creep.memory.destination === creep.room.name && this.isQuad(creep)) {
-                    if (this.squadSplitAcrossDest(creep) || this.squadOnDestExit(creep)) return;
-                    const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
-                    if (!this.onRoomExitTile(creep.pos)) creep.moveToRoomExit(staging);
                     return;
                 }
                 // A fitting 2×2 here beats hugging the exit. holdAtExit used to
@@ -411,8 +407,7 @@ class RoleLongbowSquad {
         const forming = waitFor > 1 && !this.isSquadCommitted(this.creep);
 
         // Uncommitted waitFor (home or walking in) must reach holdForWave.
-        if (!forming && !this.lockingDestEntry(leader) && !this.lockingDestEntry(this.creep)
-            && !leader.memory.quadSnake && this.kiteFromMelee(this.creep)) return;
+        if (!forming && !leader.memory.quadSnake && this.kiteFromMelee(this.creep)) return;
 
         if (waitFor > 1 && !this.isSquadCommitted(this.creep)) {
             if (this.holdForWave(this.creep)) return;
@@ -442,11 +437,28 @@ class RoleLongbowSquad {
             if (this.creep.handleMilitaryCreep(false, true, false)) return;
             return;
         }
-        // Duo/snake on dest-facing staging: step inland so we don't hop alone.
-        // Packed quads stay in the blob — squadMove walks the 2×2 through.
+        // Dest-facing staging pad. Sitting here teleports. Duo: hop if the
+        // leader is in dest, sit if they are on the pad with us, otherwise
+        // step inland so we do not enter alone. Quad snake / far from blob:
+        // same inland (squadMove walks packed 2×2 through).
         if (grouped && dest && this.creep.room.name !== dest && this.onDestFacingExit(this.creep, dest)
-            && (squadSize <= 2 || leader.memory.quadSnake
+            && (this.snakesFormation(leader) || leader.memory.quadSnake
                 || formationRange(this.creep.pos, leader.pos) > 2)) {
+            if (this.snakesFormation(leader)) {
+                if (leader.room.name === dest) {
+                    const hop = this.canHopIntoDest(this.creep, dest);
+                    if (hop) this.creep.move(hop);
+                    return;
+                }
+                const leaderOnPad = leader.room.name === this.creep.room.name
+                    && this.onDestFacingExit(leader, dest);
+                if (leaderOnPad) {
+                    if (!this.creep.pos.isNearTo(leader.pos)) {
+                        this.creep.shibMove(leader, {range: 1, forceSolo: true});
+                    }
+                    return;
+                }
+            }
             const off = exitDirectionTo(this.creep.room.name, dest);
             const inland = off === RIGHT ? LEFT : off === LEFT ? RIGHT : off === TOP ? BOTTOM : TOP;
             if (inland && !this.creep.fatigue) {
@@ -458,13 +470,13 @@ class RoleLongbowSquad {
                 }
             }
             if (formationRange(this.creep.pos, leader.pos) <= 2) {
-                if ((leader.memory.squadMembers || []).length + 1 > 2) {
+                if (this.isQuad(leader)) {
                     this.getInPosition(this.creep, leader);
                 }
                 return;
             }
             if (leader.room.name === this.creep.room.name) {
-                if ((leader.memory.squadMembers || []).length + 1 <= 2) {
+                if (this.snakesFormation(leader)) {
                     if (!this.creep.pos.isNearTo(leader.pos)) {
                         this.creep.shibMove(leader, {range: 1, forceSolo: true});
                     }
@@ -487,7 +499,7 @@ class RoleLongbowSquad {
         // and tight terrain without any formation math. Falls back to a range-1
         // follow when we're catching up or when lastPos is in another room
         // (mid-transition — shibMove handles the cross-room routing).
-        if (squadSize <= 2 || leader.memory.quadSnake) {
+        if (this.snakesFormation(leader) || leader.memory.quadSnake) {
             // Leader already in dest: line up on this side of the exit and wait
             // for the coordinated hop. Chasing the leader is 1-at-a-time entry
             // unless quadSnake — then the 2×2 cannot fit and we trail the hole.
@@ -582,7 +594,7 @@ class RoleLongbowSquad {
         const dest = this.creep.memory.destination;
         // Duos snake; forceSolo into dest is 1-at-a-time. Packed quads walk
         // dest the same way they walk any other room.
-        if (squadSize <= 2 && dest && target && target.roomName === dest && this.creep.room.name !== dest
+        if (this.snakesFormation(this.creep) && dest && target && target.roomName === dest && this.creep.room.name !== dest
             && exitDirectionTo(this.creep.room.name, dest)) {
             const pad = this.findStaging(this.creep);
             if (pad) {
@@ -593,7 +605,7 @@ class RoleLongbowSquad {
             }
             return false;
         }
-        if (squadSize <= 2) {
+        if (this.snakesFormation(this.creep)) {
             return this.creep.shibMove(target, Object.assign({forceSolo: true}, options));
         }
 
@@ -609,6 +621,8 @@ class RoleLongbowSquad {
                 const full = this.getSquad().concat(this.creep);
                 if (this.isFormationPacked(full, this.creep)) this.clearQuadSnake(this.creep);
                 else return false;
+            } else if (this.wouldForceSoloEnterDest(target)) {
+                return false;
             } else {
                 return this.creep.shibMove(target, soloOpts);
             }
@@ -634,8 +648,16 @@ class RoleLongbowSquad {
         if (inRange) return false;
         if (this.creep.memory._shibSquadMove && this.creep.memory._shibSquadMove.path
             && this.creep.memory._shibSquadMove.path.length) return false;
+        if (this.wouldForceSoloEnterDest(target)) return false;
         this.creep.memory.quadSnake = true;
         return this.creep.shibMove(target, soloOpts);
+    }
+
+    wouldForceSoloEnterDest(target) {
+        const dest = this.creep.memory.destination;
+        if (!dest || this.creep.room.name === dest) return false;
+        if (target && target.roomName === dest) return true;
+        return this.onDestFacingExit(this.creep, dest);
     }
 
     /* ====================== SQUAD HELPERS ====================== */
@@ -671,9 +693,9 @@ class RoleLongbowSquad {
             return creep.shibMove(leader, {range: 1, forceSolo: true});
         }
 
-        // handleFollower routes duos through snake-tail movement; this is quad-only.
+        // handleFollower routes snakes through lastPos; this is packed-quad-only.
+        if (this.snakesFormation(leader)) return creep.pos.isNearTo(leader.pos);
         const squadSize = (leader.memory.squadMembers || []).length + 1;
-        if (squadSize <= 2) return creep.pos.isNearTo(leader.pos);
 
         const lp = leader.pos;
         const slotPositions = (offsets) => {
@@ -929,9 +951,9 @@ class RoleLongbowSquad {
     isCurrentPosViable(creep) {
         const squadSize = (creep.memory.squadMembers || []).length + 1;
 
-        // Duos: snake-tail behaviour means any passable tile the leader stands on
-        // is fine — the follower trails through 1-tile gaps. No footprint to check.
-        if (squadSize <= 2) return true;
+        // Snake: any passable tile the leader stands on is fine — followers
+        // trail through 1-tile gaps. No 2×2 footprint to check.
+        if (this.snakesFormation(creep)) return true;
 
         // Mid room hop: the 2×2 is supposed to straddle the exit. Don't flip
         // facing or hunt a new pad until everyone is off the exit tile.
@@ -964,9 +986,9 @@ class RoleLongbowSquad {
         if (creep.memory.lastOrientationTick === Game.time) return;
         creep.memory.lastOrientationTick = Game.time;
 
-        // Duos don't use a fixed orientation — getInPosition picks any adjacent tile.
+        // Snakes don't use a fixed orientation — trail lastPos / range 1.
         const squadSize = (creep.memory.squadMembers || []).length + 1;
-        if (squadSize <= 2) {
+        if (this.snakesFormation(creep)) {
             if (creep.memory.squadOrientation) creep.memory.squadOrientation = 0;
             if (creep.memory.pendingOrientationFlip) creep.memory.pendingOrientationFlip = undefined;
             return;
@@ -1174,7 +1196,13 @@ class RoleLongbowSquad {
     }
 
     isQuad(creep) {
-        return (creep.memory.squadMembers || []).length + 1 > 2;
+        return (creep.memory.squadMembers || []).length + 1 >= 4;
+    }
+
+    // 2–3 live: snake. A 3-body remnant cannot pack a 2×2.
+    snakesFormation(creep) {
+        if (!creep || !creep.memory) return true;
+        return ((creep.memory.squadMembers || []).length + 1) < 4;
     }
 
     isSquadCommitted(creep) {
@@ -1746,11 +1774,11 @@ class RoleLongbowSquad {
         return true;
     }
 
-    // Pair already in the fight (or a formed quad that bled to two). WaitFor 4
-    // would park them for a 3rd/4th; they snake and shoot as a duo instead.
+    // Formed quad that bled to 2–3. WaitFor 4 would park them for a 2×2 that
+    // cannot exist; they snake and shoot instead.
     canFightAsDuo(creep) {
         const live = (creep.memory.squadMembers || []).length + 1;
-        if (live !== 2) return false;
+        if (live < 2 || live >= 4) return false;
         if (creep.memory.initialFormUp) return true;
         return !!(creep.memory.destination && creep.memory.destination === creep.room.name);
     }
@@ -1883,7 +1911,7 @@ class RoleLongbowSquad {
 
         add(x, y);
         const squadSize = ((leader && leader.memory.squadMembers) || []).length + 1;
-        if (squadSize > 2) {
+        if (leader && this.isQuad(leader)) {
             const orientation = (leader && leader.memory.squadOrientation) || 0;
             const offsets = QUAD_OFFSETS[orientation] || [];
             for (let i = 0; i < offsets.length; i++) {
@@ -1933,7 +1961,7 @@ class RoleLongbowSquad {
         const dest = (leader && leader.memory.destination) || creep.memory.destination;
         const leaderInDest = !!(leader && dest && leader.pos.roomName === dest);
         const landingOk = (pos) => !leaderInDest || this.destLandingFree(dest, dir, pos.x, pos.y);
-        const coreCount = squadSize <= 2 ? Math.min(1, candidates.length) : Math.min(2, candidates.length);
+        const coreCount = this.snakesFormation(leader || creep) ? Math.min(1, candidates.length) : Math.min(2, candidates.length);
         for (let i = 0; i < coreCount; i++) {
             if (creep.pos.isEqualTo(candidates[i]) && landingOk(creep.pos)) return claim(creep.pos);
         }
@@ -3038,11 +3066,11 @@ class RoleLongbowSquad {
             }
             // Dest-adjacent: never spiral an interior 2×2 away from the attack
             // face. Wait on a dest-inward pad; holdForSquadEntry holds until it fits.
-            if (squadSize > 2) return null;
+            if (this.isQuad(creep)) return null;
         }
 
-        // Duos only need the dest-facing tile. An interior 2×2 pad is quad-only.
-        if (squadSize <= 2) return null;
+        // Snakes only need the dest-facing tile. An interior 2×2 pad is quad-only.
+        if (this.snakesFormation(creep)) return null;
 
         // Dest-adjacent exit pad is allowed at home; an interior 2×2 pad is not.
         if (this.inHomeColony(creep) && !this.room.hostileCreeps.length) return null;
@@ -3165,13 +3193,13 @@ class RoleLongbowSquad {
         const tiles = creep.room.find(dir);
         if (!tiles.length) return null;
         const squadSize = (creep.memory.squadMembers || []).length + 1;
-        const orients = squadSize > 2 ? this.destExitOrients(dir) : [0];
+        const orients = this.isQuad(creep) ? this.destExitOrients(dir) : [0];
         if (!orients.length) return null;
 
         let best = null;
         let bestScore = Infinity;
 
-        if (squadSize <= 2) {
+        if (this.snakesFormation(creep)) {
             for (let i = 0; i < tiles.length; i++) {
                 const lx = tiles[i].x;
                 const ly = tiles[i].y;
@@ -3349,20 +3377,6 @@ class RoleLongbowSquad {
     }
 
     kiteFromMelee(creep) {
-        // Follower fast-path: if our leader's shibSquadKite already moved us this
-        // tick, the leader's squadMove call queued our movement intent. Return true
-        // to short-circuit further follower logic — anything we queue here would
-        // either duplicate or override the coordinated direction. Screeps' last-
-        // write-wins for move intents protects us from broken tick order, but the
-        // CPU saving is worth taking.
-        if (creep.memory.groupLeader && !creep.memory.leader) {
-            const leader = Game.getObjectById(creep.memory.groupLeader);
-            if (leader && (leader.memory.squadKiteTick === Game.time || leader.memory.squadMoveTick === Game.time)) return true;
-            // Duo followers snake onto lastPos. An independent kite vector tears
-            // the pair apart; the leader's solo step is the trail.
-            if (leader && (leader.memory.squadMembers || []).length + 1 <= 2) return false;
-        }
-
         // Range 1: any ATTACK threat will land a melee swing next tick — kite even if
         // they also carry RANGED_ATTACK, the immediate hit outweighs the trade.
         // Range 2: only pure-melee is worth kiting; a kiting ranged attacker keeps pace.
@@ -3375,10 +3389,33 @@ class RoleLongbowSquad {
         });
         if (!meleeThreats.length) return false;
 
-        // Quad kite: step the 2×2 as one. Duos must not use shibSquadKite —
-        // squadMove returns false if the follower has fatigue, then each creep
-        // picks its own vector and the snake breaks.
-        if (creep.memory.leader && (creep.memory.squadMembers || []).length > 1) {
+        // Follower fast-path: if our leader's shibSquadKite already moved us this
+        // tick, the leader's squadMove call queued our movement intent. Return true
+        // to short-circuit further follower logic — anything we queue here would
+        // either duplicate or override the coordinated direction. Screeps' last-
+        // write-wins for move intents protects us from broken tick order, but the
+        // CPU saving is worth taking.
+        if (creep.memory.groupLeader && !creep.memory.leader) {
+            const leader = Game.getObjectById(creep.memory.groupLeader);
+            if (leader && (leader.memory.squadKiteTick === Game.time || leader.memory.squadMoveTick === Game.time)) return true;
+            // Duo followers snake onto lastPos. Independent kite tears the pair
+            // apart — except on the dest pad, where sitting eats the ATTACK hit
+            // and lastPos is still the portal.
+            if (leader && this.snakesFormation(leader)) {
+                const dest = creep.memory.destination || leader.memory.destination;
+                if (dest && this.onDestFacingExit(creep, dest)) {
+                    const inland = inlandOffExit(creep.pos);
+                    if (inland && !wouldEnterDest(creep.pos, inland, dest) && creep.move(inland) === OK) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        // Packed quad kite: step the 2×2 as one. Snakes must not use
+        // shibSquadKite — squadMove + follower fatigue tears the trail.
+        if (creep.memory.leader && this.isQuad(creep)) {
             if (creep.shibSquadKite(2)) {
                 creep.memory.squadKiteTick = Game.time;
                 creep.memory._shibSquadMove = undefined;
@@ -3410,6 +3447,21 @@ class RoleLongbowSquad {
     }
 
     sharedKiteDirection(creep, meleeThreats) {
+        const inland = inlandOffExit(creep.pos);
+        if (inland) {
+            const next = posAfterMove(creep.pos, inland);
+            if (next && next.roomName === creep.pos.roomName && !onExitTile(next)
+                && !(next.checkForImpassible && next.checkForImpassible(false, true))) {
+                let ontoMelee = false;
+                for (let i = 0; i < meleeThreats.length; i++) {
+                    if (next.isEqualTo(meleeThreats[i].pos)) {
+                        ontoMelee = true;
+                        break;
+                    }
+                }
+                if (!ontoMelee) return inland;
+            }
+        }
         let avgDx = 0, avgDy = 0;
         for (const t of meleeThreats) {
             avgDx += t.pos.x - creep.pos.x;

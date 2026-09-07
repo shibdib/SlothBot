@@ -4,7 +4,13 @@
 
 const profiler = require("tools.profiler");
 const {getRemoteHarvesterForSource} = require('spawnCounts');
-const {getMiningRouteRooms, hasSkAttackerOnSite, skGuardRoom, remoteCombatBlocksMining} = require('remoteMining');
+const {
+    getMiningRouteRooms,
+    hasSkAttackerOnSite,
+    skGuardRoom,
+    remoteCombatBlocksMining,
+    civilianShouldFlee
+} = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
 
 class RoleRemoteHauler {
@@ -17,6 +23,7 @@ class RoleRemoteHauler {
     }
 
     performRoleActions() {
+        if (this.combatFlee()) return;
         if (this.housekeeping()) return;
         if (this.store.getUsedCapacity() > 0) {
             this.deliverResource();
@@ -27,6 +34,12 @@ class RoleRemoteHauler {
         }
     }
 
+    combatFlee() {
+        if (!civilianShouldFlee(this.creep)) return false;
+        this.creep.fleeHome(true);
+        return true;
+    }
+
     housekeeping() {
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
         const remoteRoom = this.memory.other && this.memory.other.remoteRoom;
@@ -34,14 +47,6 @@ class RoleRemoteHauler {
             const guard = (this.memory.other && this.memory.other.skRoom)
                 || (remoteRoom && skGuardRoom(this.memory.colony, remoteRoom));
             if (guard && !hasSkAttackerOnSite(guard)) {
-                if (this.room.name !== this.memory.colony) {
-                    this.creep.fleeHome(true);
-                    return true;
-                }
-                return waitOffOwnedExit(this.creep);
-            }
-            // Spawn already skips combat; recycling here restaffed after every invader wave.
-            if (remoteRoom && remoteCombatBlocksMining(remoteRoom)) {
                 if (this.room.name !== this.memory.colony) {
                     this.creep.fleeHome(true);
                     return true;
@@ -122,6 +127,11 @@ class RoleRemoteHauler {
         const other = this.memory.other || (this.memory.other = {});
         const remoteRoom = other.remoteRoom;
         if (remoteRoom && this.room.name !== remoteRoom) {
+            if (remoteCombatBlocksMining(remoteRoom)) {
+                if (this.room.name === this.memory.colony) return waitOffOwnedExit(this.creep);
+                this.creep.fleeHome(true);
+                return true;
+            }
             if (this.pickupColonyDroppedEnergy()) return true;
             const colony = this.memory.colony;
             const route = colony ? getMiningRouteRooms(colony, remoteRoom) : [];

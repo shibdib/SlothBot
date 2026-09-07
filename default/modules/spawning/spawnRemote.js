@@ -449,9 +449,44 @@ function handleBlockedRoom(room) {
 }
 
 function handleThreatLevel(room, remoteName) {
-    if (INTEL[remoteName].tickDetected + CREEP_LIFE_TIME >= Game.time && !INTEL[remoteName].sk) {
-        room.memory.borderPatrol = remoteName;
+    if (!remoteName || !INTEL[remoteName] || INTEL[remoteName].sk) return;
+    room.memory.borderPatrol = remoteName;
+}
+
+function assignedRemoteNeedsPatrol(remoteName) {
+    if (!remoteName) return false;
+    const intel = INTEL[remoteName];
+    if (!intel || intel.sk) return false;
+    if (intel.threatLevel > 1 && (intel.tickDetected || 0) + CREEP_LIFE_TIME >= Game.time) return true;
+    const vis = Game.rooms[remoteName];
+    if (!vis) return false;
+    const hostiles = vis.hostileCreeps;
+    for (let i = 0; i < hostiles.length; i++) {
+        const c = hostiles[i];
+        if (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) return true;
     }
+    return false;
+}
+
+function findAssignedRemoteThreat(room, extraRooms) {
+    const seen = new Set();
+    const consider = (rName) => {
+        if (!rName || seen.has(rName)) return false;
+        seen.add(rName);
+        return assignedRemoteNeedsPatrol(rName);
+    };
+    const targets = ROOM_REMOTE_TARGETS[room.name];
+    if (targets) {
+        for (let i = 0; i < targets.length; i++) {
+            if (consider(targets[i] && targets[i].room)) return targets[i].room;
+        }
+    }
+    if (extraRooms) {
+        for (const rName of extraRooms) {
+            if (consider(rName)) return rName;
+        }
+    }
+    return undefined;
 }
 
 function handleReservation(room, remoteName) {
@@ -817,7 +852,9 @@ function remoteCreepQueue(room) {
     });
     spawnState.remoteRoomTargets[room.name] = activeRemotes;
 
-    const threat = activeRemotes.find(r => INTEL[r] && INTEL[r].threatLevel > 1);
+    // Combat-blocked remotes are dropped from activeRemotes, so patrol must be
+    // picked from the assignment list (and live workers) instead.
+    const threat = findAssignedRemoteThreat(room, scan && scan.liveRemoteRooms);
     if (threat) handleThreatLevel(room, threat);
 
     for (let i = 0; i < activeRemotes.length; i++) {

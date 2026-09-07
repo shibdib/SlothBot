@@ -54,6 +54,7 @@ class RoleSiegeDuo {
         if (!this.creep.memory.partner) return this.handleSolo();
         // Paired — clear any solo-timer carried over from the unpaired window.
         this.creep.memory.soloSince = undefined;
+        if (this.creep.memory.holdPortal) this.creep.memory.holdPortal = undefined;
         if (this.creep.memory.leader) return this.handleLeader();
         return this.handleFollower();
     }
@@ -190,6 +191,7 @@ class RoleSiegeDuo {
             if (this.creep.ensureDenialStaging) this.creep.ensureDenialStaging();
             const toward = (this.creep.memory.misc && this.creep.memory.misc.stagingRoom) || this.creep.memory.colony;
             if (inDest) {
+                this.creep.memory.holdPortal = true;
                 this.creep.moveToRoomExit(toward);
                 return;
             }
@@ -383,8 +385,8 @@ class RoleSiegeDuo {
         if (creep.room.name === dest) {
             if (!partner || partner.room.name === dest) return false;
             this.pullPartnerIntoDest(partner, dest);
-            // Pull may fail (inward blocked). Still hold dest-exit — denyRoom
-            // from here walks dest while the partner is on staging.
+            // Do not shibMove dest (1-at-a-time). Still shoot while we wait.
+            creep.handleMilitaryCreep(false, true, false);
             return true;
         }
 

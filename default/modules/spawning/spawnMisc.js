@@ -31,6 +31,20 @@ function getExplorerNeededCount(room) {
     return Math.min(3, 10 - room.level);
 }
 
+function findNeedyBorderPatrol(roomName) {
+    const pool = (global.world && global.world.militaryCreeps) || Game.creeps;
+    const list = Array.isArray(pool) ? pool : Object.values(pool);
+    for (let i = 0; i < list.length; i++) {
+        const c = list[i];
+        if (!c || !c.my || !c.memory) continue;
+        if (c.memory.operation !== 'borderPatrol') continue;
+        if (!c.memory.needsMoreSquadMembers || !c.memory.destination) continue;
+        if (c.memory.colony !== roomName) continue;
+        return c;
+    }
+    return undefined;
+}
+
 function miscCreepQueue(room) {
     if (!spawnState.throttleReady(spawnState.miscTick, room.name, 12)) return;
     const energyState = spawnEnergyState(room);
@@ -109,7 +123,7 @@ function miscCreepQueue(room) {
 
     const ap = getBodyAbilityPower(room, 'longbow');
     const longbowPower = ap.attack + ap.effectiveHeal + (ap.defense / 100);
-    const needyBorderPatrol = room.myCreeps.find(c => c.memory.operation === 'borderPatrol' && c.memory.needsMoreSquadMembers && c.memory.destination && c.memory.squadMembers);
+    const needyBorderPatrol = findNeedyBorderPatrol(room.name);
     let needsBorderResponse = MY_ROOMS.find(r => {
         const other = Game.rooms[r];
         return other && other.memory.requestingBorderResponse && Game.map.getRoomLinearDistance(room.name, r) <= 4;
@@ -120,10 +134,12 @@ function miscCreepQueue(room) {
     }
 
     if (needyBorderPatrol) {
+        const dest = needyBorderPatrol.memory.destination;
+        const live = getCreepCount(undefined, 'longbow', dest, 'borderPatrol');
         queueCreepIfNeeded({
             room, role: 'longbow', priority: PRIORITIES.high,
-            numberNeeded: needyBorderPatrol.memory.squadMembers.length + 1,
-            destination: needyBorderPatrol.memory.destination, operation: 'borderPatrol'
+            numberNeeded: Math.min(4, live + 1),
+            destination: dest, operation: 'borderPatrol'
         });
     } else if (room.memory.borderPatrol && INTEL[room.memory.borderPatrol] &&
         INTEL[room.memory.borderPatrol].hostilePower < (longbowPower * (energyState + 1))) {

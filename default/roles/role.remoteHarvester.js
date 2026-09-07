@@ -9,7 +9,8 @@ const {
     getMiningRouteRooms,
     hasSkAttackerOnSite,
     skGuardRoom,
-    remoteCombatBlocksMining
+    remoteCombatBlocksMining,
+    civilianShouldFlee
 } = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
 const {
@@ -82,9 +83,17 @@ class RoleRemoteHarvester {
     }
 
     performRoleActions() {
+        if (this.combatFlee()) return;
         if (this.stationaryHarvest()) return;
         if (this.housekeeping()) return;
         this.harvestSource();
+    }
+
+    combatFlee() {
+        if (!civilianShouldFlee(this.creep)) return false;
+        this.creep.memory.onContainer = undefined;
+        this.creep.fleeHome(true);
+        return true;
     }
 
     isSkRoom() {
@@ -159,12 +168,12 @@ class RoleRemoteHarvester {
             const intel = INTEL[this.creep.memory.destination];
             const colony = Game.rooms[this.creep.memory.colony];
             const hostile = intel.level || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader');
-            const blocked = intel.obstacles || remoteCombatBlocksMining(this.creep.memory.destination);
             const dropped = Memory.avoidRemotes && Memory.avoidRemotes.includes(this.creep.memory.destination);
             const destIsSk = intel.sk || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.creep.memory.destination));
             const destIsCenter = global.isSectorCenterRoomName && global.isSectorCenterRoomName(this.creep.memory.destination);
             const skUnsafe = (destIsSk || destIsCenter) && (!SK_MINING || !colony || colony.level < SK_MINING_LEVEL);
-            if (hostile || blocked || dropped || skUnsafe || !intel.sources) {
+            // Transient combat is not a recycle: stay assigned, flee only in range.
+            if (hostile || intel.obstacles || dropped || skUnsafe || !intel.sources) {
                 if (hostile) this.room.cacheRoomIntel(true);
                 return this.creep.recycleCreep();
             }
@@ -194,6 +203,14 @@ class RoleRemoteHarvester {
             if (!dest || typeof dest !== 'string') return this.creep.recycleCreep();
 
             if (this.creep.room.name !== dest) {
+                if (remoteCombatBlocksMining(dest)) {
+                    if (this.creep.room.name === this.creep.memory.colony) {
+                        this.creep.idleFor(10);
+                        return;
+                    }
+                    this.creep.fleeHome(true);
+                    return;
+                }
                 const colony = this.creep.memory.colony;
                 const route = colony ? getMiningRouteRooms(colony, dest) : [];
                 return travelRouteHops(this.creep, dest, route, {range: 23});

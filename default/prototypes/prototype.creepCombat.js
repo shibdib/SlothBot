@@ -704,6 +704,34 @@ Creep.prototype.fightFromRampart = function (hostile = undefined) {
     return true;
 };
 
+function stepAwayFromTarget(creep, target) {
+    if (!creep.hasActiveBodyparts(MOVE) || creep.fatigue || creep.pos.checkForRampart()) return false;
+    const pos = creep.pos;
+    const current = pos.getRangeTo(target);
+    const terrain = Game.map.getRoomTerrain(pos.roomName);
+    let bestDir = 0;
+    let bestScore = -Infinity;
+    for (let d = TOP; d <= TOP_LEFT; d++) {
+        const next = pos.positionAtDirection(d);
+        if (!next || next.x < 1 || next.x > 48 || next.y < 1 || next.y > 48) continue;
+        const tile = terrain.get(next.x, next.y);
+        if (tile === TERRAIN_MASK_WALL) continue;
+        if (next.checkForObstacleStructure && next.checkForObstacleStructure()) continue;
+        if (next.checkForCreep && next.checkForCreep()) continue;
+        const nextRange = next.getRangeTo(target);
+        if (nextRange <= current) continue;
+        let score = nextRange * 10;
+        if (next.checkForRoad && next.checkForRoad()) score += 8;
+        else if (tile !== TERRAIN_MASK_SWAMP) score += 4;
+        if (score > bestScore) {
+            bestScore = score;
+            bestDir = d;
+        }
+    }
+    if (!bestDir) return false;
+    return creep.move(bestDir) === OK;
+}
+
 Creep.prototype.fightRanged = function (target) {
     if (!target || !isValidHostileTarget(target) || !this.hasActiveBodyparts(RANGED_ATTACK)) return false;
 
@@ -745,19 +773,19 @@ Creep.prototype.fightRanged = function (target) {
         }
     }
 
-    const kiteTarget = target instanceof Creep && target.hasActiveBodyparts(ATTACK);
-    const targetRange = kiteTarget ? 3 : 1;
+    const armedCreep = target instanceof Creep &&
+        (target.hasActiveBodyparts(ATTACK) || target.hasActiveBodyparts(RANGED_ATTACK));
+    const defendDest = this.memory.destination === this.room.name;
+    const targetOnEdge = target.pos && (target.pos.x <= 1 || target.pos.x >= 48
+        || target.pos.y <= 1 || target.pos.y >= 48);
+    // Assigned dest: do not walk onto the portal to finish a flee.
+    const targetRange = (armedCreep || (defendDest && targetOnEdge)) ? 3 : 1;
 
     if (range <= targetRange) {
         const nearby = this.pos.findInRange(this.room.hostileCreeps, 2);
-        if (nearby.length >= 2) {
-            this.rangedMassAttack();
-        } else {
-            if (range < targetRange && (this.hits < this.hitsMax * 0.8 || nearby.length > 1)) {
-                this.shibKite(4);
-            }
-            this.rangedAttack(target);
-        }
+        if (nearby.length >= 2) this.rangedMassAttack();
+        else this.rangedAttack(target);
+        if (range < targetRange) stepAwayFromTarget(this, target);
     } else {
         this.shibMove(target, {range: targetRange});
         this.attackInRange();
@@ -894,15 +922,18 @@ Creep.prototype.canIWin = function (range = 50, inbound = undefined) {
     const hostilePower = calculateHostilePower(this, range);
     const friendlyPower = calculateFriendlyPower(this, range, inbound);
 
-    INTEL[this.room.name].hostilePower = hostilePower;
-    INTEL[this.room.name].friendlyPower = friendlyPower;
-
     const onRampart = this.pos.checkForRampart();
     const hasRanged = this.hasActiveBodyparts(RANGED_ATTACK);
     const noHostileRanged = !this.room.hostileCreeps.some(c => c.hasActiveBodyparts(RANGED_ATTACK));
+    const noLiveTowers = !this.room.impassibleStructures.some(s =>
+        s.structureType === STRUCTURE_TOWER && isStructureCombatHostile(s) &&
+        structActive(s) && s.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST
+    );
 
     const result = (this.hits / this.hitsMax < 0.6 && !onRampart) ? false :
-        (hasRanged && noHostileRanged) || (onRampart && friendlyPower >= hostilePower * 0.75) || (friendlyPower > hostilePower);
+        (hasRanged && noHostileRanged && noLiveTowers) ||
+        (onRampart && friendlyPower >= hostilePower * 0.75) ||
+        (friendlyPower > hostilePower);
 
     this._canIWin_ts = Game.time;
     this._canIWin_result = result;
@@ -983,9 +1014,13 @@ Creep.prototype.findDefensivePosition = function (target) {
         return true;
     }
 
+    // 25,25 is the bunker. In a remote that walks into the hostiles.
+    if (!MY_ROOMS.includes(this.room.name)) return true;
+
     const fallback = new RoomPosition(25, 25, this.room.name);
     if (this.pos.getRangeTo(fallback) <= 12) this.idleFor(5);
     else this.shibMove(fallback, {range: 12, avoidEnemies: true});
+    return true;
 };
 
 // Forming waitFor squads still merge in the colony. Once a wave commits
@@ -1192,9 +1227,21 @@ function tryMergePartialSquads(leader) {
 Creep.prototype.formSquad = function () {
     if (this.spawning) return;
     const waitFor = this.memory.misc && this.memory.misc.waitFor;
+    // Solos stay solo. Pairing waitFor-1 set isSquadCreep and blocked dest
+    // hops that borderPatrol never issues.
+    if (!(waitFor > 1)) {
+        if (this.memory.leader) {
+            const ids = this.memory.squadMembers || [];
+            for (let i = 0; i < ids.length; i++) {
+                const m = Game.getObjectById(ids[i]);
+                if (m && m.ungroupFromSquad) m.ungroupFromSquad();
+            }
+        }
+        if (this.memory.grouped || this.memory.leader) this.ungroupFromSquad();
+        return;
+    }
     // Uncommitted waitFor waves are bound at formColony by bindWaveHere.
-    // Opportunistic pairing here created two duos that never merged.
-    if (waitFor > 1 && !isCommittedSquad(this)) return;
+    if (!isCommittedSquad(this)) return;
     if (this.memory.leader) disbandEmptyLeader(this);
     if (!this.memory.grouped) findGroup(this);
     else if (this.memory.leader) tryMergePartialSquads(this);

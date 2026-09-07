@@ -885,6 +885,50 @@ function visionHasArmedHostiles(room) {
     });
 }
 
+function armedCombatPower(creeps, includeHeal) {
+    let power = 0;
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c.hasActiveBodyparts(ATTACK) && !c.hasActiveBodyparts(RANGED_ATTACK)
+            && !(includeHeal && c.hasActiveBodyparts(HEAL))) continue;
+        power += c.combatPower || 0;
+    }
+    return power;
+}
+
+/**
+ * Live friendlies already in the room beat live hostiles. Inbound INTEL.friendlyPower
+ * does not count — a 1A on the miner still gets the kill while patrol is a room away.
+ */
+function visionCombatCovered(room) {
+    if (room._visionCombatCoveredTick === Game.time) return room._visionCombatCovered;
+    const covered = armedCombatPower(room.friendlyCreeps, false)
+        > armedCombatPower(room.hostileCreeps, true);
+    room._visionCombatCoveredTick = Game.time;
+    room._visionCombatCovered = covered;
+    return covered;
+}
+
+// Fat low-MOVE bodies close slower than a 1M harass. 12 tiles is ~6–12 ticks
+// of head start before ranged range, enough to reach a nearby exit.
+const CIVILIAN_FLEE_RANGE = 12;
+
+function civilianShouldFlee(creep) {
+    const room = creep.room;
+    if (!room || MY_ROOMS.includes(room.name)) return false;
+    const intel = INTEL[room.name];
+    if ((room.memory && room.memory.sk) || (intel && intel.sk)) return false;
+    if (intel && intel.towers) return true;
+    const hostiles = room.hostileCreeps;
+    if (!hostiles || !hostiles.length) return false;
+    for (let i = 0; i < hostiles.length; i++) {
+        const h = hostiles[i];
+        if (!h.hasActiveBodyparts(ATTACK) && !h.hasActiveBodyparts(RANGED_ATTACK)) continue;
+        if (creep.pos.getRangeTo(h) <= CIVILIAN_FLEE_RANGE) return true;
+    }
+    return false;
+}
+
 /**
  * Live combat/stronghold that should pause SK mining. Stale threatLevel from a
  * previous invader wave must not drop the assignment forever once we have no vision.
@@ -904,8 +948,9 @@ function skCombatBlocksMining(remoteName) {
 }
 
 /**
- * Live combat that should pause regular remote harvest. Same freshness rules as SK:
- * a past invader wave must not freeze the remote after vision (and threatLevel) goes stale.
+ * Live combat that should pause regular remote harvest / restaff. Patrol already
+ * beating the room must not dump the pipeline. Same freshness rules as SK: a past
+ * invader wave must not freeze the remote after vision (and threatLevel) goes stale.
  */
 function remoteCombatBlocksMining(remoteName) {
     const intel = INTEL[remoteName];
@@ -914,7 +959,8 @@ function remoteCombatBlocksMining(remoteName) {
     if (vis) {
         if (vis.structures.some(s => s.structureType === STRUCTURE_TOWER && !s.my)) return true;
         if (vis.structures.some(s => s.structureType === STRUCTURE_INVADER_CORE)) return true;
-        return visionHasArmedHostiles(vis);
+        if (!visionHasArmedHostiles(vis)) return false;
+        return !visionCombatCovered(vis);
     }
     if (intel.invaderCore && intel.invaderCore > Game.time) return true;
     if (intel.invaderTTL && intel.invaderTTL > Game.time) return true;
@@ -1484,6 +1530,7 @@ module.exports = {
     isSkRoomName,
     skCombatBlocksMining,
     remoteCombatBlocksMining,
+    civilianShouldFlee,
     isAllowedSkRoom,
     getColonySkRooms,
     getColonySkGuardRooms,

@@ -10,7 +10,7 @@ Creep.prototype.guardRoom = function () {
     if (!destination) {
         this.attackInRange();
         this.healInRange();
-        if (this.handleMilitaryCreep()) return;
+        if (this.handleMilitaryCreep(false, true, false)) return;
 
         // Become idle for highCommand reassignment; fall back toward colony
         // (same pattern as borderPatrol when destination is lost)
@@ -33,13 +33,11 @@ Creep.prototype.guardRoom = function () {
     this.attackInRange();
     this.healInRange();
 
-    // Move to the destination room if not there yet
+    if (this.handleMilitaryCreep(false, true, false)) return;
+
     if (this.room.name !== destination) {
         return this.shibMove(new RoomPosition(25, 25, destination), {range: 24});
-    } else {
-        // Check for new mission or update orders if necessary
-        this.operationManager();
-        // Combat handling
-        if (this.handleMilitaryCreep() || this.findDefensivePosition()) return;
     }
+    this.operationManager();
+    if (this.findDefensivePosition()) return;
 };

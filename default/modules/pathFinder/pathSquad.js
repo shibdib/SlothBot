@@ -427,7 +427,10 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
     const currentRoom = this.pos.roomName;
     const orientation = this.memory.squadOrientation || 0;
     const squadSize = (this.memory.squadMembers || []).length + 1;
-    const allowedRooms = [currentRoom].concat(Object.values(Game.map.describeExits(currentRoom)));
+    const dest = this.memory && this.memory.destination;
+    const allowedRooms = (dest && dest === currentRoom)
+        ? [currentRoom]
+        : [currentRoom].concat(Object.values(Game.map.describeExits(currentRoom)));
 
     const result = PathFinder.search(this.pos, fleeGoals, {
         flee: true,

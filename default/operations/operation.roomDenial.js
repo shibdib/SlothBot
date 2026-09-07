@@ -195,6 +195,16 @@ function pickSoloBorderBreach(creep) {
     return best;
 }
 
+function hasLiveCombatPartner(creep) {
+    if (creep.memory.partner && Game.getObjectById(creep.memory.partner)) return true;
+    if (creep.memory.groupLeader && Game.getObjectById(creep.memory.groupLeader)) return true;
+    const ids = creep.memory.squadMembers || [];
+    for (let i = 0; i < ids.length; i++) {
+        if (Game.getObjectById(ids[i])) return true;
+    }
+    return false;
+}
+
 function soloCanTankTowers(creep) {
     const towers = creep.room.towers || [];
     let dump = 0;
@@ -280,8 +290,16 @@ Creep.prototype.denyRoom = function (options = {}) {
         if (barrier) return engageDenialBreach(this, barrier);
 
         if (!soloCanTankTowers(this)) {
-            const exit = this.pos.findClosestByPath(FIND_EXIT);
-            if (exit) return this.shibMove(exit, {range: 0});
+            if (hasLiveCombatPartner(this)) {
+                if (this.memory.holdPortal) this.memory.holdPortal = undefined;
+            } else {
+                this.memory.holdPortal = true;
+                const exit = this.pos.findClosestByPath(FIND_EXIT);
+                if (exit) this.shibMove(exit, {range: 0});
+                return;
+            }
+        } else if (this.memory.holdPortal) {
+            this.memory.holdPortal = undefined;
         }
 
         // Ignore-border would skip exit-camping defenders — the usual hold.

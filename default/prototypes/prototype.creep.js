@@ -23,7 +23,7 @@
 
 const {runTowTruck} = require('pathTow');
 const {clearShibMove, getShibMove} = require('pathUtils');
-const {stepInlandOffExit} = require('pathFormation');
+const {stepInlandOffExit, isSquadCreep} = require('pathFormation');
 const {roomCanBurnSurplus} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 
@@ -1090,6 +1090,21 @@ Creep.prototype.towTruck = function () {
     return runTowTruck(this);
 };
 
+function squadDestExitSlide(creep) {
+    if (!isSquadCreep(creep) || !creep.memory) return false;
+    const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
+    if (waitFor > 1) return true;
+    if ((creep.memory.squadMembers || []).length >= 2) return true;
+    if (creep.memory.groupLeader) {
+        const leader = Game.getObjectById(creep.memory.groupLeader);
+        if (leader && leader.memory) {
+            const lw = leader.memory.misc && leader.memory.misc.waitFor;
+            if (lw > 1 || (leader.memory.squadMembers || []).length >= 2) return true;
+        }
+    }
+    return false;
+}
+
 function forceOffExit(creep) {
     if (stepInlandOffExit(creep)) return;
     const {x, y} = creep.pos;
@@ -1114,7 +1129,14 @@ Creep.prototype.borderCheck = function () {
 
     const dest = this.memory && this.memory.destination;
     // Dest landing is a portal. Sitting here teleports back out.
+    // Denial that cannot tank holds the portal on purpose (kite through it).
+    // Packed waitFor waves slide via stepOffDestExit — yanking each body
+    // inland here desyncs the 2×2 on landing.
     if (dest === this.room.name) {
+        if (this.memory.holdPortal || squadDestExitSlide(this)) {
+            this.memory.borderCountDown = undefined;
+            return false;
+        }
         this.memory.borderCountDown = undefined;
         clearShibMove(this);
         this.memory.moveBlocked = Game.time;

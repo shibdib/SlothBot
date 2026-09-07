@@ -17,6 +17,8 @@ const {hubManagerNeedsBiggerBody} = require('bodyEconomic');
 
 const HUB_RENEW_START = 400;
 const HUB_RENEW_TARGET = CREEP_LIFE_TIME - 50;
+// Working stock left in storage/terminal so controller drip cannot empty the room.
+const CONTROLLER_FEED_FLOOR = 10000;
 
 function idleAdjacentSpawn(creep) {
     const spawns = creep.room.spawns || [];
@@ -187,6 +189,19 @@ class RoleHubManager {
         return cEnergy < LINK_CAPACITY * 0.5;
     }
 
+    // Harvest already in the hub may still drip. Do not pull warehouse energy
+    // for upgrades once storage+terminal (above the terminal buffer) is at the floor.
+    controllerFeedStockOk() {
+        const storage = this.room.storage;
+        const terminal = this.room.terminal;
+        const storageE = storage ? (storage.store[RESOURCE_ENERGY] || 0) : 0;
+        const termE = terminal ? (terminal.store[RESOURCE_ENERGY] || 0) : 0;
+        const buffer = typeof TERMINAL_ENERGY_BUFFER === 'number' ? TERMINAL_ENERGY_BUFFER : 0;
+        const available = storageE + Math.max(0, termE - buffer);
+        const floor = Math.max(CONTROLLER_FEED_FLOOR, this.room.energyCapacityAvailable || 0);
+        return available > floor;
+    }
+
     deliverEnergy() {
         const spawnNeed = this.spawnNeed();
         if (spawnNeed.length) {
@@ -195,7 +210,8 @@ class RoleHubManager {
         }
 
         const hubLink = Game.getObjectById(this.room.memory.hubLink);
-        if (this.shouldFeedControllerFromHub(hubLink) && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        if (this.shouldFeedControllerFromHub(hubLink) && this.controllerFeedStockOk()
+            && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
             this.creep.transfer(hubLink, RESOURCE_ENERGY);
             return;
         }
@@ -248,7 +264,8 @@ class RoleHubManager {
         };
 
         if (this.spawnNeed().length && pullEnergy()) return;
-        if (feedController && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && pullEnergy()) return;
+        if (feedController && this.controllerFeedStockOk()
+            && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && pullEnergy()) return;
 
         let task = this.liveWarehouseTask();
         if (!task) {
