@@ -46,6 +46,11 @@ class RoleMineralHarvester {
         if (extractor) {
             this.creep.memory.extractor = extractor.id;
         } else {
+            const pos = mineral && mineral.pos;
+            if (pos && !pos.checkForConstructionSites()) {
+                const {tryCreateConstructionSite} = require('planUtils');
+                tryCreateConstructionSite(pos, STRUCTURE_EXTRACTOR);
+            }
             this.creep.recycleCreep();
         }
     }

@@ -410,7 +410,7 @@ function getForceRoom() {
  * Drop unspent soft holds for spawn/towers/extensions.
  * Must run after those layers place and BEFORE core/economy/roads — otherwise
  * reserved-but-unused extension slots starve storage/terminal (and then
- * roads/links/mineral which are gated on storage).
+ * roads/links which are gated on storage).
  * @param {Room} room
  */
 function releaseLayoutSoftReserves(room) {

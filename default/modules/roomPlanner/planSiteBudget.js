@@ -43,8 +43,8 @@ const SITE_LAYER_PRIORITY = {
     labs: 50,
     mineral: 50,
     corridors: 45,
-    roads: 40,
     ramparts: 30,
+    roads: 10,
 };
 
 /** Leave room-cap slots for layout while energy capacity is incomplete. */
@@ -53,8 +53,8 @@ const LAYOUT_SITE_RESERVE = 3;
 const STEADY_SITE_RESERVE = 1;
 const MAX_ROAD_SITES_PER_TICK = 5;
 /**
- * While layout is pending, stop queueing more road sites once this many already
- * exist (protect extension/spawn capacity).
+ * Hard cap on queued road sites. Roads are the lowest-priority type and must
+ * not fill the room cap (5 on shardX) even after layout is complete.
  */
 const MAX_ROAD_SITES_QUEUED = 3;
 /** Match planRamparts ensure hot path (maxPlace 3). */
@@ -347,7 +347,7 @@ function noteCommit(roomOrName, layer, structureType) {
 
 /**
  * Cap helper for roads.
- *   if layoutPending && roadSites >= MAX_ROAD_SITES_QUEUED → 0
+ *   if roadSites >= MAX_ROAD_SITES_QUEUED → 0 (always, not only while layoutPending)
  *   min(MAX_ROAD_SITES_PER_TICK, available after higher holds + policy reserve)
  *
  * @param {Room|string} roomOrName
@@ -358,17 +358,49 @@ function roadLimit(roomOrName, options) {
     const layoutPending = !!opts.layoutPending;
     const maxPerTick = opts.maxPerTick != null ? opts.maxPerTick : MAX_ROAD_SITES_PER_TICK;
 
-    // While layout is incomplete, do not pile road sites.
-    if (layoutPending) {
-        const room = resolveRoom(roomOrName);
-        if (room) {
-            const roadSites = countRoomConstructionSitesOfType(room.name, STRUCTURE_ROAD);
-            if (roadSites >= MAX_ROAD_SITES_QUEUED) return 0;
-        }
+    const room = resolveRoom(roomOrName);
+    if (room) {
+        const roadSites = countRoomConstructionSitesOfType(room.name, STRUCTURE_ROAD);
+        if (roadSites >= MAX_ROAD_SITES_QUEUED) return 0;
     }
 
     const req = request(roomOrName, 'roads', maxPerTick, {layoutPending});
     return req.allowed;
+}
+
+/**
+ * Drop idle (then low-progress) road sites so a higher-priority type can use
+ * the room cap. Planned roads re-queue when budget remains.
+ * @param {Room} room
+ * @param {number} want
+ * @returns {number} sites removed
+ */
+function freeIdleRoadSites(room, want) {
+    if (!room || want <= 0 || isPlannerShadow(room)) return 0;
+
+    let freed = 0;
+    const sites = room.constructionSites || [];
+    const idle = [];
+    const low = [];
+    for (let i = 0; i < sites.length; i++) {
+        const s = sites[i];
+        if (!s || s.structureType !== STRUCTURE_ROAD) continue;
+        if (!s.progress) idle.push(s);
+        else if (s.progress < Math.max(1, (s.progressTotal || 1) * 0.25)) low.push(s);
+    }
+    low.sort((a, b) => a.progress - b.progress);
+    const order = idle.concat(low);
+    for (let i = 0; i < order.length && freed < want; i++) {
+        try {
+            if (order[i].remove() === OK) freed++;
+        } catch (e) { /* ignore */
+        }
+    }
+    if (freed) {
+        invalidateRoomConstructionSiteCache(room);
+        if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+    }
+    return freed;
 }
 
 /**
@@ -435,7 +467,16 @@ function compareRampartLimit(room, options) {
  * @returns {{ok: boolean, result: number, shadow?: boolean, code: string|null, request: object}}
  */
 function tryPlace(room, layer, pos, structureType, options) {
-    const req = request(room, layer, 1, options);
+    let req = request(room, layer, 1, options);
+    if (req.allowed < 1
+        && layer !== 'roads'
+        && structureType !== STRUCTURE_ROAD
+        && (req.code === FailureCodes.SITE_BUDGET_ROOM
+            || req.code === FailureCodes.SITE_BUDGET_GLOBAL)) {
+        if (freeIdleRoadSites(room, 1) > 0) {
+            req = request(room, layer, 1, options);
+        }
+    }
     if (req.allowed < 1) {
         return {
             ok: false,

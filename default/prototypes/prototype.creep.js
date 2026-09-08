@@ -41,7 +41,7 @@ function getRoomExits(room) {
 
 const REMOTE_REPAIRABLE = new Set([STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_WALL, STRUCTURE_RAMPART]);
 const PRIORITY_BUILD_TYPES = [
-    STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL,
+    STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_EXTRACTOR, STRUCTURE_TERMINAL,
     STRUCTURE_CONTAINER, STRUCTURE_LINK, STRUCTURE_LAB, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN,
 ];
 
@@ -965,9 +965,10 @@ Creep.prototype.constructionWork = function (scope) {
     site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.5));
     if (site) return repair(site, site.hitsMax * 0.8);
 
-    // Queued roads occupy a site slot; idle 0-progress ones get evicted by the
-    // perimeter queue. allowRoads already requires ROAD_LEVEL + storage.
-    if (roadSites.length) return buildClosest(roadSites);
+    // Roads are the lowest-priority site type. Do not spend a builder on them
+    // while any other non-barrier site is queued. allowRoads already requires
+    // ROAD_LEVEL + storage.
+    if (!available(sites.misc).length && roadSites.length) return buildClosest(roadSites);
     site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.75));
     if (site) return repair(site, site.hitsMax * 0.75);
 

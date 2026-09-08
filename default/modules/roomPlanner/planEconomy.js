@@ -107,10 +107,10 @@ function freeSiteSlotsForContainers(room, want) {
 }
 
 /**
- * Labs lose to a full road/rampart queue: priority only covers same-tick
- * reserves, not sites already sitting in the room cap (5 on shardX).
+ * Labs/extractors lose to a full road/rampart queue: priority only covers
+ * same-tick reserves, not sites already sitting in the room cap (5 on shardX).
  * Drop idle (then low-progress) roads/barriers, including planned ones —
- * they re-queue after the lab site is down.
+ * they re-queue after the lab/extractor site is down.
  * @param {Room} room
  * @param {number} want
  * @returns {number} sites removed
@@ -156,7 +156,7 @@ function freeSiteSlotsForLabs(room, want) {
         invalidateRoomConstructionSiteCache(room);
         if (room._invalidateStructureCaches) room._invalidateStructureCaches();
         if (typeof log !== 'undefined' && log.a) {
-            log.a(`${room.name} removed ${freed} site(s) to free slots for labs`, 'PLANNER');
+            log.a(`${room.name} removed ${freed} site(s) to free slots for labs/extractor`, 'PLANNER');
         }
     }
     return freed;
@@ -169,30 +169,30 @@ function tryPlace(room, layer, pos, structureType) {
     let req = siteBudget.request(room, layer, 1);
     if (req.allowed < 1) {
         // One reclaim pass — layout must not starve economy / labs.
+        // Roads are also evicted inside siteBudget.tryPlace (lowest site type).
         let freed = 0;
         if (layer === 'controller' || layer === 'sources') {
             freed = freeSiteSlotsForContainers(room, 1);
-        } else if (layer === 'labs') {
+        } else if (layer === 'labs' || layer === 'mineral') {
             freed = freeSiteSlotsForLabs(room, 1);
         }
         if (freed > 0) {
             req = siteBudget.request(room, layer, 1);
         }
     }
-    if (req.allowed < 1) {
-        const plan = getPlan(room);
-        if (plan && req.code) {
-            pushFailure(plan, {
-                code: req.code,
-                layer,
-                detail: {structureType, x: pos.x, y: pos.y},
-                tick: Game.time,
-                source: 'planEconomy',
-            });
-        }
-        return {ok: false, code: req.code || FailureCodes.SITE_BUDGET_ROOM, result: ERR_FULL};
+    const res = siteBudget.tryPlace(room, layer, pos, structureType);
+    if (res.ok) return res;
+    const plan = getPlan(room);
+    if (plan && res.code) {
+        pushFailure(plan, {
+            code: res.code,
+            layer,
+            detail: {structureType, x: pos.x, y: pos.y},
+            tick: Game.time,
+            source: 'planEconomy',
+        });
     }
-    return siteBudget.tryPlace(room, layer, pos, structureType);
+    return {ok: false, code: res.code || FailureCodes.SITE_BUDGET_ROOM, result: res.result || ERR_FULL};
 }
 
 function noteLayerTile(room, layerName, pos) {
@@ -1827,12 +1827,6 @@ function placeLabs(room) {
 // Mineral
 // ---------------------------------------------------------------------------
 
-function isThoriumMineral(mineral) {
-    return typeof IS_SEASON !== 'undefined' && IS_SEASON
-        && mineral && typeof RESOURCE_THORIUM !== 'undefined'
-        && mineral.mineralType === RESOURCE_THORIUM;
-}
-
 function extractorOn(pos) {
     if (!pos) return null;
     const structs = pos.lookFor(LOOK_STRUCTURES);
@@ -1842,41 +1836,61 @@ function extractorOn(pos) {
     return null;
 }
 
+function isBudgetFail(res) {
+    return res && (res.code === FailureCodes.SITE_BUDGET_ROOM
+        || res.code === FailureCodes.SITE_BUDGET_GLOBAL
+        || res.code === FailureCodes.BUDGET_RESERVED_FOR_HIGHER);
+}
+
+function tryPlaceExtractor(room, pos, kind) {
+    if (!pos || extractorOn(pos)) return null;
+    if (pos.checkForConstructionSites()) return {placed: 0, kind, reason: 'site'};
+    if (pos.checkForAllStructure()) return {placed: 0, kind, reason: 'extractor-blocked'};
+    const res = tryPlace(room, 'mineral', pos, STRUCTURE_EXTRACTOR);
+    if (res.ok) {
+        noteLayerTile(room, 'mineral', pos);
+        return {placed: 1, kind, shadow: res.shadow};
+    }
+    return {placed: 0, kind, reason: 'fail', code: res.code};
+}
+
 function placeMineral(room) {
     const level = controllerRcl(room);
-    // V1 mineralBuilder has no RCL gate; aux only calls at controller RCL >= 6.
+    // Extractors unlock at RCL 6. Do not wait for storage — season Thorium
+    // miners spawn at 6 and recycle if this site never lands.
     if (level < 6) return {placed: 0, reason: 'rcl'};
-    if (!room.mineral) return {placed: 0, reason: 'no-mineral'};
 
-    const skipContainer = isThoriumMineral(room.mineral);
-    let extractor = extractorOn(room.mineral.pos) || (skipContainer ? null : room.extractor);
-    if (!extractorOn(room.mineral.pos)) {
-        if (!room.mineral.pos.checkForAllStructure() && !room.mineral.pos.checkForConstructionSites()) {
-            const res = tryPlace(room, 'mineral', room.mineral.pos, STRUCTURE_EXTRACTOR);
-            if (res.ok) {
-                noteLayerTile(room, 'mineral', room.mineral.pos);
-                return {placed: 1, kind: 'extractor', shadow: res.shadow};
-            }
-            return {placed: 0, kind: 'extractor', reason: 'fail', code: res.code};
-        }
-        if (!skipContainer) return {placed: 0, reason: 'extractor-blocked'};
-    }
-
+    const mineral = room.mineral;
     const thorium = room.thorium;
-    if (thorium && (!room.mineral || thorium.id !== room.mineral.id) && !extractorOn(thorium.pos)) {
-        if (!thorium.pos.checkForAllStructure() && !thorium.pos.checkForConstructionSites()) {
-            const res = tryPlace(room, 'mineral', thorium.pos, STRUCTURE_EXTRACTOR);
-            if (res.ok) {
-                noteLayerTile(room, 'mineral', thorium.pos);
-                return {placed: 1, kind: 'thorium-extractor', shadow: res.shadow};
-            }
-            return {placed: 0, kind: 'thorium-extractor', reason: 'fail', code: res.code};
-        }
+    if (!mineral && !thorium) return {placed: 0, reason: 'no-mineral'};
+
+    // One extractor per room. Season: Thorium is the win condition and the
+    // only mineral harvested before RCL8, so site it first while ore remains.
+    const targets = [];
+    if (thorium && thorium.mineralAmount > 0) {
+        targets.push({pos: thorium.pos, kind: 'thorium-extractor'});
+    }
+    if (mineral) targets.push({pos: mineral.pos, kind: 'extractor'});
+    if (thorium && !(thorium.mineralAmount > 0)) {
+        targets.push({pos: thorium.pos, kind: 'thorium-extractor'});
     }
 
-    extractor = extractorOn(room.mineral.pos) || room.extractor;
+    const seen = {};
+    for (let i = 0; i < targets.length; i++) {
+        const t = targets[i];
+        const key = t.pos.x + ',' + t.pos.y;
+        if (seen[key]) continue;
+        seen[key] = true;
+        const r = tryPlaceExtractor(room, t.pos, t.kind);
+        if (!r) continue;
+        if (r.placed || isBudgetFail(r) || r.reason === 'site') return r;
+    }
+
+    const extractor = extractorOn(mineral && mineral.pos)
+        || extractorOn(thorium && thorium.pos)
+        || room.extractor;
     if (!extractor) return {placed: 0, reason: 'extractor-blocked'};
-    if (skipContainer) return {placed: 0, reason: 'thorium-no-container'};
+    if (thorium && extractorOn(thorium.pos)) return {placed: 0, reason: 'thorium-no-container'};
 
     let extractorContainer = Game.getObjectById(room.memory.extractorContainer);
     if (!extractorContainer) {
@@ -1962,13 +1976,14 @@ function placeEconomy(room) {
     const controller = placeControllerContainer(room);
     const sources = placeSourceContainers(room);
 
-    let mineral = {placed: 0, reason: 'no-storage'};
+    const rcl = controllerRcl(room);
+    let mineral = {placed: 0, reason: 'rcl'};
     let labs = {placed: 0, reason: 'no-storage'};
     let links = {placed: 0, reason: 'no-storage'};
 
+    if (rcl >= 6) mineral = placeMineral(room);
+
     if (room.storage) {
-        const rcl = controllerRcl(room);
-        if (rcl >= 6) mineral = placeMineral(room);
         // Labs are 50k each. Hold until RCL8 so that energy hits the controller.
         if (rcl >= 8) labs = placeLabs(room);
         else if (rcl >= 6) labs = {placed: 0, reason: 'rcl-climb'};
@@ -2021,7 +2036,7 @@ const ECONOMY_PARITY_NOTES = [
     'remote exit links RCL>=8 explicit (V1 comment only)',
     'source link uses resolveSourceContainer (V1 memory-only could miss after wipe)',
     'mineral container tries next free tile on non-budget fail (V1 first tile only)',
-    'order: controller → sources → [storage] mineral → labs → links (controller first so RCL climb is not starved)',
+    'order: controller → sources → mineral (RCL6, no storage gate) → [storage] labs → links',
     'missing containers: early phase before core/extensions + site-slot reclaim of idle roads/barriers',
     'source within 2 of controller: shared controller/source link; controller container avoids that tile',
     'stray/duplicate links destroyed (one/tick) so hub/source/controller can use the cap',
@@ -2127,6 +2142,7 @@ function inspectEconomy(room) {
             sourceContainers: level >= 3,
             controllerContainer: level >= 2 && level < 8 && !shouldSkipControllerContainer(room),
             links: level >= 5 && !!room.storage,
+            mineral: level >= 6,
             mineralLabs: level >= 8 && !!room.storage,
             secondSourceLink: level >= 6 && !!room.storage,
             remoteLinks: level >= 8,
