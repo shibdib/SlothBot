@@ -4,9 +4,39 @@
 
 const highCommand = require('module.highCommand');
 
+function denialRemotes(dest) {
+    const destinationOwner = INTEL[dest] && INTEL[dest].owner;
+    return Object.values(Game.map.describeExits(dest) || {}).filter((n) =>
+        n !== dest &&
+        (!INTEL[n] || !INTEL[n].user || INTEL[n].user === destinationOwner) &&
+        Object.values(Game.map.describeExits(n) || {}).length > 1);
+}
+
+function moveToDenialRemote(creep, roomName) {
+    const dest = creep.memory.destination;
+    const opts = {range: 22};
+    if (dest) opts.avoid = [dest];
+    return creep.shibMove(new RoomPosition(25, 25, roomName), opts);
+}
+
 Creep.prototype.remoteDenial = function () {
     let sentence = ['No', 'Remotes', 'Allowed'];
     this.say(sentence[Game.time % sentence.length], true);
+
+    const dest = this.memory.destination;
+    // Never linger or fight in the owned hostile room. Walk out around it.
+    if (dest && this.room.name === dest) {
+        if (!this.memory.targetRoom || this.memory.targetRoom === dest) {
+            this.memory.targetRoom = _.sample(denialRemotes(dest));
+            this.say('RETASKED', true);
+        }
+        if (this.memory.targetRoom && this.memory.targetRoom !== dest) {
+            return moveToDenialRemote(this, this.memory.targetRoom);
+        }
+        const exit = this.pos.findClosestByPath(FIND_EXIT);
+        if (exit) return this.shibMove(exit, {range: 0});
+        return;
+    }
 
     // Combat handling
     if (this.handleMilitaryCreep()) return;
@@ -22,9 +52,8 @@ Creep.prototype.remoteDenial = function () {
     }
 
     // If the target room no longer is hostile or exists cancel the operations
-    if (INTEL[this.memory.destination]) {
-        if (!INTEL[this.memory.destination].owner || FRIENDLIES.includes(INTEL[this.memory.destination].owner)) {
-            const dest = this.memory.destination;
+    if (INTEL[dest]) {
+        if (!INTEL[dest].owner || FRIENDLIES.includes(INTEL[dest].owner)) {
             this.memory.operation = 'borderPatrol';
             this.memory.destination = undefined;
             this.memory.targetRoom = undefined;
@@ -32,7 +61,9 @@ Creep.prototype.remoteDenial = function () {
                 this.memory.other.target = undefined;
                 this.memory.other.visited = undefined;
             }
-            if (dest) Memory.targetRooms[dest] = undefined;
+            // Companion raiders on a roomDenial dest must not delete the siege.
+            const op = dest && Memory.targetRooms[dest];
+            if (op && op.type === 'remoteDenial') Memory.targetRooms[dest] = undefined;
             log.a('Operation cancelled due to target room no longer being hostile or no longer existing', 'REMOTE-DENIAL: ');
             return this.fleeHome();
         }
@@ -41,28 +72,22 @@ Creep.prototype.remoteDenial = function () {
     // If already in the target room
     if (this.room.name === this.memory.targetRoom || !this.memory.targetRoom) {
         highCommand.generateThreat(this);
-        highCommand.operationSustainability(this.room, this.memory.destination);
+        highCommand.operationSustainability(this.room, dest);
 
         if ((this.room.hostileCreeps.length || this.room.hostileStructures.length) && this.canIWin(50)) {
-            if (Memory.targetRooms[this.memory.destination]) {
-                if (this.room.hostileCreeps.length) {
-                    Memory.targetRooms[this.memory.destination].level = 2;
-                } else {
-                    Memory.targetRooms[this.memory.destination].level = 1;
-                }
+            const destOp = dest && Memory.targetRooms[dest];
+            if (destOp && destOp.type === 'remoteDenial') {
+                destOp.level = this.room.hostileCreeps.length ? 2 : 1;
             }
         } else {
-            const destinationOwner = INTEL[this.memory.destination] && INTEL[this.memory.destination].owner;
-            const remotes = Object.values(Game.map.describeExits(this.memory.destination) || {}).filter((n) =>
-                (!INTEL[n] || !INTEL[n].user || INTEL[n].user === destinationOwner) && Object.values(Game.map.describeExits(n) || {}).length > 1);
-            this.memory.targetRoom = _.sample(remotes);
+            this.memory.targetRoom = _.sample(denialRemotes(dest));
             this.say('RETASKED', true);
         }
     } else {
-        if (this.memory.targetRoom === this.memory.destination) {
+        if (this.memory.targetRoom === dest) {
             this.say('RETASKED', true);
             return this.memory.targetRoom = undefined;
         }
-        return this.shibMove(new RoomPosition(25, 25, this.memory.targetRoom), {range: 22});
+        return moveToDenialRemote(this, this.memory.targetRoom);
     }
 };

@@ -33,6 +33,7 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE) {
     });
 
     const dest = this.memory && this.memory.destination;
+    const denyDest = this.memory.operation === 'remoteDenial' ? dest : undefined;
     const allowedRooms = (dest && dest === currentRoom)
         ? [currentRoom]
         : [currentRoom].concat(Object.values(Game.map.describeExits(currentRoom)));
@@ -42,6 +43,7 @@ Creep.prototype.shibKite = function (fleeRange = FLEE_RANGE) {
         maxRooms: allowedRooms.length + 1,
         roomCallback: (roomName) => {
             if (allowedRooms.length && !allowedRooms.includes(roomName)) return false;
+            if (denyDest && roomName === denyDest && roomName !== currentRoom) return false;
             if (roomName !== currentRoom && INTEL[roomName]?.owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
             return getMatrix(roomName, this, options);
         }

@@ -16,6 +16,48 @@ const {SIEGE_REQUIRED_BOOSTS, SIEGE_OPTIONAL_BOOSTS, siegeLabBoosts} = require('
 const {isNukeHold} = require('hcNukes');
 const {getColonyProfile} = require('module.colonyProfile');
 
+function unownedNeighborRemotes(roomName) {
+    const exits = Game.map.describeExits(roomName);
+    if (!exits) return [];
+    const remotes = [];
+    const neighbors = Object.values(exits);
+    for (let i = 0; i < neighbors.length; i++) {
+        const r = neighbors[i];
+        const intel = typeof INTEL !== 'undefined' ? INTEL[r] : null;
+        if (intel && intel.owner) continue;
+        const remoteExits = Game.map.describeExits(r);
+        if (!remoteExits || Object.values(remoteExits).length <= 1) continue;
+        remotes.push(r);
+    }
+    return remotes;
+}
+
+function clearRoomDenialCombatQueue(key) {
+    clearOpQueueRole('longbow', key, 'roomDenial');
+    clearOpQueueRole('longbowSquad', key, 'roomDenial');
+    clearOpQueueRole('longbow', key, 'remoteDenial');
+    clearOpQueueRole('longbowSquad', key, 'remoteDenial');
+}
+
+// Unboosted solos on the dest's remotes. Independent (no waitFor): a forming
+// duo on this dest would look like an uncommitted siege wave to assignment.
+function queueSiegeRemotePressure(key, priority) {
+    const remotes = unownedNeighborRemotes(key);
+    if (!remotes.length) {
+        clearOpQueueRole('longbow', key, 'remoteDenial');
+        return;
+    }
+    queueCreepIfNeeded({
+        role: 'longbow',
+        priority: priority + 4,
+        numberNeeded: remotes.length >= 2 ? 2 : 1,
+        destination: key,
+        misc: {remotes: remotes},
+        closestRoom: true,
+        operation: 'remoteDenial'
+    });
+}
+
 function rebuildNeedsGuard(roomName) {
     const intel = typeof INTEL !== 'undefined' ? INTEL[roomName] : null;
     if (intel && intel.threatLevel) return true;
@@ -208,9 +250,7 @@ function globalCreepQueue() {
                 }
                 break;
             case 'remoteDenial':
-                const remotes = _.filter(_.map(Game.map.describeExits(key)), function (r) {
-                    return (!INTEL[r] || !INTEL[r].owner) && Object.values(Game.map.describeExits(r)).length > 1;
-                });
+                const remotes = unownedNeighborRemotes(key);
                 queueCreepIfNeeded({
                     role: 'longbow', priority, numberNeeded: 1, destination: key,
                     misc: {remotes: remotes}, closestRoom: true, operation: 'remoteDenial'
@@ -220,8 +260,7 @@ function globalCreepQueue() {
                 if (isNukeHold(operation)) {
                     operation.boosts = undefined;
                     operation.optionalBoosts = undefined;
-                    clearOpQueueRole('longbow', key, 'roomDenial');
-                    clearOpQueueRole('longbowSquad', key, 'roomDenial');
+                    clearRoomDenialCombatQueue(key);
                     if (!Game.rooms[key]) {
                         queueCreepIfNeeded({
                             role: 'scout',
@@ -240,8 +279,7 @@ function globalCreepQueue() {
                 if (rdWaves >= rdLimit) {
                     operation.boosts = undefined;
                     operation.optionalBoosts = undefined;
-                    clearOpQueueRole('longbow', key, 'roomDenial');
-                    clearOpQueueRole('longbowSquad', key, 'roomDenial');
+                    clearRoomDenialCombatQueue(key);
                     if (!Game.rooms[key]) {
                         queueCreepIfNeeded({
                             role: 'scout',
@@ -280,6 +318,7 @@ function globalCreepQueue() {
                     }
                     if (useSolo) {
                         clearOpQueueRole('longbowSquad', key, 'roomDenial');
+                        clearOpQueueRole('longbow', key, 'remoteDenial');
                         queueCreepIfNeeded({
                             role: 'longbow',
                             priority,
@@ -298,14 +337,14 @@ function globalCreepQueue() {
                             closestRoom: true,
                             operation: 'roomDenial'
                         });
+                        queueSiegeRemotePressure(key, priority);
                     }
                 } else {
                     // Intel says no towers. Do not send a naked longbow into a
                     // possible bunker — scout until vision converts to guard.
                     operation.boosts = undefined;
                     operation.optionalBoosts = undefined;
-                    clearOpQueueRole('longbow', key, 'roomDenial');
-                    clearOpQueueRole('longbowSquad', key, 'roomDenial');
+                    clearRoomDenialCombatQueue(key);
                     queueCreepIfNeeded({
                         role: 'scout',
                         priority: 1,
@@ -348,6 +387,8 @@ function globalCreepQueue() {
             case 'guard':
                 clearOpQueueRole('longbow', key, 'roomDenial');
                 clearOpQueueRole('longbowSquad', key, 'roomDenial');
+                clearOpQueueRole('longbow', key, 'remoteDenial');
+                clearOpQueueRole('longbowSquad', key, 'remoteDenial');
                 if (opLevel <= 1) {
                     queueCreepIfNeeded({
                         role: 'longbow',
@@ -466,14 +507,16 @@ function queuePowerOperation(operation, key, priority) {
             numberNeeded: attackers * POWER_HEALERS_PER_ATTACKER,
             destination: key,
             misc: {boosts: [HEAL]},
-            closestRoom: true
+            closestRoom: true,
+            operation: 'power'
         });
         queueCreepIfNeeded({
             role: 'powerAttacker',
             priority: priority - 1,
             numberNeeded: attackers,
             destination: key,
-            closestRoom: true
+            closestRoom: true,
+            operation: 'power'
         });
     }
     if (powerHaulersDue(operation, key)) {
@@ -482,7 +525,8 @@ function queuePowerOperation(operation, key, priority) {
             priority,
             numberNeeded: powerHaulerCount(operation, key),
             destination: key,
-            closestRoom: true
+            closestRoom: true,
+            operation: 'power'
         });
     }
 }

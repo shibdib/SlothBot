@@ -56,6 +56,20 @@ function attachStagingAvoid(creep, target, options) {
     return options;
 }
 
+// Remote raiders must not walk the owned hostile dest even when it is the
+// shortest hop between two remotes. Origin/target keep still lets a creep
+// already inside dest walk out.
+function attachRemoteDenialAvoid(creep, target, options) {
+    if (!creep || !creep.memory || !target || !options) return options;
+    if (creep.memory.operation !== 'remoteDenial') return options;
+    const dest = creep.memory.destination;
+    if (!dest || target.roomName === dest) return options;
+    const extra = avoidList(options) ? avoidList(options).slice() : [];
+    if (!extra.includes(dest)) extra.push(dest);
+    options.avoid = extra;
+    return options;
+}
+
 function routeCacheKey(from, to, options = {}) {
     const shortest = typeof options === 'boolean' ? options : !!options.shortest;
     const offRoad = typeof options === 'object' && !!options.offRoad;
@@ -569,6 +583,8 @@ module.exports = {
     findRoute,
 
     attachStagingAvoid,
+
+    attachRemoteDenialAvoid,
 
     filterAvoidedRooms,
 

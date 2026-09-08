@@ -28,6 +28,7 @@ const {
     exitHopTarget,
     onExitToward,
     attachStagingAvoid,
+    attachRemoteDenialAvoid,
     filterAvoidedRooms,
     applySameRoomDetour,
 } = require('pathRoute');
@@ -195,6 +196,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     if (!origin || !target) return;
 
     attachStagingAvoid(creep, target, options);
+    attachRemoteDenialAvoid(creep, target, options);
 
     if (options.maxOps == null) options.maxOps = DEFAULT_MAXOPS;
     if (options.range == null) options.range = 1;
@@ -427,10 +429,21 @@ function executePath(creep, pathInfo, options, origin, heading) {
     const nextDirection = parseInt(pathInfo.path[0], 10);
     if (!nextDirection) return false;
 
+    const leavePos = posAfterMove(creep.pos, nextDirection);
+    const avoid = options.avoid && (Array.isArray(options.avoid) ? options.avoid : [options.avoid]);
+    if (leavePos && avoid && avoid.includes(leavePos.roomName)) {
+        clearShibMove(creep);
+        return false;
+    }
+
     // Grouped duos/quads only enter dest via squadMove. Solo shibMove hops
     // here are how a squad walked in 1-at-a-time chasing the leader.
     const dest = creep.memory && creep.memory.destination;
     if (dest && isSquadCreep(creep) && wouldEnterDest(creep.pos, nextDirection, dest)) {
+        clearShibMove(creep);
+        return false;
+    }
+    if (dest && creep.memory.operation === 'remoteDenial' && wouldEnterDest(creep.pos, nextDirection, dest)) {
         clearShibMove(creep);
         return false;
     }
