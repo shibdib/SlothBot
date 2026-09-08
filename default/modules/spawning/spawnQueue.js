@@ -280,13 +280,18 @@ function computeSortPriority(item, room) {
         sortPriority = PRIORITIES.hauler;
     }
     const waitForWave = isWaitForLongbowWave(item);
-    if (item.destination && (Memory.targetRooms[item.destination] || Memory.auxiliaryTargets[item.destination])) {
+    const destOp = item.destination
+        && ((Memory.targetRooms && Memory.targetRooms[item.destination])
+            || (Memory.auxiliaryTargets && Memory.auxiliaryTargets[item.destination]));
+    if (destOp) {
         const milInfo = room.energyInfo;
         const milTrend = (milInfo && milInfo.trend) || 0;
         const milSpare = (milInfo && milInfo.spareIncome) || 0;
         const flowReady = spawnEnergyState(room) >= 2 && milTrend >= 0 && milSpare >= 8;
         if (flowReady && room.storage) sortPriority *= 0.5;
-        else if (item.military && !waitForWave) sortPriority *= 6;
+            // Power is income. The siege *6 parked 6k healers behind remotes
+        // unless the room was energyState 2 (~500k at RCL 8).
+        else if (item.military && !waitForWave && destOp.type !== 'power') sortPriority *= 6;
     }
     if (waitForWave) {
         // Pull waves toward hauler without collapsing every dest to the same

@@ -27,6 +27,7 @@ const INVISIBLE_ASSIGNMENT_TIMEOUT = 50;
 const ASSIGNMENT_FAILURE_COOLDOWN = 5;
 const ROOM_ASSIGN_EXCLUDE = 100;
 const LOAD_PER_SPAWN_CAP = 6;
+const POWER_HEALER_COST = 6000;
 // BOOST_USE lists T3, T2, T1 so index 0/1/2. Each step equals this many route
 // hops — otherwise a T1 body wins over a T3 room a few rooms farther.
 const BOOST_TIER_WEIGHT = 4;
@@ -356,7 +357,9 @@ function considerGlobalEntry(room, entry) {
     }
 
     const levelTarget = computeOpLevelTarget(target, opMemory, INTEL[target]);
-    if (room.level < levelTarget) {
+    if (opMemory.type === 'power') {
+        if (!roomCanSpawnPowerTeam(room) && !hasUncommittedWaitForWave(target)) return null;
+    } else if (room.level < levelTarget) {
         // Intel can raise the floor (1-tower stronghold → 2 towers / RCL 8)
         // after this room already started a waitFor-4. Rejecting the entry
         // stranded 3 bodies on the pad with no 4th ever queued.
@@ -364,6 +367,11 @@ function considerGlobalEntry(room, entry) {
     }
 
     return {...entry};
+}
+
+function roomCanSpawnPowerTeam(room) {
+    return !!(room && room.controller && room.controller.level >= 8
+        && (room.energyCapacityAvailable || 0) >= POWER_HEALER_COST);
 }
 
 function computeOpLevelTarget(target, opMemory, intel) {
@@ -501,7 +509,9 @@ function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
         // sticky. considerGlobalEntry then rejects that room AND every other
         // room (not assigned) — nothing spawns. Inflight creeps do not keep
         // an under-level assignee; retargetFormingWaitForColony sends remnants.
-        if (assigned && assigned.level < levelTarget) {
+        if (assigned && (opMemory.type === 'power'
+            ? !roomCanSpawnPowerTeam(assigned)
+            : assigned.level < levelTarget)) {
             unassignRoom(target, 'Assigned room is below operation level.');
         } else if (!assigned) {
             if (hasInflightOpCreeps(target, opMemory.type)) return opMemory.assignedRoom;
@@ -711,12 +721,19 @@ function evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads
     if (!myRoom || !myRoom.controller) return null;
     const key = myRoom.name;
     if (key === targetRoom) return null;
-    // Energy-capacity tier below controller RCL means missing/inactive
-    // extensions. Inactive extras after an RCL dip (nuker, observer, 60th
-    // extension) do not change room.level when the remaining cap still matches
-    // — those rooms can still spawn and should still assign.
-    if (!flags.isRebuild && myRoom.controller.level !== myRoom.level) return null;
-    if (myRoom.level < level && !(flags.isRebuild && myRoom.controller.level >= level)) return null;
+    // Power needs controller 8 + 6k spawn energy, not a complete 60-extension
+    // bunker. room.level is energy-tier, so one missing RCL8 extension is 7
+    // and used to reject every origin.
+    if (flags.isPower) {
+        if (!roomCanSpawnPowerTeam(myRoom)) return null;
+    } else {
+        // Energy-capacity tier below controller RCL means missing/inactive
+        // extensions. Inactive extras after an RCL dip (nuker, observer, 60th
+        // extension) do not change room.level when the remaining cap still matches
+        // — those rooms can still spawn and should still assign.
+        if (!flags.isRebuild && myRoom.controller.level !== myRoom.level) return null;
+        if (myRoom.level < level && !(flags.isRebuild && myRoom.controller.level >= level)) return null;
+    }
 
     // Power is RCL 8 + a 6k healer body. HARASS readiness also requires
     // energyState >= 1 (>250k at RCL 8), which left planned banks unassigned.

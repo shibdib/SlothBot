@@ -12,12 +12,15 @@
 const state = require('hcState');
 
 const POWER_MAX_RANGE = 8;
-const POWER_MIN_AMOUNT = 2000;
+const POWER_MIN_AMOUNT = 1000;
 const POWER_MIN_SPACE = 1;
 const POWER_TRAVEL_PER_ROOM = 50;
-const POWER_MINE_BUFFER = 1500;
+const POWER_MINE_BUFFER = 300;
 const POWER_MAX_ATTACKERS = 2;
+const POWER_MAX_OPS = 2;
 const POWER_HAULER_CARRY = 1250;
+const POWER_HEALER_COST = 6000;
+const POWER_ATTACK_DPS = 25 * (typeof ATTACK_POWER !== 'undefined' ? ATTACK_POWER : 30);
 const POWER_BANK_MAX_HITS = typeof POWER_BANK_HITS !== 'undefined' ? POWER_BANK_HITS : 2000000;
 
 function auxEntryEligible(r, cache, roomName) {
@@ -38,7 +41,7 @@ function closestPowerOriginHops(roomName) {
     for (let i = 0; i < MY_ROOMS.length; i++) {
         const name = MY_ROOMS[i];
         const room = Game.rooms[name];
-        if (!room || room.level < 8) continue;
+        if (!roomCanSpawnPower(room)) continue;
         const linear = Game.map.getRoomLinearDistance(name, roomName);
         if (linear > POWER_MAX_RANGE) continue;
         const route = room.routeDistance(roomName);
@@ -52,16 +55,21 @@ function closestPowerOriginHops(roomName) {
     return Number.isFinite(bestRoute) ? bestRoute : null;
 }
 
-function powerTimeNeeded(dist) {
-    return dist * POWER_TRAVEL_PER_ROOM + POWER_MINE_BUFFER;
+function roomCanSpawnPower(room) {
+    return !!(room && room.controller && room.controller.level >= 8
+        && (room.energyCapacityAvailable || 0) >= POWER_HEALER_COST);
+}
+
+function powerTimeNeeded(r, dist) {
+    const hits = r.powerHits != null ? r.powerHits : POWER_BANK_MAX_HITS;
+    const attackers = Math.min(Math.max(1, r.powerSpace || 1), POWER_MAX_ATTACKERS);
+    const mineTicks = Math.ceil(hits / (attackers * POWER_ATTACK_DPS));
+    return dist * POWER_TRAVEL_PER_ROOM + mineTicks + POWER_MINE_BUFFER;
 }
 
 function isUncontestedPowerBank(r) {
     if (!r.power || r.power <= Game.time) return false;
     if (r.powerMined) return false;
-    // Chip damage is not a contest — others adjacent is. Requiring full HP
-    // dropped every bank that an explorer or NPC had poked.
-    if (r.powerHits != null && r.powerHits < POWER_BANK_MAX_HITS * 0.8) return false;
     if (r.powerAmount != null && r.powerAmount < POWER_MIN_AMOUNT) return false;
     if (r.powerSpace != null && r.powerSpace < POWER_MIN_SPACE) return false;
     return true;
@@ -99,42 +107,41 @@ function auxiliaryOperations() {
         if (op.type === 'commodity') activeCommodityOps++;
     }
 
-    const readiness = state.EMPIRE_READINESS;
-    // Power is income, not a siege. Combat-ready / aux-ready pauses froze banks
-    // in otherwise healthy RCL 8 rooms (energyState 0 is still <250k at RCL 8).
-    const milCpuOk = !readiness || readiness.militaryCpuOk !== false;
-    const canLaunchPower = MAX_LEVEL >= 8 && activePowerOps < 2
+    // Power is income, not a siege. Combat-ready / aux-ready / militaryCpuOk
+    // froze banks in otherwise healthy RCL 8 rooms (energyState 0 is still
+    // <250k at RCL 8). Only skip when the bucket is in emergency.
+    const bucket = (typeof Game !== 'undefined' && Game.cpu && Game.cpu.bucket) || 0;
+    const canLaunchPower = MAX_LEVEL >= 8 && activePowerOps < POWER_MAX_OPS
         && getResourceTotal(RESOURCE_POWER) < DUMP_AMOUNT
-        && milCpuOk;
+        && bucket >= 500;
 
     if (canLaunchPower) {
-        let best = null, bestName = null, bestScore = Infinity;
+        const slots = POWER_MAX_OPS - activePowerOps;
+        const candidates = [];
         for (const rName of (idx.power || [])) {
             const r = INTEL[rName];
             if (!auxEntryEligible(r, cache, rName)) continue;
             if (!isUncontestedPowerBank(r)) continue;
             const dist = closestPowerOriginHops(rName);
             if (dist == null) continue;
-            if (r.power - Game.time < powerTimeNeeded(dist)) continue;
-            const score = scorePowerBank(r, dist);
-            if (score < bestScore) {
-                bestScore = score;
-                best = r;
-                bestName = rName;
-            }
+            if (r.power - Game.time < powerTimeNeeded(r, dist)) continue;
+            candidates.push({r, rName, dist, score: scorePowerBank(r, dist)});
         }
-        if (best && bestName) {
-            const team = planPowerTeam(best);
-            cache[bestName] = {
+        candidates.sort((a, b) => a.score - b.score);
+        const take = Math.min(slots, candidates.length);
+        for (let i = 0; i < take; i++) {
+            const {r, rName} = candidates[i];
+            const team = planPowerTeam(r);
+            cache[rName] = {
                 tick: Game.time,
                 type: 'power',
                 level: 1,
-                priority: PRIORITIES.medium,
+                priority: PRIORITIES.urgent,
                 space: team.attackers,
-                powerAmount: best.powerAmount,
+                powerAmount: r.powerAmount,
                 haulers: team.haulers,
             };
-            log.a(`Power mining planned for ${roomLink(bestName)} (${best.powerAmount} power, ${team.attackers} attackers / ${team.attackers * 2} healers / ${team.haulers} haulers)`, 'HIGH COMMAND: ');
+            log.a(`Power mining planned for ${roomLink(rName)} (${r.powerAmount} power, ${team.attackers} attackers / ${team.attackers * 2} healers / ${team.haulers} haulers)`, 'HIGH COMMAND: ');
         }
     }
 

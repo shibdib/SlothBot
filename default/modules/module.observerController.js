@@ -23,7 +23,7 @@ const TUNING = {
     THROTTLE_TICKS: 5,
     STALE_INTEL_TICKS: 50,            // short window for *reactive* / hot intel (power, threats, active remotes)
     BACKGROUND_STALE_TICKS: 5000,     // rooms with intel older than this (~hours) are eligible for background/exploratory refresh
-    HIGHWAY_SWEEP_TICKS: 750,         // catch power banks (5k TTL) while still mineable
+    HIGHWAY_SWEEP_TICKS: 500,         // catch power banks (5k TTL) while still mineable
     HIGHWAY_SWEEP_RANGE: 8,           // matches power/commodity launch range
     HIGHWAY_SWEEP_PRIORITY: 93,       // above expansion scouts (88-91); banks expire in 5k ticks
     EMPTY_SWEEP_BACKOFF_TICKS: 25,
