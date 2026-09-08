@@ -117,8 +117,8 @@ function spawnTileRampartSite(pos) {
 }
 
 function isSpawnRampartReady(pos) {
-    const rampart = spawnTileRampart(pos);
-    return !!(rampart && rampart.hits >= spawnRampartHitsTarget());
+    // 1-hit rampart is enough for the spawn to land. 10k thicken is waller work.
+    return !!spawnTileRampart(pos);
 }
 
 function spawnAnchorRampartReady(room) {
@@ -278,8 +278,16 @@ function clearSpawnTile(room, pos) {
  * @returns {{ok: boolean, reason: string, x?: number, y?: number, shadow?: boolean, result?: number, freed?: number}}
  */
 function ensureSpawnSite(room) {
+    const rcl = spawnControllerLevel(room);
     if (room.spawns && room.spawns.length) {
         writeSpawnLayer(room, getSpawnPlanTiles(room));
+        // Ramparts unlock at RCL2. Seal an RCL1 spawn once they are allowed.
+        if (rcl >= 2) {
+            const sealPos = getSpawnAnchor(room) || (room.spawns[0] && room.spawns[0].pos);
+            if (sealPos && !spawnTileRampart(sealPos) && !spawnTileRampartSite(sealPos)) {
+                ensureSpawnRampartSite(room, sealPos);
+            }
+        }
         return {ok: true, reason: 'spawn-exists'};
     }
 
@@ -304,14 +312,8 @@ function ensureSpawnSite(room) {
         return {ok: false, reason: 'wall', x: pos.x, y: pos.y};
     }
 
-    const rcl = spawnControllerLevel(room);
-    if (rcl < 2) {
-        if (!isPlannerShadow(room)) removeSpawnSites(room);
-        room.memory.plannerSpawnBlocked = {tick: Game.time, reason: 'need-rcl2', x: pos.x, y: pos.y};
-        return {ok: false, reason: 'need-rcl2', x: pos.x, y: pos.y};
-    }
-
-    if (!isSpawnRampartReady(pos)) {
+    // Ramparts are RCL2+. Place the spawn at RCL1 without a seal.
+    if (rcl >= 2 && !isSpawnRampartReady(pos)) {
         const spawnSite = room.constructionSites.find(s => s.structureType === STRUCTURE_SPAWN);
         if (spawnSite && spawnSite.progress) {
             delete room.memory.plannerSpawnBlocked;

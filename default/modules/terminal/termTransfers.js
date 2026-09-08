@@ -440,6 +440,9 @@ function roomSpareIncome(room) {
 /** Surplus, or at-target with positive spare. Same gate for own-room fills and ally energy. */
 function canDonateEnergy(room) {
     if (!room) return false;
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    // Climbing rooms keep spare energy for a second upgrader, not empire fills.
+    if (rcl < 8) return false;
     const srcState = room.energyState || 0;
     if (srcState >= 3) return true;
     return srcState >= 2 && roomSpareIncome(room) > 0;

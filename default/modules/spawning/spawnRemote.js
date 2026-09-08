@@ -304,7 +304,11 @@ function roomReadyForRemotes(room) {
     if (room.level < 2) return false;
     const sources = (room.sources && room.sources.length) || 0;
     if (!sources) return false;
-    if (room.controller.level <= 2 && getOwnedExtensionDeficit(room) > 0) return false;
+    const rcl = room.controller.level || 0;
+    // Tower + RCL3 extensions first. Remotes at RCL3 used to steal spawn from both.
+    if (rcl < 3) return false;
+    if (!(room.towers && room.towers.length)) return false;
+    if (rcl <= 3 && getOwnedExtensionDeficit(room) > 0) return false;
     if (getCreepCount(room, 'stationaryHarvester') < sources) return false;
     if (!getCreepCount(room, 'shuttle') && !getCreepCount(room, 'hauler')) return false;
     if (roomNeedsSpawnReboot(room)) return false;

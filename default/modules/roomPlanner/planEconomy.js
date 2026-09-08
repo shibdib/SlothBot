@@ -1646,11 +1646,10 @@ function placeLinks(room) {
         }
     }
 
-    // 4. Second source link. RCL7+ has the 4th slot; at RCL6 the slot is free when
-    // the controller link is skipped (near-hub), so take it for harvest instead of waiting.
+    // 4. Second source link whenever a slot remains. RCL6 is 3 links: a shared
+    // controller/source or skipped controller leaves room for the other source.
     if (placed < MAX_SITES_PER_SUBPHASE && canPlaceNonHub() && currentLinks + placed < linkLimit
-        && sortedSources.length > 1
-        && (rcl >= 7 || skipControllerNearHub)) {
+        && sortedSources.length > 1) {
         if (deferNeighborSourceLink(sortedSources[1])) {
             details.push({step: 'source1', reason: 'defer-shared'});
         } else {
@@ -1731,7 +1730,7 @@ function placeLabs(room) {
     // Controller RCL, not energy-tier room.level — incomplete extensions at
     // RCL7 otherwise report as <6 and never unlock labs.
     const level = controllerRcl(room);
-    if (level < 6) return {placed: 0, reason: 'rcl'};
+    if (level < 8) return {placed: 0, reason: level < 6 ? 'rcl' : 'rcl-climb'};
     // C4: plan.anchors.lab first.
     let labXY = null;
     let partial = false;
@@ -1968,10 +1967,11 @@ function placeEconomy(room) {
     let links = {placed: 0, reason: 'no-storage'};
 
     if (room.storage) {
-        if (controllerRcl(room) >= 6) {
-            mineral = placeMineral(room);
-            labs = placeLabs(room);
-        }
+        const rcl = controllerRcl(room);
+        if (rcl >= 6) mineral = placeMineral(room);
+        // Labs are 50k each. Hold until RCL8 so that energy hits the controller.
+        if (rcl >= 8) labs = placeLabs(room);
+        else if (rcl >= 6) labs = {placed: 0, reason: 'rcl-climb'};
         links = placeLinks(room);
     }
 
@@ -2017,7 +2017,7 @@ function placeEconomy(room) {
 const ECONOMY_PARITY_NOTES = [
     'siteBudget + shadow for all places (not planUtils.tryCreate)',
     'controller within 5 of hub: skip controller-link requirement (V1 stalled later links)',
-    'second source link RCL>=7 explicit (V1 used link cap only)',
+    'second source link whenever a slot remains (shared/skipped controller frees RCL6)',
     'remote exit links RCL>=8 explicit (V1 comment only)',
     'source link uses resolveSourceContainer (V1 memory-only could miss after wipe)',
     'mineral container tries next free tile on non-budget fail (V1 first tile only)',
@@ -2127,8 +2127,8 @@ function inspectEconomy(room) {
             sourceContainers: level >= 3,
             controllerContainer: level >= 2 && level < 8 && !shouldSkipControllerContainer(room),
             links: level >= 5 && !!room.storage,
-            mineralLabs: level >= 6 && !!room.storage,
-            secondSourceLink: level >= 7,
+            mineralLabs: level >= 8 && !!room.storage,
+            secondSourceLink: level >= 6 && !!room.storage,
             remoteLinks: level >= 8,
         },
         budget: {

@@ -15,20 +15,43 @@ function colonyIntelFresh(room) {
     for (const dir in exits) {
         const r = exits[dir];
         const intel = INTEL[r];
-        if (!intel || !intel.tickDetected || intel.tickDetected + CREEP_LIFE_TIME < Game.time) return false;
+        // tickDetected is only stamped on hostiles. Peaceful exits never
+        // have it, so lastObservation is the actual "we looked" signal.
+        if (!intel || !intel.lastObservation || intel.lastObservation + CREEP_LIFE_TIME < Game.time) return false;
+        if (intel.sources == null && !(global.isHighwayRoomName && isHighwayRoomName(r))
+            && !(global.isSectorCenterRoomName && isSectorCenterRoomName(r))) return false;
     }
     return true;
 }
 
+let observerCoverageTick = -1;
+let observerCoverage = false;
+
+function empireHasObserver() {
+    if (observerCoverageTick === Game.time) return observerCoverage;
+    observerCoverageTick = Game.time;
+    observerCoverage = false;
+    const rooms = MY_ROOMS || [];
+    for (let i = 0; i < rooms.length; i++) {
+        const r = Game.rooms[rooms[i]];
+        if (r && r.observer) {
+            observerCoverage = true;
+            break;
+        }
+    }
+    return observerCoverage;
+}
+
 function getExplorerNeededCount(room) {
     if (!roomHasStableWorkingSet(room)) return 0;
+    // Any live observer covers this job (range 10). Scouts still peek unknown exits.
+    if (room.observer || empireHasObserver()) return 0;
+
     const rcl = (room.controller && room.controller.level) || room.level || 0;
-    // Pre-storage / RCL5: one explorer so exits get INTEL.sources. Do not skip
-    // just because some other owned room is already RCL8.
-    if (!room.storage || rcl <= 5) return 1;
-    if (MAX_LEVEL >= 8 || !MAX_LEVEL) return 0;
-    if (room.level >= 7) return colonyIntelFresh(room) ? 1 : 2;
-    return Math.min(3, 10 - room.level);
+    if (!room.storage && rcl <= 4) return 3;
+    if (!room.storage || rcl <= 5) return 2;
+    if (colonyIntelFresh(room)) return 1;
+    return 2;
 }
 
 function findNeedyBorderPatrol(roomName) {
@@ -81,8 +104,9 @@ function miscCreepQueue(room) {
     const explorerCount = getExplorerNeededCount(room);
     if (explorerCount > 0) {
         const rcl = (room.controller && room.controller.level) || room.level || 0;
+        // Season used to queue explorers at 1 and starve the RCL4–5 dump.
         const explorerPriority = (typeof IS_SEASON !== 'undefined' && IS_SEASON && rcl >= 4)
-            ? 1 : PRIORITIES.medium;
+            ? PRIORITIES.remoteHarvester : PRIORITIES.medium;
         queueCreepIfNeeded({
             colony: room,
             role: 'explorer',
@@ -94,12 +118,14 @@ function miscCreepQueue(room) {
     if (room.storage && room.level >= 6
         && room.storage.store.getFreeCapacity() >= STORAGE_CAPACITY * 0.1) {
         const {flowStressed} = getFlowContext(room);
+        const rcl = (room.controller && room.controller.level) || room.level || 0;
         if (energyState >= 1 && !flowStressed) {
             const thoriumType = typeof RESOURCE_THORIUM !== 'undefined' ? RESOURCE_THORIUM : 'T';
             const mineral = room.mineral;
             const isThoriumMineral = typeof IS_SEASON !== 'undefined' && IS_SEASON
                 && mineral && mineral.mineralType === thoriumType;
-            if (mineral && mineral.mineralAmount && !isThoriumMineral && room.memory.extractorContainer) {
+            // Regular minerals wait for RCL8. Season Thorium is the win condition.
+            if (rcl >= 8 && mineral && mineral.mineralAmount && !isThoriumMineral && room.memory.extractorContainer) {
                 queueCreepIfNeeded({
                     room, role: 'mineralHarvester', priority: PRIORITIES.mineralHarvester,
                     numberNeeded: 1, misc: {boosts: [WORK]},

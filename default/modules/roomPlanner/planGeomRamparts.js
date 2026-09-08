@@ -82,7 +82,7 @@ function resolveLabHubXY(room) {
 /**
  * Bump when the perimeter algorithm changes so owned rooms replan.
  */
-const PERIMETER_PLAN_REV = 13;
+const PERIMETER_PLAN_REV = 14;
 
 function chebyDistance(ax, ay, bx, by) {
     return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -114,10 +114,15 @@ function getTowerCorridorPathSteps(fromPos, hub) {
     return steps;
 }
 
-function invalidateRampartSpots(room) {
+function invalidateRampartSpots(room, options) {
+    if (options && options.soft) {
+        if (room && room.memory) room.memory._perimeterDirty = 1;
+        return;
+    }
     if (ROOM_RAMPART_SPOTS) ROOM_RAMPART_SPOTS[room.name] = undefined;
     quadTraps[room.name] = undefined;
     if (walkwayCache) walkwayCache[room.name] = undefined;
+    if (room && room.memory) delete room.memory._perimeterDirty;
 }
 
 /**
@@ -264,6 +269,10 @@ function filterSeedsWithFlood(hub, seeds, flood) {
     if (!hub) return valid;
     for (let i = 0; i < seeds.length; i++) {
         const s = seeds[i];
+        // Wrap-around extensions are dropped at addDynamicExtensionSeeds.
+        // Labs / towers / core stamps must not use the stricter flood.set
+        // membership (cardinal-only) — minPathDistNear is octal and is how
+        // a lab cluster 8–14 from the hub stays inside the seal.
         const cheby = chebyDistance(s.x, s.y, hub.x, hub.y);
         if (cheby > PERIMETER_MAX_CHEBY) continue;
         const pathD = minPathDistNear(flood.dist, s.x, s.y);
@@ -373,6 +382,18 @@ function getDynamicExtensionProtectTiles(room) {
             tiles = [];
         }
     }
+    const hub = room.hub;
+    const flood = hub ? getHubWalkableFlood(room) : null;
+    if (flood && flood.set && flood.set.size && tiles.length) {
+        const kept = [];
+        for (let i = 0; i < tiles.length; i++) {
+            const t = tiles[i];
+            if (flood.set.has(xyKey(t.x, t.y)) || touchesHubWalkable(flood.set, t.x, t.y)) {
+                kept.push(t);
+            }
+        }
+        tiles = kept;
+    }
     room._dynExtProtectTiles = tiles;
     room._dynExtProtectTick = Game.time;
     return tiles;
@@ -394,22 +415,30 @@ function getDynamicExtensionKeySet(room) {
     return set;
 }
 
+function addHubComponentSeed(seeds, seen, x, y, flood) {
+    if (flood && flood.set && flood.set.size) {
+        if (!flood.set.has(xyKey(x, y)) && !touchesHubWalkable(flood.set, x, y)) return;
+    }
+    addSeed(seeds, seen, x, y);
+}
+
 function addDynamicExtensionSeeds(room, seeds, seen) {
     if (!room.memory || !room.memory.dynamicLayout) return;
+    const flood = room.hub ? getHubWalkableFlood(room) : null;
     const planned = getDynamicExtensionProtectTiles(room);
     for (let i = 0; i < planned.length; i++) {
-        addSeed(seeds, seen, planned[i].x, planned[i].y);
+        addHubComponentSeed(seeds, seen, planned[i].x, planned[i].y, flood);
     }
     const exts = room.extensions || [];
     for (let i = 0; i < exts.length; i++) {
         const e = exts[i];
-        if (e && e.pos) addSeed(seeds, seen, e.pos.x, e.pos.y);
+        if (e && e.pos) addHubComponentSeed(seeds, seen, e.pos.x, e.pos.y, flood);
     }
     const sites = room.constructionSites || [];
     for (let i = 0; i < sites.length; i++) {
         const s = sites[i];
         if (s && s.pos && s.structureType === STRUCTURE_EXTENSION) {
-            addSeed(seeds, seen, s.pos.x, s.pos.y);
+            addHubComponentSeed(seeds, seen, s.pos.x, s.pos.y, flood);
         }
     }
 }
@@ -2077,6 +2106,7 @@ module.exports = {
     shouldComputeBunkerRampartSpots,
     getBuiltBarrierKeySet,
     invalidateRampartSpots,
+    getDynamicExtensionProtectTiles,
     initializeRampartSpots,
     computeFloodfillPerimeter,
     auditOrphanBarriers,

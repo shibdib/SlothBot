@@ -115,8 +115,9 @@ class RoleDrone {
         }
 
         if (isRebuildBootstrap(this.creep, this.room) && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
-            const rcl = this.room.controller.level;
-            if (rcl < 2) {
+            const hasSpawn = this.room.spawns && this.room.spawns.length;
+            const spawnSite = roomHasSpawnSite(this.room);
+            if (!hasSpawn && !spawnSite && this.room.controller.level < 2) {
                 if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') clearDroneTaskForUpgrade(this.creep);
                 if (this.upgrading(true)) return;
             } else if (needsSpawnAnchorRampart(this.room)) {
@@ -259,16 +260,17 @@ class RoleDrone {
         if (!this.room.storage || this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < 1000) {
             let source = Game.getObjectById(this.creep.memory.source);
             const sources = this.room.sources;
+            const assigned = droneSourceCounts(this.room, this.creep.id);
 
-            // Re-evaluate source if: none assigned, current is empty while another has energy,
-            // or periodic recheck while still traveling (don't interrupt active harvesting)
             const activelyHarvesting = source && source.energy > 0 && this.creep.pos.isNearTo(source);
+            const slots = source ? sourceHarvestSlots(source) : 0;
+            const overstacked = source && !activelyHarvesting && (assigned[source.id] || 0) >= slots;
             const needsReeval = !source
-                || (source.energy === 0 && sources.some(s => s.energy > 0))
-                || (!activelyHarvesting && Game.time % 25 === 0);
+                || source.energy === 0
+                || overstacked;
 
             if (needsReeval) {
-                source = selectBestDroneSource(this.creep, sources);
+                source = selectBestDroneSource(this.creep, sources, assigned);
                 this.creep.memory.source = source ? source.id : undefined;
             }
 
@@ -280,18 +282,12 @@ class RoleDrone {
                 if (result === OK) {
                     this.creep.memory.other.stationary = true;
                 } else if (result === ERR_NOT_IN_RANGE) {
-                    this.creep.shibMove(source);
+                    this.creep.shibMove(source, {range: 1});
                 } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
-                    if (sources.every(s => s.energy === 0)) {
-                        // All sources empty — wait near the one regenerating soonest
-                        const soonest = _.min(sources, s => s.ticksToRegeneration);
-                        this.creep.memory.source = soonest.id;
-                        this.creep.memory.other.stationary = this.creep.pos.isNearTo(soonest);
-                        if (!this.creep.memory.other.stationary) this.creep.shibMove(soonest);
-                    } else {
-                        // This source is empty but another has energy — switch
-                        delete this.creep.memory.source;
-                    }
+                    delete this.creep.memory.source;
+                    // Don't path onto an empty source — that stacked the pack waiting.
+                    const regen = source.ticksToRegeneration || 5;
+                    this.creep.idleFor(Math.min(regen, 15));
                 }
                 return true;
             }
@@ -472,16 +468,22 @@ function spawnAnchorHelpers() {
     }
 }
 
+function roomHasSpawnSite(room) {
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        if (sites[i].structureType === STRUCTURE_SPAWN) return true;
+    }
+    return false;
+}
+
 function needsSpawnAnchorRampart(room) {
-    if (room.spawns && room.spawns.length) return false;
     const actors = spawnAnchorHelpers();
     if (!actors || !actors.getSpawnAnchor) return false;
     const pos = actors.getSpawnAnchor(room);
     if (!pos) return false;
-    const rampart = actors.spawnTileRampart(pos);
-    const need = actors.spawnRampartHitsTarget();
-    if (rampart && rampart.hits >= need) return false;
-    return true;
+    // Finish the 1-hit seal so spawn can land (or sit on an RCL1 spawn at RCL2).
+    // Do not thicken to 10k — that delayed the 15k spawn.
+    return !!actors.spawnTileRampartSite(pos);
 }
 
 function spawnAnchorRampartWork(creep, room) {
@@ -494,15 +496,6 @@ function spawnAnchorRampartWork(creep, room) {
         creep.memory.task = 'build';
         creep.memory.constructionSite = site.id;
         creep.memory.sitePos = {x: site.pos.x, y: site.pos.y, roomName: site.pos.roomName};
-        return creep.builderFunction();
-    }
-    const rampart = actors.spawnTileRampart(pos);
-    const need = actors.spawnRampartHitsTarget();
-    if (rampart && rampart.hits < need) {
-        creep.memory.task = 'repair';
-        creep.memory.constructionSite = rampart.id;
-        creep.memory.targetHits = need;
-        creep.memory.sitePos = {x: rampart.pos.x, y: rampart.pos.y, roomName: rampart.pos.roomName};
         return creep.builderFunction();
     }
     return false;
@@ -559,8 +552,11 @@ function shouldInterruptForSpawnFill(creep, room) {
 
 function shouldLeftoverUpgrade(room) {
     if (!room || !room.controller || !room.controller.my) return false;
-    if (room.storage) return false;
-    return room.controller.level < 6;
+    if (room.controller.level >= 8) return false;
+    // Storage used to kill leftover the tick it finished, while energyState 0
+    // also starved the 0-MOVE upgrader. Dump until a fed upgrader exists.
+    if (hasDedicatedUpgrader(room)) return false;
+    return true;
 }
 
 function hasDedicatedUpgrader(room) {
@@ -570,9 +566,13 @@ function hasDedicatedUpgrader(room) {
     const creeps = room.myCreeps || [];
     for (let i = 0; i < creeps.length; i++) {
         const c = creeps[i];
-        if (!c || c.spawning || !c.memory || c.memory.role !== 'upgrader') continue;
+        if (!c || c.spawning || !c.memory || c.memory.role !== 'upgrader' || c.memory.recycling) continue;
         const work = c.getActiveBodyparts ? c.getActiveBodyparts(WORK) : 0;
-        if (work >= 5) return true;
+        if (work < 5) continue;
+        const fed = (c.store && c.store[RESOURCE_ENERGY] > 0)
+            || (container && container.store && container.store[RESOURCE_ENERGY] > 0)
+            || (link && link.store && link.store[RESOURCE_ENERGY] > 0);
+        if (fed) return true;
     }
     return false;
 }
@@ -593,24 +593,51 @@ function clearDroneTaskForUpgrade(creep) {
     delete creep.memory.storageDestination;
 }
 
-// Scores each source and picks the best for a drone to harvest from.
-// Prefers sources with energy, avoids overcrowded spots, weights by distance.
-function selectBestDroneSource(creep, sources) {
+function sourceHarvestSlots(source) {
+    if (!source || !source.pos || !source.pos.countOpenTerrainAround) return 1;
+    return Math.max(1, source.pos.countOpenTerrainAround(false, true));
+}
+
+function droneSourceCounts(room, exceptId) {
+    const counts = {};
+    const creeps = room.myCreeps || [];
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c || c.id === exceptId || c.spawning || !c.memory) continue;
+        if (c.memory.role !== 'drone' || !c.memory.source) continue;
+        counts[c.memory.source] = (counts[c.memory.source] || 0) + 1;
+    }
+    return counts;
+}
+
+function sourceHasStationaryHarvester(room, source) {
+    const creeps = room.myCreeps || [];
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c || !c.memory || c.memory.role !== 'stationaryHarvester') continue;
+        const assigned = (c.memory.other && c.memory.other.source) || c.memory.source;
+        if (assigned !== source.id) continue;
+        if (c.memory.onContainer || c.pos.isNearTo(source)) return true;
+    }
+    return false;
+}
+
+// Prefers sources with energy and a free harvest tile. Counts drones already
+// walking there, not only those standing adjacent — otherwise the pack all
+// picks the closest source from spawn and stacks in traffic.
+function selectBestDroneSource(creep, sources, assignedCounts) {
     if (!sources.length) return null;
+    const assigned = assignedCounts || droneSourceCounts(creep.room, creep.id);
     let best = null, bestScore = -Infinity;
-    for (const source of sources) {
-        const empty = source.energy === 0;
-        const stationaryHarvester = creep.room.myCreeps.find(c => {
-            if (c.memory.role !== 'stationaryHarvester') return false;
-            const assigned = (c.memory.other && c.memory.other.source) || c.memory.source;
-            if (assigned !== source.id) return false;
-            return c.memory.onContainer || c.pos.isNearTo(source);
-        });
-        if (stationaryHarvester) continue;
-        const adjacentDrones = source.pos.findInRange(FIND_MY_CREEPS, 1).filter(c => c.id !== creep.id).length;
+    for (let i = 0; i < sources.length; i++) {
+        const source = sources[i];
+        if (!source.energy) continue;
+        if (sourceHasStationaryHarvester(creep.room, source)) continue;
+        const slots = sourceHarvestSlots(source);
+        const taken = assigned[source.id] || 0;
+        if (taken >= slots) continue;
         const distance = creep.pos.getRangeTo(source);
-        // Heavy penalty for empty sources; moderate penalty per adjacent drone; mild penalty for distance
-        const score = (empty ? -1000 : 0) - (adjacentDrones * 60) - (distance * 4);
+        const score = (slots - taken) * 80 - distance * 4;
         if (score > bestScore) {
             bestScore = score;
             best = source;

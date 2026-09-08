@@ -311,14 +311,23 @@ function purgeOrphanBarriers(room) {
     };
 }
 
+function consumePerimeterDirty(room) {
+    if (!room || !room.memory || !room.memory._perimeterDirty) return false;
+    delete room.memory._perimeterDirty;
+    if (!shouldComputeBunkerRampartSpots(room)) return false;
+    recalculateRampartsForRoom(room, undefined, {destroyOffPlan: false, holdCleanup: false});
+    return true;
+}
+
 /**
  * Recompute perimeter plan for a room.
  * @param {Room} room
  * @param {*} [layout]
- * @param {{destroyOffPlan?: boolean}} [options]
+ * @param {{destroyOffPlan?: boolean, holdCleanup?: boolean}} [options]
  *   destroyOffPlan (default true): remove walls/ramparts not on the new plan.
  *   Pass false from extension clearance — that only changes extension packing and must
  *   NOT mass-delete a full constructed wall ring when the flood contour shifts.
+ *   holdCleanup: when destroyOffPlan is false, delay off-plan cleanup (default true).
  */
 function recalculateRampartsForRoom(room, layout, options = {}) {
     const destroyOffPlan = options.destroyOffPlan !== false;
@@ -396,7 +405,7 @@ function recalculateRampartsForRoom(room, layout, options = {}) {
         }
     }
 
-    if (!destroyOffPlan && room.memory) {
+    if (!destroyOffPlan && options.holdCleanup !== false && room.memory) {
         room.memory._offPlanCleanupHoldUntil = Game.time + OFF_PLAN_CLEANUP_HOLD;
     }
 
@@ -1645,6 +1654,8 @@ function placeRamparts(room, options) {
         };
     }
 
+    consumePerimeterDirty(room);
+
     const perimeter = placePerimeter(room, {
         layoutPending,
         maxPlace: opts.maxPlace != null ? opts.maxPlace : 3,
@@ -1883,6 +1894,7 @@ module.exports = Object.assign({}, geom, {
     countBarrierConstructionSites,
     rampartBuilder,
     recalculateRampartsForRoom,
+    consumePerimeterDirty,
     purgeOrphanBarriers,
     cleanupOffPlanBarriers,
     ensurePerimeterSites,

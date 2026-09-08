@@ -97,7 +97,16 @@ Object.defineProperty(Room.prototype, 'hub', {
             xy = this.memory.bunkerHub;
         }
         if (!xy || typeof xy.x !== 'number' || typeof xy.y !== 'number') {
-            return getRoomPlanner().findHub(this);
+            try {
+                getRoomPlanner().findHub(this);
+            } catch (e) { /* planner optional during prototype init */
+            }
+            try {
+                xy = require('planDoc').getHub(this);
+            } catch (e) {
+                xy = this.memory && this.memory.bunkerHub;
+            }
+            if (!xy || typeof xy.x !== 'number' || typeof xy.y !== 'number') return undefined;
         }
         if (!this._hub) {
             const key = xy.x + ',' + xy.y;
@@ -996,6 +1005,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             roomIntel.reactorMy = !!r.my;
             roomIntel.reactorStore = (r.store && r.store[season.thoriumType()]) || 0;
             roomIntel.reactorWork = r.continuousWork || 0;
+        } else if (global.isSectorCenterRoomName && isSectorCenterRoomName(this.name)) {
+            roomIntel.reactor = false;
+            delete roomIntel.reactorOwner;
+            delete roomIntel.reactorMy;
+            delete roomIntel.reactorStore;
+            delete roomIntel.reactorWork;
         }
     }
 

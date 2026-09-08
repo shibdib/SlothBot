@@ -7,10 +7,12 @@ const season = require('module.season');
 
 const DEST_SEARCH_INTERVAL = 15;
 const HIGH_VALUE_SEARCH_INTERVAL = 25;
-const DEST_CACHE_TTL = 15;
 const LOCAL_BFS_HOPS = 4;
+const COLONY_GAP_HOPS = 6;
 const INTEL_REFRESH_TICKS = 150;
 const MAX_EXPLORERS_PER_DEST = 1;
+const TICKS_PER_ROOM = 90;
+const MAX_TRAVEL_HOPS = 8;
 
 const EXPLORER_ANCHORS = [
     [10, 10], [40, 10], [10, 40], [40, 40],
@@ -18,10 +20,11 @@ const EXPLORER_ANCHORS = [
     [18, 18], [32, 18], [18, 32], [32, 32],
 ];
 
-let destinationCache = {};
-let portalDestCache = {};
 let explorerAssignTick = -1;
 let explorerDestCounts = null;
+let colonyGapTick = -1;
+let colonyGapRooms = null;
+let portalDestCache = {};
 
 function creepHash(creep, salt = '') {
     let h = 0;
@@ -61,6 +64,124 @@ function noteExplorerAssignment(roomName) {
     explorerDestCounts[roomName] = (explorerDestCounts[roomName] || 0) + 1;
 }
 
+function isOwnedHome(roomName) {
+    return !!(MY_ROOMS && MY_ROOMS.includes(roomName));
+}
+
+function isSkName(roomName) {
+    return !!(global.isSourceKeeperRoomName && isSourceKeeperRoomName(roomName));
+}
+
+function isCenterName(roomName) {
+    return !!(global.isSectorCenterRoomName && isSectorCenterRoomName(roomName));
+}
+
+function isHighwayName(roomName) {
+    return !!(global.isHighwayRoomName && isHighwayRoomName(roomName));
+}
+
+function isSeason() {
+    return typeof IS_SEASON !== 'undefined' && IS_SEASON;
+}
+
+function skipDangerous(roomName, intel) {
+    if (isSkName(roomName)) return true;
+    if (intel && intel.owner && intel.towers) return true;
+    if (intel && intel.invaderTTL && intel.invaderTTL > Game.time) return true;
+    return false;
+}
+
+function needsHubCheck(intel) {
+    if (!intel || intel.owner || intel.obstacles) return false;
+    if (intel.sources !== 2) return false;
+    if (intel.hubCheckAt) return false;
+    // Heavy hubCheck is skipped while hostiles are in the room. Do not
+    // suicide-loop a 1-MOVE explorer back in until they expire.
+    if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return false;
+    if (intel.invaderTTL && intel.invaderTTL > Game.time) return false;
+    return true;
+}
+
+function missingBasicIntel(intel, roomName) {
+    if (!intel) return true;
+    if (intel.sources != null) return false;
+    if (isHighwayName(roomName) || isCenterName(roomName)) return !intel.lastObservation;
+    return true;
+}
+
+function intelCompleteEnough(intel, roomName, now) {
+    if (!intel) return false;
+    if (missingBasicIntel(intel, roomName) || needsHubCheck(intel)) return false;
+    if (isSeason() && isCenterName(roomName) && intel.reactor == null && !intel.cached) return false;
+    if (!intel.lastObservation || now - intel.lastObservation > 800) return false;
+    return true;
+}
+
+function maxReachableHops(creep) {
+    const ttl = creep.ticksToLive || CREEP_LIFE_TIME;
+    return Math.max(1, Math.min(MAX_TRAVEL_HOPS, Math.floor((ttl - 80) / TICKS_PER_ROOM)));
+}
+
+function getColonyGapRooms() {
+    if (colonyGapTick === Game.time && colonyGapRooms) return colonyGapRooms;
+    colonyGapTick = Game.time;
+    const gaps = [];
+    const homes = MY_ROOMS || [];
+    const seen = new Set(homes);
+    let frontier = homes.slice();
+
+    for (let hop = 0; hop < COLONY_GAP_HOPS; hop++) {
+        const next = [];
+        for (let i = 0; i < frontier.length; i++) {
+            const exits = Game.map.describeExits(frontier[i]);
+            if (!exits) continue;
+            for (const neighbor of Object.values(exits)) {
+                if (seen.has(neighbor) || roomStatus(neighbor) === 'closed') continue;
+                seen.add(neighbor);
+                next.push(neighbor);
+                if (isOwnedHome(neighbor)) continue;
+                const intel = INTEL[neighbor];
+                if (skipDangerous(neighbor, intel) && intel && intel.sources != null) continue;
+                if (isSkName(neighbor)) continue;
+                let kind = 0;
+                if (missingBasicIntel(intel, neighbor)) kind = 1;
+                else if (skipDangerous(neighbor, intel)) continue;
+                else if (needsHubCheck(intel)) kind = 2;
+                else if (isSeason() && isCenterName(neighbor) && intel.reactor == null && !intel.cached) kind = 3;
+                else if (!intel.cached && intel.sources === 2 && !intel.owner) kind = 4;
+                else continue;
+                gaps.push({room: neighbor, hop, kind});
+            }
+        }
+        frontier = next;
+        if (!frontier.length) break;
+    }
+
+    const extras = [];
+    if (Memory.claimTarget && Memory.claimTarget.room) extras.push(Memory.claimTarget.room);
+    const scouts = Memory.expansionScoutRooms;
+    if (scouts) {
+        for (let i = 0; i < scouts.length; i++) extras.push(scouts[i]);
+    }
+    for (let i = 0; i < extras.length; i++) {
+        const roomName = extras[i];
+        if (!roomName || seen.has(roomName) || isOwnedHome(roomName)) continue;
+        if (roomStatus(roomName) === 'closed' || isSkName(roomName)) continue;
+        const intel = INTEL[roomName];
+        if (intel && intelCompleteEnough(intel, roomName, Game.time)) continue;
+        if (skipDangerous(roomName, intel) && intel && intel.sources != null) continue;
+        gaps.push({room: roomName, hop: 3, kind: needsHubCheck(intel) ? 2 : 1});
+        seen.add(roomName);
+    }
+
+    colonyGapRooms = gaps;
+    return gaps;
+}
+
+function colonyHasIntelGaps() {
+    return getColonyGapRooms().length > 0;
+}
+
 class RoleExplorer {
     constructor(creep) {
         this.creep = creep;
@@ -72,6 +193,12 @@ class RoleExplorer {
         this.creep.say(ICONS.eye, true);
 
         if (!this.creep.memory.destination) {
+            // Pathing / portal / dest-clear can dump us in a useful room
+            // with no destination. Cache it before walking away.
+            if (!isOwnedHome(this.room.name) && this.roomNeedsIntel()) {
+                this.exploreRoom();
+                return;
+            }
             this.findDestination();
         } else if (this.room.name === this.creep.memory.destination) {
             this.exploreRoom();
@@ -89,8 +216,9 @@ class RoleExplorer {
 
         if (!this.creep.memory.other) this.creep.memory.other = {};
 
-        if (!(typeof IS_SEASON !== 'undefined' && IS_SEASON)
-            && !this.creep.memory.usedPortal && this.creep.room.portals.length) {
+        if (!isSeason()
+            && !this.creep.memory.usedPortal && this.creep.room.portals.length
+            && !colonyHasIntelGaps()) {
             const portal = Game.getObjectById(this.creep.memory.portal) ||
                 this.creep.pos.findClosestByRange(_.filter(this.creep.room.portals, s => !s.destination.shard));
 
@@ -121,10 +249,10 @@ class RoleExplorer {
             }
         }
 
-        const cacheKey = this.room.name;
-        const cached = destinationCache[cacheKey];
-        if (cached && cached.tick + DEST_CACHE_TTL > currentTime) {
-            if (this.assignDestination(cached.target, undefined, currentTime)) return;
+        const colonyGap = this.findColonyGapTarget();
+        if (colonyGap) {
+            this.assignDestination(colonyGap, currentTime);
+            return;
         }
 
         const lastSearch = this.creep.memory.destSearchTick || 0;
@@ -137,14 +265,14 @@ class RoleExplorer {
             this.creep.memory.highValueSearchTick = currentTime;
             const highValue = this.findHighValueTarget();
             if (highValue) {
-                this.assignDestination(highValue, cacheKey, currentTime);
+                this.assignDestination(highValue, currentTime);
                 return;
             }
         }
 
         const localTarget = this.findBestLocalTarget(LOCAL_BFS_HOPS);
         if (localTarget) {
-            this.assignDestination(localTarget, cacheKey, currentTime);
+            this.assignDestination(localTarget, currentTime);
             return;
         }
 
@@ -156,13 +284,47 @@ class RoleExplorer {
         this.creep.idleFor(3 + (creepHash(this.creep) % 8));
     }
 
-    assignDestination(target, cacheKey, currentTime) {
-        if (!target || explorerAssigned(target) >= MAX_EXPLORERS_PER_DEST) return false;
+    assignDestination(target, currentTime) {
+        if (!target || target === this.room.name) return false;
+        if (explorerAssigned(target) >= MAX_EXPLORERS_PER_DEST) return false;
         this.creep.memory.destination = target;
         this.creep.memory.destSearchTick = currentTime;
         noteExplorerAssignment(target);
-        if (cacheKey !== undefined) destinationCache[cacheKey] = {target, tick: currentTime};
         return true;
+    }
+
+    findColonyGapTarget() {
+        const maxDist = maxReachableHops(this.creep);
+        const gaps = getColonyGapRooms();
+        let best = null;
+        let bestScore = Infinity;
+
+        for (let i = 0; i < gaps.length; i++) {
+            const gap = gaps[i];
+            const roomName = gap.room;
+            if (roomName === this.room.name) continue;
+            if (explorerAssigned(roomName) >= MAX_EXPLORERS_PER_DEST) continue;
+            const dist = Game.map.getRoomLinearDistance(this.room.name, roomName);
+            if (dist > maxDist) continue;
+
+            let score = gap.hop * 40 + dist * 25;
+            if (gap.kind === 1) score -= gap.hop === 0 ? 2000 : 900;
+            else if (gap.kind === 2) score -= 1200;
+            else if (gap.kind === 3) score -= 1000;
+            else score -= 400;
+            if (isSeason()) {
+                score -= season.roomNorthValue(roomName);
+                if (isCenterName(roomName)) score -= 600;
+            }
+            score += explorerAssigned(roomName) * 5000;
+            score += explorerScatterScore(this.creep, roomName);
+
+            if (score < bestScore) {
+                bestScore = score;
+                best = roomName;
+            }
+        }
+        return best;
     }
 
     pickAdjacentTarget() {
@@ -171,7 +333,10 @@ class RoleExplorer {
 
         for (const dir in exits) {
             const name = exits[dir];
-            if (roomStatus(name) !== 'closed') candidates.push(name);
+            if (roomStatus(name) === 'closed' || isOwnedHome(name) || isSkName(name)) continue;
+            const intel = INTEL[name];
+            if (skipDangerous(name, intel) && intel && intel.sources != null) continue;
+            candidates.push(name);
         }
 
         if (this.creep.memory.lastRoom && candidates.length > 1) {
@@ -179,29 +344,32 @@ class RoleExplorer {
         }
         if (!candidates.length) return false;
 
-        const noVision = candidates.filter(n => !Game.rooms[n]);
-        const pool = noVision.length ? noVision : candidates;
+        const incomplete = candidates.filter(n => !intelCompleteEnough(INTEL[n], n, Game.time));
+        const pool = incomplete.length ? incomplete : candidates;
         const available = pool.filter(n => explorerAssigned(n) < MAX_EXPLORERS_PER_DEST);
         if (!available.length) return false;
 
         const target = _.min(available, n => {
             const intel = INTEL[n];
             let s = intel ? (intel.lastObservation || 0) : 0;
+            if (missingBasicIntel(intel, n)) s -= 50000;
+            else if (needsHubCheck(intel)) s -= 40000;
             s += explorerAssigned(n) * 10000;
             s += explorerScatterScore(this.creep, n);
-            if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+            if (isSeason()) {
                 s -= season.roomNorthValue(n) * 30;
-                if (typeof isSectorCenterRoomName === 'function' && isSectorCenterRoomName(n)) s -= 8000;
+                if (isCenterName(n)) s -= 8000;
             }
             return s;
         });
 
         if (!target) return false;
-        return this.assignDestination(target, this.room.name, Game.time);
+        return this.assignDestination(target, Game.time);
     }
 
     findHighValueTarget() {
         const currentTime = Game.time;
+        const maxDist = maxReachableHops(this.creep);
         let best = null;
         let bestScore = Infinity;
 
@@ -209,40 +377,40 @@ class RoleExplorer {
         const candidates = new Set([
             ...(idx.power || []),
             ...(idx.commodity || []),
-            ...(idx.highways || []),
-            ...(idx.threats || []),
             ...(idx.unownedSources || []),
             ...(idx.invaderCores || []),
-            ...(idx.activeRemotes || [])
+            ...(idx.claimCandidates || []),
+            ...(Memory.expansionScoutRooms || []),
         ]);
+        if (Memory.claimTarget && Memory.claimTarget.room) candidates.add(Memory.claimTarget.room);
 
         for (const roomName of candidates) {
+            if (!roomName || isOwnedHome(roomName) || isSkName(roomName)) continue;
+            if (roomStatus(roomName) === 'closed') continue;
             const intel = INTEL[roomName];
-            if (!intel || intel.owner || roomStatus(roomName) === 'closed') continue;
-            if (intel.lastObservation && intel.lastObservation + CREEP_LIFE_TIME > currentTime) continue;
+            if (intel && intel.owner) continue;
+            if (skipDangerous(roomName, intel)) continue;
+            if (intel && intelCompleteEnough(intel, roomName, currentTime)
+                && intel.lastObservation + CREEP_LIFE_TIME > currentTime
+                && !needsHubCheck(intel)) continue;
 
             const assigned = explorerAssigned(roomName);
             if (assigned >= MAX_EXPLORERS_PER_DEST) continue;
 
             const dist = Game.map.getRoomLinearDistance(this.room.name, roomName);
-            if (dist > 40) continue;
+            if (dist > maxDist) continue;
 
             let score = dist * 12;
 
-            if (intel.power && intel.power > currentTime) score -= 550;
-            if (intel.commodity) score -= 450;
-            if (intel.threatLevel && intel.threatLevel > 1) score -= 320;
-            if (intel.isHighway) score -= 180;
-            if (intel.cached && intel.cached + 2500 < currentTime) score -= 120;
-            if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
-                if (intel.reactor) score -= 700;
+            if (!intel || missingBasicIntel(intel, roomName)) score -= 850;
+            if (needsHubCheck(intel)) score -= 700;
+            if (intel && intel.power && intel.power > currentTime) score -= 550;
+            if (intel && intel.commodity) score -= 450;
+            if (intel && intel.cached && intel.cached + 2500 < currentTime) score -= 120;
+            if (isSeason()) {
+                if (intel && intel.reactor) score -= 700;
                 score -= season.roomNorthValue(roomName);
-                if (typeof isSectorCenterRoomName === 'function' && isSectorCenterRoomName(roomName)) score -= 600;
-            }
-
-            if (!intel.cached) {
-                if (dist < 15) score -= 850;
-                else score -= 150;
+                if (isCenterName(roomName)) score -= 600;
             }
 
             score += assigned * 5000;
@@ -275,32 +443,30 @@ class RoleExplorer {
                     seen.add(neighbor);
                     next.push(neighbor);
 
+                    if (isOwnedHome(neighbor) || isSkName(neighbor)) continue;
                     const assigned = explorerAssigned(neighbor);
                     if (assigned >= MAX_EXPLORERS_PER_DEST) continue;
 
                     const intel = INTEL[neighbor];
+                    if (skipDangerous(neighbor, intel) && intel && intel.sources != null) continue;
+                    if (intelCompleteEnough(intel, neighbor, currentTime)) continue;
+
                     let score = hop * 80;
 
-                    if (!intel) {
+                    if (missingBasicIntel(intel, neighbor)) {
                         score -= 600;
-                        if (typeof IS_SEASON !== 'undefined' && IS_SEASON
-                            && typeof isSectorCenterRoomName === 'function' && isSectorCenterRoomName(neighbor)) {
-                            score -= 500;
-                        }
+                        if (isSeason() && isCenterName(neighbor)) score -= 500;
                     } else {
                         const age = intel.lastObservation ? currentTime - intel.lastObservation : 99999;
                         if (age > 8000) score -= 280;
                         else if (age > 3000) score -= 120;
-
+                        if (needsHubCheck(intel)) score -= 500;
                         if (intel.power && intel.power > currentTime) score -= 420;
                         if (intel.commodity) score -= 350;
-                        if (intel.isHighway) score -= 160;
-                        if (intel.threatLevel && intel.threatLevel > 0) score -= 80;
-                        if (age < 800) score += 400;
-                        if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+                        if (isSeason()) {
                             if (intel.reactor) score -= 500;
                             score -= season.roomNorthValue(neighbor);
-                            if (typeof isSectorCenterRoomName === 'function' && isSectorCenterRoomName(neighbor)) score -= 500;
+                            if (isCenterName(neighbor)) score -= 500;
                         }
                     }
 
@@ -319,18 +485,41 @@ class RoleExplorer {
         return best;
     }
 
+    needsForceIntel() {
+        const room = this.room;
+        if (room.controller && room.controller.my) return false;
+        if (room.hostileCreeps && room.hostileCreeps.length) return false;
+        const intel = INTEL[room.name];
+        if (room.sources && room.sources.length === 2 && (!room.controller || !room.controller.owner)
+            && (!intel || !intel.hubCheckAt)) return true;
+        if (isSeason() && isCenterName(room.name) && (!intel || (intel.reactor == null && !intel.cached))) return true;
+        return false;
+    }
+
+    roomNeedsIntel() {
+        const intel = INTEL[this.room.name];
+        if (missingBasicIntel(intel, this.room.name) || needsHubCheck(intel)) return true;
+        if (isSeason() && isCenterName(this.room.name) && (!intel || (intel.reactor == null && !intel.cached))) return true;
+        if (isHighwayName(this.room.name) && (!intel || !intel.lastObservation
+            || intel.lastObservation + INTEL_REFRESH_TICKS < Game.time)) return true;
+        return false;
+    }
+
     exploreRoom() {
         if (this.room) {
             const intel = INTEL[this.room.name];
-            const highway = global.isHighwayRoomName && global.isHighwayRoomName(this.room.name);
-            // Banks spawn on a 5k timer. A fresh lastObservation from an empty
-            // look used to skip the cache and walk past a new bank.
-            if (highway || !intel || !intel.lastObservation || intel.lastObservation + INTEL_REFRESH_TICKS < Game.time) {
-                this.room.cacheRoomIntel();
+            const highway = isHighwayName(this.room.name);
+            const force = this.needsForceIntel();
+            if (force || highway || !intel || !intel.lastObservation || intel.lastObservation + INTEL_REFRESH_TICKS < Game.time) {
+                this.room.cacheRoomIntel(force);
+                this.room.invaderCheck();
             }
         }
 
-        if (SIGN_ROOMS && this.creep.memory.lastRoom !== this.room.name) {
+        const hostiles = this.room.hostileCreeps && this.room.hostileCreeps.length;
+        if (SIGN_ROOMS && !hostiles && (this.creep.ticksToLive || 0) > 500
+            && this.creep.memory.destination === this.room.name
+            && this.creep.memory.lastRoom !== this.room.name) {
             return this.signRooms();
         }
         this.creep.memory.destination = undefined;
@@ -346,6 +535,7 @@ class RoleExplorer {
                 else if (this.creep.memory.signAttempt + 50 < Game.time) {
                     this.creep.memory.signAttempt = undefined;
                     this.creep.memory.lastRoom = this.room.name;
+                    this.creep.memory.destination = undefined;
                     return;
                 }
                 this.creep.shibMove(controller);
@@ -354,6 +544,7 @@ class RoleExplorer {
             this.creep.memory.signAttempt = undefined;
         }
         this.creep.memory.lastRoom = this.room.name;
+        this.creep.memory.destination = undefined;
     }
 }
 

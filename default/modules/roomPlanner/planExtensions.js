@@ -217,7 +217,7 @@ function ensureDynamicSpecialStructures(room) {
         const result = tryCreateConstructionSite(pos, a.structureType);
         if (result === OK) {
             placed++;
-            invalidateRampartSpots(room);
+            invalidateRampartSpots(room, {soft: true});
             details.push({type: a.structureType, x: a.x, y: a.y, status: 'placed'});
             log.a(`${room.name} dynamic special: ${a.structureType} at (${a.x},${a.y})`, 'PLANNER');
         } else {
@@ -302,7 +302,7 @@ function placeExtensionsFromCandidates(room, positions, maxPlacements = 1) {
     }
     // One footprint invalidation after the batch — not per site (each wipe left
     // ensureAllIncompletePerimeters with no spots until a lucky aux layout turn).
-    if (placed) invalidateRampartSpots(room);
+    if (placed) invalidateRampartSpots(room, {soft: true});
     return placed;
 }
 
@@ -321,7 +321,7 @@ function placeBunkerExtensions(room, maxPlacements = 1) {
             placed++;
         }
     }
-    if (placed) invalidateRampartSpots(room);
+    if (placed) invalidateRampartSpots(room, {soft: true});
     return placed;
 }
 
@@ -535,7 +535,7 @@ function buildSourceExtensions(room, options) {
             if (!canPlaceFn(room)) return false;
             const result = placeFn(pos, STRUCTURE_EXTENSION);
             if (result === OK) {
-                invalidateRampartSpots(room);
+                invalidateRampartSpots(room, {soft: true});
                 return true;
             }
             // Soft budget exhausted (V2 signals via ERR_NOT_OWNER)
@@ -556,8 +556,9 @@ function placeExtensionsDynamically(room, maxPlacements = 1) {
     let placed = positions.length
         ? placeExtensionsFromCandidates(room, positions, maxPlacements)
         : 0;
-    // Connectivity plan can yield 0 safe tiles; still place near hub so the room recovers.
-    if (!placed && getExtensionDeficit(room) > 0) {
+    // Dynamic fallback used to wrap around terrain walls. Only use it when the
+    // connectivity plan is empty; occupied plan tiles wait for the next batch.
+    if (!placed && getExtensionDeficit(room) > 0 && !positions.length) {
         placed = placeExtensionsFallback(room, maxPlacements);
         if (!placed && Game.time % 20 === 0) {
             log.w(`${room.name} dynamic extensions: 0 placed (plan=${positions.length} deficit=${getExtensionDeficit(room)} budget=${roomConstructionSiteBudget(room)})`);
@@ -801,7 +802,7 @@ function placeFromCandidates(room, positions, limit) {
 
     if (placed && !shadow) {
         try {
-            require('planGeomRamparts').invalidateRampartSpots(room);
+            require('planGeomRamparts').invalidateRampartSpots(room, {soft: true});
         } catch (e) { /* optional */
         }
     }

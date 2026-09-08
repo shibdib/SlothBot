@@ -15,8 +15,8 @@ const {coreTemplate, bunkerTemplate, labTemplate, hubLinkOffset, reservedHubTile
 
 const {
     determineTowerDamage,
-    isCoreHubTileValid,
     isNearAnyMineral,
+    roomMinerals,
     isAttackRecoveryMode,
     safeStructureOwner,
     countRoomConstructionSitesOfType,
@@ -34,7 +34,6 @@ const {
     clearDynamicLayoutMemory,
     countPlaceableBunkerExtensionsAt,
     getDynamicSpecialAssignments,
-    isHubRelativeExtensionParity,
 } = require('planGeomExtensions');
 
 const {
@@ -55,6 +54,7 @@ const LAB_HUB_SEARCH_COOLDOWN = 500;
 const LAB_HUB_SEARCH_CPU_RESERVE = 10;
 const LAB_HUB_PATH_MAX_OPS = 4000;
 const HUB_EXTENSION_VALIDATE_COOLDOWN = 500;
+const HUB_COLLAR_SNAP_COOLDOWN = 50;
 const HUB_SEARCH_MIN = 7;
 const HUB_SEARCH_MAX = 42;
 const HUB_SEAL_CANDIDATE_CAP = 8;
@@ -69,6 +69,9 @@ const TOWER_SEAL_BAND_MIN = 1;
 const TOWER_SEAL_BAND_MAX = 5;
 const TOWER_SEAL_BAND_WIDEN = 10;
 const TOWER_LAYOUT_VERSION = 3;
+const TOWER_RESEAT_COOLDOWN = 300;
+const TOWER_SEAL_DRIFT_COUNT = 8;
+const TOWER_SEAL_DRIFT_CENTROID = 3;
 const MAX_TOWER_HUBS = 6;
 const TOWER_HUB_SEPARATION = 2;
 const TOWER_EXIT_CLEARANCE = 5;
@@ -98,20 +101,56 @@ function syncAnchorsToPlan(room) {
  * Commit hub to plan (C5: no bunkerHub dual-write).
  * Legacy bunkerHub only if plan doc cannot be created (should be rare).
  */
+function clearLabHubAnchor(room) {
+    const plan = getPlan(room);
+    if (plan && plan.anchors) {
+        plan.anchors.lab = null;
+        plan.anchors.labPartial = false;
+    }
+    if (room.memory) {
+        delete room.memory.labHub;
+        delete room.memory.labHubPartial;
+        delete room.memory.labHubSearchFailed;
+    }
+}
+
+function resetSealAndTowersForHubMove(room) {
+    if (!room || !room.memory) return;
+    delete room.memory.towerSealLocked;
+    delete room.memory.towerSealKey;
+    delete room.memory.towerSealRev;
+    delete room.memory.towerReseatTick;
+    delete room.memory._perimeterDirty;
+    try {
+        require('planGeomRamparts').invalidateRampartSpots(room);
+    } catch (e) { /* optional */
+    }
+    commitTowerHubs(room, []);
+    // Lab stamp is chosen from the core hub. Drop the planned hub so the next
+    // ensureLabHub recovers from live labs or re-searches at the new origin.
+    clearLabHubAnchor(room);
+}
+
 function commitCoreHub(room, hub, options) {
     if (!isValidXY(hub)) return false;
+    const prev = resolveHub(room);
+    const dynamic = !!(options && options.dynamicLayout);
     const plan = ensurePlan(room, {resync: false}) || getPlan(room);
     if (plan) {
         plan.anchors.hub = {x: hub.x, y: hub.y};
-        if (options && options.dynamicLayout) plan.mode = 'dynamic';
+        plan.mode = dynamic ? 'dynamic' : 'bunker';
         plan.meta.authority = 'plan';
         // Packs only — anchors stay plan-only (C5).
         syncToLegacy(room, plan);
     } else {
         room.memory.bunkerHub = {x: hub.x, y: hub.y};
     }
-    if (options && options.dynamicLayout) room.memory.dynamicLayout = true;
+    if (dynamic) room.memory.dynamicLayout = true;
+    else delete room.memory.dynamicLayout;
     room._hub = undefined;
+    if (prev && (prev.x !== hub.x || prev.y !== hub.y)) {
+        resetSealAndTowersForHubMove(room);
+    }
     return true;
 }
 
@@ -191,12 +230,20 @@ function validateHubExtensionCapacity(room) {
     }
     if (!capacity || capacity.sufficient) return true;
 
+    const hub = resolveHub(room);
     if (typeof log !== 'undefined' && log.a) {
         log.a(room.name + ' hub supports ' + capacity.placeable + ' bunker + ' + capacity.fallback
-            + ' fallback slots but needs ' + capacity.deficit + ' extensions - switching to dynamic layout.');
+            + ' fallback slots but needs ' + capacity.deficit
+            + ' extensions - switching to dynamic layout'
+            + (hub ? ' at (' + hub.x + ',' + hub.y + ')' : '') + '.');
     }
     clearDynamicLayoutMemory(room);
-    return findCoreHub(room);
+    // Keep the live collar. findCoreHub used to treat spawn/storage as impassible
+    // and teleport the hub off the built base.
+    if (hub && coreHubFitsAt(room, hub)) {
+        return commitCoreHub(room, hub, {dynamicLayout: true});
+    }
+    return findCoreHub(room, {preferHub: hub});
 }
 
 function hubLinkTileBuildable(room, hub) {
@@ -212,60 +259,235 @@ function isOpenHubTile(room, x, y) {
     return Game.map.getRoomTerrain(room.name).get(x, y) !== TERRAIN_MASK_WALL;
 }
 
+function hubTileClearOfObstacles(room, x, y) {
+    if (!isOpenHubTile(room, x, y)) return false;
+    if (!room || !room.name) return true;
+    const pos = new RoomPosition(x, y, room.name);
+    const structs = pos.lookFor(LOOK_STRUCTURES) || [];
+    for (let i = 0; i < structs.length; i++) {
+        const type = structs[i].structureType;
+        if (type === STRUCTURE_RAMPART || type === STRUCTURE_ROAD) continue;
+        if (OBSTACLE_OBJECT_TYPES.includes(type)) return false;
+    }
+    return true;
+}
+
+function xyCheby(x, y, obj) {
+    if (!obj) return Infinity;
+    const p = obj.pos || obj;
+    return Math.max(Math.abs(x - p.x), Math.abs(y - p.y));
+}
+
+function hubSearchAnchors(room, sources) {
+    return {
+        sources: sources || room.sources || [],
+        minerals: roomMinerals(room) || [],
+        ctrl: room.controller && room.controller.pos,
+        terrain: Game.map.getRoomTerrain(room.name),
+    };
+}
+
+function coreTileTerrainOk(anchors, x, y) {
+    if (x < 1 || x > 48 || y < 1 || y > 48) return false;
+    if (anchors.terrain.get(x, y) === TERRAIN_MASK_WALL) return false;
+    if (anchors.ctrl && xyCheby(x, y, anchors.ctrl) <= 1) return false;
+    const minerals = anchors.minerals;
+    for (let i = 0; i < minerals.length; i++) {
+        if (xyCheby(x, y, minerals[i]) <= 1) return false;
+    }
+    const sources = anchors.sources;
+    for (let i = 0; i < sources.length; i++) {
+        if (xyCheby(x, y, sources[i]) <= 1) return false;
+    }
+    return true;
+}
+
+function coreStampsTerrainValid(room, x, y, options, anchors) {
+    const requireLink = !(options && options.requireLink === false);
+    const ctx = anchors || hubSearchAnchors(room);
+    for (let e = 0; e < coreTemplate.length; e++) {
+        const entry = coreTemplate[e];
+        if (entry.structureType === STRUCTURE_LINK && !requireLink) continue;
+        const pos = entry.pos || [];
+        for (let p = 0; p < pos.length; p++) {
+            if (!coreTileTerrainOk(ctx, x + pos[p].x, y + pos[p].y)) return false;
+        }
+    }
+    return true;
+}
+
+function coreHubFitsAt(room, hub) {
+    if (!hub || !isOpenHubTile(room, hub.x, hub.y)) return false;
+    return coreStampsTerrainValid(room, hub.x, hub.y, {requireLink: false});
+}
+
+function coreCandidateDistanceOk(room, x, y, sources) {
+    let nearest = Infinity;
+    const list = sources || [];
+    for (let i = 0; i < list.length; i++) {
+        if (!list[i]) continue;
+        const d = xyCheby(x, y, list[i]);
+        if (d < nearest) nearest = d;
+    }
+    const sourceDist = (nearest === Infinity ? 0 : nearest) * 2;
+    if (sourceDist < 6) return false;
+    const controllerDist = room.controller ? xyCheby(x, y, room.controller.pos) * 1.5 : 0;
+    return controllerDist >= 4;
+}
+
+function coreLayoutCanFit(room) {
+    const sources = room.sources && room.sources.length ? room.sources : room.find(FIND_SOURCES);
+    const anchors = hubSearchAnchors(room, sources);
+    const terrain = anchors.terrain;
+    for (let x = 3; x <= 46; x++) {
+        for (let y = 3; y <= 46; y++) {
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            if (!hubLinkTileBuildable(room, {x, y})) continue;
+            if (!coreStampsTerrainValid(room, x, y, {requireLink: true}, anchors)) continue;
+            if (!coreCandidateDistanceOk(room, x, y, sources)) continue;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Core/bunker spawns sit north of the hub. Hub is south, SE, or SW of the spawn.
 function pickHubNearSpawn(room, spawn) {
     if (!room || !spawn) return null;
     const sx = spawn.pos.x;
     const sy = spawn.pos.y;
     const preferred = [
-        {x: sx + 1, y: sy + 1}, {x: sx - 1, y: sy + 1},
-        {x: sx + 1, y: sy - 1}, {x: sx - 1, y: sy - 1},
-        {x: sx, y: sy + 1}, {x: sx + 1, y: sy},
-        {x: sx - 1, y: sy}, {x: sx, y: sy - 1},
+        {x: sx + 1, y: sy + 1},
+        {x: sx, y: sy + 1},
+        {x: sx - 1, y: sy + 1},
     ];
+    let fallback = null;
     for (let i = 0; i < preferred.length; i++) {
         const p = preferred[i];
-        if (isOpenHubTile(room, p.x, p.y) && hubLinkTileBuildable(room, p)) {
-            return {hub: p, dynamic: false};
-        }
+        if (!hubTileClearOfObstacles(room, p.x, p.y)) continue;
+        if (hubLinkTileBuildable(room, p)) return {hub: p, dynamic: false};
+        if (!fallback) fallback = {hub: p, dynamic: true};
     }
-    for (let i = 0; i < preferred.length; i++) {
-        const p = preferred[i];
-        if (isOpenHubTile(room, p.x, p.y)) return {hub: p, dynamic: true};
+    return fallback;
+}
+
+function spawnOnCoreStamp(hub, spawn) {
+    const dx = spawn.pos.x - hub.x;
+    const dy = spawn.pos.y - hub.y;
+    return dy === -1 && dx >= -1 && dx <= 1;
+}
+
+function collarMostlyMatches(room, hub) {
+    if (!hub || !hubTileClearOfObstacles(room, hub.x, hub.y)) return false;
+    if (room.storage && (room.storage.pos.x !== hub.x + 1 || room.storage.pos.y !== hub.y)) return false;
+    if (room.terminal && (room.terminal.pos.x !== hub.x - 1 || room.terminal.pos.y !== hub.y)) return false;
+    const spawns = room.spawns || [];
+    if (!spawns.length) return true;
+    for (let i = 0; i < spawns.length; i++) {
+        if (spawnOnCoreStamp(hub, spawns[i])) return true;
+    }
+    return !!(room.storage || room.terminal);
+}
+
+function hubMatchesLiveCollar(room, hub) {
+    return collarMostlyMatches(room, hub);
+}
+
+function inferHubFromLiveCollar(room) {
+    if (!room) return null;
+    const fromStorage = room.storage
+        ? {x: room.storage.pos.x - 1, y: room.storage.pos.y}
+        : null;
+    const fromTerminal = room.terminal
+        ? {x: room.terminal.pos.x + 1, y: room.terminal.pos.y}
+        : null;
+    const asResult = (hub, from) => ({
+        hub,
+        dynamic: !hubLinkTileBuildable(room, hub),
+        from,
+    });
+
+    if (fromStorage && fromTerminal
+        && fromStorage.x === fromTerminal.x && fromStorage.y === fromTerminal.y
+        && collarMostlyMatches(room, fromStorage)) {
+        return asResult(fromStorage, 'storage+terminal');
+    }
+    if (fromStorage && collarMostlyMatches(room, fromStorage)) {
+        return asResult(fromStorage, 'storage');
+    }
+    if (fromTerminal && collarMostlyMatches(room, fromTerminal)) {
+        return asResult(fromTerminal, 'terminal');
+    }
+    const spawn = room.spawns && (room.spawns.find(s => s.name !== 'auto') || room.spawns[0]);
+    const near = pickHubNearSpawn(room, spawn);
+    if (near && collarMostlyMatches(room, near.hub)) {
+        return {hub: near.hub, dynamic: near.dynamic, from: 'spawn'};
     }
     return null;
 }
 
-function isValidHubPosition(pos, room, sources) {
+function maybeSnapHubToLiveCollar(room) {
+    const current = resolveHub(room);
+    if (hubMatchesLiveCollar(room, current)) {
+        if (current && !hubLinkTileBuildable(room, current) && !room.memory.dynamicLayout) {
+            clearDynamicLayoutMemory(room);
+            commitCoreHub(room, current, {dynamicLayout: true});
+            return true;
+        }
+        return false;
+    }
+    const inferred = inferHubFromLiveCollar(room);
+    if (!inferred || !inferred.hub) return false;
+    if (current && current.x === inferred.hub.x && current.y === inferred.hub.y) {
+        if (!hubLinkTileBuildable(room, inferred.hub) && !room.memory.dynamicLayout) {
+            clearDynamicLayoutMemory(room);
+            commitCoreHub(room, inferred.hub, {dynamicLayout: true});
+            return true;
+        }
+        return false;
+    }
+    if (room.memory.hubCollarSnapTick && room.memory.hubCollarSnapTick > Game.time) return false;
+    room.memory.hubCollarSnapTick = Game.time + HUB_COLLAR_SNAP_COOLDOWN;
+
+    const keepDynamic = !!(room.memory.dynamicLayout || inferred.dynamic);
+    if (keepDynamic) clearDynamicLayoutMemory(room);
+    commitCoreHub(room, inferred.hub, keepDynamic ? {dynamicLayout: true} : undefined);
+    if (typeof log !== 'undefined' && log.a) {
+        log.a(room.name + ' hub snapped to live collar at (' + inferred.hub.x + ',' + inferred.hub.y
+            + ') from ' + inferred.from + (keepDynamic ? ' (dynamic)' : ''), 'PLANNER');
+    }
+    return true;
+}
+
+function isValidHubPosition(pos, room, sources, anchors) {
     if (!isOpenHubTile(room, pos.x, pos.y)) return false;
     if (!hubLinkTileBuildable(room, pos)) return false;
-    const layoutTemplate = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+    const ctx = anchors || hubSearchAnchors(room, sources);
+    const layoutTemplate = bunkerTemplate;
     for (let t = 0; t < layoutTemplate.length; t++) {
         const type = layoutTemplate[t];
         for (let i = 0; i < type.pos.length; i++) {
             const s = type.pos[i];
-            const sp = new RoomPosition(pos.x + s.x, pos.y + s.y, room.name);
-            if (sp.x < 2 || sp.x > 47 || sp.y < 2 || sp.y > 47) return false;
-            if (sp.checkForImpassible()) return false;
-            if (sp.isNearTo(room.controller)) return false;
-            if (isNearAnyMineral(sp, room, 1)) return false;
-            if (sources.some(src => sp.isNearTo(src))) return false;
+            const x = pos.x + s.x;
+            const y = pos.y + s.y;
+            if (x < 2 || x > 47 || y < 2 || y > 47) return false;
+            if (!coreTileTerrainOk(ctx, x, y)) return false;
         }
     }
     return true;
 }
 
 function hubEconomyParts(room, p, sources) {
-    const pos = p.pos || new RoomPosition(p.x, p.y, room.name);
     let nearest = Infinity;
     const list = sources || [];
     for (let i = 0; i < list.length; i++) {
         const src = list[i];
         if (!src) continue;
-        const d = pos.getRangeTo(src);
+        const d = xyCheby(p.x, p.y, src);
         if (d < nearest) nearest = d;
     }
     const sourceDist = (nearest === Infinity ? 25 : nearest) * 2;
-    const controllerDist = room.controller ? pos.getRangeTo(room.controller) * 1.5 : 0;
+    const controllerDist = room.controller ? xyCheby(p.x, p.y, room.controller.pos) * 1.5 : 0;
     const edgeBonus = Math.min(p.x, 49 - p.x, p.y, 49 - p.y) * 0.3;
     return {
         sourceDist,
@@ -314,34 +536,28 @@ function pickDefensibleHub(room, candidates, template, sources) {
     return best;
 }
 
-function findCoreHub(room) {
+function findCoreHub(room, options) {
+    const prefer = options && options.preferHub;
     const sources = room.sources && room.sources.length ? room.sources : room.find(FIND_SOURCES);
+    const anchors = hubSearchAnchors(room, sources);
+    const terrain = anchors.terrain;
     const possiblePos = [];
     for (let x = 3; x <= 46; x++) {
         for (let y = 3; y <= 46; y++) {
-            const hub = new RoomPosition(x, y, room.name);
-            if (hub.checkForImpassible()) continue;
-            if (!hubLinkTileBuildable(room, hub)) continue;
-            let valid = true;
-            outer: for (let e = 0; e < coreTemplate.length; e++) {
-                const entry = coreTemplate[e];
-                for (let p = 0; p < entry.pos.length; p++) {
-                    const dx = entry.pos[p].x;
-                    const dy = entry.pos[p].y;
-                    if (!isCoreHubTileValid(new RoomPosition(x + dx, y + dy, room.name), room)) {
-                        valid = false;
-                        break outer;
-                    }
-                }
-            }
-            if (!valid) continue;
-            const src = hub.findClosestByRange(FIND_SOURCES);
-            const sourceDist = src ? hub.getRangeTo(src) * 2 : 0;
-            if (sourceDist < 6) continue;
-            const controllerDist = hub.getRangeTo(room.controller) * 1.5;
-            if (controllerDist < 4) continue;
-            possiblePos.push({x, y, pos: hub});
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            if (!hubLinkTileBuildable(room, {x, y})) continue;
+            if (!coreStampsTerrainValid(room, x, y, {requireLink: true}, anchors)) continue;
+            if (!coreCandidateDistanceOk(room, x, y, sources)) continue;
+            possiblePos.push({x, y});
         }
+    }
+    if (prefer && coreHubFitsAt(room, prefer)) {
+        commitCoreHub(room, prefer, {dynamicLayout: true});
+        if (typeof log !== 'undefined' && log.a) {
+            log.a(room.name + ' cannot fit full bunker — keeping hub at (' + prefer.x + ', ' + prefer.y
+                + ') for dynamic layout.');
+        }
+        return true;
     }
     const bestPos = pickDefensibleHub(room, possiblePos, coreTemplate, sources);
     if (!bestPos) return false;
@@ -360,7 +576,10 @@ function findHub(room, isHubCheck) {
     const resolved = resolveHub(room);
     if (resolved && room.controller && room.controller.owner
         && room.controller.owner.username === MY_USERNAME) {
-        if (!isHubCheck) validateHubExtensionCapacity(room);
+        if (!isHubCheck) {
+            maybeSnapHubToLiveCollar(room);
+            validateHubExtensionCapacity(room);
+        }
         return true;
     }
 
@@ -378,46 +597,31 @@ function findHub(room, isHubCheck) {
             }
         }
 
-        const spawn = room.spawns && (room.spawns.find(s => s.name !== 'auto') || room.spawns[0]);
-        let recovered = null;
-        let recoveredDynamic = false;
-        let recoveredFrom = null;
-        if (room.terminal) {
-            recovered = {x: room.terminal.pos.x + 1, y: room.terminal.pos.y};
-            recoveredFrom = 'terminal';
-        } else if (room.storage) {
-            recovered = {x: room.storage.pos.x - 1, y: room.storage.pos.y};
-            recoveredFrom = 'storage';
-        } else if (spawn) {
-            const near = pickHubNearSpawn(room, spawn);
-            if (near) {
-                recovered = near.hub;
-                recoveredDynamic = near.dynamic;
-                recoveredFrom = 'spawn';
-            }
-        }
-        if (recovered && isOpenHubTile(room, recovered.x, recovered.y)) {
-            if (!hubLinkTileBuildable(room, recovered)) recoveredDynamic = true;
-            commitCoreHub(room, {x: recovered.x, y: recovered.y}, recoveredDynamic ? {dynamicLayout: true} : undefined);
+        const inferred = inferHubFromLiveCollar(room);
+        if (inferred && inferred.hub && hubTileClearOfObstacles(room, inferred.hub.x, inferred.hub.y)) {
+            const dynamic = !!(room.memory.dynamicLayout || inferred.dynamic);
+            if (dynamic) clearDynamicLayoutMemory(room);
+            commitCoreHub(room, inferred.hub, dynamic ? {dynamicLayout: true} : undefined);
             if (typeof log !== 'undefined' && log.a) {
-                log.a(room.name + ' hub recovered from ' + recoveredFrom
-                    + (recoveredDynamic ? ' (dynamic)' : '') + '.');
+                log.a(room.name + ' hub recovered from ' + inferred.from
+                    + (dynamic ? ' (dynamic)' : '') + '.');
             }
             validateHubExtensionCapacity(room);
             return true;
         }
     }
 
-    const sources = room.find(FIND_SOURCES);
+    const sources = room.sources && room.sources.length ? room.sources : room.find(FIND_SOURCES);
+    const anchors = hubSearchAnchors(room, sources);
+    const terrain = anchors.terrain;
     const possiblePos = [];
 
     for (let y = HUB_SEARCH_MIN; y <= HUB_SEARCH_MAX; y++) {
         for (let x = HUB_SEARCH_MIN; x <= HUB_SEARCH_MAX; x++) {
-            const pos = new RoomPosition(x, y, room.name);
-            if (pos.checkForImpassible()) continue;
-            if (!isValidHubPosition(pos, room, sources)) continue;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            if (!isValidHubPosition({x, y}, room, sources, anchors)) continue;
             if (isHubCheck) return true;
-            possiblePos.push({x, y, pos});
+            possiblePos.push({x, y});
         }
     }
 
@@ -446,7 +650,7 @@ function findHub(room, isHubCheck) {
         return true;
     }
 
-    if (isHubCheck) return false;
+    if (isHubCheck) return coreLayoutCanFit(room);
     if (findCoreHub(room)) return true;
     if (typeof log !== 'undefined' && log.a) {
         log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');
@@ -475,23 +679,29 @@ function ensureCoreHub(room, options) {
     const existed = !!before;
 
     if (existed) {
-        // Existing hub: capacity validate only (cooldown inside). No re-search / mass-destroy
-        // unless the hub-link tile is a terrain wall and the room has not committed storage.
+        // Existing hub: collar snap + capacity validate (cooldowns inside).
+        // A wall hub-link is ring-fallback, not a relocate. Only a wall hub tile moves.
         findHub(room);
         let after = resolveHub(room);
-        const hubUnusable = after && !room.storage && !room.terminal
-            && (!isOpenHubTile(room, after.x, after.y) || !hubLinkTileBuildable(room, after));
-        if (hubUnusable) {
+        if (after && !isOpenHubTile(room, after.x, after.y)) {
             if (typeof log !== 'undefined' && log.a) {
                 log.a(room.name + ' hub (' + after.x + ',' + after.y
-                    + ') is unusable (wall hub or hub-link); re-searching dynamic hub.');
+                    + ') is unusable (terrain wall); snapping to collar or re-searching.');
             }
-            if (!findCoreHub(room)) {
+            const inferred = inferHubFromLiveCollar(room);
+            if (inferred && inferred.hub && isOpenHubTile(room, inferred.hub.x, inferred.hub.y)) {
+                const keepDynamic = !!(room.memory.dynamicLayout || inferred.dynamic);
+                if (keepDynamic) clearDynamicLayoutMemory(room);
+                commitCoreHub(room, inferred.hub, keepDynamic ? {dynamicLayout: true} : undefined);
+            } else if (!findCoreHub(room, {preferHub: after})) {
                 const spawn = room.spawns && (room.spawns.find(s => s.name !== 'auto') || room.spawns[0]);
                 const near = pickHubNearSpawn(room, spawn);
                 if (near) commitCoreHub(room, near.hub, {dynamicLayout: true});
             }
             after = resolveHub(room);
+        } else if (after && !hubLinkTileBuildable(room, after) && !room.memory.dynamicLayout) {
+            clearDynamicLayoutMemory(room);
+            commitCoreHub(room, after, {dynamicLayout: true});
         }
         syncAnchorsToPlan(room);
         const switched = after && before
@@ -500,7 +710,7 @@ function ensureCoreHub(room, options) {
             ok: !!after,
             hub: after,
             existed: true,
-            source: switched ? 'hub-link-wall' : 'existing',
+            source: switched ? 'collar-snap' : 'existing',
             switched: switched || undefined,
             validateCooldownUntil: room.memory.hubExtensionValidateTick || null,
         };
@@ -603,6 +813,15 @@ function buildLabSearchContext(room, allowWalls) {
         }
     }
     addWorldBlockedTiles(room, blocked, !!allowWalls);
+    if (room.memory && room.memory.dynamicLayout) {
+        try {
+            const extTiles = require('planGeomRamparts').getDynamicExtensionProtectTiles(room) || [];
+            for (let i = 0; i < extTiles.length; i++) {
+                if (extTiles[i]) blocked.add(extTiles[i].x + ',' + extTiles[i].y);
+            }
+        } catch (e) { /* optional */
+        }
+    }
     const towerHubs = resolveTowerHubs(room);
     for (let i = 0; i < towerHubs.length; i++) {
         blocked.add(towerHubs[i].x + ',' + towerHubs[i].y);
@@ -939,7 +1158,20 @@ function collectTowerBlockedKeys(room, hubX, hubY) {
 
 function collectExtensionStampKeys(room, hubX, hubY) {
     const keys = new Set();
-    if (room.memory.dynamicLayout) return keys;
+    if (room.memory.dynamicLayout) {
+        try {
+            const tiles = require('planGeomRamparts').getDynamicExtensionProtectTiles(room) || [];
+            for (let i = 0; i < tiles.length; i++) {
+                if (tiles[i]) keys.add(towerTileKey(tiles[i].x, tiles[i].y));
+            }
+        } catch (e) { /* ignore */
+        }
+        const exts = room.extensions || [];
+        for (let i = 0; i < exts.length; i++) {
+            if (exts[i] && exts[i].pos) keys.add(towerTileKey(exts[i].pos.x, exts[i].pos.y));
+        }
+        return keys;
+    }
     for (let e = 0; e < bunkerTemplate.length; e++) {
         const entry = bunkerTemplate[e];
         if (!entry || entry.structureType !== STRUCTURE_EXTENSION) continue;
@@ -987,7 +1219,33 @@ function sampleHubWallTiles(room, hubX, hubY, terrain) {
     } catch (e) { /* fall through to stamp ring */
     }
 
-    const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
+    if (room.memory && room.memory.dynamicLayout) {
+        let r = 0;
+        try {
+            const tiles = require('planGeomRamparts').getDynamicExtensionProtectTiles(room) || [];
+            for (let i = 0; i < tiles.length; i++) {
+                const d = cheby(tiles[i].x, tiles[i].y, hubX, hubY);
+                if (d > r) r = d;
+            }
+        } catch (e) { /* ignore */
+        }
+        if (r < 2) return [];
+        r += 1;
+        const samples = [];
+        for (let dx = -r; dx <= r; dx++) {
+            for (let dy = -r; dy <= r; dy++) {
+                if (cheby(dx, dy, 0, 0) !== r) continue;
+                const x = hubX + dx;
+                const y = hubY + dy;
+                if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+                if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+                samples.push({x, y});
+            }
+        }
+        return samples;
+    }
+
+    const tmpl = bunkerTemplate;
     let radius = 5;
     try {
         radius = require('planGeomRamparts').templateStampRadius(tmpl) || 5;
@@ -1129,8 +1387,7 @@ function candidateAllowed(room, x, y, blocked, srcPos, ctrlPos, extensionStamp, 
         const exitTiles = collectExitTiles(room);
         if (exitTiles.length && minExitDist(x, y, exitTiles) < TOWER_EXIT_CLEARANCE) return null;
     }
-    const extensionTile = extensionStamp.has(key)
-        || (room.memory.dynamicLayout && isHubRelativeExtensionParity(hubXY, x, y));
+    const extensionTile = extensionStamp.has(key);
     return {x, y, key, soft: extensionTile ? 1 : 0};
 }
 
@@ -1277,8 +1534,17 @@ function selectTowerHubs(room) {
             }
         }
     } else {
-        const preBunker = !room.controller
-            || room.controller.level < (typeof BUNKER_LEVEL === 'number' ? BUNKER_LEVEL : 6);
+        const bunkerLevel = typeof BUNKER_LEVEL === 'number' ? BUNKER_LEVEL : 6;
+        if (room.memory && room.memory.dynamicLayout
+            && room.controller && room.controller.level >= bunkerLevel) {
+            return {
+                hubs: [],
+                candidateCount: 0,
+                alongSeal: false,
+                reason: 'no_seal',
+            };
+        }
+        const preBunker = !room.controller || room.controller.level < bunkerLevel;
         candidates = collectHubRingCandidates(
             room, hubXY, blocked, srcPos, ctrlPos, extensionStamp, preBunker, undefined, walls);
     }
@@ -1335,12 +1601,16 @@ function collectEmergencyTowerCandidates(room, hubXY, blocked, extensionStamp, w
             if (blocked.has(key)) return;
             if (tooCloseToSpawn(x, y, spawnTiles)) return;
             if (isTowerTileBlockedByWorld(room, x, y)) return;
-            const extensionTile = (extensionStamp && extensionStamp.has(key))
-                || (room.memory && room.memory.dynamicLayout && isHubRelativeExtensionParity(hubXY, x, y));
+            const sealDist = minDistToWalls(x, y, walls);
+            if (extensionStamp && extensionStamp.has(key)
+                && (!walls || !walls.length || sealDist > TOWER_SEAL_BAND_MAX)) {
+                return;
+            }
+            const extensionTile = !!(extensionStamp && extensionStamp.has(key));
             candidates.push({
                 x, y, key,
                 soft: extensionTile ? 1 : 0,
-                sealDist: minDistToWalls(x, y, walls),
+                sealDist,
                 hubDist: r,
             });
         });
@@ -1407,14 +1677,39 @@ function hasCachedSealSpots(room) {
     return !!(room && typeof ROOM_RAMPART_SPOTS !== 'undefined' && ROOM_RAMPART_SPOTS[room.name]);
 }
 
+function parseSealKey(key) {
+    if (!key || key === 'none') return null;
+    const parts = String(key).split(':');
+    if (parts.length !== 3) return null;
+    const n = +parts[0];
+    const x = +parts[1];
+    const y = +parts[2];
+    if (!(n >= 0) || !(x >= 0) || !(y >= 0)) return null;
+    return {n, x, y};
+}
+
+function dynamicSealDrifted(room) {
+    if (!room || !room.memory || !room.memory.dynamicLayout) return false;
+    if (!room.memory.towerSealLocked) return false;
+    const now = parseSealKey(currentSealKey(room));
+    const was = parseSealKey(room.memory.towerSealKey);
+    if (!now || !was) return false;
+    return Math.abs(now.n - was.n) >= TOWER_SEAL_DRIFT_COUNT
+        || Math.abs(now.x - was.x) >= TOWER_SEAL_DRIFT_CENTROID
+        || Math.abs(now.y - was.y) >= TOWER_SEAL_DRIFT_CENTROID;
+}
+
 function towerLayoutStale(room) {
     if (!room || !room.memory) return true;
     if (room.memory.towerLayoutVersion !== TOWER_LAYOUT_VERSION) return true;
     const rev = perimeterRevForTowers();
     if (rev && room.memory.towerSealRev !== rev) return true;
-    // One migrate onto the RCL 6 min-cut seal. After that, freeze: towers are
-    // seal seeds, so wrapping them (and later extensions) grows the contour
-    // and would otherwise re-pick hubs and destroy() just-built towers.
+    if (dynamicSealDrifted(room)) {
+        if (room.memory.towerReseatTick && room.memory.towerReseatTick > Game.time) return false;
+        return true;
+    }
+    // Bunker: freeze after the first seal pick. Dynamic rooms reseat when the
+    // packed blob / seal centroid drifts (see dynamicSealDrifted).
     if (room.memory.towerSealLocked) return false;
     return hasCachedSealSpots(room);
 }
@@ -1509,6 +1804,9 @@ function stampTowerLayout(room) {
     room.memory.towerSealRev = perimeterRevForTowers();
     room.memory.towerSealKey = currentSealKey(room);
     if (hasCachedSealSpots(room)) room.memory.towerSealLocked = 1;
+    if (room.memory.dynamicLayout) {
+        room.memory.towerReseatTick = Game.time + TOWER_RESEAT_COOLDOWN;
+    }
 }
 
 function ensureTowerHubs(room, options) {
@@ -1560,6 +1858,16 @@ function ensureTowerHubs(room, options) {
     const selected = selectTowerHubs(room);
     const existing = resolveTowerHubs(room);
     if (!selected.hubs.length) {
+        if (selected.reason === 'no_seal') {
+            if (existing.length) ensureTowerRamparts(room, existing);
+            return {
+                ok: !!existing.length,
+                hubs: existing.slice(),
+                reason: 'wait_seal',
+                candidateCount: 0,
+                alongSeal: false,
+            };
+        }
         if (existing.length) {
             ensureTowerRamparts(room, existing);
             return {
@@ -1774,6 +2082,15 @@ function towerTileBlockedForPlacement(pos) {
  * are destroyed; roads and built ramparts can share the tile.
  * @returns {boolean} true if anything was removed/destroyed
  */
+function towerMayClaimExtensionTile(room, pos) {
+    const hub = resolveHub(room);
+    if (!hub || !pos) return false;
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const walls = sampleHubWallTiles(room, hub.x, hub.y, terrain);
+    if (!walls.length) return false;
+    return minDistToWalls(pos.x, pos.y, walls) <= TOWER_SEAL_BAND_MAX;
+}
+
 function clearTowerHubBlockers(room, pos) {
     let changed = false;
 
@@ -1796,6 +2113,10 @@ function clearTowerHubBlockers(room, pos) {
         // Soft obstacles only — do not destroy storage/terminal/spawn on a bad hub tile.
         if (s.structureType !== STRUCTURE_EXTENSION && s.structureType !== STRUCTURE_CONTAINER
             && s.structureType !== STRUCTURE_WALL) {
+            continue;
+        }
+        if (s.structureType === STRUCTURE_EXTENSION && room.memory && room.memory.dynamicLayout
+            && !towerMayClaimExtensionTile(room, pos)) {
             continue;
         }
         try {

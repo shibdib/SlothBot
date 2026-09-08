@@ -510,6 +510,24 @@ function runRoomPhases(room, lastRun, ctx, report) {
     }
 
     safeRun(PHASE.ANCHORS, () => {
+        if (room.memory && room.memory.dynamicLayout
+            && room.controller && room.controller.level >= (typeof BUNKER_LEVEL === 'number' ? BUNKER_LEVEL : 6)) {
+            try {
+                require('planGeomExtensions').getExtensionPositions(room);
+                const geom = require('planGeomRamparts');
+                if (!geom.hasPerimeterSpots(room.name)) {
+                    require('planRamparts').recalculateRampartsForRoom(room, undefined, {
+                        destroyOffPlan: false,
+                        holdCleanup: false,
+                    });
+                }
+            } catch (e) { /* optional */
+            }
+        }
+        try {
+            require('planRamparts').consumePerimeterDirty(room);
+        } catch (e) { /* optional */
+        }
         anchors.ensureTowerHubs(room);
         anchors.ensureLabHub(room);
         // inspectAnchors walks sites + tower hubs — console/debug only.

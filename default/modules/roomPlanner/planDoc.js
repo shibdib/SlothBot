@@ -290,11 +290,15 @@ function syncToLegacy(room, plan, options) {
     }
 
     let dirty = false;
-    if (plan.mode === 'dynamic' && !mem.dynamicLayout) {
-        mem.dynamicLayout = true;
+    if (plan.mode === 'dynamic') {
+        if (!mem.dynamicLayout) {
+            mem.dynamicLayout = true;
+            dirty = true;
+        }
+    } else if (plan.mode === 'bunker' && mem.dynamicLayout) {
+        delete mem.dynamicLayout;
         dirty = true;
     }
-    // Do not force-clear dynamicLayout on bunker mode — room may still be mid-switch.
 
     if (plan.meta && plan.meta.layoutVersions && plan.meta.layoutVersions.towers != null) {
         if (assignIfChanged(mem, 'towerLayoutVersion', plan.meta.layoutVersions.towers)) dirty = true;

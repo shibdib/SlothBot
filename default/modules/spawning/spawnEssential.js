@@ -63,7 +63,7 @@ function resolveDroneCount(room, ctx) {
         if (!hasWork && (energyState < 2 || spareIncome < 0)) return 0;
         return 1;
     } else if (earlyRush) {
-        count = hasWork ? (hasCriticalBuilds ? 3 : 2) : 2;
+        count = hasWork ? (hasCriticalBuilds ? 4 : 3) : 3;
     } else if (room.storage) {
         if (!hasWork) count = energyState ? 1 : 0;
         else if (heavyRoadRepair && energyState >= 1) count = 2;
@@ -138,6 +138,9 @@ function essentialCreepQueue(room) {
     const hasCriticalBuilds = roomHasCriticalBuildSites(room) || extensionDeficit > 0;
 
     const spawnReboot = roomNeedsSpawnReboot(room);
+    // Early-rush drones are the build/upgrade crew until RCL3 extensions finish.
+    // After that a dedicated upgrader should beat extra drones to the spawn.
+    const wantDedicatedUpgrader = !(earlyRush && (room.controller.level < 3 || extensionDeficit > 0));
 
     let droneCount = resolveDroneCount(room, {
         earlyRush, importantBuilds, hasCriticalBuilds, hasRoadMaintenance,
@@ -145,7 +148,7 @@ function essentialCreepQueue(room) {
     });
     // Income creeps first while the room can only spend spawn regen — except
     // early rush, where drones *are* the income/build/upgrade crew.
-    const dronePriority = earlyRush ? 1 : PRIORITIES.drone;
+    const dronePriority = (earlyRush && !wantDedicatedUpgrader) ? 1 : PRIORITIES.drone;
 
     queueCreepIfNeeded({
         room, role: 'drone', priority: dronePriority + getCreepCount(room, 'drone'),
@@ -166,13 +169,14 @@ function essentialCreepQueue(room) {
         } catch (e) { /* optional */
         }
         const bootstrap = roomNeedsRampartBootstrap(room) || missingSeal || barrierSites > 0;
-        // Ramparts decay every tick. energyState 0 / low spareIncome used to
-        // drop this to 0 until hits hit the 3k bootstrap floor.
-        let wallerCount = 1;
+        // Climbing rooms only keep the seal alive. Thickening to 100k–5M waits for RCL8.
+        let wallerCount = 0;
+        if (bootstrap) wallerCount = 1;
+        else if (room.controller.level >= 8) wallerCount = 1;
         if (energyState >= 1 && bootstrap && (barrierSites >= 5 || missingSeal)) wallerCount = 2;
         if (energyState >= 2 && room.controller.level >= 8 && barrierSites >= 8) wallerCount = 3;
-        if (room.controller.level < 7 && spareIncome < 10) {
-            wallerCount = 1;
+        if (room.controller.level < 8 && spareIncome < 10) {
+            wallerCount = Math.min(wallerCount, 1);
         }
         if (wallerCount) {
             queueCreepIfNeeded({
@@ -248,16 +252,16 @@ function essentialCreepQueue(room) {
     let upgraderAmount = 1;
     // Drones already dump leftover energy into the controller below RCL 4.
     // A dedicated upgrader during an extension deficit starves the builders.
-    if (earlyRush && (room.controller.level < 3 || extensionDeficit > 0)) {
+    if (!wantDedicatedUpgrader) {
         upgraderAmount = 0;
     } else if (room.controller.level === 8) {
         upgraderAmount = 1;
     } else {
         const need = planUpgraderNeed(room, {spareIncome, trend: (energyInfo && energyInfo.trend) || 0});
-        if (energyState) upgraderAmount = need.count;
+        const stored = (room.rawEnergy || 0) > 1000;
+        if (energyState || stored) upgraderAmount = need.count;
         // Live body is a reboot leftover. Allow one overlap so a full-size
         // replacement can spawn; the small one retires once energy is ready.
-        const stored = (room.rawEnergy || 0) > 1000;
         if (need.maxWork >= 8 && (energyState >= 1 || stored)) {
             const live = room.myCreeps || [];
             let bestWork = 0;
@@ -278,7 +282,9 @@ function essentialCreepQueue(room) {
         const fastTrack = (room.controller.level < 8) ||
             (energyState > 1 && room.storage && trendOk) ||
             (earlyRush && harvesterCount && energyState >= 2);
-        const priority = fastTrack ? PRIORITIES.upgrader * 0.5 : PRIORITIES.upgrader;
+        // Strictly ahead of drone (3) so the first upgrader is not starved by
+        // drone #1 after a stable sort. Harvesters (1) and haulers (2) still win.
+        const priority = fastTrack ? PRIORITIES.drone - 0.5 : PRIORITIES.upgrader;
         queueCreepIfNeeded({
             room, role: 'upgrader', priority,
             numberNeeded: upgraderAmount, misc: {boosts: [WORK]},

@@ -1044,17 +1044,21 @@ function isNearAnyMineral(pos, room, range = 1) {
 }
 
 function isCoreHubTileValid(pos, room) {
-    if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) return false;
-    const src = pos.findClosestByRange(FIND_SOURCES);
-    if (pos.checkForImpassible() || pos.isNearTo(room.controller)) return false;
+    if (!pos || pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) return false;
+    const terrain = Game.map.getRoomTerrain(pos.roomName);
+    if (terrain.get(pos.x, pos.y) === TERRAIN_MASK_WALL) return false;
+    if (room && room.controller && pos.isNearTo(room.controller)) return false;
     if (isNearAnyMineral(pos, room, 1)) return false;
-    return !(src && pos.isNearTo(src));
+    return !isNearAnySource(pos, room, 1);
 }
 
 
 function isNearAnySource(pos, room, range = 1) {
-    for (const source of room.sources) {
-        if (pos.getRangeTo(source.pos) <= range) return true;
+    const sources = (room && room.sources) || [];
+    for (let i = 0; i < sources.length; i++) {
+        const src = sources[i];
+        if (!src) continue;
+        if (pos.getRangeTo(src.pos || src) <= range) return true;
     }
     return false;
 }

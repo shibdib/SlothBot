@@ -43,9 +43,12 @@ class RoleShuttle {
             }
         }
 
-        // Controller container if room has a storage and we have an energyState
-        if (this.room.storage && this.room.energyState) {
-            const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer);
+        // Pre-RCL8: empty storage is energyState 0 (below the stockpile target),
+        // not famine. Keep feeding the upgrader or the controller stalls.
+        const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
+        if (this.room.storage && (rcl < 8 || this.room.energyState)) {
+            const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer)
+                || (global.resolveControllerContainer && global.resolveControllerContainer(this.room));
             if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > CONTAINER_CAPACITY * 0.5) {
                 const result = this.creep.transfer(controllerContainer, RESOURCE_ENERGY);
                 if (result === OK || result === ERR_NOT_IN_RANGE) {

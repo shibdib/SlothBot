@@ -41,8 +41,8 @@ function getRoomExits(room) {
 
 const REMOTE_REPAIRABLE = new Set([STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_WALL, STRUCTURE_RAMPART]);
 const PRIORITY_BUILD_TYPES = [
-    STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_CONTAINER,
-    STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_LAB, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN,
+    STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_TERMINAL,
+    STRUCTURE_CONTAINER, STRUCTURE_LINK, STRUCTURE_LAB, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN,
 ];
 
 function constructionSiteOwner(site) {
@@ -779,7 +779,7 @@ Creep.prototype.haulerDelivery = function () {
     const hubLink = Game.getObjectById(this.room.memory.hubLink);
     const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
     const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
-    if (rcl < 8 && hubLink && controllerLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && (this.room.energyState || 0) >= 1) {
+    if (rcl < 8 && hubLink && controllerLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
         targets.push(hubLink);
     }
 
@@ -797,8 +797,7 @@ Creep.prototype.haulerDelivery = function () {
         }));
     }
 
-    if (!this.room.memory.controllerLink &&
-        (rcl < 8 ? (this.room.energyState || 0) >= 1 : this.room.energyState >= 3)) {
+    if (!this.room.memory.controllerLink && (rcl < 8 || this.room.energyState >= 3)) {
         const controllerContainer = global.resolveControllerContainer(this.room);
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 200) targets.push(controllerContainer);
     }
@@ -824,8 +823,9 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     // Fill controller container from spare energy. RCL8 stockpiles unless overflowing.
-    if (this.room.energyState >= 3 || (this.room.level < 8 && this.room.energyState > 0)) {
+    if (rcl < 8 || this.room.energyState >= 3) {
         const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer)
+            || (global.resolveControllerContainer && global.resolveControllerContainer(this.room));
         if (controllerContainer && !controllerContainer.store.getUsedCapacity(RESOURCE_ENERGY)) {
             this.memory.storageDestination = controllerContainer.id;
             return true;

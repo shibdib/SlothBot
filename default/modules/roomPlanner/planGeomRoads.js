@@ -38,8 +38,9 @@ const PATH_CACHE_TTL = 5000;
 const PLAN_CACHE = Object.create(null);
 const MATRIX_HEAP = {owned: Object.create(null), remote: Object.create(null)};
 const FAILED_PATH_RETRY = 50;
-/** Bump when desired-set geometry changes (lab collar, walkway, …) so packed plans rebuild. */
-const OWNED_ROAD_PLAN_REV = 2;
+/** Bump when desired-set geometry changes (lab collar, walkway, extension spurs, …) so packed plans rebuild. */
+const OWNED_ROAD_PLAN_REV = 3;
+const ROAD_CARDINALS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
 /** One-shot: recompute packed without adopting leftover live roads, then prune extras. */
 const OWNED_ROAD_CLEANUP_REV = 1;
 
@@ -301,10 +302,14 @@ function buildCostMatrix(roomName, profile = 'owned') {
 
 function searchOnMatrix(from, to, matrix, options) {
     const begin = from instanceof RoomPosition ? from : from.pos;
-    const target = to instanceof RoomPosition ? to : to.pos;
-    const range = options && options.range != null ? options.range : 1;
     const roomName = begin.roomName;
-    const result = PathFinder.search(begin, {pos: target, range}, {
+    const goals = options && options.goals
+        ? options.goals
+        : {
+            pos: (to instanceof RoomPosition ? to : to.pos),
+            range: options && options.range != null ? options.range : 1
+        };
+    const result = PathFinder.search(begin, goals, {
         heuristicWeight: 1,
         maxRooms: 1,
         maxOps: (options && options.maxOps) || 8000,
@@ -618,6 +623,126 @@ function nearestNetworkPos(target, network, roomName, avoid) {
     return best;
 }
 
+function isCorridorParity(hub, x, y) {
+    if (!hub) return ((x + y) & 1) !== 0;
+    return (((x - hub.x) + (y - hub.y)) & 1) !== 0;
+}
+
+function applyCorridorBias(matrix, room) {
+    const hub = room.hub;
+    if (!hub || !matrix) return;
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const roadCost = COSTS.owned.road;
+    for (let y = 1; y < 49; y++) {
+        for (let x = 1; x < 49; x++) {
+            const cur = matrix.get(x, y);
+            if (cur >= 255 || cur <= roadCost) continue;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            if (isCorridorParity(hub, x, y)) {
+                if (cur >= COSTS.owned.plain) matrix.set(x, y, Math.min(cur, 12));
+            } else {
+                matrix.set(x, y, Math.min(254, cur + 40));
+            }
+        }
+    }
+}
+
+function collectDynamicExtensionRoadGoals(room) {
+    const seen = new Set();
+    const out = [];
+    const add = (x, y) => {
+        if (x < 2 || x > 47 || y < 2 || y > 47) return;
+        const key = x + 'x' + y;
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({x, y});
+    };
+    try {
+        const tiles = require('planGeomRamparts').getDynamicExtensionProtectTiles(room) || [];
+        for (let i = 0; i < tiles.length; i++) {
+            if (tiles[i]) add(tiles[i].x, tiles[i].y);
+        }
+    } catch (e) { /* optional */
+    }
+    const exts = room.extensions || [];
+    for (let i = 0; i < exts.length; i++) {
+        const e = exts[i];
+        if (e && e.pos) add(e.pos.x, e.pos.y);
+    }
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const s = sites[i];
+        if (s && s.pos && s.structureType === STRUCTURE_EXTENSION) add(s.pos.x, s.pos.y);
+    }
+    return out;
+}
+
+function extensionHasNetworkRoad(x, y, network) {
+    for (let i = 0; i < ROAD_CARDINALS.length; i++) {
+        const nx = x + ROAD_CARDINALS[i][0];
+        const ny = y + ROAD_CARDINALS[i][1];
+        if (network.has(nx + 'x' + ny)) return true;
+    }
+    return false;
+}
+
+function extensionSpurStandTiles(room, x, y, avoid) {
+    const goals = [];
+    for (let i = 0; i < ROAD_CARDINALS.length; i++) {
+        const nx = x + ROAD_CARDINALS[i][0];
+        const ny = y + ROAD_CARDINALS[i][1];
+        if (nx < 1 || nx > 48 || ny < 1 || ny > 48) continue;
+        const key = nx + 'x' + ny;
+        if (avoid.has(key)) continue;
+        const pos = new RoomPosition(nx, ny, room.name);
+        if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
+        const terrain = Game.map.getRoomTerrain(room.name);
+        if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
+        goals.push({pos, range: 0});
+    }
+    return goals;
+}
+
+function commitOwnedRoadPath(room, path, network, connector, layout, matrix, avoid) {
+    for (let i = 0; i < path.length; i++) {
+        const step = path[i];
+        if ((step.roomName || room.name) !== room.name) continue;
+        const key = getPosKey(step);
+        const pos = new RoomPosition(step.x, step.y, room.name);
+        if (pos.isExit() || avoid.has(key) || tileHasRoadAvoid(pos)) continue;
+        network.add(key);
+        markTileOnMatrix(matrix, key, 'owned');
+        if (!isRoadSatisfied(pos)) markPlannedTile(room.name, 'owned', key);
+        if (!layout.has(key)) connector.add(key);
+    }
+}
+
+function addDynamicExtensionSpurs(room, network, connector, layout, matrix, avoid, origin) {
+    if (!room.memory || !room.memory.dynamicLayout) return;
+    const goals = collectDynamicExtensionRoadGoals(room);
+    if (!goals.length) return;
+    applyCorridorBias(matrix, room);
+    const anchorPos = origin || (room.spawns[0] && room.spawns[0].pos);
+    if (!anchorPos) return;
+    goals.sort((a, b) =>
+        Math.max(Math.abs(a.x - anchorPos.x), Math.abs(a.y - anchorPos.y))
+        - Math.max(Math.abs(b.x - anchorPos.x), Math.abs(b.y - anchorPos.y))
+        || a.y - b.y || a.x - b.x);
+
+    for (let i = 0; i < goals.length; i++) {
+        const g = goals[i];
+        if (extensionHasNetworkRoad(g.x, g.y, network)) continue;
+        const stands = extensionSpurStandTiles(room, g.x, g.y, avoid);
+        if (!stands.length) continue;
+        const target = new RoomPosition(g.x, g.y, room.name);
+        const anchor = nearestNetworkPos(target, network, room.name, avoid) || origin || anchorPos;
+        if (!anchor) continue;
+        const path = searchOnMatrix(anchor, target, matrix, {goals: stands});
+        if (!path) continue;
+        commitOwnedRoadPath(room, path, network, connector, layout, matrix, avoid);
+    }
+}
+
 function buildConnectorTiles(room, layout) {
     const network = new Set(layout);
     const origin = getRoadOrigin(room);
@@ -666,18 +791,10 @@ function buildConnectorTiles(room, layout) {
             continue;
         }
 
-        for (const step of path) {
-            if ((step.roomName || room.name) !== room.name) continue;
-            const key = getPosKey(step);
-            const pos = new RoomPosition(step.x, step.y, room.name);
-            if (pos.isExit() || avoid.has(key) || tileHasRoadAvoid(pos)) continue;
-            network.add(key);
-            markTileOnMatrix(matrix, key, 'owned');
-            if (!isRoadSatisfied(pos)) markPlannedTile(room.name, 'owned', key);
-            // Keep satisfied tiles in the desired set so persist can re-queue decay.
-            if (!layout.has(key)) connector.add(key);
-        }
+        commitOwnedRoadPath(room, path, network, connector, layout, matrix, avoid);
     }
+
+    addDynamicExtensionSpurs(room, network, connector, layout, matrix, avoid, origin);
 
     return {connector, pathFailures, pathsAttempted};
 }
@@ -724,6 +841,11 @@ function walkwayRoadFingerprint(room) {
     }
 }
 
+function dynamicExtRoadFingerprint(room) {
+    if (!room || !room.memory || !room.memory.dynamicLayout) return '0';
+    return String(collectDynamicExtensionRoadGoals(room).length);
+}
+
 /**
  * Stable identity of the owned desired-set inputs. Existing roads are excluded
  * so placing a site does not force a PathFinder recompute.
@@ -736,6 +858,7 @@ function ownedRoadFingerprint(room) {
         room.memory && room.memory.dynamicLayout ? 'd' : 'b',
         room.controller && room.controller.level >= 8 ? 'w8' : 'w0',
         'ww' + walkwayRoadFingerprint(room),
+        'ex' + dynamicExtRoadFingerprint(room),
     ];
     const targets = getRoadTargets(room);
     const targetKeys = [];

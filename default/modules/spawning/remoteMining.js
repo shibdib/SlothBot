@@ -98,7 +98,7 @@ function maxRemoteRoomsForColony(colonyRoom) {
     let max;
     if (level >= 8) max = cfg('REMOTE_MAX_ROOMS_RCL8', 5);
     else if (level >= 7) max = cfg('REMOTE_MAX_ROOMS_RCL7', 4);
-    else if (level >= 6) max = cfg('REMOTE_MAX_ROOMS_RCL6', 2);
+    else if (level >= 6 || colonyRoom.storage) max = cfg('REMOTE_MAX_ROOMS_RCL6', 2);
     else max = cfg('REMOTE_MAX_ROOMS_LOW', 1);
     return applyCpuOverageCap(colonyRoom, max);
 }

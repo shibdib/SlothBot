@@ -23,6 +23,7 @@ const EXTENSION_BATCH_MAX = 3;
 const EXTENSION_BATCH_RUSH = 5;
 // Dynamic extension clearances (Chebyshev / getRangeTo).
 const EXTENSION_EXIT_CLEARANCE = 5;
+const EXTENSION_EXIT_CLEARANCE_MIN = 2;
 const EXTENSION_SOURCE_CLEARANCE = 2;
 const EXTENSION_CONTROLLER_CLEARANCE = 3;
 const EXTENSION_MINERAL_CLEARANCE = 2;
@@ -30,9 +31,13 @@ const EXTENSION_MINERAL_CLEARANCE = 2;
 const EXTENSION_SPAWN_CLEARANCE = 1;
 // Legacy alias used by older call sites / audits.
 const EXTENSION_ANCHOR_CLEARANCE = EXTENSION_SOURCE_CLEARANCE;
+// 8-connected walk == cheby on open ground. Extra steps mean the flood wrapped
+// around a terrain wall — drop those tiles so the blob cannot jump the barrier.
+const EXTENSION_MAX_WRAP = 4;
 // v6: per-anchor clearances + spawn apron.
 // v7: hub-relative checkerboard (diagonals from hub) + reserved specials ring.
-const EXTENSION_LAYOUT_VERSION = 7;
+// v8: walk-distance scoring, wrap prune, queue growth (no Chebyshev wall jump).
+const EXTENSION_LAYOUT_VERSION = 8;
 
 /** C4: plan.anchors.hub first, then room.hub / legacy bunkerHub. */
 function resolveHubXY(room) {
@@ -187,9 +192,10 @@ function buildLayoutExcluded(room, hubOverride) {
     return excluded;
 }
 
-function isWithinExitClearance(pos) {
+function isWithinExitClearance(pos, clearance) {
+    const cap = clearance != null ? clearance : EXTENSION_EXIT_CLEARANCE;
     const exit = pos.findClosestByRange(FIND_EXIT);
-    return exit && pos.getRangeTo(exit) <= EXTENSION_EXIT_CLEARANCE;
+    return exit && pos.getRangeTo(exit) <= cap;
 }
 
 /**
@@ -235,21 +241,25 @@ function isWithinAnchorClearance(room, pos) {
     return !!getAnchorClearanceViolation(room, pos);
 }
 
-function getExtensionClearanceViolation(room, pos, excluded) {
+function getExtensionClearanceViolation(room, pos, excluded, options) {
     if (!excluded) excluded = buildLayoutExcluded(room);
     if (excluded.has(`${pos.x},${pos.y}`)) return 'bunkerCore';
-    if (!room.memory.dynamicLayout) return null;
-    if (isWithinExitClearance(pos)) return 'nearExit';
+    if (!room.memory || !room.memory.dynamicLayout) return null;
+    const exitClearance = options && options.exitClearance != null
+        ? options.exitClearance
+        : EXTENSION_EXIT_CLEARANCE;
+    if (isWithinExitClearance(pos, exitClearance)) return 'nearExit';
+    if (!(options && options.skipWrap) && tileIsWrapAround(room, pos)) return 'wrapBarrier';
     return getAnchorClearanceViolation(room, pos);
 }
 
-function classifyExtensionTile(room, pos, excluded) {
+function classifyExtensionTile(room, pos, excluded, options) {
     if (pos.checkForWall()) return 'wall';
     // ignoreWall + ignoreCreep — creeps must not block construction planning.
     if (pos.checkForImpassible(true, true)) return 'impassible';
     if (pos.checkForConstructionSites()) return 'site';
     if (pos.checkForAllStructure()) return 'structure';
-    const violation = getExtensionClearanceViolation(room, pos, excluded);
+    const violation = getExtensionClearanceViolation(room, pos, excluded, options);
     if (violation) return violation;
     return 'ok';
 }
@@ -618,28 +628,10 @@ function findExtensionCandidatesNearHub(room) {
     const hub = room.hub;
     if (!hub) return [];
     const excluded = buildLayoutExcluded(room);
-    const terrain = Game.map.getRoomTerrain(room.name);
-    const extensions = [];
-    const visited = new Set([`${hub.x},${hub.y}`]);
-    const queue = [{x: hub.x, y: hub.y}];
-    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
-
-    while (queue.length && extensions.length < 100) {
-        const {x, y} = queue.shift();
-        for (const [dx, dy] of dirs) {
-            const nx = x + dx, ny = y + dy, key = `${nx},${ny}`;
-            if (visited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
-            visited.add(key);
-            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
-            queue.push({x: nx, y: ny});
-            if (excluded.has(key)) continue;
-            if (!isHubRelativeExtensionParity(hub, nx, ny)) continue;
-            const pos = new RoomPosition(nx, ny, room.name);
-            if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
-            extensions.push({x: nx, y: ny});
-        }
-    }
-    return extensions;
+    const flood = getExtensionWalkFlood(room);
+    const relax = !!room.memory.dynamicLayout;
+    return collectHubComponentExtensionCandidates(
+        room, hub, excluded, flood, 100, relax);
 }
 
 function filterValidExtensionTiles(room, tiles) {
@@ -649,6 +641,104 @@ function filterValidExtensionTiles(room, tiles) {
 
 function tileKey(x, y) {
     return x + ',' + y;
+}
+
+function chebyDelta(ax, ay, bx, by) {
+    return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+}
+
+/**
+ * 8-connected flood from the hub through non-terrain-wall tiles.
+ * Drops mountain-wrap: walk > cheby + EXTENSION_MAX_WRAP means the path went
+ * around a barrier, so those tiles are not the hub's extension component.
+ */
+function floodHubWalk(room, hub, terrain) {
+    const set = new Set();
+    const dist = Object.create(null);
+    const tiles = [];
+    if (!hub || hub.x == null || !terrain) return {set, dist, tiles};
+    const hx = hub.x;
+    const hy = hub.y;
+    const origin = tileKey(hx, hy);
+    set.add(origin);
+    dist[origin] = 0;
+    tiles.push({x: hx, y: hy, d: 0});
+    const q = [hx, hy];
+    let qi = 0;
+    while (qi < q.length) {
+        const x = q[qi++];
+        const y = q[qi++];
+        const d = dist[tileKey(x, y)];
+        for (let i = 0; i < OCTALS.length; i++) {
+            const nx = x + OCTALS[i][0];
+            const ny = y + OCTALS[i][1];
+            if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
+            const key = tileKey(nx, ny);
+            if (set.has(key)) continue;
+            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
+            const nd = d + 1;
+            if (nd > chebyDelta(nx, ny, hx, hy) + EXTENSION_MAX_WRAP) continue;
+            set.add(key);
+            dist[key] = nd;
+            tiles.push({x: nx, y: ny, d: nd});
+            q.push(nx, ny);
+        }
+    }
+    return {set, dist, tiles};
+}
+
+function getExtensionWalkFlood(room) {
+    if (!room) return {set: new Set(), dist: Object.create(null), tiles: []};
+    if (room._extWalkTick === Game.time && room._extWalkFlood) return room._extWalkFlood;
+    const hub = room.hub || resolveHubXY(room);
+    const terrain = room.name ? Game.map.getRoomTerrain(room.name) : null;
+    const flood = floodHubWalk(room, hub, terrain);
+    room._extWalkFlood = flood;
+    room._extWalkTick = Game.time;
+    return flood;
+}
+
+function tileIsWrapAround(room, pos) {
+    if (!room || !pos || !room.memory || !room.memory.dynamicLayout) return false;
+    const hub = room.hub || resolveHubXY(room);
+    if (!hub) return false;
+    const flood = getExtensionWalkFlood(room);
+    if (!flood.set.size) return false;
+    const walk = flood.dist[tileKey(pos.x, pos.y)];
+    if (walk == null) return true;
+    return walk > chebyDelta(pos.x, pos.y, hub.x, hub.y) + EXTENSION_MAX_WRAP;
+}
+
+function collectHubComponentExtensionCandidates(room, hub, excluded, flood, cap, relaxExit) {
+    const candidates = [];
+    const seen = new Set();
+    const addFrom = (exitClearance) => {
+        const tiles = flood.tiles || [];
+        const opts = {exitClearance, skipWrap: true};
+        for (let i = 0; i < tiles.length && candidates.length < cap; i++) {
+            const t = tiles[i];
+            const key = tileKey(t.x, t.y);
+            if (seen.has(key)) continue;
+            if (t.x < 2 || t.x > 47 || t.y < 2 || t.y > 47) continue;
+            if (excluded.has(key)) continue;
+            if (!isHubRelativeExtensionParity(hub, t.x, t.y)) continue;
+            const pos = new RoomPosition(t.x, t.y, room.name);
+            if (classifyExtensionTile(room, pos, excluded, opts) !== 'ok') continue;
+            seen.add(key);
+            candidates.push({
+                x: t.x,
+                y: t.y,
+                key,
+                walk: t.d,
+                cheby: chebyDelta(t.x, t.y, hub.x, hub.y),
+            });
+        }
+    };
+    addFrom(EXTENSION_EXIT_CLEARANCE);
+    if (relaxExit && candidates.length < DYNAMIC_EXTENSION_TARGET) {
+        addFrom(EXTENSION_EXIT_CLEARANCE_MIN);
+    }
+    return candidates;
 }
 
 /**
@@ -780,8 +870,8 @@ function collectLayoutPathSeeds(room, terrain, blocked) {
 }
 
 /**
- * BFS from seeds; returns true only if every access group has ≥1 reachable tile.
- * Early-exits once all groups are satisfied (cheap when base is well connected).
+ * BFS from seeds (8-connected, matching creep movement). Returns true only if
+ * every access group has ≥1 reachable tile. Early-exits once all are satisfied.
  */
 function accessGroupsReachable(seeds, blocked, extensionSet, groups) {
     if (!groups.length) return true;
@@ -822,7 +912,7 @@ function accessGroupsReachable(seeds, blocked, extensionSet, groups) {
     while (qi < q.length && remaining > 0) {
         const x = q[qi++];
         const y = q[qi++];
-        for (const [dx, dy] of CARDINALS) {
+        for (const [dx, dy] of OCTALS) {
             const nx = x + dx;
             const ny = y + dy;
             if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
@@ -856,7 +946,7 @@ function listFailedAccessGroups(seeds, blocked, extensionSet, groups) {
     while (qi < q.length) {
         const x = q[qi++];
         const y = q[qi++];
-        for (const [dx, dy] of CARDINALS) {
+        for (const [dx, dy] of OCTALS) {
             const nx = x + dx, ny = y + dy;
             if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
             const key = tileKey(nx, ny);
@@ -894,15 +984,14 @@ function filterCurrentlyReachableGroups(seeds, blocked, groups) {
 }
 
 /**
- * Single-pass greedy: nearer hub first, light cluster bias, reject tiles that cut
- * currently-reachable access to controller / sources / mineral / exits.
+ * Compact grow by walk distance from the hub. Candidates are already wrap-pruned
+ * so pass 2 cannot jump a terrain wall; it only fills holes on the hub side.
  */
 function selectConnectivitySafeExtensions(room, candidates, seeds, groups, blocked) {
     const hub = room.hub;
     const extensionSet = new Set();
     const chosen = [];
 
-    // Only protect access that works today without counting walls as path blocks.
     const activeGroups = filterCurrentlyReachableGroups(seeds, blocked, groups);
     if (!activeGroups.length && groups.length) {
         log.w(`${room.name} dynamic layout: no access groups reachable via terrain/buildings (placing near hub only)`);
@@ -913,44 +1002,61 @@ function selectConnectivitySafeExtensions(room, candidates, seeds, groups, block
         }
     }
 
-    const scored = candidates.map(c => {
-        const range = Math.max(Math.abs(c.x - hub.x), Math.abs(c.y - hub.y));
-        return {x: c.x, y: c.y, range, key: tileKey(c.x, c.y)};
-    });
-    scored.sort((a, b) => a.range - b.range || a.y - b.y || a.x - b.x);
-
-    // Pass 1: prefer tiles touching already-chosen (compact growth).
-    // Pass 2: any remaining safe tile (fill to target).
-    for (let pass = 0; pass < 2 && chosen.length < DYNAMIC_EXTENSION_TARGET; pass++) {
-        for (let i = 0; i < scored.length && chosen.length < DYNAMIC_EXTENSION_TARGET; i++) {
-            const c = scored[i];
-            if (extensionSet.has(c.key) || blocked.has(c.key)) continue;
-
-            if (pass === 0 && chosen.length > 0) {
-                let touch = false;
-                for (const [dx, dy] of OCTALS) {
-                    if (extensionSet.has(tileKey(c.x + dx, c.y + dy))) {
-                        touch = true;
-                        break;
-                    }
-                }
-                if (!touch) continue;
-            }
-
-            extensionSet.add(c.key);
-            if (!extensionHasWalkAccess(c.x, c.y, blocked, extensionSet)) {
-                extensionSet.delete(c.key);
-                continue;
-            }
-            if (activeGroups.length &&
-                !accessGroupsReachable(seeds, blocked, extensionSet, activeGroups)) {
-                extensionSet.delete(c.key);
-                continue;
-            }
-            chosen.push({x: c.x, y: c.y});
+    const byKey = Object.create(null);
+    for (let i = 0; i < candidates.length; i++) {
+        const c = candidates[i];
+        if (!c.key) c.key = tileKey(c.x, c.y);
+        if (c.walk == null) {
+            c.cheby = chebyDelta(c.x, c.y, hub.x, hub.y);
+            c.walk = c.cheby;
         }
+        byKey[c.key] = c;
+    }
+    const ordered = candidates.slice().sort((a, b) =>
+        a.walk - b.walk || a.cheby - b.cheby || a.y - b.y || a.x - b.x);
+
+    const tryChoose = (c) => {
+        if (!c || extensionSet.has(c.key) || blocked.has(c.key)) return false;
+        extensionSet.add(c.key);
+        if (!extensionHasWalkAccess(c.x, c.y, blocked, extensionSet)) {
+            extensionSet.delete(c.key);
+            return false;
+        }
+        if (activeGroups.length &&
+            !accessGroupsReachable(seeds, blocked, extensionSet, activeGroups)) {
+            extensionSet.delete(c.key);
+            return false;
+        }
+        chosen.push({x: c.x, y: c.y});
+        return true;
+    };
+
+    const queued = new Set();
+    const q = [];
+    const enqueue = (c) => {
+        if (!c || queued.has(c.key) || extensionSet.has(c.key)) return;
+        queued.add(c.key);
+        q.push(c);
+    };
+    const enqueueNeighbors = (c) => {
+        for (let i = 0; i < OCTALS.length; i++) {
+            enqueue(byKey[tileKey(c.x + OCTALS[i][0], c.y + OCTALS[i][1])]);
+        }
+    };
+
+    for (let i = 0; i < ordered.length && !chosen.length; i++) {
+        if (tryChoose(ordered[i])) enqueueNeighbors(ordered[i]);
+    }
+    while (q.length && chosen.length < DYNAMIC_EXTENSION_TARGET) {
+        q.sort((a, b) => a.walk - b.walk || a.cheby - b.cheby || a.y - b.y || a.x - b.x);
+        const c = q.shift();
+        if (extensionSet.has(c.key)) continue;
+        if (tryChoose(c)) enqueueNeighbors(c);
     }
 
+    for (let i = 0; i < ordered.length && chosen.length < DYNAMIC_EXTENSION_TARGET; i++) {
+        tryChoose(ordered[i]);
+    }
     return chosen;
 }
 
@@ -1024,6 +1130,12 @@ function persistDynamicExtensionPacks(room, extPacked, corrPacked, access) {
         plan.layers.extensions.access = access || null;
         plan.layers.corridors.packed = corrPacked && corrPacked.length ? corrPacked.slice() : [];
         plan.layers.corridors.rev = EXTENSION_LAYOUT_VERSION;
+        const hub = room.hub || resolveHubXY(room);
+        if (hub) {
+            plan.layers.extensions.access = plan.layers.extensions.access || {};
+            plan.layers.extensions.access.hub = {x: hub.x, y: hub.y};
+            if (access) access.hub = {x: hub.x, y: hub.y};
+        }
         plan.meta = plan.meta || {};
         plan.meta.layoutVersions = plan.meta.layoutVersions || {};
         plan.meta.layoutVersions.extensions = EXTENSION_LAYOUT_VERSION;
@@ -1051,21 +1163,35 @@ function computeDynamicLayoutTiles(room) {
     // C3: plan.layers first, then legacy dynamic* packs.
     const stored = resolveStoredDynamicPacks(room);
     if (stored) {
-        // Always re-filter packed coords against live room state (structures/sites change).
-        const extensions = filterValidExtensionTiles(room, unpackPackedTiles(stored.extPacked));
-        if (!extensions.length && getExtensionDeficit(room) > 0) {
+        const packedHub = stored.access && stored.access.hub;
+        const hubOk = packedHub && packedHub.x === hub.x && packedHub.y === hub.y;
+        let wrapDropped = 0;
+        const raw = unpackPackedTiles(stored.extPacked);
+        const kept = [];
+        if (hubOk) {
+            for (let i = 0; i < raw.length; i++) {
+                if (tileIsWrapAround(room, raw[i])) wrapDropped++;
+                else kept.push(raw[i]);
+            }
+        }
+        if (!hubOk || wrapDropped >= 3) {
             clearDynamicExtensionPlanOnly(room);
         } else {
-            const layout = {
-                extensions,
-                corridors: unpackPackedTiles(stored.corrPacked),
-                access: stored.access,
-                tick: Game.time,
-                packSource: stored.source,
-            };
-            dynamicLayoutCache[room.name] = layout;
-            extensionPositionCache[room.name] = layout.extensions;
-            return layout;
+            const extensions = filterValidExtensionTiles(room, kept);
+            if (!extensions.length && getExtensionDeficit(room) > 0) {
+                clearDynamicExtensionPlanOnly(room);
+            } else {
+                const layout = {
+                    extensions,
+                    corridors: unpackPackedTiles(stored.corrPacked),
+                    access: stored.access,
+                    tick: Game.time,
+                    packSource: stored.source,
+                };
+                dynamicLayoutCache[room.name] = layout;
+                extensionPositionCache[room.name] = layout.extensions;
+                return layout;
+            }
         }
     } else if ((room.memory.plan && room.memory.plan.layers
             && room.memory.plan.layers.extensions
@@ -1083,41 +1209,21 @@ function computeDynamicLayoutTiles(room) {
     const seeds = collectLayoutPathSeeds(room, terrain, blocked);
     const activeGroups = filterCurrentlyReachableGroups(seeds, blocked, groups);
 
-    // Gather candidates via flood (hub-relative checkerboard keeps corridors on cardinals).
-    const candidates = [];
-    const floodVisited = new Set([tileKey(hub.x, hub.y)]);
-    const queue = [{x: hub.x, y: hub.y}];
-    while (queue.length && candidates.length < DYNAMIC_EXTENSION_CANDIDATE_CAP) {
-        const {x, y} = queue.shift();
-        for (const [dx, dy] of OCTALS) {
-            const nx = x + dx, ny = y + dy, key = tileKey(nx, ny);
-            if (floodVisited.has(key) || nx < 2 || nx > 47 || ny < 2 || ny > 47) continue;
-            floodVisited.add(key);
-            if (terrain.get(nx, ny) === TERRAIN_MASK_WALL) continue;
-            queue.push({x: nx, y: ny});
-            if (excluded.has(key)) continue;
-            // Hub-relative checkerboard: diagonals from the hub are buildings;
-            // cardinals stay the corridor lattice (so (0,1) is never an extension).
-            if (!isHubRelativeExtensionParity(hub, nx, ny)) continue;
-            const pos = new RoomPosition(nx, ny, room.name);
-            if (classifyExtensionTile(room, pos, excluded) !== 'ok') continue;
-            candidates.push({x: nx, y: ny});
-        }
-    }
+    const flood = getExtensionWalkFlood(room);
+    const candidates = collectHubComponentExtensionCandidates(
+        room, hub, excluded, flood, DYNAMIC_EXTENSION_CANDIDATE_CAP, true);
 
     const extensions = selectConnectivitySafeExtensions(room, candidates, seeds, groups, blocked);
     const extensionSet = new Set(extensions.map(p => tileKey(p.x, p.y)));
 
-    // Corridors = flooded walkable tiles not claimed as extensions (path skeleton).
     const corridors = [];
-    for (const key of floodVisited) {
+    const floodTiles = flood.tiles || [];
+    for (let i = 0; i < floodTiles.length; i++) {
+        const t = floodTiles[i];
+        const key = tileKey(t.x, t.y);
         if (extensionSet.has(key) || excluded.has(key)) continue;
-        const comma = key.indexOf(',');
-        const x = Number(key.slice(0, comma));
-        const y = Number(key.slice(comma + 1));
-        if (x < 1 || x > 48 || y < 1 || y > 48) continue;
-        if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
-        corridors.push({x, y});
+        if (t.x < 1 || t.x > 48 || t.y < 1 || t.y > 48) continue;
+        corridors.push({x: t.x, y: t.y});
     }
 
     // Audit only groups we tried to protect (reachable at baseline).
@@ -1141,7 +1247,7 @@ function computeDynamicLayoutTiles(room) {
     persistDynamicExtensionPacks(room, packTiles(extensions), packTiles(corridors), access);
     if (room.memory.dynamicExtensions) room.memory.dynamicExtensions = undefined;
     try {
-        require('planGeomRamparts').invalidateRampartSpots(room);
+        require('planGeomRamparts').invalidateRampartSpots(room, {soft: true});
     } catch (e) { /* ignore */
     }
     log.a(
@@ -1293,6 +1399,7 @@ function getCorridorPositions(room) {
 module.exports = {
     EXTENSION_LAYOUT_VERSION,
     EXTENSION_EXIT_CLEARANCE,
+    EXTENSION_MAX_WRAP,
     EXTENSION_SOURCE_CLEARANCE,
     EXTENSION_CONTROLLER_CLEARANCE,
     EXTENSION_MINERAL_CLEARANCE,

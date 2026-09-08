@@ -29,10 +29,10 @@ function shuttleNeedsRenew(creep) {
 }
 
 function determineEnergyOrder(room) {
-    if (!room.hub.x) {
+    if (!room.hub || room.hub.x == null) {
         const planner = require('module.roomPlanner');
         planner.findHub(room);
-        return false;
+        if (!room.hub || room.hub.x == null) return false;
     }
     if (spawnState.energyOrder[room.name] && spawnState.orderStored[room.name] + 750 >= Game.time) return true;
 
@@ -349,7 +349,12 @@ function spawnQueuedCreep(room, availableSpawn, queuedBuild, body) {
     };
     if (energyStructures) spawnOpts.energyStructures = energyStructures;
     const dirs = spawnDirectionsForRole(availableSpawn, availableSpawn.room, role);
-    if (dirs && dirs.length) spawnOpts.directions = dirs;
+    if (role === 'hubManager') {
+        if (!dirs || !dirs.length) return ERR_INVALID_ARGS;
+        spawnOpts.directions = dirs;
+    } else if (dirs && dirs.length) {
+        spawnOpts.directions = dirs;
+    }
 
     let spawnResult = availableSpawn.spawnCreep(body, name, spawnOpts);
 

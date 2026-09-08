@@ -84,7 +84,7 @@ function maxStationaryUpgraderWork(room, energyAmount) {
 function planUpgraderNeed(room, flow = {}) {
     const rcl = (room.controller && room.controller.level) || room.level || 0;
     const maxWork = maxStationaryUpgraderWork(room);
-    if (rcl >= 7) return {count: 1, maxWork};
+    if (rcl >= 8) return {count: 1, maxWork};
 
     const container = global.resolveControllerContainer && global.resolveControllerContainer(room);
     const hasLink = !!(room.memory && room.memory.controllerLink);
@@ -103,9 +103,8 @@ function planUpgraderNeed(room, flow = {}) {
     const stand = container && container.pos && container.pos.countOpenTerrainAround
         ? Math.max(1, container.pos.countOpenTerrainAround())
         : 2;
-    // RCL5 (~16W) may still need a pair for two sources; RCL6 (~22W) does not.
-    count = Math.min(count, stand, maxWork >= 15 ? 2 : 3);
-    if (maxWork >= 20) count = 1;
+    // Spare remote income used to sit in storage because a ~22W body capped at 1.
+    count = Math.min(count, stand, 2);
     return {count, maxWork};
 }
 
@@ -240,9 +239,8 @@ function planShuttleForSource(room, source, flow = {}) {
     const backlog = assessSourceHaulBacklog(source, room);
 
     let count = 1;
-    // Two shuttles/source before containers exist just occupies the spawn.
-    // Ramp to 2 once the room can actually store harvest (RCL3+ / containers).
-    if (room.level < 5 && !room.storage) count = room.level >= 3 ? 2 : 1;
+    // A second shuttle is spawn-time stolen from the RCL dump. Only add it
+    // when the source is actually backing up.
     if (backlog.haulUrgent) count = Math.max(count, 2);
     if (backlog.haulCritical) count = Math.min(count + 1, 3);
     const maxCount = room.level >= 7 ? 2 : 3;
@@ -262,7 +260,7 @@ function planShuttleForSource(room, source, flow = {}) {
 }
 
 function buildHauler(gen) {
-    const roadsBuilt = colonyRoadsBuilt(gen.room.name) && !gen.room.memory.dynamicLayout;
+    const roadsBuilt = colonyRoadsBuilt(gen.room.name);
     let carry = Math.floor(gen.energyAmount / (BODYPART_COST[CARRY] + (roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE]))) || 1;
     const maxHaulerCarry = gen.room.level >= 7
         ? maxBodyNonMoveParts(roadsBuilt)
@@ -277,7 +275,7 @@ function buildHauler(gen) {
 }
 
 function buildShuttle(gen) {
-    const roadsBuilt = colonyRoadsBuilt(gen.room.name) && !gen.room.memory.dynamicLayout;
+    const roadsBuilt = colonyRoadsBuilt(gen.room.name);
     const moveCostPerCarry = roadsBuilt ? BODYPART_COST[MOVE] * 0.5 : BODYPART_COST[MOVE];
     const other = (gen.creepInfo && gen.creepInfo.other) || {};
     const distToHub = other.distanceToHub;

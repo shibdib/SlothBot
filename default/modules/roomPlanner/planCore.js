@@ -126,12 +126,23 @@ function computeCoreStampPlan(room) {
             if (have >= allowed) continue;
             tiles.push({x: lx, y: ly});
         } else {
-            if (have >= allowed) continue;
-            for (let p = 0; p < entry.pos.length; p++) {
+            // Room-wide cap still applies (cannot place a second storage). Empty
+            // stamp tiles still fill when cap remains — an off-stamp spawn at
+            // RCL7 must not block the hub-adjacent stamp.
+            const remaining = allowed - have;
+            if (remaining <= 0) continue;
+            for (let p = 0; p < entry.pos.length && tiles.length < remaining; p++) {
                 const off = entry.pos[p];
                 const x = hub.x + off.x;
                 const y = hub.y + off.y;
                 if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+                const pos = new RoomPosition(x, y, room.name);
+                const onTile = (pos.lookFor(LOOK_STRUCTURES) || [])
+                    .some(s => s.structureType === type);
+                if (onTile) continue;
+                const onSite = (pos.lookFor(LOOK_CONSTRUCTION_SITES) || [])
+                    .some(s => s.structureType === type);
+                if (onSite) continue;
                 tiles.push({x, y});
             }
         }

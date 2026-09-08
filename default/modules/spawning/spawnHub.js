@@ -3,9 +3,9 @@
  *
  * Hub-manager spawn geometry. Bunker and dynamic cores leave (0,0) empty
  * once the hub link is up: adjacent storage, hub link, and north spawn(s).
- * Terminal / nuker / power spawn are optional. A 0-MOVE creep can spawn
- * onto that tile; any other creep landing there is stuck once the collar
- * closes, so other roles exclude that spawn direction as soon as the
+ * A terminal, if present, must also be adjacent — the 0-MOVE cannot walk.
+ * Nuker / power spawn are optional. Only an adjacent spawn may create the
+ * hub manager; other roles exclude that spawn direction as soon as the
  * hub link exists.
  */
 
@@ -37,6 +37,8 @@ function hubSlotSpawnDirection(spawn, room) {
 
 function isHubManagerSlotReady(room) {
     if (!room || !room.hub || !room.storage) return false;
+    if (!room.storage.pos.isNearTo(room.hub)) return false;
+    if (room.terminal && !room.terminal.pos.isNearTo(room.hub)) return false;
     let hubLink = Game.getObjectById(room.memory.hubLink);
     if (!hubLink || hubLink.structureType !== STRUCTURE_LINK || !hubLink.store) {
         try {
@@ -46,6 +48,7 @@ function isHubManagerSlotReady(room) {
         hubLink = Game.getObjectById(room.memory.hubLink);
     }
     if (!hubLink || hubLink.structureType !== STRUCTURE_LINK || !hubLink.store) return false;
+    if (!hubLink.pos.isNearTo(room.hub)) return false;
     const spawns = room.spawns || [];
     let adjacentSpawn = false;
     for (let i = 0; i < spawns.length; i++) {
@@ -67,8 +70,8 @@ function isHubManagerSlotReady(room) {
 
 function spawnDirectionsForRole(spawn, room, role) {
     const hubDir = hubSlotSpawnDirection(spawn, room);
+    if (role === 'hubManager') return hubDir ? [hubDir] : [];
     if (!hubDir) return undefined;
-    if (role === 'hubManager') return [hubDir];
     const hubLink = room && room.memory && room.memory.hubLink && Game.getObjectById(room.memory.hubLink);
     if (!hubLink) return undefined;
     return ALL_SPAWN_DIRS.filter(d => d !== hubDir);
