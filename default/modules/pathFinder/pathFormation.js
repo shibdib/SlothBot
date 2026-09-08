@@ -538,16 +538,7 @@ function isSquadCreep(creep) {
 function wouldEnterDest(pos, direction, destRoom) {
     if (!pos || !destRoom || pos.roomName === destRoom) return false;
     const next = posAfterMove(pos, direction);
-    if (!next) return false;
-    if (next.roomName === destRoom) return true;
-    // Stepping onto this room's dest-facing exit teleports at tick end.
-    const dir = exitDirectionTo(pos.roomName, destRoom);
-    if (!dir || next.roomName !== pos.roomName) return false;
-    if (dir === RIGHT) return next.x === 49;
-    if (dir === LEFT) return next.x === 0;
-    if (dir === TOP) return next.y === 0;
-    if (dir === BOTTOM) return next.y === 49;
-    return false;
+    return !!(next && next.roomName === destRoom);
 }
 
 module.exports = {

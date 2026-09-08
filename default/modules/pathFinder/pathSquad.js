@@ -36,11 +36,9 @@ const {
     formationRange,
     exitDirectionTo,
     tileBlocked,
-    isFootprintWalkable,
     collectThroughPairs,
     inlandRoomPos,
-    onExitTile,
-    inlandOffExit
+    onExitTile
 } = require('pathFormation');
 const {
     findOccupyingCreep,
@@ -152,44 +150,22 @@ function inSquadStep(memberPos, leaderPos) {
         || memberPos.roomName !== leaderPos.roomName);
 }
 
-function exitStepClears(pos, direction) {
-    const next = posAfterMove(pos, direction);
-    if (!next) return false;
-    if (next.roomName !== pos.roomName) return true;
-    return !onExitTile(next);
-}
-
-function onDestFacingExit(pos, destRoom) {
-    if (!pos || !destRoom || pos.roomName === destRoom) return false;
-    const dir = exitDirectionTo(pos.roomName, destRoom);
-    if (!dir) return false;
-    if (dir === RIGHT) return pos.x === 49;
-    if (dir === LEFT) return pos.x === 0;
-    if (dir === TOP) return pos.y === 0;
-    if (dir === BOTTOM) return pos.y === 49;
-    return false;
-}
-
-function agreedInlandOffExit(creeps) {
-    let inland = 0;
-    for (let i = 0; i < creeps.length; i++) {
-        const d = inlandOffExit(creeps[i].pos);
-        if (!d) continue;
-        if (!inland) inland = d;
-        else if (inland !== d) return 0;
-    }
-    return inland;
+function dropSquadPath(creep) {
+    const cache = creep.memory._shibSquadMove;
+    if (!cache) return;
+    cache.path = undefined;
+    cache.endpoint = undefined;
 }
 
 function squadMove(creep, path) {
     if (!creep.memory.squadMembers || !path?.length) return false;
 
     const members = creep.memory.squadMembers.map(id => Game.getObjectById(id)).filter(Boolean);
-    if (creep.fatigue || members.some(m => m.fatigue)) return false;
+    if (creep.fatigue) return false;
 
     let move = parseInt(path[0], 10);
     if (!(move >= TOP && move <= TOP_LEFT)) {
-        creep.memory._shibSquadMove = undefined;
+        dropSquadPath(creep);
         return false;
     }
 
@@ -197,30 +173,17 @@ function squadMove(creep, path) {
     for (let i = 0; i < members.length; i++) {
         if (inSquadStep(members[i].pos, creep.pos)) packed.push(members[i]);
     }
+    if (packed.some(m => m.fatigue)) return false;
     const movers = [creep];
     for (let i = 0; i < packed.length; i++) movers.push(packed[i]);
 
     const dest = creep.memory.destination;
-    const destEdge = [];
-    for (let i = 0; i < movers.length; i++) {
-        const p = movers[i].pos;
-        if (!onExitTile(p)) continue;
-        if (dest && (p.roomName === dest || onDestFacingExit(p, dest))) destEdge.push(movers[i]);
-    }
-    // Tick-end teleport on dest-facing exits leaks the 2×2 into dest one at a
-    // time. Ordinary edges keep the serialized path so a slide toward a
-    // through-portal is not yanked inland. Skip if inland dirs disagree (corner).
-    if (destEdge.length && !destEdge.every(m => exitStepClears(m.pos, move))) {
-        const inland = agreedInlandOffExit(destEdge);
-        if (inland && canSquadMove(creep, members, inland)) move = inland;
-    }
-
     const hostiles = !!creep.room.hostileCreeps.length;
     let anyoneLeaving = false;
     for (let i = 0; i < movers.length; i++) {
         const next = posAfterMove(movers[i].pos, move);
         if (!next || tileBlocked(next, true) || (hostiles && isOccupiedByEnemy(creep, next))) {
-            creep.memory._shibSquadMove = undefined;
+            dropSquadPath(creep);
             return false;
         }
         if (next.roomName !== movers[i].pos.roomName) anyoneLeaving = true;
@@ -229,7 +192,7 @@ function squadMove(creep, path) {
     // A room hop is the same step as any other: every live member must be in
     // the blob. Partial crosses are how the 2×2 turns into a snake.
     if (anyoneLeaving && packed.length !== members.length) {
-        creep.memory._shibSquadMove = undefined;
+        dropSquadPath(creep);
         return false;
     }
 
@@ -241,7 +204,7 @@ function squadMove(creep, path) {
     const stagingBypass = !!(dest && misc && misc.stagingRoom && misc.stagingRoom !== dest
         && !misc.staged && creep.pos.roomName !== dest && !destAdjacent);
     if (leaderEnteringDest && stagingBypass) {
-        creep.memory._shibSquadMove = undefined;
+        dropSquadPath(creep);
         return false;
     }
 
@@ -252,7 +215,10 @@ function squadMove(creep, path) {
     // Followers run in undefined order; this tick's intent wins over getInPosition.
     creep.memory.squadMoveTick = Game.time;
 
-    if (creep.memory._shibSquadMove) creep.memory._shibSquadMove.path = path.slice(1);
+    // Only advance the cached transit path. shibSquadStep / kite pass a one-off
+    // string and must not clobber a multi-room route.
+    const cache = creep.memory._shibSquadMove;
+    if (cache && cache.path === path) cache.path = path.slice(1);
     return true;
 }
 
@@ -283,10 +249,11 @@ function isPermanentSquadBlocker(blocker) {
 // the same direction (vacate). Permanent blockers (stationary, other squads,
 // enemies) abort and drop the path so we repath around. Fatigue / no yield
 // tile keeps the path and retries next tick.
-function clearSquadFootprint(leader, members, direction) {
-    const squadIds = squadIdSet(leader, members);
+function clearSquadFootprint(leader, packed, direction) {
+    const allMembers = (leader.memory.squadMembers || []).map(id => Game.getObjectById(id)).filter(Boolean);
+    const squadIds = squadIdSet(leader, allMembers);
     const consider = [leader];
-    for (let i = 0; i < members.length; i++) consider.push(members[i]);
+    for (let i = 0; i < packed.length; i++) consider.push(packed[i]);
 
     const footprint = new Set();
     const occupied = [];
@@ -309,7 +276,7 @@ function clearSquadFootprint(leader, members, direction) {
         if (seen.has(blocker.id)) continue;
         seen.add(blocker.id);
         if (isPermanentSquadBlocker(blocker)) {
-            leader.memory._shibSquadMove = undefined;
+            dropSquadPath(leader);
             return false;
         }
         if (!isBumperCandidate(blocker)) return false;
@@ -398,12 +365,14 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     if (!result.path.length) {
         cache.path = undefined;
         cache.endpoint = undefined;
+        cache.searchFailed = true;
         return false;
     }
     // Incomplete walks into the nearest wall and never explores the tunnel.
     if (result.incomplete && !squadEndpointUsable(result.path[result.path.length - 1], searchTarget, options.range)) {
         cache.path = undefined;
         cache.endpoint = undefined;
+        cache.searchFailed = true;
         return false;
     }
 
@@ -412,6 +381,7 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     cache.squadSize = squadSize;
     cache.endpoint = getPosKey(result.path[result.path.length - 1]);
     cache.path = serializePath(origin, result.path);
+    cache.searchFailed = undefined;
     return squadMove(this, cache.path);
 };
 
@@ -460,7 +430,5 @@ module.exports = {
     canSquadMove,
 
     isOccupiedByEnemy,
-
-    isFootprintWalkable,
 
 };
