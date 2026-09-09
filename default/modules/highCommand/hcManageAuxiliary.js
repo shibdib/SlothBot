@@ -71,11 +71,18 @@ function manageAuxiliary() {
             case 'power':
                 if (target.complete) {
                     const vis = Game.rooms[key];
+                    const liveBank = INTEL[key] && INTEL[key].power > Game.time;
+                    if (liveBank && !INTEL[key].powerMined) {
+                        delete target.complete;
+                        delete target.completeTick;
+                        target.tick = Game.time;
+                        break;
+                    }
                     const lootLeft = vis && (roomHasPowerLoot(vis) ||
                         vis.impassibleStructures.some(s => s.structureType === STRUCTURE_POWER_BANK));
                     if ((vis && !lootLeft && !powerHaulersAssigned(key)) ||
                         (target.completeTick || target.tick) + CREEP_LIFE_TIME < Game.time) {
-                        log.a(`Canceling power mining in ${roomLink(key)} â€” haul complete.`, 'HIGH COMMAND: ');
+                        log.a(`Canceling power mining in ${roomLink(key)} — haul complete.`, 'HIGH COMMAND: ');
                         delete Memory.auxiliaryTargets[key];
                     }
                     continue;
@@ -92,12 +99,7 @@ function manageAuxiliary() {
                     continue;
                 }
                 if (INTEL[key].powerMined && !teamHere) {
-                    log.a(`Canceling power mining in ${roomLink(key)} â€” already being mined.`, 'HIGH COMMAND: ');
-                    delete Memory.auxiliaryTargets[key];
-                    continue;
-                }
-                if (!teamHere && getResourceTotal(RESOURCE_POWER) >= DUMP_AMOUNT) {
-                    log.a(`Canceling power mining in ${roomLink(key)} â€” enough power.`, 'HIGH COMMAND: ');
+                    log.a(`Canceling power mining in ${roomLink(key)} — already being mined.`, 'HIGH COMMAND: ');
                     delete Memory.auxiliaryTargets[key];
                     continue;
                 }

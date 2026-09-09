@@ -39,7 +39,7 @@ function getCooldown(task) {
         case 'military':
             return 50;
         case 'auxiliary':
-            return 100;
+            return 25;
         case 'response':
             return 5;
         case 'nukes':
