@@ -851,6 +851,7 @@ function dynamicExtRoadFingerprint(room) {
  * so placing a site does not force a PathFinder recompute.
  */
 function ownedRoadFingerprint(room) {
+    if (room && room._roadFpTick === Game.time) return room._roadFp;
     const origin = getRoadOrigin(room);
     const parts = [
         'r' + OWNED_ROAD_PLAN_REV,
@@ -870,7 +871,12 @@ function ownedRoadFingerprint(room) {
     const avoided = [...collectAvoidRoadKeys(room)].sort();
     parts.push(String(avoided.length));
     parts.push(hashString(avoided.join('|')));
-    return parts.join(';');
+    const fp = parts.join(';');
+    if (room) {
+        room._roadFp = fp;
+        room._roadFpTick = Game.time;
+    }
+    return fp;
 }
 
 function refreshRoadPlanMissing(room, plan) {
@@ -1787,19 +1793,27 @@ function isOwnedRoomRoadEligible(room) {
  * previous tick stamped complete.
  */
 function needsOwnedRoadWork(room) {
-    if (!isOwnedRoomRoadEligible(room)) return false;
-    if (Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time) return false;
-    if (persistedCleanupRev(room) !== OWNED_ROAD_CLEANUP_REV) return true;
-    if (!getRoadsBuiltFlag(room)) return true;
-    try {
-        const extra = room.memory && room.memory.plan && room.memory.plan.layers
-            && room.memory.plan.layers.roads && room.memory.plan.layers.roads.extra;
-        if (!extra || extra.fingerprint !== ownedRoadFingerprint(room)) return true;
-    } catch (e) {
-        return true;
+    if (!room) return false;
+    if (room._needsRoadWorkTick === Game.time) return !!room._needsRoadWork;
+    let result = false;
+    if (isOwnedRoomRoadEligible(room)
+        && !(Memory.pauseOwnedRoads && Memory.pauseOwnedRoads > Game.time)) {
+        if (persistedCleanupRev(room) !== OWNED_ROAD_CLEANUP_REV) result = true;
+        else if (!getRoadsBuiltFlag(room)) result = true;
+        else {
+            try {
+                const extra = room.memory && room.memory.plan && room.memory.plan.layers
+                    && room.memory.plan.layers.roads && room.memory.plan.layers.roads.extra;
+                if (!extra || extra.fingerprint !== ownedRoadFingerprint(room)) result = true;
+                else if (hasOffPlanOwnedRoads(room)) result = true;
+            } catch (e) {
+                result = true;
+            }
+        }
     }
-    if (hasOffPlanOwnedRoads(room)) return true;
-    return false;
+    room._needsRoadWork = result;
+    room._needsRoadWorkTick = Game.time;
+    return result;
 }
 
 function hasOffPlanOwnedRoads(room) {

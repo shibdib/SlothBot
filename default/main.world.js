@@ -93,7 +93,9 @@ class World {
         // Update HUD -- defer for first few ticks after reset (room + map visuals add up)
         {
             const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
-            if (sinceReset > 5) {
+            const used = Game.cpu.getUsed();
+            const limit = Game.cpu.limit || 20;
+            if (sinceReset > 5 && used < limit && (Game.cpu.bucket == null || Game.cpu.bucket > 2000)) {
                 this.hudManager();
             }
         }
@@ -181,29 +183,24 @@ class World {
     }
 
     constructionController() {
+        const bootstrap = ownedRoomNeedsHubBootstrap();
         // Room planner is CPU-heavy; defer during post-reset danger window — except when
         // an owned room still needs a hub (new claims must not wait 150 ticks).
-        if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) {
-            let needsHubBootstrap = false;
-            const names = global.MY_ROOMS || [];
-            let hasHubFn;
-            try {
-                hasHubFn = require('planDoc').hasHub;
-            } catch (e) {
-                hasHubFn = null;
+        if (global.isPostResetDangerWindow && global.isPostResetDangerWindow() && !bootstrap) return;
+
+        // Colony already spent the bulk of the tick (~250 CPU on a 25-room empire).
+        // A full planner pass is another 30–40. Skip unless a new claim needs a hub
+        // or we still have spare CPU; keep a slow cadence so layout does not stall.
+        if (!bootstrap) {
+            const used = Game.cpu.getUsed();
+            const limit = Game.cpu.limit || 20;
+            const bucket = Game.cpu.bucket != null ? Game.cpu.bucket : 10000;
+            if (bucket < 2000) return;
+            if (used > limit) {
+                if (Game.time % 20 !== 0) return;
+            } else if (used > limit * 0.85 || bucket < 5000) {
+                if (Game.time % 5 !== 0) return;
             }
-            for (let i = 0; i < names.length; i++) {
-                const room = Game.rooms[names[i]];
-                if (!room || !room.controller || !room.controller.my) continue;
-                const hub = hasHubFn
-                    ? hasHubFn(room)
-                    : !!(room.memory.bunkerHub && room.memory.bunkerHub.x);
-                if (!hub) {
-                    needsHubBootstrap = true;
-                    break;
-                }
-            }
-            if (!needsHubBootstrap) return;
         }
         planner.buildRoom();
     }
@@ -285,6 +282,25 @@ class World {
 
 profiler.registerClass(World, 'World');
 module.exports = World;
+
+function ownedRoomNeedsHubBootstrap() {
+    const names = global.MY_ROOMS || [];
+    let hasHubFn;
+    try {
+        hasHubFn = require('planDoc').hasHub;
+    } catch (e) {
+        hasHubFn = null;
+    }
+    for (let i = 0; i < names.length; i++) {
+        const room = Game.rooms[names[i]];
+        if (!room || !room.controller || !room.controller.my) continue;
+        const hub = hasHubFn
+            ? hasHubFn(room)
+            : !!(room.memory.bunkerHub && room.memory.bunkerHub.x);
+        if (!hub) return true;
+    }
+    return false;
+}
 
 function minionController(minion) {
     // Disable notifications
