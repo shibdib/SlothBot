@@ -5,17 +5,24 @@
 // Helper functions to call from the console or codebase.
 let helpers = function () {
     /**
-     * Abandon a room
+     * Abandon a room.
+     * Manual abandons (console / abandon flag) default to noReclaim=true and
+     * permanently block auto-claim via Memory.noClaim. Pass false for claimClear.
      * @param room
+     * @param {boolean} [noReclaim=true]
      */
-    global.abandonRoom = function (room) {
+    global.abandonRoom = function (room, noReclaim) {
         if (!room || !room.controller || (room.controller.owner && room.controller.owner.username !== MY_USERNAME)) {
             return log.a(room ? `${room.name} does not appear to be owned by you.` : 'Room does not exist.');
         }
 
-        // Suicide all creeps associated with this room
+        const roomName = room.name;
+        const blockReclaim = noReclaim !== false;
+
+        // Suicide all creeps associated with this room, plus inbound claimers
         _.forEach(Game.creeps, (creep) => {
-            if (creep.memory.colony === room.name) creep.suicide();
+            if (creep.memory.colony === roomName) creep.suicide();
+            else if (creep.memory.destination === roomName && creep.memory.role === 'claimer') creep.suicide();
         });
 
         // Remove impassible structures
@@ -32,7 +39,13 @@ let helpers = function () {
         // Cleanup memory and related targets
         cleanupMemory(room);
 
-        // Reset room intel
+        if (blockReclaim) {
+            Memory.noClaim = Memory.noClaim || [];
+            if (!Memory.noClaim.includes(roomName)) Memory.noClaim.push(roomName);
+            log.a(`${roomLink(roomName)} added to Memory.noClaim — will not auto-claim again.`);
+        }
+
+        // Reset room intel after Memory.noClaim so the claim-candidate index drops this room
         resetRoomIntel(room);
 
         // Unclaim the room controller
@@ -40,14 +53,13 @@ let helpers = function () {
 
         function cleanupMemory(room) {
             // Only clear relevant memory if room is fully owned
-            const roomName = room.name;
             delete room.memory;
             if (Memory.targetRooms) Memory.targetRooms[roomName] = undefined;
             if (Memory.auxiliaryTargets) Memory.auxiliaryTargets[roomName] = undefined;
+            if (Memory.claimTarget && Memory.claimTarget.room === roomName) Memory.claimTarget = {};
         }
 
         function resetRoomIntel(room) {
-            const roomName = room.name;
             if (!INTEL[roomName]) INTEL[roomName] = {};
             INTEL[roomName].noClaim = Game.time + 50000;
             INTEL[roomName].failedClaim = (INTEL[roomName].failedClaim || 0) + 1;
@@ -806,10 +818,12 @@ let helpers = function () {
         return true;
     }
 
-    function intelIndexClaimCandidate(r, ct) {
+    function intelIndexClaimCandidate(r, ct, roomName) {
         if (!r || !r.hubCheck || r.owner) return false;
         if (!r.cached || r.cached + 10000 <= ct) return false;
         if (r.noClaim && r.noClaim >= ct) return false;
+        const name = roomName || r.name;
+        if (name && Memory.noClaim && Memory.noClaim.includes(name)) return false;
         if (r.obstacles) return false;
         if (r.reservation && r.reservation !== MY_USERNAME) return false;
         return true;
@@ -880,7 +894,7 @@ let helpers = function () {
             if (intelIndexStrongholdActive(r, ct)) strongholdActive.add(roomName);
             if (intelIndexMineralCandidate(r)) mineralCandidates.add(roomName);
             if (intelIndexHarassRemote(roomName, r, ct)) harassRemotes.add(roomName);
-            if (intelIndexClaimCandidate(r, ct)) claimCandidates.add(roomName);
+            if (intelIndexClaimCandidate(r, ct, roomName)) claimCandidates.add(roomName);
         }
         global.INTEL_INDEX = {
             tick: currentTime,
@@ -947,7 +961,7 @@ let helpers = function () {
             if (newIntel.activeRemote && newIntel.activeRemote + 500 > ct) idx.activeRemotes.add(roomName);
             if (intelIndexStrongholdActive(newIntel, ct)) idx.strongholdActive.add(roomName);
             if (intelIndexMineralCandidate(newIntel)) idx.mineralCandidates.add(roomName);
-            if (intelIndexClaimCandidate(newIntel, ct)) idx.claimCandidates.add(roomName);
+            if (intelIndexClaimCandidate(newIntel, ct, roomName)) idx.claimCandidates.add(roomName);
         }
 
         intelIndexRefreshHarassNeighborhood(idx, roomName, ct);

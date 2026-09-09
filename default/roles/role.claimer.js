@@ -107,7 +107,7 @@ class RoleClaimer {
                     if (global.updateIntelIndex) global.updateIntelIndex(this.creep.room.name, oldClaim, null);
             }
         } else {
-            abandonRoom(this.room);
+            abandonRoom(this.room, false);
             if (Memory.auxiliaryTargets) delete Memory.auxiliaryTargets[this.room.name];
             this.creep.recycleCreep();
         }

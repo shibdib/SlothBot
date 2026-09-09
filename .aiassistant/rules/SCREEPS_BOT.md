@@ -199,6 +199,8 @@ expensive operations in frequently called code.
 - `room.memory.colonyProfile` — `{role, hull, hostileHops, pressure, launchEligible, forced, tick}`
 - `room.memory.forceRole` — optional sticky override (`core`/`frontier`/`launch`/`outpost`)
 - `Memory._banker.marketHub` — single market-desk room name (a core when any core exists)
+- `Memory.noClaim` — room-name array; manual `abandonRoom` / abandon flag. Expansion will not auto-claim these. Remove
+  flag or delete the entry to allow reclaim. Manual claim flags still work.
 - `creep.memory` — role, target, squad info, working state, traffic data
 - Creep names — `{rolePrefix}{rcl}{100-999}` (unique 3-char role codes in `ROLE_NAME_PREFIX`; not operation). Collision
   retry in `generateCreepName`.
@@ -374,7 +376,9 @@ points = 1 + Math.floor(Math.log10(ticksOfContinuousOperation))
   containers instead of room-loot; remoteBuilder skSafety only in SK rooms; builders cap 1 when overage/bucket.
 - **2026-09-05** — Hub managers renew in place (hold adjacent spawn). Recycle at low TTL
   only when the live body is under the 16-CARRY target.
+- **2026-09-09** — Manual `abandonRoom` / abandon flag appends the room to `Memory.noClaim`
+  so expansion will not auto-claim it again. `claimClear` does not. Remove flag clears it.
 
 ---
 
-**Last updated:** 2026-09-05
+**Last updated:** 2026-09-09

@@ -105,6 +105,11 @@ function manualAttacks() {
                 Memory.nonCombatRooms = _.filter(Memory.nonCombatRooms, r => r !== roomName);
                 removed = true;
                 log.a(roomLink(roomName) + ' removed as a non combat target.');
+            } else if (Memory.noClaim && _.includes(Memory.noClaim, roomName)) {
+                Memory.noClaim = _.filter(Memory.noClaim, r => r !== roomName);
+                if (INTEL[roomName]) delete INTEL[roomName].noClaim;
+                removed = true;
+                log.a(roomLink(roomName) + ' will be eligible for auto-claim again.');
             }
             if (!removed) log.a(roomLink(roomName) + ' is not on any avoid lists.');
             removeFlagAndLog('');

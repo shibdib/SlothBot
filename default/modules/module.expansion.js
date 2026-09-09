@@ -63,6 +63,8 @@ class ExpansionControl {
      * FORCE_CLAIM bypasses remote/ally gates (manual override).
      */
     isClaimTargetStillValid(roomName, {allowForce = false} = {}) {
+        if (Memory.noClaim && Memory.noClaim.includes(roomName)) return false;
+
         if (allowForce && FORCE_CLAIM && roomName === FORCE_CLAIM) {
             const forceIntel = INTEL[roomName];
             return !forceIntel || !forceIntel.owner;
@@ -107,6 +109,13 @@ class ExpansionControl {
         for (const roomName in targets) {
             const t = targets[roomName];
             if (!t || (t.type !== 'claim' && t.type !== 'rebuild')) continue;
+
+            if (!t.manual && Memory.noClaim && Memory.noClaim.includes(roomName)) {
+                log.a(`Canceling ${t.type} mission for ${roomLink(roomName)}: Memory.noClaim`, 'EXPANSION CONTROL:');
+                delete targets[roomName];
+                continue;
+            }
+
             if (FORCE_CLAIM && roomName === FORCE_CLAIM) continue;
 
             const intel = INTEL[roomName];
@@ -133,7 +142,8 @@ class ExpansionControl {
             this.clearClaimTarget(reason);
         }
 
-        if (FORCE_CLAIM && (!INTEL[FORCE_CLAIM] || !INTEL[FORCE_CLAIM].owner)) {
+        if (FORCE_CLAIM && (!INTEL[FORCE_CLAIM] || !INTEL[FORCE_CLAIM].owner)
+            && !(Memory.noClaim && Memory.noClaim.includes(FORCE_CLAIM))) {
             this.claimTarget = {room: FORCE_CLAIM, tick: Game.time};
             Memory.claimTarget = this.claimTarget;
             return;
@@ -154,6 +164,7 @@ class ExpansionControl {
     }
 
     explainClaimInvalid(roomName) {
+        if (Memory.noClaim && Memory.noClaim.includes(roomName)) return 'Memory.noClaim';
         const intel = INTEL[roomName];
         if (!intel) return 'no intel';
         if (intel.owner) return `owned by ${intel.owner}`;
@@ -177,6 +188,7 @@ class ExpansionControl {
             for (const roomName of idx.claimCandidates) {
                 const room = INTEL[roomName];
                 if (!room) continue;
+                if (Memory.noClaim && Memory.noClaim.includes(roomName)) continue;
                 if (this.checkNeighboringRooms(room.name) && findClosestOwnedRoom(room.name, true) <= 14) {
                     worthy.push(room);
                 }
@@ -187,6 +199,7 @@ class ExpansionControl {
                 if (!room || !room.hubCheck || room.owner) continue;
                 if (room.cached + 10000 <= Game.time) continue;
                 if (room.noClaim && room.noClaim >= Game.time) continue;
+                if (Memory.noClaim && Memory.noClaim.includes(roomName)) continue;
                 if (room.obstacles) continue;
                 if (room.reservation && room.reservation !== MY_USERNAME) continue;
                 if (this.checkNeighboringRooms(room.name) && findClosestOwnedRoom(room.name, true) <= 14) {
@@ -523,6 +536,11 @@ class ExpansionControl {
 
     claimOperation(claimTarget) {
         const roomName = claimTarget.room;
+
+        if (Memory.noClaim && Memory.noClaim.includes(roomName)) {
+            this.clearClaimTarget('Memory.noClaim');
+            return;
+        }
 
         // Final gate before launching (skip remote/ally gates only for FORCE_CLAIM)
         if (!(FORCE_CLAIM && roomName === FORCE_CLAIM)) {

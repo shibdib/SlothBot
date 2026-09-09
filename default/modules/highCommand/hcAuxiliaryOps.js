@@ -15,13 +15,20 @@ const POWER_MAX_RANGE = 12;
 const POWER_MIN_AMOUNT = 1000;
 const POWER_MIN_SPACE = 1;
 const POWER_TRAVEL_PER_ROOM = 50;
-const POWER_SPAWN_BUFFER = 150;
 const POWER_MAX_ATTACKERS = 2;
 const POWER_MAX_OPS = 3;
 const POWER_HAULER_CARRY = 1250;
 const POWER_HEALER_COST = 6000;
-const POWER_ATTACK_DPS = 25 * (typeof ATTACK_POWER !== 'undefined' ? ATTACK_POWER : 30);
+// Unboosted 25 ATTACK. Attackers are not queued with boosts; they only
+// boost if matching HEAL is already in labs. Do not plan on T3 DPS.
+const POWER_ATTACK_PARTS = 25;
+const POWER_ATTACK_DPS = POWER_ATTACK_PARTS * (typeof ATTACK_POWER !== 'undefined' ? ATTACK_POWER : 30);
 const POWER_BANK_MAX_HITS = typeof POWER_BANK_HITS !== 'undefined' ? POWER_BANK_HITS : 2000000;
+// 50-part attacker (150t) + 2× 40-part healers on 2–3 RCL8 spawns, then
+// attackers idle at home until two healers exist (role.powerAttacker).
+const POWER_TEAM_SPAWN = 250;
+// Same as replacementLeadTime: linear ignores the walk from spawn to exit.
+const POWER_EXIT_HOP = 1;
 const POWER_SKIP_LOG_INTERVAL = 100;
 let lastPowerSkipLog = 0;
 
@@ -96,12 +103,22 @@ function powerAttackersFor(r) {
     return Math.min(Math.max(1, r.powerSpace || 1), POWER_MAX_ATTACKERS);
 }
 
+function powerTravelTicks(linear) {
+    return (linear + POWER_EXIT_HOP) * POWER_TRAVEL_PER_ROOM;
+}
+
 function powerTimeNeeded(r, linear) {
     const hits = r.powerHits != null ? r.powerHits : POWER_BANK_MAX_HITS;
-    const mineTicks = Math.ceil(hits / (powerAttackersFor(r) * POWER_ATTACK_DPS));
-    // Travel uses Chebyshev, not inflated SK route hops. Replacements keep a
-    // seat filled, so this is hits/dps rather than one 1500-tick life.
-    return linear * POWER_TRAVEL_PER_ROOM + mineTicks + POWER_SPAWN_BUFFER;
+    const attackers = powerAttackersFor(r);
+    const dps = attackers * POWER_ATTACK_DPS;
+    const travel = powerTravelTicks(linear);
+    const mineTicks = Math.ceil(hits / dps);
+    // One unboosted life after travel is 750*(1500-travel) ≈ 0.8–1.1M, so a
+    // full 2M bank always needs a replacement wave. Expire-replace overlaps
+    // that wave, so calendar melee is hits/dps, not hits/dps + 1500.
+    const ttlOnSite = CREEP_LIFE_TIME - POWER_TEAM_SPAWN - travel;
+    if (ttlOnSite < 400) return Infinity;
+    return POWER_TEAM_SPAWN + travel + mineTicks;
 }
 
 function isUncontestedPowerBank(r) {
@@ -144,7 +161,7 @@ function powerBankSkipReason(rName, r, cache) {
     const left = r.power - Game.time;
     const need = powerTimeNeeded(r, origin.linear);
     if (left < need) {
-        return `ttl ${left} < ${need} (${origin.linear} rooms, ${r.powerSpace != null ? r.powerSpace : '?'} seats, ${r.powerAmount || '?'} power)`;
+        return `ttl ${left} < ${need} (${origin.linear} rooms, ${powerAttackersFor(r)} unboosted atk, ${r.powerAmount || '?'} power)`;
     }
     return null;
 }
