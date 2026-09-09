@@ -14,6 +14,7 @@ const profiler = require('tools.profiler');
 const {sortCreepsForMovement} = require('pathTraffic');
 const {assignTowsForRoom} = require('pathTow');
 const {shouldRecycleUnguardedSkCreep} = require('remoteMining');
+const {averageTickCpu} = require('hcReadiness');
 
 let errorCount = {};
 
@@ -159,10 +160,19 @@ class Colony {
 
         if (cpuUsageArray.length === 25) {
             const avgCpu = average(cpuUsageArray);
-            let roomCount = MY_ROOMS.length;
+            let roomCount = MY_ROOMS.length || 1;
             // If we're RCL8 and have energy, make this more likely
             if (this.room.level === 8 && this.energyState) roomCount *= 1.5
-            const roomCpuTarget = (Game.cpu.limit * 0.95) / roomCount
+            const limit = Game.cpu.limit || 20;
+            // Colony used is ~10/room; military + planner + world add ~30–50
+            // on the tick. 0.95 made rooms look under-share while the empire
+            // sat at 260+ and bucket drained. Tighten when rolling tick CPU
+            // (sampled after colonies) is already near/over limit.
+            let budgetShare = 0.80;
+            const avgTick = averageTickCpu();
+            if (avgTick > limit) budgetShare = 0.65;
+            else if (avgTick > limit * 0.9) budgetShare = 0.75;
+            const roomCpuTarget = (limit * budgetShare) / roomCount;
             if (avgCpu > roomCpuTarget) {
                 let cpuOverCount = this.room.memory.cpuOverage || 0;
                 // remoteSourceStaffCap / maxHaulers scale down at 8/16/24/32 before these kill switches.
