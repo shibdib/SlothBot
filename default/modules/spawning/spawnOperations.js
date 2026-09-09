@@ -166,8 +166,9 @@ function optionalBoostPenalty(room, creepInfo, body) {
         if (!list) return;
         for (let i = 0; i < list.length; i++) {
             const part = list[i];
-            if (!isOptionalSiegeBoost(part)) continue;
-            if (!wanted.includes(part)) wanted.push(part);
+            if (!part || wanted.includes(part)) continue;
+            if (!isOptionalSiegeBoost(part) && part !== ATTACK && part !== HEAL) continue;
+            wanted.push(part);
         }
     };
     const dest = creepInfo && creepInfo.destination;

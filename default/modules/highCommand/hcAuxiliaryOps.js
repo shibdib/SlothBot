@@ -236,6 +236,7 @@ function auxiliaryOperations() {
                 space: team.attackers,
                 powerAmount: r.powerAmount,
                 haulers: team.haulers,
+                optionalBoosts: [ATTACK, HEAL],
             };
             const replaced = previous && previous.type && previous.type !== 'power'
                 ? ` (replaced ${previous.type})` : '';

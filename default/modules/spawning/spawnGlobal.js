@@ -515,6 +515,7 @@ function queuePowerOperation(operation, key, priority) {
             priority: priority - 1,
             numberNeeded: attackers,
             destination: key,
+            misc: {boosts: [ATTACK]},
             closestRoom: true,
             operation: 'power'
         });

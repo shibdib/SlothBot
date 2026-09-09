@@ -37,6 +37,8 @@ class RolePowerAttacker {
         if (this.creep.memory.boostAttempt) return;
         if (!this.creep.memory.misc) this.creep.memory.misc = {};
         const owned = this.room.controller && this.room.controller.my;
+        // ATTACK is optional. Never MOVE. Hitback means we only apply ATTACK
+        // at a tier the two healers can cover (including their HEAL boost).
         if (owned && powerAttackBoostsAvailable(this.room, this.creep)) {
             this.creep.memory.misc.boosts = [ATTACK];
         } else {
@@ -163,17 +165,21 @@ function powerBankPos(roomName) {
 }
 
 function powerAttackBoostsAvailable(room, creep) {
-    if (typeof findAvailableBoostTier !== 'function' || !BOOST_USE) return false;
-    const attackParts = creep.getActiveBodyparts(ATTACK) || 25;
-    const attackNeed = attackParts * LAB_BOOST_MINERAL;
+    if (typeof findAvailableBoostTier !== 'function' || !BOOST_USE || !BOOST_USE[ATTACK] || !BOOST_USE[HEAL]) {
+        return false;
+    }
+    const attackNeed = (creep.getActiveBodyparts(ATTACK) || 25) * LAB_BOOST_MINERAL;
     const healNeed = 20 * LAB_BOOST_MINERAL * 2;
-    const attackTier = findAvailableBoostTier(room, ATTACK, attackNeed);
     const healTier = findAvailableBoostTier(room, HEAL, healNeed);
-    if (!attackTier || !healTier) return false;
-    const attackIdx = BOOST_USE[ATTACK].indexOf(attackTier);
+    if (!healTier) return false;
     const healIdx = BOOST_USE[HEAL].indexOf(healTier);
-    if (attackIdx < 0 || healIdx < 0) return false;
-    return healIdx <= attackIdx;
+    if (healIdx < 0) return false;
+    const attackTiers = BOOST_USE[ATTACK];
+    for (let t = 0; t < attackTiers.length; t++) {
+        if (t < healIdx) continue;
+        if ((room.store(attackTiers[t]) || 0) >= attackNeed) return true;
+    }
+    return false;
 }
 
 function readyPowerHealers(dest) {
