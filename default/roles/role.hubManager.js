@@ -176,6 +176,15 @@ class RoleHubManager {
             this.creep.memory.warehouse = undefined;
         }
 
+        if ((this.creep.store[RESOURCE_POWER] || 0) > 0) {
+            const powerSpawn = this.room.powerSpawn;
+            if (powerSpawn && adjacentTo(this.creep, powerSpawn)
+                && powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 0) {
+                this.creep.transfer(powerSpawn, RESOURCE_POWER);
+                return;
+            }
+        }
+
         const mineral = Object.keys(this.creep.store).find(r => r !== RESOURCE_ENERGY && this.creep.store[r] > 0);
         if (mineral) {
             const storage = this.room.storage;
@@ -279,6 +288,19 @@ class RoleHubManager {
             }
             return false;
         };
+
+        const powerSpawn = this.room.powerSpawn;
+        if (powerSpawn && adjacentTo(this.creep, powerSpawn)
+            && powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 0) {
+            if (storage && (storage.store[RESOURCE_POWER] || 0) > 0 && adjacentTo(this.creep, storage)) {
+                this.creep.withdraw(storage, RESOURCE_POWER);
+                return;
+            }
+            if (terminal && (terminal.store[RESOURCE_POWER] || 0) > 0 && adjacentTo(this.creep, terminal)) {
+                this.creep.withdraw(terminal, RESOURCE_POWER);
+                return;
+            }
+        }
 
         if (this.spawnNeed().length && pullEnergy()) return;
         if (feedController && this.controllerFeedStockOk()

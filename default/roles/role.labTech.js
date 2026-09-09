@@ -949,6 +949,7 @@ class RoleLabTech {
         if (!resource || resource === RESOURCE_ENERGY) return 0;
         const keep = this.getKeepAmount(resource);
         if (resource === RESOURCE_BATTERY) return Math.max(keep, BATTERY_TERMINAL_SOFT_CAP);
+        if (resource === RESOURCE_POWER) return Math.max(keep, TERMINAL_EXPORT_CEILING);
         const warehouse = isCoreRoom(this.room);
         if (COMPRESSED_COMMODITIES.includes(resource) && !warehouse) return TERMINAL_EXPORT_CEILING;
         if (keep) return Math.min(keep, TERMINAL_EXPORT_CEILING);

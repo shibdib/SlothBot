@@ -699,7 +699,7 @@ function planHubConsolidation(transfers, ledger, profiles) {
         const evacuate = shouldEvacuateToHub(room);
         for (const resource of Object.keys(room.terminal.store)) {
             if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;
-            if (resource === RESOURCE_OPS || resource === RESOURCE_POWER) continue;
+            if (resource === RESOURCE_OPS) continue;
             if (allyPlanned.has(resource)) continue;
             if (!evacuate && !canEmpireSell(resource, ledger)) continue;
 
@@ -766,7 +766,7 @@ function planPressureTransfers(transfers, profiles) {
         const destFreeMin = energyStarved ? RESOURCE_SEND_MIN : PRESSURE_DEST_FREE_MIN;
 
         const resources = Object.keys(srcRoom.terminal.store)
-            .filter(r => r !== RESOURCE_ENERGY && r !== RESOURCE_BATTERY && r !== RESOURCE_OPS && r !== RESOURCE_POWER)
+            .filter(r => r !== RESOURCE_ENERGY && r !== RESOURCE_BATTERY && r !== RESOURCE_OPS)
             .sort((a, b) => (srcRoom.terminal.store[b] || 0) - (srcRoom.terminal.store[a] || 0));
 
         let planned = false;
