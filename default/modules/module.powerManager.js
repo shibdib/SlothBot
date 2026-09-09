@@ -6,7 +6,7 @@
  * Created by rober on 5/16/2017.
  */
 
-const {roomCanBurnSurplus} = require('spawnFlow');
+const {roomCanProcessPower} = require('spawnFlow');
 const {
     SPECIALTY_ECO,
     SPECIALTY_LAB,
@@ -144,7 +144,7 @@ module.exports.powerControl = function () {
         if (!room) continue;
         const spawn = getRoomPowerSpawn(room);
         if (spawn && spawn.store[RESOURCE_POWER] > 0 && spawn.store[RESOURCE_ENERGY] >= 50
-            && roomCanBurnSurplus(room)) {
+            && roomCanProcessPower(room)) {
             powerSpawns.push(spawn);
         }
     }

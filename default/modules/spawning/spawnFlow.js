@@ -31,12 +31,20 @@ function getFlowContext(room) {
     };
 }
 
-/** Discretionary sinks (power, nuker, factory recipes, optional tower repair). */
+/** Discretionary sinks (nuker, factory recipes, optional tower repair). */
 function roomCanBurnSurplus(room) {
     const energyState = spawnEnergyState(room) || 0;
     if (energyState < 3) return false;
     const {spareIncome, flowStressed, trend} = getFlowContext(room);
     return !flowStressed && spareIncome >= 0 && trend >= 0;
+}
+
+/** Power processing is 50 energy/tick. Cores at the 500k target (state 2) can afford it. */
+function roomCanProcessPower(room) {
+    const energyState = spawnEnergyState(room) || 0;
+    if (energyState < 2) return false;
+    const {flowStressed} = getFlowContext(room);
+    return !flowStressed;
 }
 
 function roomHasPositiveFlow(room) {
@@ -48,5 +56,6 @@ module.exports = {
     spawnEnergyState,
     getFlowContext,
     roomCanBurnSurplus,
+    roomCanProcessPower,
     roomHasPositiveFlow,
 };

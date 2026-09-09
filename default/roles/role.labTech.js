@@ -6,7 +6,7 @@ const profiler = require("tools.profiler");
 const FactoryControl = require('module.factoryController');
 const {getRoomKeepAmount, getOperationalProtectAmount, getRoomOperationalNeed} = require('termKeep');
 const {isCoreRoom} = require('module.colonyProfile');
-const {roomCanBurnSurplus} = require('spawnFlow');
+const {roomCanBurnSurplus, roomCanProcessPower} = require('spawnFlow');
 const {hasLiveHubManager} = require('spawnHub');
 
 const BALANCE_MIN_TRANSFER = 100;
@@ -360,9 +360,10 @@ class RoleLabTech {
             }
         }
 
-        // 15. Power spawn energy / power — 50 e/tick, only from overflow.
+        // 15. Power spawn energy / power — 50 e/tick. State 2 (~500k at RCL 8)
+        // can afford it; surplus (state 3) is only for nuker/factory.
         // Hub manager owns energy feed when present; labTech still hauls POWER.
-        if (powerSpawn && roomCanBurnSurplus(this.room)) {
+        if (powerSpawn && roomCanProcessPower(this.room)) {
             if (!hasLiveHubManager(this.room) && powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000) {
                 const energySupplier = this.pickBestSupplier(RESOURCE_ENERGY);
                 if (energySupplier && energySupplier.store[RESOURCE_ENERGY] > 10000) {

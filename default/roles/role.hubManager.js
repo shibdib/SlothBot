@@ -12,7 +12,7 @@
  */
 
 const profiler = require('tools.profiler');
-const {roomCanBurnSurplus} = require('spawnFlow');
+const {roomCanBurnSurplus, roomCanProcessPower} = require('spawnFlow');
 const RoleLabTech = require('role.labTech');
 const {hubManagerNeedsBiggerBody} = require('bodyEconomic');
 
@@ -114,12 +114,12 @@ class RoleHubManager {
     }
 
     surplusSink() {
-        if (!roomCanBurnSurplus(this.room)) return null;
         const powerSpawn = this.room.powerSpawn;
-        if (powerSpawn && this.creep.pos.isNearTo(powerSpawn)
+        if (roomCanProcessPower(this.room) && powerSpawn && this.creep.pos.isNearTo(powerSpawn)
             && powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
             return powerSpawn;
         }
+        if (!roomCanBurnSurplus(this.room)) return null;
         const nuker = this.room.nuker;
         if (nuker && this.creep.pos.isNearTo(nuker)) {
             const need = nuker.store.getFreeCapacity(RESOURCE_ENERGY);
