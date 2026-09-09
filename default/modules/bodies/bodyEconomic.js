@@ -11,7 +11,7 @@ const {
     roomSpawnEnergyStuck,
     isColonyEarlyRush,
 } = require('bodyHelpers');
-const {getRegenSourceOperatorForRoom} = require('module.powerManager');
+const {getRegenSourceOperatorForRoom} = require('powerSpec');
 
 function buildRoadDroneWaller(gen) {
     const leanColony = gen.room.level >= 7 && !gen.creepInfo.destination;

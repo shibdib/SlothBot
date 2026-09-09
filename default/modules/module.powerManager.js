@@ -18,7 +18,9 @@ const {
     isEcoCover,
     needMoreEcoOperators,
     needMoreLabOperators,
+    getRegenSourceOperatorForRoom,
 } = require('powerSpec');
+const operatorRole = require('powerRole.operator');
 
 function hasFactoryPowerLevel(level) {
     for (const name in Game.powerCreeps) {
@@ -41,25 +43,6 @@ function uncoveredFactoryLevel() {
         if (!level) continue;
         if (hasFactoryPowerLevel(level)) continue;
         if (!best || level < best) best = level;
-    }
-    return best;
-}
-
-function getRegenSourceOperatorForRoom(roomName) {
-    if (!roomName) return null;
-    let best = null;
-    let bestLevel = 0;
-    for (const name in Game.powerCreeps) {
-        const c = Game.powerCreeps[name];
-        if (!c || !c.my || !c.memory) continue;
-        if (!isEcoCover(c)) continue;
-        if (c.memory.destinationRoom !== roomName) continue;
-        const regen = c.powers && c.powers[PWR_REGEN_SOURCE];
-        if (!regen || !regen.level) continue;
-        if (regen.level > bestLevel) {
-            best = c;
-            bestLevel = regen.level;
-        }
     }
     return best;
 }
@@ -181,7 +164,9 @@ module.exports.powerControl = function () {
     const powerCreeps = _.filter(Game.powerCreeps, c => c.my);
     for (const powerCreep of powerCreeps) {
         if (powerCreep.ticksToLive) {
-            const powerCreepRole = require('powerRole.' + powerCreep.className);
+            const powerCreepRole = powerCreep.className === 'operator'
+                ? operatorRole
+                : require('powerRole.' + powerCreep.className);
             try {
                 if (!powerCreep.level && sparePowerLevels <= 0) {
                     powerCreep.suicide();

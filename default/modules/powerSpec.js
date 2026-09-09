@@ -82,6 +82,25 @@ function needMoreLabOperators() {
     return labOperatorCount() < Math.ceil(producing / 2);
 }
 
+function getRegenSourceOperatorForRoom(roomName) {
+    if (!roomName) return null;
+    let best = null;
+    let bestLevel = 0;
+    for (const name in Game.powerCreeps) {
+        const c = Game.powerCreeps[name];
+        if (!c || !c.my || !c.memory) continue;
+        if (!isEcoCover(c)) continue;
+        if (c.memory.destinationRoom !== roomName) continue;
+        const regen = c.powers && c.powers[PWR_REGEN_SOURCE];
+        if (!regen || !regen.level) continue;
+        if (regen.level > bestLevel) {
+            best = c;
+            bestLevel = regen.level;
+        }
+    }
+    return best;
+}
+
 module.exports = {
     SPECIALTY_ECO,
     SPECIALTY_LAB,
@@ -93,4 +112,5 @@ module.exports = {
     isEcoCover,
     needMoreEcoOperators,
     needMoreLabOperators,
+    getRegenSourceOperatorForRoom,
 };
