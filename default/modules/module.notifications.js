@@ -230,7 +230,7 @@ function pickSiegeProgressReason(prev, snap) {
     if (snap.camping && !prev.camping) return 'CAMPING';
     if ((prev.towers || 0) > 0 && snap.towers === 0) return 'TOWERS DOWN';
     if (snap.level && prev.level && snap.level < prev.level) return 'RCL DROP';
-    if ((snap.waves || 0) > (prev.waves || 0)) return 'WAVE';
+    if ((snap.waves || 0) > (prev.waves || 0) && snap.onSite > 0) return 'WAVE';
     return null;
 }
 
@@ -399,8 +399,8 @@ function notifySiegeEvent(roomName, reason) {
         prev.pendingLaunch = undefined;
         applySiegeSnapshot(prev, snap, true, 'LAUNCH');
         if (reason === 'LAUNCH') return;
-        // First WAVE used to be dropped because launch mail includes the
-        // count. That hid the only proof the squad actually left home.
+        // WAVE is dest-entry, not departure. If the first review is after
+        // they hop dest, still send both LAUNCH and WAVE.
     }
     sendSiege(roomName, reason, snap, prev);
     applySiegeSnapshot(prev, snap, true, reason);

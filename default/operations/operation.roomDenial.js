@@ -248,10 +248,10 @@ function recordSoloSiegeDeparture(creep) {
     const op = creep.memory.operation;
     if (op !== 'roomDenial' && op !== 'stronghold') return;
     if (creep.memory.misc && creep.memory.misc.waitFor > 1) return;
-    const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
-    if (home && creep.room.name === home) return;
+    const dest = creep.memory.destination;
+    if (!dest || creep.room.name !== dest) return;
     creep.memory.siegeWaveRecorded = true;
-    recordSiegeWave(creep.memory.destination);
+    recordSiegeWave(dest);
 }
 
 Creep.prototype.denyRoom = function (options = {}) {

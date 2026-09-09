@@ -1677,14 +1677,14 @@ class RoleLongbowSquad {
         if (op !== 'roomDenial' && op !== 'stronghold') return;
         const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
         if (!(waitFor > 1) || !this.isSquadCommitted(creep)) return;
-        const home = (creep.memory.misc && creep.memory.misc.formColony) || creep.memory.colony;
-        if (home && creep.room.name === home) return;
+        const dest = creep.memory.destination;
+        if (!dest || creep.room.name !== dest) return;
         const wave = this.squadForWave(creep);
         for (let i = 0; i < wave.length; i++) {
             if (wave[i]) wave[i].memory.siegeWaveRecorded = true;
         }
         creep.memory.siegeWaveRecorded = true;
-        require('hcTargets').recordSiegeWave(creep.memory.destination);
+        require('hcTargets').recordSiegeWave(dest);
     }
 
     // After boost/commit, wait in place until the whole live squad is in this
