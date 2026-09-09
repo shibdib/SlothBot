@@ -37,13 +37,13 @@ class RoleUpgrader {
     }
 
     housekeeping() {
-        // Boosting
-        if (this.creep.tryToBoost()) return true;
+        // Retire before boost so a surplus body does not eat minerals and then suicide.
         if (this.shouldRetire()) {
             if (!this.creep.hasActiveBodyparts(MOVE)) this.creep.suicide();
             else this.creep.recycleCreep();
             return true;
         }
+        if (this.creep.tryToBoost()) return true;
         return false;
     }
 
@@ -60,13 +60,16 @@ class RoleUpgrader {
         for (let i = 0; i < creeps.length; i++) {
             const c = creeps[i];
             if (!c || !c.memory || c.memory.role !== 'upgrader' || c.memory.recycling) continue;
+            // Spawn queues a replacement during lead time. Dying/spawning
+            // bodies are overlap, not surplus — counting them culls the new one.
+            if (c.spawning || (c.ticksToLive || 1500) < 200) continue;
             pack.push(c);
         }
         if (pack.length > plan.count) {
             pack.sort((a, b) => {
                 const dw = b.getActiveBodyparts(WORK) - a.getActiveBodyparts(WORK);
                 if (dw) return dw;
-                return a.id < b.id ? -1 : 1;
+                return (b.ticksToLive || 0) - (a.ticksToLive || 0);
             });
             const keepIds = {};
             for (let i = 0; i < plan.count; i++) keepIds[pack[i].id] = true;
