@@ -204,8 +204,9 @@ function isRemoteSourceWorthMining(colonyRoom, sourceEntry) {
     && miningRouteHasRoads(colonyRoom.name, sourceEntry.room) ? 1 : 2;
     const haulers = Math.min(needed, keeper ? 4 : roadCap);
     if (sourceNetEnergyPerTick(colonyRoom, sourceEntry, haulers) <= 0) return false;
-    // Surplus RCL7+: a second hauler is ~0.3 CPU for <1 e/t. Drop the source.
-    if (!keeper && needed > 1 && (colonyRoom.level || 0) >= 7 && !colonyNeedsRemoteIncome(colonyRoom)) {
+    // Surplus RCL7+: a second hauler is ~0.3 CPU for <1 e/t. A 1-hauler road
+    // remote is still ~6 e/t net even if the uncapped formula wanted two.
+    if (!keeper && haulers > 1 && (colonyRoom.level || 0) >= 7 && !colonyNeedsRemoteIncome(colonyRoom)) {
         return false;
     }
     return true;
@@ -218,7 +219,6 @@ function remoteSourceStaffCap(room) {
         return room.level < 7 ? 3 : 1;
     }
     if (room.level < 7) return applyCpuOverageCap(room, 10);
-    const hungry = colonyNeedsRemoteIncome(room);
     const targets = ROOM_REMOTE_TARGETS[room.name] || [];
     let hasCenter = false;
     for (let i = 0; i < targets.length; i++) {
@@ -227,7 +227,9 @@ function remoteSourceStaffCap(room) {
             break;
         }
     }
-    const base = hungry ? (hasCenter ? 8 : 6) : (hasCenter ? 6 : 4);
+    // Surplus used to cut 6→4 and starve net income. CPU overage already
+    // scales 8→4→3→2→1; bucket/penalty gates are above.
+    const base = hasCenter ? 8 : 6;
     return applyCpuOverageCap(room, base);
 }
 

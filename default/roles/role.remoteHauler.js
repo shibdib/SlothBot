@@ -12,6 +12,7 @@ const {
     civilianShouldFlee
 } = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
+const {roomCanBurnSurplus} = require('spawnFlow');
 
 class RoleRemoteHauler {
     constructor(creep) {
@@ -263,13 +264,37 @@ class RoleRemoteHauler {
 
     exitLinkCheck() {
         this.memory.exitLinkCheck = true;
-        const link = this.room.links.filter(s => ![s.room.memory.hubLink, s.room.memory.controllerLink].includes(s.id) &&
-            s.pos.getRangeTo(this.creep) <= 9 && (!s.room.storage || s.pos.getRangeTo(this.creep) < s.room.storage.pos.getRangeTo(this.creep)));
-        if (link.length) {
-            const closestLink = this.creep.pos.findClosestByPath(link);
-            if (closestLink) this.memory.exitLink = closestLink.id;
+        const room = this.room;
+        const pos = this.creep.pos;
+        const storage = room.storage;
+        const links = room.links || [];
+        let best = null;
+        let bestRange = 10;
+        for (let i = 0; i < links.length; i++) {
+            const l = links[i];
+            if (!l || isHarvestDumpLink(room, l)) continue;
+            const range = pos.getRangeTo(l);
+            if (range > 9) continue;
+            if (storage && range >= pos.getRangeTo(storage)) continue;
+            if (range < bestRange) {
+                bestRange = range;
+                best = l;
+            }
         }
+        if (best) this.memory.exitLink = best.id;
     }
+}
+
+function isHarvestDumpLink(room, link) {
+    if (!room || !link) return true;
+    if (room.memory.hubLink && link.id === room.memory.hubLink) return true;
+    if (room.memory.controllerLink && link.id === room.memory.controllerLink) return true;
+    const sources = room.sources || [];
+    for (let i = 0; i < sources.length; i++) {
+        const mem = sources[i].memory;
+        if (mem && mem.link === link.id) return true;
+    }
+    return false;
 }
 
 function waitOffOwnedExit(creep) {
@@ -299,19 +324,15 @@ function dropOff(creep) {
 
     if (creep.memory.exitLink) {
         const link = Game.getObjectById(creep.memory.exitLink);
-        if (link && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        if (!link || isHarvestDumpLink(creep.room, link)) {
+            memory.exitLink = undefined;
+            memory.exitLinkCheck = undefined;
+        } else if (link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
             creep.memory.linkWait = 0;
             return memory.storageDestination = creep.memory.exitLink;
-        } else if (!link) {
-            memory.exitLink = undefined;
-        } else if (link && !link.store.getFreeCapacity(RESOURCE_ENERGY)) {
-            if (link.pos.getRangeTo(creep) > 1) {
-                return creep.shibMove(link, {range: 1});
-            } else if (!creep.memory.linkWait || creep.memory.linkWait <= 5) {
-                if (!creep.memory.linkWait) creep.memory.linkWait = 1; else creep.memory.linkWait++;
-                return creep.idleFor(5);
-            }
         }
+        // Full exit link: skip the wait and dump to storage this tick.
+        creep.memory.linkWait = 0;
     }
 
     const colony = Game.rooms[memory.colony];
@@ -351,7 +372,7 @@ function dropOff(creep) {
         Math.random() + 0.1 > controllerContainer.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY) {
         memory.storageDestination = controllerContainer.id;
     } else if (colony.nuker && colony.nuker.store.getFreeCapacity(RESOURCE_ENERGY) &&
-        (colony.energyState || colony.nuker.store[RESOURCE_GHODIUM] > 0)) {
+        roomCanBurnSurplus(colony)) {
         memory.storageDestination = colony.nuker.id;
     } else if (colony.storage && !colony.energyState &&
         colony.storage.store.getFreeCapacity(RESOURCE_ENERGY) > storeSum) {

@@ -192,23 +192,23 @@ function buildUpgrader(gen) {
     return {work, carry, move, halfMove};
 }
 
-function shuttleHarvestRate(room, trend = 0, spareIncome = 0) {
+function harvestWorkParts(room) {
     const baseSaturation = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
-    let work = baseSaturation;
-    const rcl = room.controller ? room.controller.level : room.level;
-    if (rcl >= 7) {
-        const isHealthy = (room.energyState >= 2 || spareIncome > 3 || trend >= 0);
-        work += isHealthy ? 9 : 2;
-    }
+    if (!room) return baseSaturation;
+    const leftover = ((room.controller && room.controller.level) || room.level || 0) >= 7 ? 1 : 0;
     const powerCreep = getRegenSourceOperatorForRoom(room.name);
-    if (powerCreep) {
-        const level = powerCreep.powers[PWR_REGEN_SOURCE].level;
-        const boostedSat = Math.floor((SOURCE_ENERGY_CAPACITY +
-                (POWER_INFO[PWR_REGEN_SOURCE].effect[level - 1] * (ENERGY_REGEN_TIME / 15))) /
-            (HARVEST_POWER * ENERGY_REGEN_TIME));
-        work = Math.max(boostedSat, work);
+    const regen = powerCreep && powerCreep.powers && powerCreep.powers[PWR_REGEN_SOURCE];
+    const effectTable = (typeof POWER_INFO !== 'undefined' && POWER_INFO[PWR_REGEN_SOURCE] && POWER_INFO[PWR_REGEN_SOURCE].effect) || [];
+    const effect = regen && regen.level && effectTable[regen.level - 1];
+    if (effect) {
+        const extra = effect * (ENERGY_REGEN_TIME / 15);
+        return Math.ceil((SOURCE_ENERGY_CAPACITY + extra) / (HARVEST_POWER * ENERGY_REGEN_TIME)) + leftover;
     }
-    return work * HARVEST_POWER;
+    return baseSaturation + leftover;
+}
+
+function shuttleHarvestRate(room) {
+    return harvestWorkParts(room) * HARVEST_POWER;
 }
 
 function shuttleCarryTarget(harvestRate, distToHub) {
@@ -325,17 +325,8 @@ function buildStationaryHarvester(gen) {
             : maxWork;
         return {work, carry: 1, move};
     }
-    const isHealthy = (gen.room.energyState >= 2 || gen.spareIncome > 3 || gen.trend >= 0);
-    const additionalWork = gen.room.controller.level >= 7 ? (isHealthy ? 9 : 2) : 0;
     const baseSaturation = Math.ceil(SOURCE_ENERGY_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
-    let work;
-    let powerCreep = getRegenSourceOperatorForRoom(gen.room.name);
-    if (powerCreep) {
-        const boostedSat = Math.floor((SOURCE_ENERGY_CAPACITY + (POWER_INFO[PWR_REGEN_SOURCE].effect[powerCreep.powers[PWR_REGEN_SOURCE].level - 1] * (ENERGY_REGEN_TIME / 15))) / (HARVEST_POWER * ENERGY_REGEN_TIME));
-        work = Math.max(boostedSat, boostedSat + additionalWork);
-    } else {
-        work = Math.min(maxWork, baseSaturation) + additionalWork;
-    }
+    let work = Math.min(harvestWorkParts(gen.room), maxWork);
     work = Math.min(Math.max(baseSaturation, work), maxWork);
     if (move) {
         const walkMax = Math.max(1, Math.floor((gen.energyAmount - BODYPART_COST[CARRY] - BODYPART_COST[MOVE]) / BODYPART_COST[WORK]));
