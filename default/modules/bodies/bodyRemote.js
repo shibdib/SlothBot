@@ -10,6 +10,7 @@ const {
     getHaulersBySource,
     countQueuedHaulersForSource,
 } = require('bodyHelpers');
+const {reservationTicksLeft} = require('remoteMining');
 
 const builders = {
     claimAttacker(gen) {
@@ -58,8 +59,11 @@ const builders = {
         // 2 CLAIM nets +1/tick while present (maintains and slowly fills to 5000).
         // 3 CLAIM is enough to recover a low reservation in a couple of lives.
         // 12 CLAIM was leftover from spawning only after reservation had decayed to 1500.
+        const ticks = reservationTicksLeft(gen.creepInfo.destination);
+        const reservationHigh = ticks >= 4000;
+        const recovering = ticks < 1000;
         const maxClaim = leanColony
-            ? Math.min(3, maxBodyNonMoveParts(!!halfMove))
+            ? (reservationHigh ? 1 : (recovering ? Math.min(3, maxBodyNonMoveParts(!!halfMove)) : 2))
             : (fullRouteHasRoads ? Math.min(6, 5 * (gen.room.energyState || 1)) : Math.min(4, 2 * (gen.room.energyState || 1)));
 
         let claim = Math.floor(gen.energyAmount / (BODYPART_COST[CLAIM] + moveCost)) || 1;
@@ -75,9 +79,9 @@ const builders = {
                 claim = Math.max(1, Math.floor(claim * gen.flowScale(0.5, 10)));
             }
         } else if (gen.room.energyState < 3 || gen.trend < 0) {
-            claim = Math.max(2, Math.floor(claim * gen.flowScale(0.5, 10)));
+            claim = Math.max(reservationHigh ? 1 : 2, Math.floor(claim * gen.flowScale(0.5, 10)));
         }
-        claim = Math.max(claim, 2);
+        claim = Math.max(claim, reservationHigh ? 1 : 2);
         return {claim, halfMove};
     },
 
@@ -96,8 +100,7 @@ const builders = {
         } else {
             baseSaturation = Math.ceil(SOURCE_ENERGY_NEUTRAL_CAPACITY / (HARVEST_POWER * ENERGY_REGEN_TIME));
         }
-        const isHealthy = (gen.room.energyState >= 2 || gen.spareIncome > 3 || gen.trend >= 0);
-        const additionalWork = gen.room.level >= 7 ? (isHealthy ? 2 : 0) : 0;
+        const additionalWork = gen.room.level >= 7 ? 1 : 0;
         let work = baseSaturation + additionalWork;
         const carry = 1;
 

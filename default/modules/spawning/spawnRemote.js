@@ -495,14 +495,18 @@ function findAssignedRemoteThreat(room, extraRooms) {
 
 function handleReservation(room, remoteName) {
     if (room.level < 4 || isSkRoom(remoteName) || remoteMining.isSectorCenterRoomName(remoteName)) return;
-    // Need an active harvester pipeline before spending CLAIM bodies.
-    if (!getCreepCount(undefined, 'remoteHarvester', remoteName)
+    const assigned = (ROOM_REMOTE_TARGETS[room.name] || []).some(s => s.room === remoteName);
+    if (!assigned
+        && !getCreepCount(undefined, 'remoteHarvester', remoteName)
         && !countQueuedRole(room.name, 'remoteHarvester', remoteName)) return;
 
-    // Reservation doubles source regen (1500 → 3000). Deprioritizing CLAIM when
-    // lean delayed that doubling and kept poor rooms poor.
+    // Reservation doubles source regen (1500 → 3000). Missing/low reserve beats
+    // drones; a full room stays at normal reserver priority.
+    const ticks = remoteMining.reservationTicksLeft(remoteName);
     const reserved = INTEL[remoteName] && INTEL[remoteName].reservation === MY_USERNAME;
-    const reserverPriority = reserved ? PRIORITIES.reserver : PRIORITIES.remoteHarvester;
+    const reserverPriority = (!reserved || ticks < 2000)
+        ? PRIORITIES.remoteHarvester
+        : PRIORITIES.reserver;
     queueCreepIfNeeded({
         room,
         role: 'reserver',
@@ -661,9 +665,7 @@ function handleRemoteHarvesters(room) {
     }
 
     if (pick && pick.room) {
-        const priority = shouldDeprioritizeRemotes(room)
-            ? PRIORITIES.remoteHarvester * 2
-            : PRIORITIES.remoteHarvester;
+        const priority = PRIORITIES.remoteHarvester;
         const skRoom = remoteMining.skGuardRoom(room.name, pick.room);
         queueCreepIfNeeded({
             room, role: 'remoteHarvester', priority,
@@ -761,10 +763,7 @@ function handleRemoteHaulers(room) {
         const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + haulerCarryCapacity(creep), 0);
         const queuedCapacity = queuedHaulers * minCarryPerHauler * CARRY_CAPACITY;
         if (!targetCapacity || haulingCapacity + queuedCapacity >= targetCapacity) continue;
-        const deprioritize = shouldDeprioritizeRemotes(room) && !keeperYield;
-        const priority = deprioritize
-            ? PRIORITIES.remoteHauler * 2
-            : PRIORITIES.remoteHauler;
+        const priority = PRIORITIES.remoteHauler;
         queueCreep(room, priority + assignedHaulers.length + queuedHaulers, {
             role: 'remoteHauler',
             destination: room.name,

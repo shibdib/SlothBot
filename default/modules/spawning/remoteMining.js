@@ -137,6 +137,21 @@ const HARVESTER_E_PER_TICK = 0.85;
 const HAULER_E_PER_TICK = 1.3;
 const RESERVER_ROOM_E_PER_TICK = 3.2;
 
+/** Ticks of our reservation left. 0 if unreserved / unknown (size a 2-CLAIM filler). */
+function reservationTicksLeft(roomName) {
+    if (!roomName) return 0;
+    const vis = Game.rooms[roomName];
+    const controller = vis && vis.controller;
+    if (controller && controller.reservation) {
+        if (controller.reservation.username === MY_USERNAME) return controller.reservation.ticksToEnd || 0;
+        return 0;
+    }
+    const intel = typeof INTEL !== 'undefined' && INTEL[roomName];
+    if (!intel || intel.reservation !== MY_USERNAME) return 0;
+    if (!intel.reservationExpires) return 0;
+    return Math.max(0, intel.reservationExpires - Game.time);
+}
+
 function colonyNeedsRemoteIncome(room) {
     if (!room) return true;
     const energyState = room.energyState || 0;
@@ -1512,6 +1527,7 @@ module.exports = {
     refreshStaggerDue,
     sourcePickScore,
     colonyNeedsRemoteIncome,
+    reservationTicksLeft,
     sourceHaulersNeeded,
     isRemoteSourceWorthMining,
     remoteSourceStaffCap,

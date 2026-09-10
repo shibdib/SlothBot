@@ -188,13 +188,21 @@ function essentialCreepQueue(room) {
 
     // Wait until 5 extensions (room.level 2 / 550 cap) so the harvester is 5W
     // and a drone is free to tow. Until then drones harvest themselves.
+    // Per-source so expireReplace can land the next 0-MOVE body before the old one dies.
     if (room.level >= 2 && roomHasLiveTowTruck(room)) {
-        queueCreepIfNeeded({
-            room, role: 'stationaryHarvester',
-            priority: PRIORITIES.stationaryHarvester,
-            numberNeeded: room.sources.length,
-            rebootCondition: spawnReboot || !getCreepCount(room, 'stationaryHarvester')
-        });
+        const sources = room.sources || [];
+        const anyHarvester = getCreepCount(room, 'stationaryHarvester');
+        for (let i = 0; i < sources.length; i++) {
+            const sourceId = sources[i].id;
+            queueCreepIfNeeded({
+                room, role: 'stationaryHarvester',
+                priority: PRIORITIES.stationaryHarvester,
+                numberNeeded: 1,
+                assignment: sourceId,
+                other: {source: sourceId},
+                rebootCondition: spawnReboot || !anyHarvester
+            });
+        }
     }
 
     const protoStorage = room.memory.protoStorage ? Game.getObjectById(room.memory.protoStorage) : undefined;

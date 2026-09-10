@@ -39,12 +39,12 @@ function roomCanBurnSurplus(room) {
     return !flowStressed && spareIncome >= 0 && trend >= 0;
 }
 
-/** Power processing is 50 energy/tick. Cores at the 500k target (state 2) can afford it. */
+/** Power processing is 50 energy/tick. Wait for surplus, or spare that covers the 50. */
 function roomCanProcessPower(room) {
-    const energyState = spawnEnergyState(room) || 0;
-    if (energyState < 2) return false;
-    const {flowStressed} = getFlowContext(room);
-    return !flowStressed;
+    const {flowStressed, spareIncome} = getFlowContext(room);
+    if (flowStressed) return false;
+    if (spareIncome >= 50) return true;
+    return roomCanBurnSurplus(room);
 }
 
 function roomHasPositiveFlow(room) {

@@ -813,6 +813,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 delete roomIntel.attackDirectionOrigin;
             }
             roomIntel.reservation = this.controller.reservation?.username;
+            if (this.controller.reservation) {
+                roomIntel.reservationExpires = currentTime + (this.controller.reservation.ticksToEnd || 0);
+            } else if (roomIntel.reservationExpires) {
+                delete roomIntel.reservationExpires;
+            }
 
             // Fast-changing strength signals — refreshed every light update (~150 ticks) so
             // MY_STRENGTH and enemy strength scores stay current as storage/terminal levels move.
@@ -1021,6 +1026,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         roomIntel.level = controller.level;
         roomIntel.owner = controller.owner?.username;
         roomIntel.reservation = controller.reservation?.username;
+        if (controller.reservation) {
+            roomIntel.reservationExpires = currentTime + (controller.reservation.ticksToEnd || 0);
+        } else if (roomIntel.reservationExpires) {
+            delete roomIntel.reservationExpires;
+        }
         roomIntel.safemode = controller.safeMode ? currentTime + controller.safeMode : undefined;
 
         // Attempt once (success or fail) and stamp hubCheckAt so a false

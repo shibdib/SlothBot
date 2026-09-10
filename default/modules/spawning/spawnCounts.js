@@ -95,7 +95,9 @@ function processCreepForCache(counts, creep) {
     const room = creep.room.name || creep.memory.colony;
     const colony = creep.memory.colony || creep.room.name;
     const operation = creep.memory.operation || '';
-    const assignment = creep.memory.assignment || '';
+    const assignment = creep.memory.assignment
+        || (creep.memory.other && creep.memory.other.source)
+        || '';
 
     incrementCreepCount(counts, `${role}_${room}_noDest_noOp`, creep);
     if (operation) incrementCreepCount(counts, `${role}_${room}_noDest_${operation}`, creep);
@@ -188,6 +190,8 @@ function replacementLeadTime(role, bodyLen, origin, destination) {
     // CLAIM TTL is 600. spawn+travel+80 was 250–320 live overlap (two walkers
     // for half a life). Cap overlap at spawn+80; travelers are ignored via minTTLAtDest.
     if (role === 'reserver') return spawnTime + RESERVER_OVERLAP;
+    // Same-room 0-MOVE: spawn + tow to the pad. No map hop.
+    if (role === 'stationaryHarvester') return spawnTime + 50;
     // +1 hop: walk from spawn to the colony exit (linear distance ignores that).
     const travel = (replacementHops(origin, destination) + 1) * TICKS_PER_ROOM;
     const overlap = role === 'SKAttacker' ? SK_ATTACKER_OVERLAP : 0;

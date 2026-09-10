@@ -113,18 +113,10 @@ class RoleRemoteHarvester {
         }
         if (this.handleContainer()) return true;
         const result = this.creep.harvest(this.source);
-        if (result === OK) {
-            if (this.container.store && !this.container.store.getFreeCapacity(RESOURCE_ENERGY)
-                && this.container.hits < this.container.hitsMax) {
-                this.creep.repair(this.container);
-            }
-        } else if (result === ERR_NOT_IN_RANGE) {
+        if (result === ERR_NOT_IN_RANGE) {
             this.creep.memory.onContainer = undefined;
         } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
-            if (this.container.store) this.creep.repair(this.container);
-            if (!this.container.progressTotal) {
-                this.creep.idleFor(this.source.ticksToRegeneration + 1);
-            }
+            this.onSourceEmpty();
         }
         return true;
     }
@@ -242,22 +234,17 @@ class RoleRemoteHarvester {
             if (!this.creep.memory.other.haulingRequired) {
                 const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
                 if (sourceInfo) updateHaulingRequired(this.creep, sourceInfo);
-            } else if (this.container && this.container.store && !this.container.store.getFreeCapacity(RESOURCE_ENERGY)) {
-                if (this.container.hits < this.container.hitsMax) this.creep.repair(this.container);
             }
         } else if (result === ERR_NOT_IN_RANGE) {
             this.creep.shibMove(this.source);
         } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
-            if (this.container && this.container.store) this.creep.repair(this.container);
-            if (!this.container || !this.container.progressTotal) {
-                this.creep.idleFor(this.source.ticksToRegeneration + 1);
-            }
+            this.onSourceEmpty();
         }
     }
 
     /**
-     * Stand on the container/site. If a keeper is on the tile, work from range 1
-     * instead of chasing the spot forever.
+     * Stand on the container/site. Keeper/stranger on the tile: harvest from
+     * range 1. Our own replacement/hauler: wait and dump carry into the pad.
      */
     moveToContainerSpot() {
         if (this.creep.pos.isEqualTo(this.container.pos)) {
@@ -267,23 +254,59 @@ class RoleRemoteHarvester {
         this.creep.memory.onContainer = undefined;
         const occupant = this.container.pos.checkForCreep();
         const blocked = occupant && occupant.id !== this.creep.id;
-        if (blocked && this.creep.pos.isNearTo(this.container)) return true;
-        this.creep.shibMove(this.container, {range: blocked ? 1 : 0});
-        return false;
+        if (!blocked) {
+            this.creep.shibMove(this.container, {range: 0});
+            return false;
+        }
+        if (!this.creep.pos.isNearTo(this.container)) {
+            this.creep.shibMove(this.container, {range: 1});
+            return false;
+        }
+        if (occupant.my) {
+            if (this.creep.store[RESOURCE_ENERGY] && this.container.store
+                && this.container.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+                this.creep.transfer(this.container, RESOURCE_ENERGY);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    onSourceEmpty() {
+        const container = this.container;
+        if (container && container.hits && container.hits < container.hitsMax) {
+            if (this.creep.store[RESOURCE_ENERGY]) this.creep.repair(container);
+            return;
+        }
+        if (!container || !container.progressTotal) {
+            const regen = this.source && this.source.ticksToRegeneration;
+            this.creep.idleFor(Math.max(1, regen || 1));
+        }
     }
 
     handleContainer() {
         if (this.container.hits) {
-            const containerStore = this.container.store.getUsedCapacity();
-            if (this.creep.store[RESOURCE_ENERGY]) {
-                if (this.container.hits < this.container.hitsMax * 0.5
-                    || (this.container.hits < this.container.hitsMax && containerStore >= CONTAINER_CAPACITY * 0.95)) {
+            const store = this.container.store;
+            const containerStore = store ? store.getUsedCapacity() : 0;
+            const damaged = this.container.hits < this.container.hitsMax;
+            const sourceEmpty = !this.source || !this.source.energy;
+            const full = store && !store.getFreeCapacity(RESOURCE_ENERGY);
+            const carry = this.creep.store[RESOURCE_ENERGY];
+            if (damaged && (sourceEmpty || full)) {
+                if (carry) {
                     this.creep.repair(this.container);
+                    return true;
+                }
+                if (sourceEmpty && store && store[RESOURCE_ENERGY]) {
+                    this.creep.withdraw(this.container, RESOURCE_ENERGY);
                     return true;
                 }
             }
             this.creep.memory.energyAmount = containerStore;
             this.creep.memory.energyId = this.container.id;
+            // Full pad: leave energy in the source instead of dropping, unless
+            // we still need one harvest tick to load carry for repair.
+            if (full && !sourceEmpty && (carry || !damaged)) return true;
             return false;
         }
 

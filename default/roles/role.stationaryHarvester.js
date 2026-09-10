@@ -37,17 +37,16 @@ class RoleStationaryHarvester {
             // tow/wait at range 1 until the spot frees. Eliminates harvest gaps on owned sources.
             // Overlap is brief and only at replacement time; net win for sustained energy gain.
         }
+        if (this.creep.memory.other.source) this.creep.memory.assignment = this.creep.memory.other.source;
     }
 
     harvestSource() {
         let source = Game.getObjectById(this.creep.memory.other.source);
         if (!source) return;
-        // If in place harvest
+        if (this.creep.memory.other.source) this.creep.memory.assignment = this.creep.memory.other.source;
         if (this.creep.memory.onContainer) {
-            // Resolve container once per tick — passed to depositEnergy to avoid repeated getObjectById
             let container = global.resolveSourceContainer(source, this.room);
             let containerSite = !container ? global.resolveSourceContainerSite(source) : null;
-            // Build container site if missing
             if (!container && !containerSite && this.creep.store[RESOURCE_ENERGY]) {
                 const site = this.creep.pos.lookFor(LOOK_CONSTRUCTION_SITES)[0];
                 if (site && site.structureType === STRUCTURE_CONTAINER) {
@@ -57,45 +56,31 @@ class RoleStationaryHarvester {
                     return;
                 }
             }
-            // If we have a link and container, withdraw overflow from container this tick
-            if (this.creep.store.getFreeCapacity() && source.memory.link
-                && source.memory.link !== this.room.memory.hubLink
-                && container && container.store[RESOURCE_ENERGY] > 0) {
-                return this.creep.withdraw(container, RESOURCE_ENERGY);
+
+            if (!source.energy) {
+                onSourceEmpty(this.creep, source, container);
+                return;
             }
-            // Deposit energy this tick if container is full or we're carrying surplus
-            if (this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+
+            const harvestResult = this.creep.harvest(source);
+            if (harvestResult === ERR_NOT_IN_RANGE) {
+                if (container || containerSite) this.creep.shibMove(container || containerSite, {range: 0});
+                this.creep.memory.onContainer = undefined;
+                return;
+            }
+            if (harvestResult === OK) {
+                this.creep.memory.other.stationary = true;
+                bindSourceLink(this.creep, source, container);
+            }
+
+            // Transfer/withdraw is a different intent — never skip harvest for it.
+            if (this.creep.store[RESOURCE_ENERGY]) {
                 depositEnergy(this.creep, source, container);
-            }
-            switch (this.creep.harvest(source)) {
-                case ERR_NOT_IN_RANGE:
-                    if (container || containerSite) this.creep.shibMove(container || containerSite, {range: 0});
-                    this.creep.memory.onContainer = undefined;
-                    break;
-                case ERR_NOT_ENOUGH_RESOURCES:
-                    if (container) this.creep.repair(container);
-                    if (container && !container.store[RESOURCE_ENERGY]) this.creep.idleFor(source.ticksToRegeneration + 1);
-                    break;
-                case OK:
-                    // Set stationary so we don't get bumped
-                    this.creep.memory.other.stationary = true;
-                    // Check for a link every 50 ticks if we don't have one, or if we haven't checked yet
-                    if (container && (!this.creep.memory.other.linkCheck || Game.time % 50 === 0)) {
-                        let link = Game.getObjectById(source.memory.link);
-                        if (link && !isSourceDumpLink(this.room, source, link, container)) {
-                            link = undefined;
-                            source.memory.link = undefined;
-                            this.creep.memory.link = undefined;
-                        }
-                        if (!link) {
-                            link = _.find(container.pos.findInRange(this.room.links, 1),
-                                (s) => isSourceDumpLink(this.room, source, s, container));
-                            if (link) source.memory.link = link.id;
-                        }
-                        if (link) this.creep.memory.link = link.id;
-                        this.creep.memory.other.linkCheck = true;
-                    }
-                    break;
+            } else if (this.creep.store.getFreeCapacity() && container && container.store[RESOURCE_ENERGY] > 0) {
+                const link = sourceDumpLink(this.room, source, container);
+                if (link && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+                    this.creep.withdraw(container, RESOURCE_ENERGY);
+                }
             }
         } else {
             let container = global.resolveSourceContainer(source, this.room);
@@ -106,71 +91,90 @@ class RoleStationaryHarvester {
                     return this.creep.shibMove(standPos, {range: 0});
                 }
                 this.creep.memory.onContainer = true;
-            } else if (this.creep.pos.getRangeTo(source) > 1) {
-                return this.creep.shibMove(source);
-            } else {
-                this.creep.memory.onContainer = true;
+                return this.harvestSource();
             }
+            if (this.creep.pos.getRangeTo(source) > 1) {
+                return this.creep.shibMove(source);
+            }
+            this.creep.memory.onContainer = true;
+            return this.harvestSource();
         }
     }
 }
 
-// Deposit harvested energy into link → container → repair in priority order
+function sourceDumpLink(room, source, container) {
+    const linkId = source && source.memory && source.memory.link;
+    if (!linkId || linkId === room.memory.hubLink) return null;
+    const link = Game.getObjectById(linkId);
+    if (link && isSourceDumpLink(room, source, link, container)) return link;
+    return null;
+}
+
+function bindSourceLink(creep, source, container) {
+    if (!container || (creep.memory.other.linkCheck && Game.time % 50 !== 0)) return;
+    let link = Game.getObjectById(source.memory.link);
+    if (link && !isSourceDumpLink(creep.room, source, link, container)) {
+        link = undefined;
+        source.memory.link = undefined;
+        creep.memory.link = undefined;
+    }
+    if (!link) {
+        link = _.find(container.pos.findInRange(creep.room.links, 1),
+            (s) => isSourceDumpLink(creep.room, source, s, container));
+        if (link) source.memory.link = link.id;
+    }
+    if (link) creep.memory.link = link.id;
+    creep.memory.other.linkCheck = true;
+}
+
+function onSourceEmpty(creep, source, container) {
+    const damaged = container && container.hits && container.hits < container.hitsMax;
+    if (damaged) {
+        if (creep.store[RESOURCE_ENERGY]) {
+            creep.repair(container);
+            return;
+        }
+        if (container.store && container.store[RESOURCE_ENERGY]) {
+            creep.withdraw(container, RESOURCE_ENERGY);
+            return;
+        }
+    }
+    if (creep.store[RESOURCE_ENERGY]) {
+        depositEnergy(creep, source, container);
+        return;
+    }
+    const link = sourceDumpLink(creep.room, source, container);
+    if (link && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+        && container && container.store && container.store[RESOURCE_ENERGY] > 0) {
+        creep.withdraw(container, RESOURCE_ENERGY);
+        return;
+    }
+    if (!damaged) {
+        const regen = source.ticksToRegeneration || 1;
+        creep.idleFor(Math.max(1, regen));
+    }
+}
+
+// Dump carry into link / adjacent spawn / container. No work intent — harvest owns that.
 function depositEnergy(creep, source, container) {
     if (!source) source = Game.getObjectById(creep.memory.other && creep.memory.other.source);
     if (!container && source) container = global.resolveSourceContainer(source, creep.room);
 
-    // Fill nearby extensions (Critical)
     if (extensionFiller(creep)) return;
 
-    // Prioritize a real source/controller dump link. Hub is a receiver — dumping
-    // into it fills the inbound slot and blocks the other source's link.
-    const linkId = source.memory.link;
-    if (linkId && linkId !== creep.room.memory.hubLink) {
-        const link = Game.getObjectById(linkId);
-        if (link && isSourceDumpLink(creep.room, source, link, container)
-            && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-            source.memory.link = link.id;
-            creep.transfer(link, RESOURCE_ENERGY);
-            if (container && container.store[RESOURCE_ENERGY] > 0) creep.withdraw(container, RESOURCE_ENERGY);
-            return;
-        }
-    } else if (linkId) {
+    const link = sourceDumpLink(creep.room, source, container);
+    if (link && link.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+        if (source.memory) source.memory.link = link.id;
+        creep.transfer(link, RESOURCE_ENERGY);
+        return;
+    }
+    if (source && source.memory && source.memory.link && !link) {
         source.memory.link = undefined;
         creep.memory.link = undefined;
     }
 
-    // Fallback to Container
-    if (container && container.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+    if (container && container.store && container.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
         creep.transfer(container, RESOURCE_ENERGY);
-        return;
-    }
-
-    // If structures are full, use energy for maintenance (prevent decay/waste)
-    // Container repair/build is always critical (harvester lives on it, positioning + no dropped energy).
-    // Rampart repair is the "oversize benefit" for defense, but only do it when the room is healthy
-    // (energyState or spare) so we don't divert scarce mined energy from stockpile in lean times.
-    // This directly helps the "struggling to stockpile" goal while still maintaining the container.
-    if (creep.store[RESOURCE_ENERGY] > 0) {
-        if (!container) {
-            const containerSite = global.resolveSourceContainerSite(source)
-                || creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {filter: (s) => s.structureType === STRUCTURE_CONTAINER})[0];
-            if (containerSite) return creep.build(containerSite);
-        } else if (container && container.hits < container.hitsMax) {
-            return creep.repair(container);
-        }
-        const roomHealthy = creep.room.energyState >= 2 || (creep.room.energyInfo && (creep.room.energyInfo.spareIncome || 0) > 2);
-        if (roomHealthy) {
-            const rampart = creep.pos.checkForRampart();
-            if (rampart && rampart.hits < rampart.hitsMax) {
-                return creep.repair(rampart);
-            }
-        }
-    }
-
-    if (!container && !linkId) {
-        delete creep.memory.containerID;
-        delete creep.memory.linkID;
     }
 }
 
