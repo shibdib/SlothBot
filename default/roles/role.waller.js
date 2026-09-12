@@ -43,6 +43,21 @@ function isQuadTripwire(room, pos) {
     return true;
 }
 
+function barrierHitsTarget(room, maintenance) {
+    const rcl = roomRcl(room);
+    const energyState = spawnEnergyState(room) || 0;
+    if (rcl >= 8) {
+        if (maintenance) return RAMPART_HITS_MAX[rcl] || 300000000;
+        if (energyState >= 3) return 10000000;
+        if (energyState >= 2) return 2000000;
+        return 200000;
+    }
+    let targetLimit = 100000;
+    if (rcl >= 6) targetLimit = 5000000;
+    if (energyState < 2) targetLimit = Math.min(targetLimit, 200000);
+    return targetLimit;
+}
+
 function getBarrierRepairList(room, maintenance) {
     const key = `${room.name}|${maintenance ? 1 : 0}`;
     if (barrierListTick !== Game.time) {
@@ -53,12 +68,7 @@ function getBarrierRepairList(room, maintenance) {
 
     const quadTrapWalls = new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`));
     const combatFaces = new Set((room.memory.quadTrapCombatFaces || []).map(p => `${p.x},${p.y}`));
-    let targetLimit = 100000;
-    const rcl = roomRcl(room);
-    if (rcl >= 8) targetLimit = 10000000;
-    else if (rcl >= 6) targetLimit = 5000000;
-    if (spawnEnergyState(room) < 2) targetLimit = Math.min(targetLimit, 200000);
-    if (maintenance && rcl >= 8) targetLimit = RAMPART_HITS_MAX[rcl] || targetLimit;
+    const targetLimit = barrierHitsTarget(room, maintenance);
 
     barrierListCache[key] = room.barriers.filter((s) => {
         const trapKey = `${s.pos.x},${s.pos.y}`;
@@ -339,13 +349,7 @@ class RoleWaller {
     }
 
     barrierRepairCap(maintenance = false) {
-        const rcl = roomRcl(this.room);
-        let targetLimit = 100000;
-        if (rcl >= 8) targetLimit = 10000000;
-        else if (rcl >= 6) targetLimit = 5000000;
-        if (spawnEnergyState(this.room) < 2) targetLimit = Math.min(targetLimit, 200000);
-        if (maintenance && rcl >= 8) targetLimit = RAMPART_HITS_MAX[rcl] || targetLimit;
-        return targetLimit;
+        return barrierHitsTarget(this.room, maintenance);
     }
 
     barriersNeedingRepair(maintenance = false) {

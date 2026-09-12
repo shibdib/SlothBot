@@ -284,6 +284,31 @@ function invalidateRoomConstructionSiteCache(room) {
     }
 }
 
+/**
+ * After ConstructionSite.remove(), Game.constructionSites may still list the
+ * site until end of tick (memhack / private servers). A rescan then leaves
+ * the budget at cap, the follow-up create returns ERR_FULL, and planned
+ * roads/ramparts re-queue — reclaim-loop. Credit any removals the rescan
+ * did not observe.
+ * @param {Room} room
+ * @param {number} removed
+ */
+function creditRemovedConstructionSites(room, removed) {
+    if (!room || removed <= 0) return;
+    const name = room.name;
+    rebuildSiteCountCacheIfNeeded();
+    const before = siteCountByRoom[name] || 0;
+    invalidateRoomConstructionSiteCache(room);
+    rebuildSiteCountCacheIfNeeded();
+    const after = siteCountByRoom[name] || 0;
+    const shortfall = removed - Math.max(0, before - after);
+    if (shortfall <= 0) return;
+    const drop = Math.min(shortfall, after);
+    if (drop <= 0) return;
+    siteCountByRoom[name] = after - drop;
+    siteCountGlobal = Math.max(0, siteCountGlobal - drop);
+}
+
 const SITE_PLACEMENT_LOG_COOLDOWN = 100;
 const sitePlacementLogThrottle = Object.create(null);
 
@@ -1405,6 +1430,8 @@ module.exports = {
     canPlaceConstructionSite,
 
     invalidateRoomConstructionSiteCache,
+
+    creditRemovedConstructionSites,
 
     invalidateSiteCountCache,
 

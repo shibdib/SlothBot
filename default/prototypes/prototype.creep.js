@@ -97,10 +97,14 @@ function wallRepairCap(room, structure) {
     let entry = repairCapCache[room.name];
     if (!entry) {
         const rcl = room.controller && room.controller.level != null ? room.controller.level : room.level;
+        const energyState = room.energyState || 0;
         let targetLimit = 100000;
-        if (rcl >= 8) targetLimit = 10000000;
-        else if (rcl >= 6) targetLimit = 5000000;
-        if (room.energyState === 1) targetLimit = Math.min(targetLimit, 200000);
+        if (rcl >= 8) {
+            targetLimit = energyState >= 3 ? 10000000 : (energyState >= 2 ? 2000000 : 200000);
+        } else if (rcl >= 6) {
+            targetLimit = 5000000;
+        }
+        if (rcl < 8 && energyState < 2) targetLimit = Math.min(targetLimit, 200000);
         entry = {
             targetLimit,
             quadTrap: new Set((room.memory.quadTrapWalls || []).map(p => `${p.x},${p.y}`)),
@@ -1428,6 +1432,16 @@ function wavePooledAmount(creep, perBody, resource) {
 // One lab per boost resource. Hub labs (itemNeeded) stay on production.
 // Shared with spawnBuild.preReserveBoostLab so spawn, wave staging, and live
 // claims all land on the same lab for a given mineral.
+function roomHasActiveLab(room) {
+    const labs = room && room.labs;
+    if (!labs || !labs.length) return false;
+    for (let i = 0; i < labs.length; i++) {
+        const lab = labs[i];
+        if (lab && (!lab.isActive || lab.isActive())) return true;
+    }
+    return false;
+}
+
 global.pickBoostLab = function (room, boostNeeded, excludeIds) {
     if (!room || !boostNeeded) return null;
     const structMem = room.memory._structureMemory;
@@ -1661,7 +1675,13 @@ function applyBoost(creep, entryKey) {
         const reserved = new Set(creep.memory.boosts.labs ? Object.values(creep.memory.boosts.labs) : []);
         lab = claimBoostLab(creep, boostNeeded, amountNeeded, reserved);
         if (!lab) {
-            return !isWaitForWave(creep);
+            if (isWaitForWave(creep)) return false;
+            if (!creep.memory.boostWaitTick) creep.memory.boostWaitTick = Game.time;
+            if (Game.time - creep.memory.boostWaitTick >= SOLO_BOOST_WAIT_TICKS) {
+                delete creep.memory.boosts.requestedBoosts[entryKey];
+                if (creep.memory.boosts.labs) delete creep.memory.boosts.labs[entryKey];
+            }
+            return true;
         }
         (creep.memory.boosts.labs = creep.memory.boosts.labs || {})[entryKey] = lab.id;
     }
@@ -1701,8 +1721,10 @@ function applyBoost(creep, entryKey) {
                         return creep.shibMove(spawn, {range: 1, forceSolo: true});
                     }
                 }
+                return true;
             }
-            return true;
+            creep.say(ICONS.boost);
+            return creep.shibMove(lab, {forceSolo: true});
         }
         if (!creep.pos.isNearTo(lab)) {
             creep.say(ICONS.boost);
@@ -1885,6 +1907,17 @@ Creep.prototype.tryToBoost = function (bodyPart = []) {
     if (this.ticksToLive < BOOST_TTL_FLOOR && !isWaitForWave(this)) {
         finishBoosting(this);
         this.memory.needsRenewal = undefined;
+        return false;
+    }
+
+    // Opportunistic misc.boosts still plans from store with no labs in room.
+    if (!roomHasActiveLab(this.room)) {
+        if (isWaitForWave(this)) return false;
+        if (this.memory.neededBoosts && !this.memory.hasBoosted && isSiegeBoostOp(this)) {
+            this.recycleCreep();
+            return true;
+        }
+        finishBoosting(this);
         return false;
     }
 

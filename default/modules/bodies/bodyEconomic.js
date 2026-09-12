@@ -113,7 +113,7 @@ function buildUpgrader(gen) {
     const hasContainer = !!global.resolveControllerContainer(gen.room);
     let work, carry, move, halfMove;
 
-    if (gen.room.controller.level === 8 && gen.room.energyState < 2) {
+    if (gen.room.controller.level === 8) {
         work = 1;
         carry = 1;
         move = 0;
@@ -151,32 +151,11 @@ function buildUpgrader(gen) {
                 }
                 work = Math.min(affordableWork, feedCap);
             }
-            if (gen.room.controller.level >= 8) {
-                if (!gen.room.energyState) {
-                    work *= 0.15;
-                } else if (gen.room.energyState < 3) {
-                    work *= gen.flowScale(0.75, 12);
-                } else {
-                    work *= gen.flowScale(0.5, 10);
-                }
-                const upgraderCnt = (gen.room.energyDiag && gen.room.energyDiag.upgraderCnt) || 0;
-                if (upgraderCnt <= 1 && gen.room.energyState < 3 && gen.upgraderDuty < 0.7) {
-                    const dutyScale = Math.max(0.5, gen.upgraderDuty + 0.15);
-                    work *= dutyScale;
-                }
-                if (gen.room.energyState >= 2) {
-                    const stockpileCap = gen.room.energyState >= 3 ? 5 : 10;
-                    const spareCap = gen.spareIncome > 0 ? Math.max(1, Math.floor(gen.spareIncome / 3)) : 1;
-                    work = Math.min(work, stockpileCap, spareCap);
-                }
-                work = Math.min(work, 15);
-            } else {
-                // RCL push: stored energy is upgrade fuel. Only shrink on a
-                // true pre-storage famine (empty spawn, no stock).
-                const stored = (gen.room.rawEnergy || 0) > 1000;
-                if (!gen.room.energyState && !stored) work *= 0.25;
-                work = Math.min(affordableWork, work);
-            }
+            // RCL push: stored energy is upgrade fuel. Only shrink on a
+            // true pre-storage famine (empty spawn, no stock).
+            const stored = (gen.room.rawEnergy || 0) > 1000;
+            if (!gen.room.energyState && !stored) work *= 0.25;
+            work = Math.min(affordableWork, work);
         }
 
         work = Math.max(Math.min(work, 49), 1);

@@ -160,9 +160,7 @@ class Colony {
 
         if (cpuUsageArray.length === 25) {
             const avgCpu = average(cpuUsageArray);
-            let roomCount = MY_ROOMS.length || 1;
-            // If we're RCL8 and have energy, make this more likely
-            if (this.room.level === 8 && this.energyState) roomCount *= 1.5
+            const roomCount = MY_ROOMS.length || 1;
             const limit = Game.cpu.limit || 20;
             // Colony used is ~10/room; military + planner + world add ~30–50
             // on the tick. 0.95 made rooms look under-share while the empire

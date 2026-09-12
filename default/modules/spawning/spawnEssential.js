@@ -59,8 +59,8 @@ function resolveDroneCount(room, ctx) {
 
     let count;
     if (room.level >= 7) {
+        if (!hasWork) return 0;
         if (heavyRoadRepair && energyState >= 1 && flowHealthy) return 2;
-        if (!hasWork && (energyState < 2 || spareIncome < 0)) return 0;
         return 1;
     } else if (earlyRush) {
         count = hasWork ? (hasCriticalBuilds ? 4 : 3) : 3;
@@ -174,7 +174,6 @@ function essentialCreepQueue(room) {
         if (bootstrap) wallerCount = 1;
         else if (room.controller.level >= 8) wallerCount = 1;
         if (energyState >= 1 && bootstrap && (barrierSites >= 5 || missingSeal)) wallerCount = 2;
-        if (energyState >= 2 && room.controller.level >= 8 && barrierSites >= 8) wallerCount = 3;
         if (room.controller.level < 8 && spareIncome < 10) {
             wallerCount = Math.min(wallerCount, 1);
         }

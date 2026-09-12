@@ -112,15 +112,14 @@ function cpuOverageCount(room) {
 
 /**
  * Shrink remote staff as cpuOverage climbs, before remotePenalty/noRemote.
- * 8 → 4 sources, 16 → 3, 24 → 2, 32 → 1.
+ * Hold 6 until 16; then 4 → 2 → 1.
  */
 function applyCpuOverageCap(room, baseCap) {
     const overage = cpuOverageCount(room);
     let cap = baseCap;
     if (overage >= 32) cap = 1;
     else if (overage >= 24) cap = 2;
-    else if (overage >= 16) cap = 3;
-    else if (overage >= 8) cap = 4;
+    else if (overage >= 16) cap = 4;
     return Math.min(baseCap, cap);
 }
 
