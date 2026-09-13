@@ -91,6 +91,7 @@ function manageAuxiliary() {
                 if (!INTEL[key] || !INTEL[key].power || INTEL[key].power <= Game.time) {
                     target.complete = true;
                     target.completeTick = Game.time;
+                    delete Memory.auxiliaryTargets[key];
                     continue;
                 }
                 if (INTEL[key].power - 100 < Game.time && !teamHere) {

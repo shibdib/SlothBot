@@ -186,6 +186,13 @@ function freeSiteSlotsForLabs(room, want, avoidPos) {
             .sort((a, b) => a.progress - b.progress);
         removeSites(low);
     }
+    // Dynamic RCL6: 5 extension sites fill the cap; labs never land without this.
+    if (freed < want) {
+        const ext = sites
+            .filter(s => s.structureType === STRUCTURE_EXTENSION && !isDest(s))
+            .sort((a, b) => (a.progress || 0) - (b.progress || 0));
+        removeSites(ext);
+    }
 
     if (freed) {
         markFreedSiteSlots(room);
@@ -778,8 +785,18 @@ function buildSourceLink(room, source) {
         return {ok: false, reason: 'site', busy: true};
     }
 
-    if (room.hub && sourceContainer.pos.getRangeTo(room.hub) <= 8) {
-        return {ok: false, reason: 'near-hub'};
+    // Walk steps, not Chebyshev: a source 6 tiles across walls is still a shuttle slog.
+    if (room.hub) {
+        let walk = Infinity;
+        try {
+            const path = sourceContainer.pos.findPathTo(room.hub, {ignoreCreeps: true, maxRooms: 1});
+            if (path && path.length) walk = path.length;
+        } catch (e) {
+            walk = sourceContainer.pos.getRangeTo(room.hub);
+        }
+        if (walk <= 8) {
+            return {ok: false, reason: 'near-hub'};
+        }
     }
 
     const around = adjacentPositions(sourceContainer.pos);
@@ -1807,11 +1824,6 @@ function placeLabs(room) {
         const structure = labTemplate[i];
         const pos = new RoomPosition(labHub.x + structure.x, labHub.y + structure.y, room.name);
         if (pos.x < 1 || pos.x > 48 || pos.y < 1 || pos.y > 48) continue;
-        // V1: partial && impassible && !builtWall → skip
-        if (partial && pos.checkForImpassible && pos.checkForImpassible()
-            && !(pos.checkForBuiltWall && pos.checkForBuiltWall())) {
-            continue;
-        }
         const wall = pos.checkForBuiltWall && pos.checkForBuiltWall();
         if (wall && !isPlannerShadow(room)) {
             try {
@@ -1832,7 +1844,8 @@ function placeLabs(room) {
             if (!clearedBlocker
                 && (site.structureType === STRUCTURE_RAMPART
                     || site.structureType === STRUCTURE_WALL
-                    || site.structureType === STRUCTURE_ROAD)) {
+                    || site.structureType === STRUCTURE_ROAD
+                    || site.structureType === STRUCTURE_EXTENSION)) {
                 if (!isPlannerShadow(room)) {
                     try {
                         if (site.remove() === OK) {
@@ -1851,10 +1864,28 @@ function placeLabs(room) {
         for (let s = 0; s < structs.length; s++) {
             const t = structs[s].structureType;
             if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
+            if ((t === STRUCTURE_WALL || t === STRUCTURE_EXTENSION) && !isPlannerShadow(room)) {
+                try {
+                    structs[s].destroy();
+                } catch (e) { /* ignore */
+                }
+                continue;
+            }
             blocked = true;
             break;
         }
         if (blocked) continue;
+        const after = pos.lookFor(LOOK_STRUCTURES);
+        for (let s = 0; s < after.length; s++) {
+            const t = after[s].structureType;
+            if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
+            blocked = true;
+            break;
+        }
+        if (blocked) continue;
+        // Terrain only — checkForImpassible caches a just-destroyed extension
+        // for up to 10 ticks and would skip the tile we just freed.
+        if (partial && pos.checkForWall && pos.checkForWall()) continue;
 
         const res = tryPlace(room, 'labs', pos, STRUCTURE_LAB);
         if (res.ok) {
@@ -1867,6 +1898,32 @@ function placeLabs(room) {
             || res.code === FailureCodes.SITE_BUDGET_GLOBAL
             || res.code === FailureCodes.BUDGET_RESERVED_FOR_HIGHER) {
             break;
+        }
+    }
+    let budgetFail = false;
+    for (let i = 0; i < details.length; i++) {
+        const code = details[i].code;
+        if (code === FailureCodes.SITE_BUDGET_ROOM
+            || code === FailureCodes.SITE_BUDGET_GLOBAL
+            || code === FailureCodes.BUDGET_RESERVED_FOR_HIGHER) {
+            budgetFail = true;
+            break;
+        }
+    }
+    // Unclaim/reclaim leaves a committed hub whose stamp is hard-blocked.
+    // Do not drop after a same-tick site reclaim — that tile is free next visit.
+    if (!budgetFail && !clearedBlocker) {
+        try {
+            require('planAnchors').clearLabHubAnchor(room);
+        } catch (e) {
+            if (room.memory) {
+                delete room.memory.labHub;
+                delete room.memory.labHubPartial;
+                delete room.memory.labHubSearchFailed;
+            }
+        }
+        if (typeof log !== 'undefined' && log.a) {
+            log.a(room.name + ' lab hub has no placeable tiles; will re-search', 'PLANNER');
         }
     }
     return {placed: 0, details, reason: 'no-tile'};

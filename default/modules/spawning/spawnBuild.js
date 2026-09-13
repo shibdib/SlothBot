@@ -261,8 +261,10 @@ function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
         if (fallbackRoles && !WAVE_FALLBACK_ROLES.has(item.role)) continue;
         if (only && item.cacheKey !== only.cacheKey) continue;
         if (excludeKey && item.wave && item.cacheKey === excludeKey) continue;
-        if (item.role === 'hubManager' && opts.spawn && opts.room
-            && !hubSlotSpawnDirection(opts.spawn, opts.room)) continue;
+        if (item.role === 'hubManager' && opts.room) {
+            if (getCreepCount(opts.room, 'hubManager')) continue;
+            if (opts.spawn && !hubSlotSpawnDirection(opts.spawn, opts.room)) continue;
+        }
         // Stale shuttle queue entries outlive dead harvesters, and a cheap
         // shuttle body wins the energy skip over a 5W harvester.
         if (item.role === 'shuttle' && opts.room) {

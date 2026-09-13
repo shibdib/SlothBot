@@ -123,8 +123,10 @@ function queueCreepIfNeeded(spawnInfo) {
     }
     const global = (!spawnInfo.room && spawnInfo.destination) || spawnInfo.global;
 
-    // 0-MOVE hubManager occupies the hub slot; a replacement cannot land
-    // until it dies. Renew instead of overlapping.
+    // 0-MOVE hubManager occupies the hub slot. Spawn only when none exist;
+    // low TTL is not a replacement signal (renew in place).
+    if (spawnInfo.role === 'hubManager' && count >= spawnInfo.numberNeeded) return false;
+
     const expireReplace = spawnInfo.role !== 'hubManager'
         && count <= spawnInfo.numberNeeded
         && creepExpiringSoon(spawnInfo.room, spawnInfo.role, spawnInfo.destination, spawnInfo.operation, spawnInfo.colony, assignment, waveWait);
@@ -354,6 +356,10 @@ function prepareQueueItems(merged, room) {
                 continue;
             }
         } else {
+            if (creep.role === 'hubManager' && getCreepCount(room, 'hubManager') > 0) {
+                clearQueueEntry(creep.cacheKey || key);
+                continue;
+            }
             creep.remaining = 1;
             creep.wave = false;
         }

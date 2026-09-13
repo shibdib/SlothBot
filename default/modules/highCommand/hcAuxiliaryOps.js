@@ -15,8 +15,8 @@ const POWER_MAX_RANGE = 12;
 const POWER_MIN_AMOUNT = 1000;
 const POWER_MIN_SPACE = 1;
 const POWER_TRAVEL_PER_ROOM = 50;
-const POWER_MAX_ATTACKERS = 2;
-const POWER_MAX_OPS = 3;
+const POWER_MAX_ATTACKERS = 3;
+const POWER_MAX_OPS = 2;
 const POWER_HAULER_CARRY = 1250;
 const POWER_HEALER_COST = 6000;
 // Unboosted 25 ATTACK. Attackers are not queued with boosts; they only

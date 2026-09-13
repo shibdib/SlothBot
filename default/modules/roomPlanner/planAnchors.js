@@ -744,6 +744,61 @@ function ensureCoreHub(room, options) {
 // Lab hub search
 // ---------------------------------------------------------------------------
 
+function labStampLiveCount(room, hub) {
+    if (!room || !hub || !labTemplate) return 0;
+    const keys = new Set();
+    for (let i = 0; i < labTemplate.length; i++) {
+        keys.add((hub.x + labTemplate[i].x) + ',' + (hub.y + labTemplate[i].y));
+    }
+    let n = 0;
+    const labs = room.labs || [];
+    for (let i = 0; i < labs.length; i++) {
+        const p = labs[i] && labs[i].pos;
+        if (p && keys.has(p.x + ',' + p.y)) n++;
+    }
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const s = sites[i];
+        if (s && s.structureType === STRUCTURE_LAB && keys.has(s.pos.x + ',' + s.pos.y)) n++;
+    }
+    return n;
+}
+
+function isLabStampTileFreeOrReclaimable(room, x, y) {
+    if (x < 1 || x > 48 || y < 1 || y > 48) return false;
+    const terrain = Game.map.getRoomTerrain(room.name);
+    if (terrain.get(x, y) === TERRAIN_MASK_WALL) return false;
+    const pos = new RoomPosition(x, y, room.name);
+    const site = pos.checkForConstructionSites && pos.checkForConstructionSites();
+    if (site) {
+        const t = site.structureType;
+        return t === STRUCTURE_LAB || t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART
+            || t === STRUCTURE_WALL || t === STRUCTURE_EXTENSION;
+    }
+    const structs = pos.lookFor(LOOK_STRUCTURES);
+    for (let i = 0; i < structs.length; i++) {
+        const t = structs[i].structureType;
+        if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
+        if (t === STRUCTURE_WALL || t === STRUCTURE_EXTENSION) continue;
+        return false;
+    }
+    return true;
+}
+
+/** Keep a committed hub only if labs/sites exist on it or enough tiles can still take a lab. */
+function labStampStillUsable(room, hub, partial) {
+    if (!room || !hub || !labTemplate) return false;
+    if (labStampLiveCount(room, hub) > 0) return true;
+    let free = 0;
+    for (let i = 0; i < labTemplate.length; i++) {
+        if (isLabStampTileFreeOrReclaimable(room, hub.x + labTemplate[i].x, hub.y + labTemplate[i].y)) {
+            free++;
+        }
+    }
+    if (free >= 3) return true;
+    return !!(partial && free >= 2);
+}
+
 function recoverLabHubFromLabs(room) {
     const active = (room.labs || []).filter(l => !l.isActive || l.isActive());
     for (let i = 0; i < active.length; i++) {
@@ -1078,13 +1133,18 @@ function ensureLabHub(room) {
     }
     const existing = resolveLabHub(room);
     if (existing.hub) {
-        // C5: no legacy hydrate — plan/read path is enough.
-        return {
-            ok: true,
-            lab: existing.hub,
-            partial: existing.partial,
-            reason: 'existing',
-        };
+        if (labStampStillUsable(room, existing.hub, existing.partial)) {
+            return {
+                ok: true,
+                lab: existing.hub,
+                partial: existing.partial,
+                reason: 'existing',
+            };
+        }
+        if (typeof log !== 'undefined' && log.a) {
+            log.a(room.name + ' dropping stale lab hub at (' + existing.hub.x + ',' + existing.hub.y + ')', 'PLANNER');
+        }
+        clearLabHubAnchor(room);
     }
 
     const result = findLabHub(room);
@@ -2580,6 +2640,7 @@ module.exports = {
     commitCoreHub,
     commitTowerHubs,
     commitLabHub,
+    clearLabHubAnchor,
     resolveHub,
     resolveTowerHubs,
     resolveLabHub,

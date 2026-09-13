@@ -208,11 +208,13 @@ function essentialCreepQueue(room) {
     if (room.storage || protoStorage) {
         recycleHubSlotIntruder(room);
         if (room.controller && room.controller.level >= 8) relocateHubObserver(room);
-        if (isHubManagerSlotReady(room) && !spawnReboot) {
+        // 0-MOVE occupies the hub; do not queue a replacement while any
+        // hubManager exists (including low TTL). Renew in place instead.
+        if (isHubManagerSlotReady(room) && !spawnReboot && !getCreepCount(room, 'hubManager')) {
             queueCreepIfNeeded({
                 room, role: 'hubManager', priority: PRIORITIES.hubManager,
                 numberNeeded: 1,
-                rebootCondition: !getCreepCount(room, 'hubManager')
+                rebootCondition: true
             });
         }
         const haulerAmount = 1;

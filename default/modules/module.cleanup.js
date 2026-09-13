@@ -151,6 +151,17 @@ function pruneRoomMemoryFat() {
             if (mem[ROOM_HEAP_STRIP_KEYS[i]] !== undefined) delete mem[ROOM_HEAP_STRIP_KEYS[i]];
         }
         prunePackedDualWrite(mem);
+        // Lab stamp is room-state specific. Keep bunkerHub/plan for a later
+        // reclaim, but drop the lab hub so placeLabs does not target a dead stamp.
+        if (!owned[name]) {
+            if (mem.plan && mem.plan.anchors) {
+                mem.plan.anchors.lab = null;
+                mem.plan.anchors.labPartial = false;
+            }
+            delete mem.labHub;
+            delete mem.labHubPartial;
+            delete mem.labHubSearchFailed;
+        }
         if (owned[name] || name === claimRoom) continue;
         if (mem.plan || mem.bunkerHub) continue;
         delete Memory.rooms[name];

@@ -11,7 +11,7 @@
 
 const {extensionPositionCache, dynamicLayoutCache} = require('planState');
 
-const {bunkerTemplate, coreTemplate, reservedHubTileKeys} = require('planTemplates');
+const {bunkerTemplate, coreTemplate, reservedHubTileKeys, labTemplate} = require('planTemplates');
 
 const {
     roomConstructionSiteBudget,
@@ -37,7 +37,8 @@ const EXTENSION_MAX_WRAP = 4;
 // v6: per-anchor clearances + spawn apron.
 // v7: hub-relative checkerboard (diagonals from hub) + reserved specials ring.
 // v8: walk-distance scoring, wrap prune, queue growth (no Chebyshev wall jump).
-const EXTENSION_LAYOUT_VERSION = 8;
+// v9: exclude committed lab-stamp tiles so the flood cannot cover the hub.
+const EXTENSION_LAYOUT_VERSION = 9;
 
 /** C4: plan.anchors.hub first, then room.hub / legacy bunkerHub. */
 function resolveHubXY(room) {
@@ -149,6 +150,27 @@ function addChebyshevRing(excluded, cx, cy, radius) {
     }
 }
 
+function labStampKeys(room) {
+    if (!room) return new Set();
+    if (room._labStampKeysTick === Game.time && room._labStampKeys) return room._labStampKeys;
+    const keys = new Set();
+    let hub;
+    try {
+        const res = require('planDoc').getLabHub(room);
+        hub = res && res.hub;
+    } catch (e) {
+        hub = room.memory && room.memory.labHub;
+    }
+    if (hub && labTemplate) {
+        for (let i = 0; i < labTemplate.length; i++) {
+            keys.add(`${hub.x + labTemplate[i].x},${hub.y + labTemplate[i].y}`);
+        }
+    }
+    room._labStampKeys = keys;
+    room._labStampKeysTick = Game.time;
+    return keys;
+}
+
 function buildLayoutExcluded(room, hubOverride) {
     const hub = hubOverride || resolveHubXY(room);
     if (!hub || hub.x === undefined) return new Set();
@@ -188,6 +210,8 @@ function buildLayoutExcluded(room, hubOverride) {
             }
         } catch (e) { /* ignore */
         }
+        const labKeys = labStampKeys(room);
+        for (const k of labKeys) excluded.add(k);
     }
     return excluded;
 }
@@ -243,6 +267,7 @@ function isWithinAnchorClearance(room, pos) {
 
 function getExtensionClearanceViolation(room, pos, excluded, options) {
     if (!excluded) excluded = buildLayoutExcluded(room);
+    if (labStampKeys(room).has(`${pos.x},${pos.y}`)) return 'labStamp';
     if (excluded.has(`${pos.x},${pos.y}`)) return 'bunkerCore';
     if (!room.memory || !room.memory.dynamicLayout) return null;
     const exitClearance = options && options.exitClearance != null
@@ -297,7 +322,22 @@ function getExtensionBatchMax(room) {
 }
 
 function getExtensionPlacementLimit(room) {
-    return Math.min(getExtensionDeficit(room), roomConstructionSiteBudget(room), getExtensionBatchMax(room));
+    let budget = roomConstructionSiteBudget(room);
+    // Leave one room slot for labs once they unlock — otherwise 5 extension
+    // sites fill the shardX cap and placeLabs never gets a turn.
+    if (budget > 0 && room.controller && room.controller.level >= 6 && room.storage) {
+        const labCap = (typeof CONTROLLER_STRUCTURES !== 'undefined'
+            && CONTROLLER_STRUCTURES[STRUCTURE_LAB]
+            && CONTROLLER_STRUCTURES[STRUCTURE_LAB][room.controller.level]) || 0;
+        const builtLabs = room.labs ? room.labs.length : 0;
+        let labSites = 0;
+        const sites = room.constructionSites || [];
+        for (let i = 0; i < sites.length; i++) {
+            if (sites[i].structureType === STRUCTURE_LAB) labSites++;
+        }
+        if (builtLabs + labSites < labCap) budget = Math.max(0, budget - 1);
+    }
+    return Math.min(getExtensionDeficit(room), budget, getExtensionBatchMax(room));
 }
 
 function clearDynamicLayoutMemory(room) {
