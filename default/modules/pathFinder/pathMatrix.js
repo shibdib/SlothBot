@@ -169,6 +169,9 @@ function getBaseMatrix(roomName, creep, options) {
 
         for (const source of room.sources) matrix.set(source.pos.x, source.pos.y, 256);
         if (room.mineral) matrix.set(room.mineral.pos.x, room.mineral.pos.y, 256);
+        if (room.thorium && (!room.mineral || room.thorium.id !== room.mineral.id)) {
+            matrix.set(room.thorium.pos.x, room.thorium.pos.y, 256);
+        }
 
         for (const sCreep of room.myCreeps) {
             const immobile = sCreep.memory?.other?.stationary

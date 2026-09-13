@@ -44,7 +44,7 @@ const ROAD_CARDINALS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
 /** One-shot: recompute packed without adopting leftover live roads, then prune extras. */
 const OWNED_ROAD_CLEANUP_REV = 1;
 
-const TARGET_ORDER = {controller: 0, source: 1, mineral: 2, exit: 3};
+const TARGET_ORDER = {controller: 0, source: 1, thorium: 2, mineral: 3, exit: 4};
 
 function getPathKey(from, to) {
     return `${from.x}x${from.y}$${to.x}x${to.y}`;
@@ -454,6 +454,7 @@ function classifyTarget(room, pos) {
     for (const source of room.sources) {
         if (pos.inRangeTo(source, 1)) return 'source';
     }
+    if (room.thorium && pos.inRangeTo(room.thorium, 1)) return 'thorium';
     if (room.mineral && pos.inRangeTo(room.mineral, 1)) return 'mineral';
     if (pos.x === 0 || pos.x === 49 || pos.y === 0 || pos.y === 49) return 'exit';
     return 'other';
@@ -565,6 +566,8 @@ function getRoadTargets(room) {
         add(source.pos);
     }
 
+    // room.mineral excludes Thorium; season extractor is on the Thorium tile.
+    if (room.thorium) add(room.thorium.pos);
     if (room.mineral) add(room.mineral.pos);
 
     const usefulExits = getOwnedExitNeighborRooms(room);

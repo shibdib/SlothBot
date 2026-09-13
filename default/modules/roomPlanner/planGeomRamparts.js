@@ -1199,6 +1199,7 @@ function getRampartWalkCorridors(room) {
     }
     // Checkerboard walls on these paths seal the bunker from the inside.
     if (room.controller) addFullPath(room.controller.pos);
+    if (room.thorium) addFullPath(room.thorium.pos);
     if (room.mineral) addFullPath(room.mineral.pos);
     rampartCorridorCache[name] = keys;
     rampartCorridorTick[name] = Game.time;
