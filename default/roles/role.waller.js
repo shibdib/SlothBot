@@ -168,9 +168,9 @@ class RoleWaller {
             this.creep.memory.working = true;
         } else if (usedCapacity === 0) {
             delete this.creep.memory.working;
-            delete this.creep.memory.task;
-            // Keep currentTarget / targetWallHits across refills so a solo waller
-            // finishes a tile instead of hopping to whichever rampart is lowest.
+            if (!this.creep.memory.currentTarget) delete this.creep.memory.task;
+            // Keep currentTarget / targetWallHits / task across refills so a solo
+            // waller finishes a tile instead of hopping to whichever rampart is lowest.
         }
 
         // If damaged move to safety
@@ -180,7 +180,11 @@ class RoleWaller {
     }
 
     jobManager() {
-        if (this.creep.memory.task && this.taskedOut()) return;
+        if (this.creep.memory.currentTarget) {
+            if (this.continueWall(!!this.creep.memory.wallMaintenance)) return;
+        } else if (this.creep.memory.task && this.taskedOut()) {
+            return;
+        }
 
         const pendingBuilds = this.room.constructionSites.length > 0 || this.creep.memory.constructionSite;
         if (pendingBuilds && this.building()) return;
@@ -192,6 +196,7 @@ class RoleWaller {
         if (spawnEnergyState(this.room) >= 3 && this.walling(true)) return;
 
         this.creep.memory.task = undefined;
+        this.creep.memory.wallMaintenance = undefined;
         this.creep.idleFor(5);
     }
 
@@ -234,12 +239,14 @@ class RoleWaller {
         return false;
     }
 
-    continueWall(maintenance = false) {
+    continueWall(maintenance) {
+        if (maintenance === undefined) maintenance = !!this.creep.memory.wallMaintenance;
         const target = Game.getObjectById(this.creep.memory.currentTarget);
         if (!target) {
             delete this.creep.memory.currentTarget;
             delete this.creep.memory.targetWallHits;
             delete this.creep.memory.task;
+            delete this.creep.memory.wallMaintenance;
             return false;
         }
 
@@ -252,6 +259,7 @@ class RoleWaller {
             delete this.creep.memory.currentTarget;
             delete this.creep.memory.targetWallHits;
             delete this.creep.memory.task;
+            delete this.creep.memory.wallMaintenance;
             return false;
         }
         if (target.structureType === STRUCTURE_WALL && isQuadTripwire(this.room, target.pos)) {
@@ -273,6 +281,7 @@ class RoleWaller {
                 delete this.creep.memory.currentTarget;
                 delete this.creep.memory.targetWallHits;
                 delete this.creep.memory.task;
+                delete this.creep.memory.wallMaintenance;
                 return false;
             }
             return true;
@@ -284,6 +293,7 @@ class RoleWaller {
         delete this.creep.memory.currentTarget;
         delete this.creep.memory.targetWallHits;
         delete this.creep.memory.task;
+        delete this.creep.memory.wallMaintenance;
         return false;
     }
 
@@ -292,7 +302,7 @@ class RoleWaller {
         this.creep.memory.other.stationary = undefined;
         this.creep.memory.working = undefined;
         this.creep.memory.constructionSite = undefined;
-        this.creep.memory.task = undefined;
+        if (!this.creep.memory.currentTarget) this.creep.memory.task = undefined;
 
         if (this.creep.memory.energyDestination || this.creep.locateEnergy()) {
             this.creep.say('Energy!', true);
@@ -421,6 +431,7 @@ class RoleWaller {
             if (target) {
                 this.creep.memory.currentTarget = target.id;
                 this.creep.memory.task = 'waller';
+                this.creep.memory.wallMaintenance = maintenance ? 1 : undefined;
                 const rcl = roomRcl(this.room);
                 const cap = Math.min(this.barrierRepairCap(maintenance), RAMPART_HITS_MAX[rcl] || 300000000);
                 if (target.structureType === STRUCTURE_RAMPART && target.hits < floor) {

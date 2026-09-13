@@ -189,8 +189,8 @@ class World {
         if (global.isPostResetDangerWindow && global.isPostResetDangerWindow() && !bootstrap) return;
 
         // Colony already spent the bulk of the tick (~250 CPU on a 25-room empire).
-        // A full planner pass is another 30–40. Skip unless a new claim needs a hub
-        // or we still have spare CPU; keep a slow cadence so layout does not stall.
+        // Always cadence unless a new claim needs a hub. The old 0.85*limit gate
+        // never fired at 24 rooms (colony sits ~240, just under 255).
         if (!bootstrap) {
             const used = Game.cpu.getUsed();
             const limit = Game.cpu.limit || 20;
@@ -198,8 +198,8 @@ class World {
             if (bucket < 2000) return;
             if (used > limit) {
                 if (Game.time % 20 !== 0) return;
-            } else if (used > limit * 0.85 || bucket < 5000) {
-                if (Game.time % 5 !== 0) return;
+            } else if (Game.time % 5 !== 0) {
+                return;
             }
         }
         planner.buildRoom();

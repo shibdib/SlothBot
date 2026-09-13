@@ -9,6 +9,7 @@ const DefenseControl = require('module.defense');
 const LinkControl = require('module.linkController');
 const TerminalControl = require('module.terminalController');
 const spawning = require('module.creepSpawning');
+const spawnState = require('spawnState');
 const DiplomacyControl = require('module.diplomacy');
 const profiler = require('tools.profiler');
 const {sortCreepsForMovement} = require('pathTraffic');
@@ -135,21 +136,22 @@ class Colony {
     creepSpawningController() {
         this.room._spawnEnergyState = this.energyState;
         spawning.processBuildQueue(this.room);
-        const spawnFunctions = [
-            {name: 'essentialSpawning', f: spawning.essentialCreepQueue},
-            {name: 'miscSpawning', f: spawning.miscCreepQueue},
-            {name: 'remoteSpawning', f: spawning.remoteCreepQueue}
-        ];
 
-        for (const task of spawnFunctions) {
+        const name = this.room.name;
+        const runQueue = (label, fn, tickMap, interval) => {
+            if (tickMap && !spawnState.throttleDue(tickMap, name, interval)) return;
             try {
-                task.f(this.room);
+                fn(this.room);
             } catch (e) {
-                log.e(`${task.name} for room ${this.room.name} encountered an error`);
+                log.e(`${label} for room ${name} encountered an error`);
                 log.e(e.stack);
                 Game.notify(e.stack);
             }
-        }
+        };
+
+        runQueue('essentialSpawning', spawning.essentialCreepQueue, spawnState.essentialTick, spawnState.ESSENTIAL_INTERVAL);
+        runQueue('miscSpawning', spawning.miscCreepQueue, spawnState.miscTick, spawnState.MISC_INTERVAL);
+        runQueue('remoteSpawning', spawning.remoteCreepQueue, spawnState.remoteTick, spawnState.REMOTE_INTERVAL);
     }
 
     storeCpuData(used) {

@@ -69,7 +69,7 @@ function findNeedyBorderPatrol(roomName) {
 }
 
 function miscCreepQueue(room) {
-    if (!spawnState.throttleReady(spawnState.miscTick, room.name, 12)) return;
+    if (!spawnState.throttleReady(spawnState.miscTick, room.name, spawnState.MISC_INTERVAL)) return;
     const energyState = spawnEnergyState(room);
 
     if (room.storage && (room.terminal || room.factory)) {

@@ -140,26 +140,10 @@ class RoleRemoteHauler {
 
         const container = Game.getObjectById(this.memory.containerID);
         if (container && container.store) {
-            if (container.store[RESOURCE_ENERGY]) {
-                this.memory.energyDestination = container.id;
-                return this.creep.withdrawResource();
-            }
-            if (this.creep.pos.getRangeTo(container) > 1) {
-                return this.creep.shibMove(container, {range: 1});
-            }
-            const pile = energyPileAt(container.pos, this.room);
-            if (pile) {
-                this.memory.energyDestination = pile.id;
-                return this.creep.withdrawResource();
-            }
-            return false;
+            return pickupFromAssignedContainer(this.creep, container);
         }
 
-        let harvester = Game.getObjectById(other.harvester);
-        if (!harvester || (harvester.memory.other && harvester.memory.other.source !== other.source)) {
-            harvester = getRemoteHarvesterForSource(other.source);
-            other.harvester = harvester ? harvester.id : undefined;
-        }
+        const harvester = refreshAssignedHarvester(other);
         if (harvester) {
             if (harvester.memory.containerID) this.memory.containerID = harvester.memory.containerID;
             else if (harvester.memory.containerSite) this.memory.containerID = harvester.memory.containerSite;
@@ -307,6 +291,38 @@ function ttlTooLowToWait(creep) {
         if (route && route.length) hops = Math.max(hops, route.length);
     }
     return ttl < hops * 50 + 20;
+}
+
+function pickupFromAssignedContainer(creep, container) {
+    if (container.store[RESOURCE_ENERGY]) {
+        creep.memory.energyDestination = container.id;
+        return creep.withdrawResource();
+    }
+    if (creep.pos.getRangeTo(container) > 1) {
+        return creep.shibMove(container, {range: 1});
+    }
+    const pile = energyPileAt(container.pos, creep.room);
+    if (pile) {
+        creep.memory.energyDestination = pile.id;
+        return creep.withdrawResource();
+    }
+    return false;
+}
+
+function refreshAssignedHarvester(other) {
+    let harvester = Game.getObjectById(other.harvester);
+    if (harvester && (!harvester.memory.other || harvester.memory.other.source === other.source)) {
+        return harvester;
+    }
+    const lastScan = other.harvesterScan || 0;
+    if (lastScan && lastScan + 10 > Game.time) {
+        other.harvester = undefined;
+        return undefined;
+    }
+    other.harvesterScan = Game.time;
+    harvester = getRemoteHarvesterForSource(other.source);
+    other.harvester = harvester ? harvester.id : undefined;
+    return harvester;
 }
 
 function energyPileAt(pos, room) {

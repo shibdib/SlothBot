@@ -819,7 +819,7 @@ function handleInvaderCore(room, remoteName) {
 
 function remoteCreepQueue(room) {
     if (typeof REMOTE_MINING !== 'undefined' && !REMOTE_MINING) return;
-    if (!spawnState.throttleReady(spawnState.remoteTick, room.name, 5)) return;
+    if (!spawnState.throttleReady(spawnState.remoteTick, room.name, spawnState.REMOTE_INTERVAL)) return;
     maybeScoutUnknownExits(room);
     // Local 5W harvesters + a filler first. One adjacent remote after that;
     // storage is not required (RCL 5 used to hide remotes for the whole 405k upgrade).

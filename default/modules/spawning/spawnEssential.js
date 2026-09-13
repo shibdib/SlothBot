@@ -88,7 +88,7 @@ function resolveDroneCount(room, ctx) {
 }
 
 function essentialCreepQueue(room) {
-    if (!spawnState.throttleReady(spawnState.essentialTick, room.name, 10)) return;
+    if (!spawnState.throttleReady(spawnState.essentialTick, room.name, spawnState.ESSENTIAL_INTERVAL)) return;
     const energyState = spawnEnergyState(room);
 
     if ((room.memory.defenseCooldown || 0) > Game.time || room.memory.earlyWarning) {
