@@ -149,7 +149,9 @@ function applySameRoomDetour(origin, target, result, options, searchFn) {
     const rooms = sameRoomDetourRooms(origin.roomName, options);
     if (rooms.length < 2) return result;
     const detour = searchFn(rooms, Math.max((options && options.maxOps) || 0, SAME_ROOM_DETOUR_OPS));
-    return betterPathResult(result, detour);
+    const best = betterPathResult(result, detour);
+    if (best && best !== result && options) options.sameRoomDetour = true;
+    return best;
 }
 
 function roomCost(roomName, origin, destination, options) {

@@ -157,9 +157,14 @@ class RoleLabTech {
             }
         }
 
-        // 2. Both stores packed — swap/export before lab busywork. Otherwise
+        // 2. Season Thorium — dropped piles decay and Thorium in a container
+        // ages the pad. Drain to terminal (feeder send) before lab busywork.
+        const thoriumTask = this.findThoriumHaulTask(storage, terminal);
+        if (thoriumTask) return thoriumTask;
+
+        // 3. Both stores packed — swap/export before lab busywork. Otherwise
         // a 0-space hub stays stuck feeding labs while minerals never reach the terminal.
-        // Hub manager sits between storage and terminal and owns warehouse balance.
+        // Hub manager owns warehouse balance.
         if (storage && terminal && !hasLiveHubManager(this.room)
             && storage.store.getFreeCapacity() < BALANCE_MIN_TRANSFER
             && terminal.store.getFreeCapacity() < BALANCE_MIN_TRANSFER) {
@@ -996,6 +1001,51 @@ class RoleLabTech {
 
     needsBalanceSpace(storage, terminal) {
         return this.isStructureNearFull(storage) || this.isStructureNearFull(terminal);
+    }
+
+    findThoriumHaulTask(storage, terminal) {
+        if (!(typeof IS_SEASON !== 'undefined' && IS_SEASON)) return null;
+        const t = typeof RESOURCE_THORIUM !== 'undefined' ? RESOURCE_THORIUM : 'T';
+        const dest = (terminal && terminal.store.getFreeCapacity(t) > 0) ? terminal
+            : (storage && storage.store.getFreeCapacity(t) > 0) ? storage
+                : null;
+        if (!dest) return null;
+
+        const drops = this.room.droppedResources || [];
+        for (let i = 0; i < drops.length; i++) {
+            if (drops[i].resourceType === t && drops[i].amount > 0) {
+                return {withdrawTarget: drops[i].id, deliveryTarget: dest.id, resource: t};
+            }
+        }
+        const tombs = this.room.tombstones || [];
+        for (let i = 0; i < tombs.length; i++) {
+            const amt = tombs[i].store && tombs[i].store[t];
+            if (amt > 0) {
+                return {withdrawTarget: tombs[i].id, deliveryTarget: dest.id, resource: t, amount: amt};
+            }
+        }
+        const containers = this.room.containers || [];
+        let best = null;
+        let bestAmt = 0;
+        for (let i = 0; i < containers.length; i++) {
+            const c = containers[i];
+            const amt = (c.store && c.store[t]) || 0;
+            if (!amt) continue;
+            const full = !c.store.getFreeCapacity();
+            if (amt < 50 && !full) continue;
+            if (amt > bestAmt) {
+                best = c;
+                bestAmt = amt;
+            }
+        }
+        if (!best) return null;
+        return {withdrawTarget: best.id, deliveryTarget: dest.id, resource: t, amount: bestAmt};
+    }
+
+    moveToTaskTarget(target, resource) {
+        const t = typeof RESOURCE_THORIUM !== 'undefined' ? RESOURCE_THORIUM : 'T';
+        const offRoad = resource === t || ((this.creep.store[t] || 0) > 0);
+        this.creep.shibMove(target, offRoad ? {offRoad: true} : undefined);
     }
 
     pickStoreTarget(storage, terminal) {
@@ -1928,7 +1978,7 @@ class RoleLabTech {
         if (task.resource) this.creep.say(String(task.resource).slice(0, 3));
 
         if (!this.creep.pos.isNearTo(withdrawTarget)) {
-            this.creep.shibMove(withdrawTarget);
+            this.moveToTaskTarget(withdrawTarget, task.resource);
             return true;
         }
 
@@ -1958,12 +2008,12 @@ class RoleLabTech {
         const nextPickup = this.creep.memory.tasks && this.creep.memory.tasks.find(t => !t.pickedUp);
         if (nextPickup) {
             const target = Game.getObjectById(nextPickup.withdrawTarget);
-            if (target) this.creep.shibMove(target);
+            if (target) this.moveToTaskTarget(target, nextPickup.resource);
         } else if (this.creep.memory.tasks) {
             const nextDelivery = this.creep.memory.tasks.find(t => t.pickedUp);
             if (nextDelivery) {
                 const target = Game.getObjectById(nextDelivery.deliveryTarget);
-                if (target) this.creep.shibMove(target);
+                if (target) this.moveToTaskTarget(target, nextDelivery.resource);
             }
         }
         return true;
@@ -1985,7 +2035,7 @@ class RoleLabTech {
         if (task.resource) this.creep.say(String(task.resource).slice(0, 3));
 
         if (!this.creep.pos.isNearTo(deliveryTarget)) {
-            this.creep.shibMove(deliveryTarget);
+            this.moveToTaskTarget(deliveryTarget, task.resource);
             return true;
         }
 
@@ -2004,7 +2054,7 @@ class RoleLabTech {
                 && this.creep.memory.tasks.find(t => t.pickedUp && this.creep.store[t.resource] > 0);
             if (next) {
                 const target = Game.getObjectById(next.deliveryTarget);
-                if (target) this.creep.shibMove(target);
+                if (target) this.moveToTaskTarget(target, next.resource);
             }
             return true;
         }

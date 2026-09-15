@@ -24,7 +24,10 @@ let globals = function () {
         // Remotes — harvesters before haulers (a hauler without a harvester does nothing)
         remoteHarvester: 5, remoteHauler: 4, remoteBuilder: 7, roadBuilder: 7, fuelTruck: 8, reserver: 6,
         // Military
-        defender: 3, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9
+        defender: 3, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9,
+        // Beat remotes (haulers, harvesters, reservers, road/remote builders).
+        // A foothold next door is more expensive than delayed remote staffing.
+        borderPatrol: 3.5,
     };
 
     //

@@ -719,6 +719,16 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     roomIntel.lastObservation = currentTime;
     roomIntel.safemode = this.controller && this.controller.safeMode ? currentTime + this.controller.safeMode : undefined;
 
+    // Season: stamp Thorium on first vision so claim scoring is not guessing.
+    // Light/heavy paths refresh it; this covers the early-return cadence too.
+    if (typeof IS_SEASON !== 'undefined' && IS_SEASON && roomIntel.thoriumAmount == null
+        && (this.controller || (global.isSectorCenterRoomName && isSectorCenterRoomName(this.name)))) {
+        try {
+            require('module.season').stampThoriumIntel(this, roomIntel);
+        } catch (e) { /* season optional */
+        }
+    }
+
     // Power banks decay in 5k ticks and can be claimed by another player in
     // tens of ticks. Record them on every vision, not only the 150-tick light cadence.
     const powerIntelChanged = collectPowerBankIntel(this, roomIntel);
@@ -769,6 +779,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         // is 1 slot/tick and 7500 TTL for unowned rooms — stamp it here.
         roomIntel.sources = this.sources.length;
         roomIntel.isHighway = roomIntel.sources === 0;
+        if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+            try {
+                require('module.season').stampThoriumIntel(this, roomIntel);
+            } catch (e) { /* season optional */
+            }
+        }
         const deposits = roomIntel.sources === 0 ? this.find(FIND_DEPOSITS) : [];
 
         // Invader Core — collapse tick is attackable life; invuln is stored separately
@@ -999,9 +1015,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         delete roomIntel.mineralAmount;
     }
     if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
-        const thorium = this.thorium;
-        roomIntel.thoriumAmount = thorium ? thorium.mineralAmount : 0;
         const season = require('module.season');
+        season.stampThoriumIntel(this, roomIntel);
         const reactors = season.findReactors(this);
         if (reactors.length) {
             const r = reactors[0];

@@ -1358,6 +1358,7 @@ function isRemovableStrayBarrier(pos, room, perimeterSpotSet) {
     if (isWalkwayTile(pos, room)) return false;
     if (room.controller && pos.isNearTo(room.controller)) return false;
     if (room.mineral && pos.isNearTo(room.mineral)) return false;
+    if (room.thorium && pos.isNearTo(room.thorium)) return false;
     return true;
 }
 
@@ -1438,6 +1439,7 @@ function isOrphanedUncachedBarrier(pos, room, newSpotSet, ctx) {
     if (isWalkwayTile(pos, room)) return false;
     if (room.controller && pos.isNearTo(room.controller)) return false;
     if (room.mineral && pos.isNearTo(room.mineral)) return false;
+    if (room.thorium && pos.isNearTo(room.thorium)) return false;
 
     const edgeClear = Math.max(PERIMETER_ORPHAN_EXIT_CLEARANCE, PERIMETER_BUILD_INSET + 2);
     if (structureDistToEdge(pos.x, pos.y) <= edgeClear) return true;

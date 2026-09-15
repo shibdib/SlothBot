@@ -258,8 +258,10 @@ class Colony {
         // If no role, restore from the spawn name when we can; otherwise recycle
         if (!minion.ensureCreepRole()) return minion.recycleCreep();
 
-        // If we're fleeing, continue to do so
-        if (minion.memory.runCooldown && Game.time < minion.memory.runCooldown) return minion.fleeHome(true);
+        // If we're fleeing, continue only while the threat is still real.
+        if (minion.memory.runCooldown && Game.time < minion.memory.runCooldown) {
+            if (minion.fleeHome(true)) return;
+        }
 
         // If being recycled do that
         if (minion.memory.recycling) return minion.recycleCreep();

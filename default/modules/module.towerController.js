@@ -67,6 +67,7 @@ module.exports.towerController = function (room) {
         const injuredFriendlies = room.friendlyCreeps.filter(c => c.hits < c.hitsMax);
 
         let dyingRamparts = [];
+        const dyingInfra = [];
         if (!hasHostiles) {
             const saveHits = typeof RAMPART_TOWER_SAVE_HITS === 'number' ? RAMPART_TOWER_SAVE_HITS : 1000;
             const claimed = wallerClaimedTargetIds(room);
@@ -74,6 +75,23 @@ module.exports.towerController = function (room) {
             for (let i = 0; i < ramparts.length; i++) {
                 const r = ramparts[i];
                 if (r && r.hits > 0 && r.hits < saveHits && !claimed.has(r.id)) dyingRamparts.push(r);
+            }
+            const containers = room.containers || [];
+            for (let i = 0; i < containers.length; i++) {
+                const c = containers[i];
+                if (c && c.hits > 0 && c.hits < c.hitsMax * 0.2) dyingInfra.push(c);
+            }
+            let keep = null;
+            try {
+                keep = require('planGeomRoads').getOwnedRoadKeepSet(room);
+            } catch (e) { /* ignore */
+            }
+            const roads = room.roads || [];
+            for (let i = 0; i < roads.length; i++) {
+                const s = roads[i];
+                if (!s || s.hits <= 0 || s.hits >= s.hitsMax * 0.2) continue;
+                if (keep && !keep.has(s.pos.x + 'x' + s.pos.y)) continue;
+                dyingInfra.push(s);
             }
         }
 
@@ -83,6 +101,7 @@ module.exports.towerController = function (room) {
             criticalStructures,
             combatBarriers,
             dyingRamparts,
+            dyingInfra,
             injuredFriendlies,
             hasHostiles
         };
@@ -128,6 +147,7 @@ module.exports.towerController = function (room) {
         if (currentTime % 200 === 0) cleanupDrainState(roomDrain, currentTime);
     } else {
         const dyingRamparts = (cache.dyingRamparts || []).slice().sort((a, b) => a.hits - b.hits);
+        const dyingInfra = (cache.dyingInfra || []).slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
         const damagedCriticalStructures = cache.criticalStructures.filter(s => s.hits < s.hitsMax);
         const towersCanSave = dyingRamparts.length && towers.some(t =>
             (t.store[RESOURCE_ENERGY] || 0) >= TOWER_SAVE_RESERVE);
@@ -138,6 +158,8 @@ module.exports.towerController = function (room) {
             minEnergy = TOWER_SAVE_RESERVE;
         } else if (cache.combatBarriers.length) {
             repairCandidates = cache.combatBarriers.slice().sort((a, b) => a.hits - b.hits);
+        } else if (dyingInfra.length) {
+            repairCandidates = dyingInfra;
         } else {
             repairCandidates = damagedCriticalStructures.slice().sort((a, b) => (a.hits / a.hitsMax) - (b.hits / b.hitsMax));
         }

@@ -368,6 +368,14 @@ function roadLimit(roomOrName, options) {
     return req.allowed;
 }
 
+function isExtractorApproachRoad(room, pos) {
+    if (!room || !pos) return false;
+    if (room.thorium && pos.inRangeTo(room.thorium, 2)) return true;
+    if (room.extractor && pos.inRangeTo(room.extractor, 2)) return true;
+    if (room.mineral && pos.inRangeTo(room.mineral, 2)) return true;
+    return false;
+}
+
 /**
  * Drop idle (then low-progress) road sites so a higher-priority type can use
  * the room cap. Planned roads re-queue when budget remains.
@@ -385,6 +393,7 @@ function freeIdleRoadSites(room, want) {
     for (let i = 0; i < sites.length; i++) {
         const s = sites[i];
         if (!s || s.structureType !== STRUCTURE_ROAD) continue;
+        if (isExtractorApproachRoad(room, s.pos)) continue;
         if (!s.progress) idle.push(s);
         else if (s.progress < Math.max(1, (s.progressTotal || 1) * 0.25)) low.push(s);
     }

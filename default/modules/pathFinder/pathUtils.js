@@ -408,6 +408,33 @@ function endpointInRange(endpointKey, target, range) {
     return Math.max(Math.abs(parsed.x - target.x), Math.abs(parsed.y - target.y)) <= range;
 }
 
+function directionExitsRoom(pos, dir) {
+    if (!pos || !dir) return false;
+    const dx = (dir === 2 || dir === 3 || dir === 4) ? 1
+        : (dir === 6 || dir === 7 || dir === 8) ? -1 : 0;
+    const dy = (dir === 8 || dir === 1 || dir === 2) ? -1
+        : (dir === 4 || dir === 5 || dir === 6) ? 1 : 0;
+    const nx = pos.x + dx;
+    const ny = pos.y + dy;
+    return nx < 0 || nx > 49 || ny < 0 || ny > 49;
+}
+
+/** True when the live path is a same-room detour stepping out this exit. */
+function pathLeavesForSameRoomTarget(creep) {
+    if (!creep || !creep.pos) return false;
+    const move = getShibMove(creep);
+    if (!move || !move.path || !move.path.length) return false;
+    const target = move.target;
+    if (!target || target.roomName !== creep.pos.roomName) return false;
+    const dir = parseInt(move.path[0], 10);
+    return directionExitsRoom(creep.pos, dir);
+}
+
+function pathIsSameRoomDetour(creep) {
+    const move = getShibMove(creep);
+    return !!(move && move.sameRoomDetour && move.path && move.path.length);
+}
+
 function roomNeedsMazeOps(roomName) {
     const intel = typeof INTEL !== 'undefined' && INTEL[roomName];
     if (!intel) return false;
@@ -436,6 +463,9 @@ module.exports = {
     tryPullSwapThrough,
     normalizePos,
     reverseDirection,
+    directionExitsRoom,
+    pathLeavesForSameRoomTarget,
+    pathIsSameRoomDetour,
     getPathKey,
     hashStructures,
     hashRoomStructures,

@@ -167,6 +167,16 @@ class RoleRemoteBuilder {
         this.creep.memory.other.skRoom = skGuardRoom(colony, destination) || undefined;
         this.creep.memory.other.roadRoom = destination;
 
+        // Keep an assigned dest-room site even if a same-room path stepped
+        // through an exit. Clearing it here bounced the builder every trip.
+        const activeSite = this.getActiveConstructionSite();
+        const siteRoom = (activeSite && activeSite.pos && activeSite.pos.roomName)
+            || (this.creep.memory.sitePos && this.creep.memory.sitePos.roomName);
+        if (activeSite && siteRoom === destination) {
+            this.creep.builderFunction();
+            return;
+        }
+
         if (this.creep.pos.roomName !== destination) {
             this.creep.memory.constructionSite = undefined;
             this.creep.say('Roads', true);
@@ -182,7 +192,7 @@ class RoleRemoteBuilder {
         }
 
         // Build/repair an assigned site without replanning or placing.
-        if (this.getActiveConstructionSite()) {
+        if (activeSite) {
             this.creep.builderFunction();
             return;
         }

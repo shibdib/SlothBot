@@ -4,20 +4,14 @@
 
 const profiler = require("tools.profiler");
 const {planUpgraderNeed} = require('bodyEconomic');
-
-
-function resolveControllerLink(room) {
-    const obj = Game.getObjectById(room.memory.controllerLink);
-    if (obj && obj.structureType === STRUCTURE_LINK && obj.store) return obj;
-    return null;
-}
+const {liveControllerLink, roomExpectsUpgradePad} = require('bodyHelpers');
 
 class RoleUpgrader {
     constructor(creep) {
         this.creep = creep;
         this.room = creep.room;
         this.container = global.resolveControllerContainer(this.room);
-        this.link = resolveControllerLink(this.room);
+        this.link = liveControllerLink(this.room);
         this.performRoleActions();
     }
 
@@ -25,11 +19,15 @@ class RoleUpgrader {
         if (this.housekeeping()) return;
         if (!this.creep.memory.other) this.creep.memory.other = {};
         const canStation = !!(this.link || this.container);
-        if (canStation && (this.creep.memory.other.noMove || !this.creep.hasActiveBodyparts(MOVE))) {
+        const expectsPad = roomExpectsUpgradePad(this.room);
+        const noMove = this.creep.memory.other.noMove || !this.creep.hasActiveBodyparts(MOVE);
+        if (canStation && noMove) {
             this.stationaryUpgrading();
-        } else if (!canStation && !this.creep.hasActiveBodyparts(MOVE)) {
-            // 0-MOVE body spawned against a stale container/link. Recycle so
-            // a mobile replacement can dump energy.
+        } else if (!canStation && expectsPad) {
+            // Pad is down. Do not haul as a moving upgrader — drones rebuild
+            // the container/link and cover downgrade. Recycle this slot.
+            this.retireForPadRebuild();
+        } else if (!canStation && noMove) {
             this.creep.recycleCreep();
         } else {
             this.mobileUpgrading();
@@ -87,9 +85,17 @@ class RoleUpgrader {
         return false;
     }
 
+    retireForPadRebuild() {
+        if (this.creep.store[RESOURCE_ENERGY] > 0 && this.creep.pos.getRangeTo(this.room.controller) <= 3) {
+            this.creep.upgradeController(this.room.controller);
+        }
+        if (!this.creep.hasActiveBodyparts(MOVE)) this.creep.suicide();
+        else this.creep.recycleCreep();
+    }
+
     stationaryUpgrading() {
         if (!this.container && !this.link) {
-            return this.creep.recycleCreep();
+            return this.retireForPadRebuild();
         }
         this.creep.memory.other.stationary = true;
         this.creep.memory.other.noMove = true;

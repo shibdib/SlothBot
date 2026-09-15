@@ -33,7 +33,20 @@ class RoleMineralHarvester {
         if (assigned) {
             const mineral = Game.getObjectById(assigned);
             if (!mineral || mineral.mineralAmount === 0) {
+                if (this.isThorium(mineral) && this.creep.store.getUsedCapacity()) {
+                    this.dumpThorium();
+                    return true;
+                }
                 log.a(this.room.name + ' supply of ' + (mineral && mineral.mineralType || 'mineral') + ' has been depleted.');
+                return this.creep.recycleCreep();
+            }
+            if (!this.extractorContainer()) {
+                if (this.creep.store.getUsedCapacity()) {
+                    if (this.isThorium(mineral)) {
+                        this.dumpThorium();
+                        return true;
+                    }
+                }
                 return this.creep.recycleCreep();
             }
         }
@@ -41,8 +54,7 @@ class RoleMineralHarvester {
 
     setExtractor() {
         const mineral = Game.getObjectById(this.creep.memory.other && this.creep.memory.other.assignedMineral);
-        let extractor = mineral && mineral.pos.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_EXTRACTOR);
-        if (!extractor) extractor = this.room.extractor;
+        const extractor = mineral && mineral.pos.lookFor(LOOK_STRUCTURES).find(s => s.structureType === STRUCTURE_EXTRACTOR);
         if (extractor) {
             this.creep.memory.extractor = extractor.id;
         } else {
@@ -57,49 +69,67 @@ class RoleMineralHarvester {
 
     dumpThorium() {
         const t = typeof RESOURCE_THORIUM !== 'undefined' ? RESOURCE_THORIUM : 'T';
+        const container = this.extractorContainer();
+        if (container && container.store.getFreeCapacity(t) > 0) {
+            if (this.creep.pos.isEqualTo(container.pos) || this.creep.pos.isNearTo(container)) {
+                if (this.creep.transfer(container, t) === OK) return;
+            } else {
+                this.creep.shibMove(container, {range: 0});
+                return;
+            }
+        }
         const nearby = this.creep.pos.findInRange(this.room.myCreeps, 1);
         for (let i = 0; i < nearby.length; i++) {
             const c = nearby[i];
             if (c.id === this.creep.id) continue;
-            if (c.memory.role === 'thoriumHauler' && c.store.getFreeCapacity(t) > 0) {
-                this.creep.transfer(c, t);
-                return;
+            if (!c.store || c.store.getFreeCapacity(t) <= 0) continue;
+            if (this.creep.transfer(c, t) === OK) return;
+        }
+        // Last resort — dropped Thorium decays. Only if the container is gone/full.
+        this.creep.drop(t);
+    }
+
+    extractorContainer() {
+        let container = Game.getObjectById(this.room.memory.extractorContainer);
+        if (container) return container;
+        const mineral = Game.getObjectById(this.creep.memory.other && this.creep.memory.other.assignedMineral);
+        const pos = mineral && mineral.pos;
+        if (!pos) return null;
+        const near = this.room.containers || [];
+        for (let i = 0; i < near.length; i++) {
+            if (near[i].pos.getRangeTo(pos) === 1) {
+                this.room.memory.extractorContainer = near[i].id;
+                return near[i];
             }
         }
-        const dest = this.room.terminal || this.room.storage;
-        if (!dest) return this.creep.idleFor(5);
-        if (this.creep.transfer(dest, t) === ERR_NOT_IN_RANGE) {
-            this.creep.shibMove(dest, {offRoad: true});
-        }
+        return null;
     }
 
     extractResource() {
         const mineral = Game.getObjectById(this.creep.memory.other && this.creep.memory.other.assignedMineral);
         if (!mineral) return this.creep.recycleCreep();
         const thorium = this.isThorium(mineral);
+        const container = this.extractorContainer();
 
-        if (thorium && this.creep.store.getFreeCapacity() < this.creep.store.getCapacity() * 0.25) {
+        if (thorium && this.creep.store.getUsedCapacity() && this.creep.store.getFreeCapacity() < this.creep.store.getCapacity() * 0.25) {
             return this.dumpThorium();
         }
 
-        if (!thorium) {
-            const container = Game.getObjectById(this.room.memory.extractorContainer);
-            if (container) {
-                if (!this.creep.pos.isEqualTo(container.pos)) {
-                    this.creep.memory.onContainer = undefined;
-                    return this.creep.shibMove(container, {range: 0});
-                }
-                this.creep.memory.onContainer = true;
-                if (!container.store.getFreeCapacity()) return this.creep.idleFor(25);
+        // Harvest must land in the container. Dropped Thorium decays; Thorium
+        // in a container only ages the structure (labTech drains it).
+        if (thorium && !container) {
+            if (this.creep.pos.getRangeTo(mineral) > 1) this.creep.shibMove(mineral, {range: 1});
+            else this.creep.idleFor(5);
+            return;
+        }
+
+        if (container) {
+            if (!this.creep.pos.isEqualTo(container.pos)) {
+                this.creep.memory.onContainer = undefined;
+                return this.creep.shibMove(container, {range: 0});
             }
-        } else if (this.creep.store.getUsedCapacity()) {
-            const onTile = this.creep.pos.lookFor(LOOK_STRUCTURES);
-            for (let i = 0; i < onTile.length; i++) {
-                const type = onTile[i].structureType;
-                if (type === STRUCTURE_ROAD || type === STRUCTURE_CONTAINER) {
-                    return this.dumpThorium();
-                }
-            }
+            this.creep.memory.onContainer = true;
+            if (!container.store.getFreeCapacity()) return this.creep.idleFor(5);
         }
 
         const extractor = Game.getObjectById(this.creep.memory.extractor);
@@ -112,10 +142,10 @@ class RoleMineralHarvester {
         switch (this.creep.harvest(mineral)) {
             case OK:
                 if (!this.creep.memory.other) this.creep.memory.other = {};
-                this.creep.memory.other.stationary = !thorium;
+                this.creep.memory.other.stationary = true;
                 break;
             case ERR_NOT_IN_RANGE:
-                this.creep.shibMove(mineral, thorium ? {range: 1, offRoad: true} : undefined);
+                this.creep.shibMove(container || mineral, container ? {range: 0} : {range: 1});
                 break;
             case ERR_NOT_FOUND:
                 const {tryCreateConstructionSite} = require('planUtils');

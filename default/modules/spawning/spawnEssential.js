@@ -15,7 +15,8 @@ const {
     roomNeedsSpawnReboot,
     getOwnedExtensionDeficit,
     roomHasLiveTowTruck,
-    isColonyEarlyRush
+    isColonyEarlyRush,
+    roomMissingUpgradePad,
 } = require('bodyHelpers');
 const {isHubManagerSlotReady, recycleHubSlotIntruder} = require('spawnHub');
 const {relocateHubObserver} = require('planCore');
@@ -46,27 +47,28 @@ function roomNeedsRampartBootstrap(room) {
 function resolveDroneCount(room, ctx) {
     const {
         earlyRush, importantBuilds, hasCriticalBuilds, hasRoadMaintenance,
-        flowHealthy, spareIncome,
+        decayingContainers, flowHealthy, spareIncome,
     } = ctx;
     const energyState = spawnEnergyState(room);
 
     const siteCount = room.constructionSites.length;
-    const heavyRoadRepair = hasRoadMaintenance.length > 3;
+    const infraDecay = (hasRoadMaintenance && hasRoadMaintenance.length > 0)
+        || (decayingContainers && decayingContainers.length > 0);
     const hasBuildWork = importantBuilds || hasCriticalBuilds || siteCount > 0;
-    const hasWork = hasBuildWork || heavyRoadRepair;
+    const hasWork = hasBuildWork || infraDecay;
 
     if (!hasWork && !energyState) return 0;
 
     let count;
     if (room.level >= 7) {
         if (!hasWork) return 0;
-        if (heavyRoadRepair && energyState >= 1 && flowHealthy) return 2;
+        if (infraDecay && energyState >= 1 && flowHealthy) return 2;
         return 1;
     } else if (earlyRush) {
         count = hasWork ? (hasCriticalBuilds ? 4 : 3) : 3;
     } else if (room.storage) {
         if (!hasWork) count = energyState ? 1 : 0;
-        else if (heavyRoadRepair && energyState >= 1) count = 2;
+        else if (infraDecay && energyState >= 1) count = 2;
         else count = hasCriticalBuilds ? 2 : 1;
     } else if (!hasWork) {
         count = energyState ? 1 : 0;
@@ -81,7 +83,7 @@ function resolveDroneCount(room, ctx) {
 
     const droneBudget = room.level >= 7 ? 12 : 8;
     if (!flowHealthy || spareIncome < droneBudget) {
-        return (hasCriticalBuilds || heavyRoadRepair) ? Math.min(count, 2) : 1;
+        return (hasCriticalBuilds || infraDecay) ? Math.min(count, 2) : 1;
     }
     const incomeCap = room.level >= 7 ? 2 : Math.min(2, Math.floor(spareIncome / droneBudget));
     return Math.max(1, Math.min(count, incomeCap));
@@ -127,6 +129,7 @@ function essentialCreepQueue(room) {
             return !keepRoads || keepRoads.has(s.pos.x + 'x' + s.pos.y);
         })
         : [];
+    const decayingContainers = _.filter(room.containers || [], s => s.hits < s.hitsMax * 0.5);
     const harvesterCount = getCreepCount(room, 'stationaryHarvester');
     const earlyRush = isColonyEarlyRush(room);
 
@@ -135,7 +138,8 @@ function essentialCreepQueue(room) {
     // an upgrade that depleted reserves; these structures are exactly what improve
     // energy capacity/income). Matches the "always build" priority in constructionWork.
     const extensionDeficit = getOwnedExtensionDeficit(room);
-    const hasCriticalBuilds = roomHasCriticalBuildSites(room) || extensionDeficit > 0;
+    const missingUpgradePad = roomMissingUpgradePad(room);
+    const hasCriticalBuilds = roomHasCriticalBuildSites(room) || extensionDeficit > 0 || missingUpgradePad;
 
     const spawnReboot = roomNeedsSpawnReboot(room);
     // Early-rush drones are the build/upgrade crew until RCL3 extensions finish.
@@ -144,7 +148,7 @@ function essentialCreepQueue(room) {
 
     let droneCount = resolveDroneCount(room, {
         earlyRush, importantBuilds, hasCriticalBuilds, hasRoadMaintenance,
-        flowHealthy, spareIncome,
+        decayingContainers, flowHealthy, spareIncome,
     });
     // Income creeps first while the room can only spend spawn regen — except
     // early rush, where drones *are* the income/build/upgrade crew.
@@ -286,6 +290,10 @@ function essentialCreepQueue(room) {
                 upgraderAmount = Math.max(upgraderAmount, Math.min(liveCount + 1, 2));
             }
         }
+    }
+    if (missingUpgradePad) {
+        upgraderAmount = 0;
+        clearRoomRoleQueue(room.name, 'upgrader');
     }
     if (upgraderAmount > 0) {
         const fastTrack = (room.controller.level < 8) ||

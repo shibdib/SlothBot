@@ -275,6 +275,16 @@ function freezeWaitForWaveBody(cacheKey, body, neededBoosts) {
     if (neededBoosts) raw.waveNeededBoosts = Object.assign({}, neededBoosts);
 }
 
+function remoteStaffPriority() {
+    return Math.min(
+        PRIORITIES.remoteHauler,
+        PRIORITIES.remoteHarvester,
+        PRIORITIES.reserver,
+        PRIORITIES.remoteBuilder,
+        PRIORITIES.roadBuilder
+    );
+}
+
 function computeSortPriority(item, room) {
     let sortPriority = item.priority;
     if (roomInSpawnRecovery(room) && !item.operation && item.role === 'shuttle'
@@ -294,6 +304,10 @@ function computeSortPriority(item, room) {
             // Power is income. The siege *6 parked 6k healers behind remotes
         // unless the room was energyState 2 (~500k at RCL 8).
         else if (item.military && !waitForWave && destOp.type !== 'power') sortPriority *= 6;
+    }
+    if (item.operation === 'borderPatrol') {
+        // Stay ahead of remote staffing, including reservers and road builders.
+        sortPriority = Math.min(sortPriority, PRIORITIES.borderPatrol, remoteStaffPriority() - 0.5);
     }
     if (waitForWave) {
         // Pull waves toward hauler without collapsing every dest to the same

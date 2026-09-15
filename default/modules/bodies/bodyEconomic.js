@@ -10,22 +10,39 @@ const {
     roomInSpawnRecovery,
     roomSpawnEnergyStuck,
     isColonyEarlyRush,
+    liveControllerLink,
+    liveControllerContainer,
 } = require('bodyHelpers');
 const {getRegenSourceOperatorForRoom} = require('powerSpec');
 
+function droneHasBuildWork(room) {
+    if (!room) return false;
+    if (roomHasCriticalBuildSites(room)) return true;
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const t = sites[i].structureType;
+        if (t !== STRUCTURE_WALL && t !== STRUCTURE_RAMPART) return true;
+    }
+    return false;
+}
+
 function buildRoadDroneWaller(gen) {
     const leanColony = gen.room.level >= 7 && !gen.creepInfo.destination;
-    const earlyBootstrap = gen.role === 'drone' && isColonyEarlyRush(gen.room);
+    const isDrone = gen.role === 'drone';
+    const earlyBootstrap = isDrone && isColonyEarlyRush(gen.room);
     const halfMove = !gen.creepInfo.destination
         && !['remoteBuilder', 'roadBuilder', 'waller'].includes(gen.role)
         && colonyRoadsBuilt(gen.room.name);
 
     const maxNonMove = maxBodyNonMoveParts(halfMove);
     // Pre-storage drones were using the late-game road-repair mix (28% WORK),
-    // so a 550-energy RCL2 drone was 1W. Bootstrap needs WORK on the site.
-    const workShare = earlyBootstrap ? 0.40
+    // so a 550-energy RCL2 drone was 1W. Keep that WORK bias after rush too —
+    // flowScale used to collapse them back to 1W during the RCL dump.
+    const workShare = earlyBootstrap || isDrone
+        ? (halfMove ? 0.45 : 0.42)
         : (halfMove ? (leanColony ? 0.45 : 0.40) : (leanColony ? 0.32 : 0.28));
     const carryShare = earlyBootstrap ? 0.20
+        : isDrone ? (halfMove ? 0.30 : 0.22)
         : (halfMove ? (leanColony ? 0.35 : 0.32) : (leanColony ? 0.25 : 0.22));
     let workCap = leanColony ? Math.max(1, Math.floor(maxNonMove * 0.6)) : (halfMove ? 25 : 20);
     let carryCap = leanColony ? (maxNonMove - workCap) : (halfMove ? 20 : 16);
@@ -37,7 +54,14 @@ function buildRoadDroneWaller(gen) {
     // EVENT_BUILD is expense, so spareIncome is often <= 0 while extensions go
     // up. Skip flowScale for bootstrap drones or it shrinks the builders.
     if (!earlyBootstrap) {
-        if (!gen.room.energyState) {
+        const building = isDrone && droneHasBuildWork(gen.room);
+        if (building) {
+            // flowScale(0.3) → 0.1 when spare is negative, which is the whole
+            // dump. Keep enough WORK to finish sites this life.
+            const scale = Math.max(0.65, gen.flowScale(0.7, 12));
+            work *= scale;
+            carry *= Math.max(0.5, gen.flowScale(0.5, 12));
+        } else if (!gen.room.energyState) {
             work *= leanColony ? 0.25 : 0.15;
             carry *= leanColony ? 0.1 : 0.05;
         } else if ((gen.role === 'remoteBuilder' || gen.role === 'roadBuilder') && gen.room.energyState < 3) {
@@ -45,7 +69,7 @@ function buildRoadDroneWaller(gen) {
             carry *= 0.3;
         } else if (!leanColony && (gen.room.energyState < 3 ||
             (gen.room.energyState === 3 && ['drone', 'waller'].includes(gen.role)))) {
-            const criticalBootstrap = gen.role === 'drone' && roomHasCriticalBuildSites(gen.room);
+            const criticalBootstrap = isDrone && roomHasCriticalBuildSites(gen.room);
             const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.3, 15);
             work *= scale;
             carry *= scale;
@@ -60,7 +84,7 @@ function buildRoadDroneWaller(gen) {
 }
 
 function upgraderCarryCount(room, energyAmount) {
-    const hasLink = !!(room && room.memory && room.memory.controllerLink);
+    const hasLink = !!liveControllerLink(room);
     if (!hasLink) return 1;
     const energy = energyAmount != null ? energyAmount : ((room && room.energyCapacityAvailable) || 0);
     const workWithBuffer = Math.floor((energy - BODYPART_COST[CARRY] * 4) / BODYPART_COST[WORK]) || 0;
@@ -86,8 +110,8 @@ function planUpgraderNeed(room, flow = {}) {
     const maxWork = maxStationaryUpgraderWork(room);
     if (rcl >= 8) return {count: 1, maxWork};
 
-    const container = global.resolveControllerContainer && global.resolveControllerContainer(room);
-    const hasLink = !!(room.memory && room.memory.controllerLink);
+    const container = liveControllerContainer(room);
+    const hasLink = !!liveControllerLink(room);
     if (!container && !hasLink) return {count: 1, maxWork};
 
     const spareIncome = flow.spareIncome || 0;
@@ -109,8 +133,8 @@ function planUpgraderNeed(room, flow = {}) {
 }
 
 function buildUpgrader(gen) {
-    const hasLink = !!gen.room.memory.controllerLink;
-    const hasContainer = !!global.resolveControllerContainer(gen.room);
+    const hasLink = !!liveControllerLink(gen.room);
+    const hasContainer = !!liveControllerContainer(gen.room);
     let work, carry, move, halfMove;
 
     if (gen.room.controller.level === 8) {
@@ -363,10 +387,10 @@ const builders = {
         const other = gen.creepInfo && gen.creepInfo.other;
         const thorium = other && other.thorium;
         if (thorium) {
-            const pair = BODYPART_COST[WORK] + BODYPART_COST[CARRY] + BODYPART_COST[MOVE];
-            let n = Math.floor(gen.energyAmount / pair) || 1;
-            n = Math.min(n, 16);
-            return {work: n, carry: Math.max(2, Math.ceil(n / 2))};
+            // Extractor cooldown is 5 — extra creeps do not help. 0 CARRY so
+            // the harvest falls into the pad container (dropped Thorium decays).
+            const halfMove = colonyRoadsBuilt(gen.room.name) || undefined;
+            return {work: 32, carry: 0, halfMove};
         }
         let work = Math.floor(gen.energyAmount / BODYPART_COST[WORK]) || 1;
         work = Math.min(work, 50);

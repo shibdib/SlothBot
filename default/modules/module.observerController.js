@@ -247,6 +247,16 @@ class ObserverControl {
             activeRemotes: []
         };
         const ct = currentTime;
+        if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+            try {
+                const season = require('module.season');
+                const claims = idx.claimCandidates || [];
+                for (const roomName of claims) {
+                    if (season.needsThoriumIntel(INTEL[roomName])) add(roomName, 89);
+                }
+            } catch (e) { /* season optional */
+            }
+        }
         for (const rName of (idx.requestingSupport || [])) {
             const r = INTEL[rName];
             if (r) add(rName, 95);

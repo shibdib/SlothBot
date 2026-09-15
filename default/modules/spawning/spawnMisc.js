@@ -7,8 +7,26 @@
 const spawnState = require('spawnState');
 const {getFlowContext, spawnEnergyState} = require('spawnFlow');
 const {getCreepCount, getBodyAbilityPower} = require('spawnCounts');
-const {queueCreepIfNeeded} = require('spawnQueue');
+const {queueCreepIfNeeded, clearRoomRoleQueue} = require('spawnQueue');
 const {roomHasStableWorkingSet} = require('bodyHelpers');
+
+function liveExtractorContainer(room, mineralPos) {
+    if (!room || !mineralPos) return null;
+    let container = Game.getObjectById(room.memory && room.memory.extractorContainer);
+    if (container && container.structureType === STRUCTURE_CONTAINER
+        && container.pos.getRangeTo(mineralPos) === 1) {
+        return container;
+    }
+    const containers = room.containers || [];
+    for (let i = 0; i < containers.length; i++) {
+        const c = containers[i];
+        if (c && c.pos && c.pos.getRangeTo(mineralPos) === 1) {
+            room.memory.extractorContainer = c.id;
+            return c;
+        }
+    }
+    return null;
+}
 
 function colonyIntelFresh(room) {
     const exits = Game.map.describeExits(room.name);
@@ -72,7 +90,9 @@ function miscCreepQueue(room) {
     if (!spawnState.throttleReady(spawnState.miscTick, room.name, spawnState.MISC_INTERVAL)) return;
     const energyState = spawnEnergyState(room);
 
-    if (room.storage && (room.terminal || room.factory)) {
+    const miningThorium = typeof IS_SEASON !== 'undefined' && IS_SEASON
+        && room.level >= 6 && room.thorium && room.thorium.mineralAmount > 0;
+    if (room.storage && (room.terminal || room.factory || miningThorium)) {
         queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.hauler + 1, numberNeeded: 1});
     }
 
@@ -115,37 +135,46 @@ function miscCreepQueue(room) {
         });
     }
 
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    // Thorium is non-renewable. Mine as soon as the pad container exists —
+    // harvesting onto the ground decays the ore.
+    let queuedMineralHarvester = false;
+    if (typeof IS_SEASON !== 'undefined' && IS_SEASON && rcl >= 6) {
+        const thorium = room.thorium;
+        if (thorium && thorium.mineralAmount > 0 && liveExtractorContainer(room, thorium.pos)) {
+            queueCreepIfNeeded({
+                room, role: 'mineralHarvester',
+                priority: PRIORITIES.priority,
+                numberNeeded: 1,
+                misc: {boosts: [WORK]},
+                assignment: thorium.id,
+                other: {assignedMineral: thorium.id, thorium: true, source: thorium.id}
+            });
+            queuedMineralHarvester = true;
+        }
+    }
+
     if (room.storage && room.level >= 6
         && room.storage.store.getFreeCapacity() >= STORAGE_CAPACITY * 0.1) {
         const {flowStressed} = getFlowContext(room);
-        const rcl = (room.controller && room.controller.level) || room.level || 0;
         if (energyState >= 1 && !flowStressed) {
-            const thoriumType = typeof RESOURCE_THORIUM !== 'undefined' ? RESOURCE_THORIUM : 'T';
             const mineral = room.mineral;
-            const isThoriumMineral = typeof IS_SEASON !== 'undefined' && IS_SEASON
-                && mineral && mineral.mineralType === thoriumType;
-            // Regular minerals wait for RCL8. Season Thorium is the win condition.
-            if (rcl >= 8 && mineral && mineral.mineralAmount && !isThoriumMineral && room.memory.extractorContainer) {
+            const thoriumLeft = typeof IS_SEASON !== 'undefined' && IS_SEASON
+                && room.thorium && room.thorium.mineralAmount > 0;
+            // Regular minerals wait for RCL8, the extractor to leave Thorium, and a live pad.
+            if (rcl >= 8 && mineral && mineral.mineralAmount && !thoriumLeft
+                && liveExtractorContainer(room, mineral.pos)) {
                 queueCreepIfNeeded({
                     room, role: 'mineralHarvester', priority: PRIORITIES.mineralHarvester,
                     numberNeeded: 1, misc: {boosts: [WORK]},
                     assignment: mineral.id,
                     other: {assignedMineral: mineral.id, source: mineral.id}
                 });
-            }
-            if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
-                const thorium = room.thorium;
-                if (thorium && thorium.mineralAmount > 0) {
-                    queueCreepIfNeeded({
-                        room, role: 'mineralHarvester', priority: PRIORITIES.mineralHarvester,
-                        numberNeeded: 1, misc: {boosts: [WORK]},
-                        assignment: thorium.id,
-                        other: {assignedMineral: thorium.id, thorium: true, source: thorium.id}
-                    });
-                }
+                queuedMineralHarvester = true;
             }
         }
     }
+    if (!queuedMineralHarvester) clearRoomRoleQueue(room.name, 'mineralHarvester');
 
     const ap = getBodyAbilityPower(room, 'longbow');
     const longbowPower = ap.attack + ap.effectiveHeal + (ap.defense / 100);
@@ -159,11 +188,13 @@ function miscCreepQueue(room) {
         needsBorderResponse = responseRoom && responseRoom.memory.requestingBorderResponse;
     }
 
+    // Beat remotes (haulers, harvesters, reservers, road builders). A foothold
+    // in a remote is more expensive than delayed remote staffing.
     if (needyBorderPatrol) {
         const dest = needyBorderPatrol.memory.destination;
         const live = getCreepCount(undefined, 'longbow', dest, 'borderPatrol');
         queueCreepIfNeeded({
-            room, role: 'longbow', priority: PRIORITIES.high,
+            room, role: 'longbow', priority: PRIORITIES.borderPatrol,
             numberNeeded: Math.min(4, live + 1),
             destination: dest, operation: 'borderPatrol'
         });
@@ -173,7 +204,7 @@ function miscCreepQueue(room) {
         const power = borderIntel ? (borderIntel.hostilePower * 1.5) - (borderIntel.friendlyPower || 0) : 50;
         if (power > 0) {
             queueCreepIfNeeded({
-                room, role: 'longbow', priority: PRIORITIES.medium,
+                room, role: 'longbow', priority: PRIORITIES.borderPatrol,
                 numberNeeded: borderIntel.hostilePower / longbowPower,
                 destination: room.memory.borderPatrol, operation: 'borderPatrol', other: {power}
             });
@@ -184,7 +215,7 @@ function miscCreepQueue(room) {
         const power = responseIntel ? (responseIntel.hostilePower * 1.5) - (responseIntel.friendlyPower || 0) : 50;
         if (power > 0) {
             queueCreepIfNeeded({
-                room, role: 'longbow', priority: PRIORITIES.secondary,
+                room, role: 'longbow', priority: PRIORITIES.borderPatrol,
                 numberNeeded: responseIntel.hostilePower / longbowPower,
                 destination: needsBorderResponse, operation: 'borderPatrol', other: {power}
             });

@@ -22,7 +22,7 @@
 'use strict';
 
 const {runTowTruck} = require('pathTow');
-const {clearShibMove, getShibMove} = require('pathUtils');
+const {clearShibMove, getShibMove, pathLeavesForSameRoomTarget, pathIsSameRoomDetour} = require('pathUtils');
 const {stepInlandOffExit, isSquadCreep} = require('pathFormation');
 const {roomCanBurnSurplus} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
@@ -40,10 +40,17 @@ function getRoomExits(room) {
 }
 
 const REMOTE_REPAIRABLE = new Set([STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_WALL, STRUCTURE_RAMPART]);
+// Spawn/storage/extractor must land before we spend energy on the RCL dump.
+// Extensions/labs are not urgent enough to let roads and containers finish decaying.
+const URGENT_BUILD_TYPES = [
+    STRUCTURE_SPAWN, STRUCTURE_STORAGE, STRUCTURE_EXTRACTOR, STRUCTURE_TERMINAL,
+    STRUCTURE_CONTAINER, STRUCTURE_LINK,
+];
 const PRIORITY_BUILD_TYPES = [
     STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_STORAGE, STRUCTURE_EXTRACTOR, STRUCTURE_TERMINAL,
     STRUCTURE_CONTAINER, STRUCTURE_LINK, STRUCTURE_LAB, STRUCTURE_FACTORY, STRUCTURE_POWER_SPAWN,
 ];
+const INFRA_DECAY_RATIO = 0.5;
 
 function constructionSiteOwner(site) {
     if (site.safeOwnerName) return site.safeOwnerName();
@@ -958,21 +965,41 @@ Creep.prototype.constructionWork = function (scope) {
     const towers = sites.byType[STRUCTURE_TOWER];
     if (towers) return build(towers[0]);
 
-    for (const type of PRIORITY_BUILD_TYPES) {
+    const ctrl = room.controller;
+    const hasUpgradePad = !!(ctrl && (
+        Game.getObjectById(room.memory && room.memory.controllerLink)
+        || (global.resolveControllerContainer && global.resolveControllerContainer(room))
+    ));
+    if (ctrl && ctrl.my && ctrl.level >= 2 && !hasUpgradePad) {
+        const padLink = available(sites.byType[STRUCTURE_LINK] || []).filter(s => s.pos.getRangeTo(ctrl) <= 4);
+        if (padLink.length) return build(this.pos.findClosestByRange(padLink));
+        const padContainer = available(sites.byType[STRUCTURE_CONTAINER] || []).filter(s => s.pos.getRangeTo(ctrl) <= 3);
+        if (padContainer.length) return build(this.pos.findClosestByRange(padContainer));
+    }
+
+    for (const type of URGENT_BUILD_TYPES) {
         const list = sites.byType[type];
         if (list && list.length) return build(list[0]);
     }
 
-    site = available(damage.containers).find(s => s.hits < s.hitsMax * 0.5);
+    // Keep existing roads/containers alive through an RCL dump. New extensions
+    // used to starve this until swamp roads and source containers hit 0.
+    site = available(damage.containers).find(s => s.hits < s.hitsMax * INFRA_DECAY_RATIO);
     if (site) return repair(site, site.hitsMax * 0.65);
 
-    site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.5));
+    site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * INFRA_DECAY_RATIO));
     if (site) return repair(site, site.hitsMax * 0.8);
 
-    // Roads are the lowest-priority site type. Do not spend a builder on them
-    // while any other non-barrier site is queued. allowRoads already requires
-    // ROAD_LEVEL + storage.
-    if (!available(sites.misc).length && roadSites.length) return buildClosest(roadSites);
+    // Pave the planned net (incl. extractor/thorium) before the extension dump.
+    // Cap is still MAX_ROAD_SITES_QUEUED so these do not block new spawns.
+    if (roadSites.length) return buildClosest(roadSites);
+
+    for (const type of PRIORITY_BUILD_TYPES) {
+        if (URGENT_BUILD_TYPES.includes(type)) continue;
+        const list = sites.byType[type];
+        if (list && list.length) return build(list[0]);
+    }
+
     site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.75));
     if (site) return repair(site, site.hitsMax * 0.75);
 
@@ -1142,11 +1169,22 @@ Creep.prototype.borderCheck = function () {
             this.memory.borderCountDown = undefined;
             return false;
         }
+        // Same-room target via a neighbor: the path's next step is out this
+        // exit. Yanking inland fights that detour and bounces the creep.
+        if (pathLeavesForSameRoomTarget(this) || pathIsSameRoomDetour(this)) {
+            this.memory.borderCountDown = undefined;
+            return false;
+        }
         this.memory.borderCountDown = undefined;
         clearShibMove(this);
         this.memory.moveBlocked = Game.time;
         forceOffExit(this);
         return true;
+    }
+
+    if (pathIsSameRoomDetour(this)) {
+        this.memory.borderCountDown = undefined;
+        return false;
     }
 
     if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;

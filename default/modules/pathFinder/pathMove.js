@@ -291,7 +291,9 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         let result = pathOnlySearch(
             allowedRooms,
             options.maxOps || DEFAULT_MAXOPS,
-            allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 16),
+            origin.roomName === target.roomName
+                ? 1
+                : (allowedRooms.length ? allowedRooms.length + 2 : (options.maxRooms || 16)),
         );
         return applySameRoomDetour(origin, target, result, options, (rooms, maxOps) =>
             pathOnlySearch(rooms, maxOps, rooms.length));
@@ -602,6 +604,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     if (!result.incomplete) {
         pathInfo.target = {x: target.x, y: target.y, roomName: target.roomName};
         pathInfo.path = serializePath(creep.pos, result.path);
+        if (options.sameRoomDetour) pathInfo.sameRoomDetour = true;
         pathInfo.pathKey = pathKey;
         pathInfo.pathAge = 0;
         pathInfo.pathPos = undefined;

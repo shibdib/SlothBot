@@ -113,6 +113,7 @@ function intelCompleteEnough(intel, roomName, now) {
     if (!intel) return false;
     if (missingBasicIntel(intel, roomName) || needsHubCheck(intel)) return false;
     if (isSeason() && isCenterName(roomName) && intel.reactor == null && !intel.cached) return false;
+    if (isSeason() && season.needsThoriumIntel(intel)) return false;
     if (!intel.lastObservation || now - intel.lastObservation > 800) return false;
     return true;
 }
@@ -148,6 +149,7 @@ function getColonyGapRooms() {
                 else if (skipDangerous(neighbor, intel)) continue;
                 else if (needsHubCheck(intel)) kind = 2;
                 else if (isSeason() && isCenterName(neighbor) && intel.reactor == null && !intel.cached) kind = 3;
+                else if (isSeason() && season.needsThoriumIntel(intel)) kind = 3;
                 else if (!intel.cached && intel.sources === 2 && !intel.owner) kind = 4;
                 else continue;
                 gaps.push({room: neighbor, hop, kind});
@@ -409,6 +411,7 @@ class RoleExplorer {
             if (intel && intel.cached && intel.cached + 2500 < currentTime) score -= 120;
             if (isSeason()) {
                 if (intel && intel.reactor) score -= 700;
+                if (season.needsThoriumIntel(intel)) score -= 650;
                 score -= season.roomNorthValue(roomName);
                 if (isCenterName(roomName)) score -= 600;
             }

@@ -3,7 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
-const {isCriticalBuildStructureType, roomHasCriticalBuildSites} = require('bodyHelpers');
+const {isCriticalBuildStructureType, roomHasCriticalBuildSites, roomMissingUpgradePad} = require('bodyHelpers');
 
 class RoleDrone {
     constructor(creep) {
@@ -92,13 +92,15 @@ class RoleDrone {
             if (this.upgrading(true)) return;
         }
 
-        if (roomHasCriticalBuildSites(this.room) && !controllerDowngradeUrgent(this.room)) {
+        if ((roomHasCriticalBuildSites(this.room) || roomMissingUpgradePad(this.room))
+            && !controllerDowngradeUrgent(this.room)) {
             if (this.creep.memory.task === 'upgrade') {
                 delete this.creep.memory.task;
             }
             if (this.creep.memory.constructionSite) {
                 const current = Game.getObjectById(this.creep.memory.constructionSite);
-                if (current && !isCriticalBuildStructureType(current.structureType)) {
+                if (current && !isCriticalBuildStructureType(current.structureType)
+                    && !shouldKeepInfrastructureWork(this.creep, current)) {
                     delete this.creep.memory.constructionSite;
                     delete this.creep.memory.task;
                     delete this.creep.memory.sitePos;
@@ -460,6 +462,21 @@ function isRebuildBootstrap(creep, room) {
     return !!room.memory.buildersNeeded;
 }
 
+// RCL dumps spawn extension sites that used to yank drones off decaying
+// roads/containers. Yield only for spawn/tower — those still beat upkeep.
+function shouldKeepInfrastructureWork(creep, site) {
+    if (!site) return false;
+    const type = site.structureType;
+    if (type !== STRUCTURE_ROAD && type !== STRUCTURE_CONTAINER && type !== STRUCTURE_LINK) return false;
+    if (site.hits != null && site.hitsMax && site.hits < site.hitsMax * 0.5) return true;
+    const sites = (creep.room && creep.room.constructionSites) || [];
+    for (let i = 0; i < sites.length; i++) {
+        const t = sites[i].structureType;
+        if (t === STRUCTURE_SPAWN || t === STRUCTURE_TOWER) return false;
+    }
+    return true;
+}
+
 function spawnAnchorHelpers() {
     try {
         return require('planActors');
@@ -553,6 +570,8 @@ function shouldInterruptForSpawnFill(creep, room) {
 function shouldLeftoverUpgrade(room) {
     if (!room || !room.controller || !room.controller.my) return false;
     if (room.controller.level >= 8) return false;
+    // Missing pad: drones rebuild container/link, they do not become moving upgraders.
+    if (roomMissingUpgradePad(room)) return false;
     // Storage used to kill leftover the tick it finished, while energyState 0
     // also starved the 0-MOVE upgrader. Dump until a fed upgrader exists.
     if (hasDedicatedUpgrader(room)) return false;

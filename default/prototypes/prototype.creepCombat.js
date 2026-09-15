@@ -886,10 +886,78 @@ Creep.prototype.healInRange = function (blinky = false) {
     }
 };
 
+function clearFleeMemory(creep) {
+    delete creep.memory.ranFrom;
+    delete creep.memory.fleeDestination;
+    delete creep.memory.runCooldown;
+}
+
+function fleeRoomIsOwnedSafe(room) {
+    if (!room || !room.controller) return false;
+    if (room.controller.my) return true;
+    const owner = room.controller.owner && room.controller.owner.username;
+    return !!(owner && FRIENDLIES.includes(owner));
+}
+
+function fleeOriginStillHot(roomName) {
+    if (!roomName) return false;
+    const vis = Game.rooms[roomName];
+    if (vis) {
+        const hostiles = vis.hostileCreeps || [];
+        for (let i = 0; i < hostiles.length; i++) {
+            const h = hostiles[i];
+            if (h.hasActiveBodyparts(ATTACK) || h.hasActiveBodyparts(RANGED_ATTACK)) return true;
+        }
+        return false;
+    }
+    const intel = INTEL[roomName];
+    return !!(intel && intel.invaderTTL && intel.invaderTTL > Game.time);
+}
+
+function civilianLocalThreat(creep) {
+    const room = creep.room;
+    if (!room || MY_ROOMS.includes(room.name)) return false;
+    const towers = room.towers || [];
+    for (let i = 0; i < towers.length; i++) {
+        const t = towers[i];
+        if (t && !t.my && t.store && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST) return true;
+    }
+    const hostiles = room.hostileCreeps;
+    if (!hostiles || !hostiles.length) return false;
+    for (let i = 0; i < hostiles.length; i++) {
+        const h = hostiles[i];
+        if (!h.hasActiveBodyparts(ATTACK) && !h.hasActiveBodyparts(RANGED_ATTACK)) continue;
+        if (creep.pos.getRangeTo(h) <= 12) return true;
+    }
+    return false;
+}
+
 Creep.prototype.fleeHome = function (force = false) {
-    if (this.room.controller?.owner && FRIENDLIES.includes(this.room.controller.owner.username) && this.room.towers[0]) return false;
     if (this.hits < this.hitsMax) force = true;
-    if (!force && !this.memory.runCooldown && (this.hits === this.hitsMax || (!INTEL[this.room.name]?.lastCombat || INTEL[this.room.name].lastCombat + 10 < Game.time))) return false;
+
+    const atSafeHome = fleeRoomIsOwnedSafe(this.room);
+    const localThreat = !atSafeHome && civilianLocalThreat(this);
+    const originHot = fleeOriginStillHot(this.memory.ranFrom);
+
+    // Room we ran from (or this room) is clear — stop. Stale runCooldown used
+    // to yank civilians back out of a re-secured remote every trip.
+    if (!localThreat && !originHot) {
+        clearFleeMemory(this);
+        return false;
+    }
+    if (atSafeHome && !localThreat) {
+        if (this.memory.runCooldown && Game.time <= this.memory.runCooldown && originHot) {
+            this.idleFor(Math.max(1, (this.memory.runCooldown - Game.time) / 2));
+            return true;
+        }
+        clearFleeMemory(this);
+        return false;
+    }
+
+    if (!force && !this.memory.runCooldown && !localThreat &&
+        (this.hits === this.hitsMax || (!INTEL[this.room.name]?.lastCombat || INTEL[this.room.name].lastCombat + 10 < Game.time))) {
+        return false;
+    }
 
     if (!this.memory.ranFrom) this.memory.ranFrom = this.room.name;
 
@@ -899,14 +967,15 @@ Creep.prototype.fleeHome = function (force = false) {
     this.memory.fleeDestination = closest;
 
     if (this.room.name !== closest) {
-        this.memory.runCooldown = Game.time + 50;
+        if (!this.memory.runCooldown || this.memory.runCooldown < Game.time) {
+            this.memory.runCooldown = Game.time + 50;
+        }
         this.shibMove(new RoomPosition(25, 25, closest), {range: 15});
-    } else if (Game.time <= this.memory.runCooldown) {
+    } else if (this.memory.runCooldown && Game.time <= this.memory.runCooldown) {
         this.idleFor((this.memory.runCooldown - Game.time) / 2);
     } else {
-        delete this.memory.ranFrom;
-        delete this.memory.fleeDestination;
-        delete this.memory.runCooldown;
+        clearFleeMemory(this);
+        return false;
     }
     return true;
 };

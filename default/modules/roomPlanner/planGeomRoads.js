@@ -39,7 +39,7 @@ const PLAN_CACHE = Object.create(null);
 const MATRIX_HEAP = {owned: Object.create(null), remote: Object.create(null)};
 const FAILED_PATH_RETRY = 50;
 /** Bump when desired-set geometry changes (lab collar, walkway, extension spurs, …) so packed plans rebuild. */
-const OWNED_ROAD_PLAN_REV = 3;
+const OWNED_ROAD_PLAN_REV = 4;
 const ROAD_CARDINALS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
 /** One-shot: recompute packed without adopting leftover live roads, then prune extras. */
 const OWNED_ROAD_CLEANUP_REV = 1;
@@ -461,7 +461,72 @@ function classifyTarget(room, pos) {
 }
 
 function roadGoalRange(pos) {
-    return pos && pos._exitRoadGoal ? 0 : 1;
+    return pos && (pos._exitRoadGoal || pos._standRoadGoal) ? 0 : 1;
+}
+
+/**
+ * Walkable adjacent stand for a mineral/thorium extractor. PathFinder targeting
+ * the mineral tile (extractor = 255) with range 1 can complete without a paved
+ * working tile; range 0 on this stand puts the last road where the miner stands.
+ */
+function getHarvestStandGoal(room, harvestPos) {
+    if (!room || !harvestPos) return null;
+    const terrain = Game.map.getRoomTerrain(room.name);
+    const origin = getRoadOrigin(room);
+    let best = null;
+    let bestScore = Infinity;
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            if (!dx && !dy) continue;
+            const x = harvestPos.x + dx;
+            const y = harvestPos.y + dy;
+            if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            const pos = new RoomPosition(x, y, room.name);
+            if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
+            const hasRoad = !!(pos.checkForRoad && pos.checkForRoad());
+            const swamp = terrain.get(x, y) === TERRAIN_MASK_SWAMP;
+            const dist = origin ? origin.getRangeTo(pos) : 0;
+            const score = (hasRoad ? 0 : 100) + (swamp ? 20 : 0) + dist;
+            if (score < bestScore) {
+                bestScore = score;
+                best = pos;
+            }
+        }
+    }
+    return best;
+}
+
+function collectHarvestStandGoals(room, harvestPos, avoid) {
+    const goals = [];
+    if (!room || !harvestPos) return goals;
+    const terrain = Game.map.getRoomTerrain(room.name);
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            if (!dx && !dy) continue;
+            const x = harvestPos.x + dx;
+            const y = harvestPos.y + dy;
+            if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            const key = x + 'x' + y;
+            if (avoid && avoid.has(key)) continue;
+            const pos = new RoomPosition(x, y, room.name);
+            if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
+            goals.push({pos, range: 0});
+        }
+    }
+    return goals;
+}
+
+function addHarvestRoadTarget(room, harvestPos, add) {
+    if (!harvestPos) return;
+    const stand = getHarvestStandGoal(room, harvestPos);
+    if (stand) {
+        stand._standRoadGoal = true;
+        add(stand);
+        return;
+    }
+    add(harvestPos);
 }
 
 /**
@@ -567,8 +632,9 @@ function getRoadTargets(room) {
     }
 
     // room.mineral excludes Thorium; season extractor is on the Thorium tile.
-    if (room.thorium) add(room.thorium.pos);
-    if (room.mineral) add(room.mineral.pos);
+    // Path to a walkable stand, not the mineral tile (extractor is unwalkable).
+    if (room.thorium) addHarvestRoadTarget(room, room.thorium.pos, add);
+    if (room.mineral) addHarvestRoadTarget(room, room.mineral.pos, add);
 
     const usefulExits = getOwnedExitNeighborRooms(room);
     for (const neighbor of usefulExits) {
@@ -788,6 +854,19 @@ function buildConnectorTiles(room, layout) {
             if (fallback && anchor.getRangeTo(fallback) > 1) {
                 path = searchOnMatrix(anchor, fallback, matrix, {range: 1});
             }
+        }
+        // Thorium has no container; PathFinder on the extractor tile (255) can
+        // fail range-1. Retry explicit adjacent stands, then the hub origin.
+        if (!path) {
+            const harvestPos = (room.thorium && target.inRangeTo(room.thorium, 1) && room.thorium.pos)
+                || (room.mineral && target.inRangeTo(room.mineral, 1) && room.mineral.pos);
+            if (harvestPos) {
+                const stands = collectHarvestStandGoals(room, harvestPos, avoid);
+                if (stands.length) path = searchOnMatrix(anchor, target, matrix, {goals: stands});
+            }
+        }
+        if (!path && origin && anchor !== origin) {
+            path = searchOnMatrix(origin, target, matrix, {range: goalRange});
         }
         if (!path) {
             pathFailures++;

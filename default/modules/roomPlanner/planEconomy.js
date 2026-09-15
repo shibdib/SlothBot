@@ -1942,6 +1942,89 @@ function extractorOn(pos) {
     return null;
 }
 
+function extractorSiteOn(pos) {
+    if (!pos || !pos.checkForConstructionSites) return null;
+    const site = pos.checkForConstructionSites();
+    return site && site.structureType === STRUCTURE_EXTRACTOR ? site : null;
+}
+
+function tileBlocksExtractor(pos) {
+    if (!pos) return true;
+    const structs = pos.lookFor(LOOK_STRUCTURES);
+    for (let i = 0; i < structs.length; i++) {
+        const t = structs[i].structureType;
+        if (t === STRUCTURE_RAMPART || t === STRUCTURE_ROAD || t === STRUCTURE_EXTRACTOR) continue;
+        return true;
+    }
+    return false;
+}
+
+function isSourceOrControllerPad(room, pos) {
+    if (!room || !pos) return false;
+    const sources = room.sources || [];
+    for (let i = 0; i < sources.length; i++) {
+        if (pos.isNearTo(sources[i])) return true;
+    }
+    return !!(room.controller && pos.isNearTo(room.controller));
+}
+
+/** Remove a depleted-thorium extractor, leftover site, and its pad container. */
+function vacateThoriumExtractor(room, thoriumPos) {
+    if (!thoriumPos || isPlannerShadow(room)) return false;
+    let changed = false;
+    const site = extractorSiteOn(thoriumPos);
+    if (site) {
+        try {
+            if (site.remove() === OK) {
+                creditRemovedConstructionSites(room, 1);
+                changed = true;
+            }
+        } catch (e) { /* ignore */
+        }
+    }
+    const extractor = extractorOn(thoriumPos);
+    if (extractor) {
+        try {
+            if (extractor.destroy() === OK) {
+                changed = true;
+                if (typeof log !== 'undefined' && log.a) {
+                    log.a(`${room.name} thorium depleted, moving extractor to mineral`, 'PLANNER');
+                }
+            }
+        } catch (e) { /* ignore */
+        }
+    }
+    const containers = room.containers || [];
+    for (let i = 0; i < containers.length; i++) {
+        const c = containers[i];
+        if (!c || !c.pos || c.pos.getRangeTo(thoriumPos) !== 1) continue;
+        if (isSourceOrControllerPad(room, c.pos)) continue;
+        try {
+            if (c.destroy() === OK) {
+                changed = true;
+                if (room.memory.extractorContainer === c.id) room.memory.extractorContainer = undefined;
+            }
+        } catch (e) { /* ignore */
+        }
+    }
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const s = sites[i];
+        if (!s || s.structureType !== STRUCTURE_CONTAINER) continue;
+        if (s.pos.getRangeTo(thoriumPos) !== 1) continue;
+        if (isSourceOrControllerPad(room, s.pos)) continue;
+        try {
+            if (s.remove() === OK) {
+                creditRemovedConstructionSites(room, 1);
+                changed = true;
+            }
+        } catch (e) { /* ignore */
+        }
+    }
+    if (changed && room._invalidateStructureCaches) room._invalidateStructureCaches();
+    return changed;
+}
+
 function isBudgetFail(res) {
     return res && (res.code === FailureCodes.SITE_BUDGET_ROOM
         || res.code === FailureCodes.SITE_BUDGET_GLOBAL
@@ -1967,7 +2050,7 @@ function tryPlaceExtractor(room, pos, kind) {
         }
         return {placed: 0, kind, reason: 'site'};
     }
-    if (pos.checkForAllStructure()) return {placed: 0, kind, reason: 'extractor-blocked'};
+    if (tileBlocksExtractor(pos)) return {placed: 0, kind, reason: 'extractor-blocked'};
     const res = tryPlace(room, 'mineral', pos, STRUCTURE_EXTRACTOR);
     if (res.ok) {
         noteLayerTile(room, 'mineral', pos);
@@ -1986,85 +2069,90 @@ function placeMineral(room) {
     const thorium = room.thorium;
     if (!mineral && !thorium) return {placed: 0, reason: 'no-mineral'};
 
-    // One extractor per room. Season: Thorium is the win condition and the
-    // only mineral harvested before RCL8, so site it first while ore remains.
-    const targets = [];
+    // One extractor per room. Thorium is non-renewable: sit it first (with a
+    // container so harvest does not drop and decay), then destroy and move
+    // onto the regular mineral once the deposit is gone.
     if (thorium && thorium.mineralAmount > 0) {
-        targets.push({pos: thorium.pos, kind: 'thorium-extractor'});
-    }
-    if (mineral) targets.push({pos: mineral.pos, kind: 'extractor'});
-    if (thorium && !(thorium.mineralAmount > 0)) {
-        targets.push({pos: thorium.pos, kind: 'thorium-extractor'});
-    }
-
-    const seen = {};
-    for (let i = 0; i < targets.length; i++) {
-        const t = targets[i];
-        const key = t.pos.x + ',' + t.pos.y;
-        if (seen[key]) continue;
-        seen[key] = true;
-        const r = tryPlaceExtractor(room, t.pos, t.kind);
-        if (!r) continue;
-        if (r.placed || isBudgetFail(r) || r.reason === 'site') return r;
+        if (!(extractorOn(thorium.pos) || extractorSiteOn(thorium.pos))) {
+            const r = tryPlaceExtractor(room, thorium.pos, 'thorium-extractor');
+            if (r) return r;
+            return {placed: 0, reason: 'thorium-blocked'};
+        }
+        const thoriumExtractor = extractorOn(thorium.pos);
+        if (!thoriumExtractor) return {placed: 0, reason: 'site', kind: 'thorium-extractor'};
+        return placeExtractorContainer(room, thoriumExtractor);
     }
 
-    const extractor = extractorOn(mineral && mineral.pos)
-        || extractorOn(thorium && thorium.pos)
-        || room.extractor;
+    if (thorium && (extractorOn(thorium.pos) || extractorSiteOn(thorium.pos))) {
+        vacateThoriumExtractor(room, thorium.pos);
+    }
+
+    if (!mineral) return {placed: 0, reason: 'no-mineral'};
+
+    const placed = tryPlaceExtractor(room, mineral.pos, 'extractor');
+    if (placed && (placed.placed || isBudgetFail(placed) || placed.reason === 'site')) return placed;
+
+    const extractor = extractorOn(mineral.pos) || room.extractor;
     if (!extractor) return {placed: 0, reason: 'extractor-blocked'};
-    if (thorium && extractorOn(thorium.pos)) return {placed: 0, reason: 'thorium-no-container'};
+    if (thorium && extractorOn(thorium.pos)) return {placed: 0, reason: 'thorium-extractor-stuck'};
 
+    return placeExtractorContainer(room, extractor);
+}
+
+function placeExtractorContainer(room, extractor) {
+    if (!extractor) return {placed: 0, reason: 'extractor-blocked'};
     let extractorContainer = Game.getObjectById(room.memory.extractorContainer);
-    if (!extractorContainer) {
-        const near = (global.posStructuresInRange
-                ? global.posStructuresInRange(extractor.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})
-                : extractor.pos.findInRange(FIND_STRUCTURES, 1)
-        ).find(s => s.structureType === STRUCTURE_CONTAINER);
-        if (near) {
-            room.memory.extractorContainer = near.id;
-            return {placed: 0, reason: 'have-container'};
-        }
+    if (extractorContainer && extractorContainer.pos.getRangeTo(extractor) !== 1) {
         room.memory.extractorContainer = undefined;
-        const extractorSites = global.posConstructionSitesInRange
-            ? global.posConstructionSitesInRange(extractor.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})
-            : extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1);
-        if (extractorSites.find(s => s.structureType === STRUCTURE_CONTAINER)) {
-            return {placed: 0, reason: 'container-site'};
-        }
-
-        // V1 tries first non-impassible adjacent tile then stops; we try remaining
-        // tiles when create fails for non-budget reasons (blocked/invalid tile).
-        const spots = room.lookForAtArea(
-            LOOK_TERRAIN,
-            extractor.pos.y - 1, extractor.pos.x - 1,
-            extractor.pos.y + 1, extractor.pos.x + 1,
-            true
-        );
-        let lastFail = null;
-        for (const key in spots) {
-            const position = new RoomPosition(spots[key].x, spots[key].y, room.name);
-            if (position.getRangeTo(extractor) !== 1 || position.checkForImpassible()) continue;
-            if (position.checkForConstructionSites && position.checkForConstructionSites()) continue;
-            if (position.checkForAllStructure && position.checkForAllStructure()) continue;
-            const res = tryPlace(room, 'mineral', position, STRUCTURE_CONTAINER);
-            if (res.ok) {
-                noteLayerTile(room, 'mineral', position);
-                return {placed: 1, kind: 'container', x: position.x, y: position.y, shadow: res.shadow};
-            }
-            lastFail = res;
-            if (res.code === FailureCodes.SITE_BUDGET_ROOM
-                || res.code === FailureCodes.SITE_BUDGET_GLOBAL
-                || res.code === FailureCodes.BUDGET_RESERVED_FOR_HIGHER) {
-                return {placed: 0, kind: 'container', reason: 'fail', code: res.code};
-            }
-        }
-        return {
-            placed: 0,
-            reason: lastFail ? 'fail' : 'no-container-pos',
-            code: lastFail && lastFail.code,
-        };
+        extractorContainer = undefined;
     }
-    return {placed: 0, reason: 'have'};
+    if (extractorContainer) return {placed: 0, reason: 'have-container'};
+
+    const near = (global.posStructuresInRange
+            ? global.posStructuresInRange(extractor.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})
+            : extractor.pos.findInRange(FIND_STRUCTURES, 1)
+    ).find(s => s.structureType === STRUCTURE_CONTAINER);
+    if (near) {
+        room.memory.extractorContainer = near.id;
+        return {placed: 0, reason: 'have-container'};
+    }
+    room.memory.extractorContainer = undefined;
+    const extractorSites = global.posConstructionSitesInRange
+        ? global.posConstructionSitesInRange(extractor.pos, 1, {filter: {structureType: STRUCTURE_CONTAINER}})
+        : extractor.pos.findInRange(FIND_CONSTRUCTION_SITES, 1);
+    if (extractorSites.find(s => s.structureType === STRUCTURE_CONTAINER)) {
+        return {placed: 0, reason: 'container-site'};
+    }
+
+    const spots = room.lookForAtArea(
+        LOOK_TERRAIN,
+        extractor.pos.y - 1, extractor.pos.x - 1,
+        extractor.pos.y + 1, extractor.pos.x + 1,
+        true
+    );
+    let lastFail = null;
+    for (const key in spots) {
+        const position = new RoomPosition(spots[key].x, spots[key].y, room.name);
+        if (position.getRangeTo(extractor) !== 1 || position.checkForImpassible()) continue;
+        if (position.checkForConstructionSites && position.checkForConstructionSites()) continue;
+        if (position.checkForAllStructure && position.checkForAllStructure()) continue;
+        const res = tryPlace(room, 'mineral', position, STRUCTURE_CONTAINER);
+        if (res.ok) {
+            noteLayerTile(room, 'mineral', position);
+            return {placed: 1, kind: 'container', x: position.x, y: position.y, shadow: res.shadow};
+        }
+        lastFail = res;
+        if (res.code === FailureCodes.SITE_BUDGET_ROOM
+            || res.code === FailureCodes.SITE_BUDGET_GLOBAL
+            || res.code === FailureCodes.BUDGET_RESERVED_FOR_HIGHER) {
+            return {placed: 0, kind: 'container', reason: 'fail', code: res.code};
+        }
+    }
+    return {
+        placed: 0,
+        reason: lastFail ? 'fail' : 'no-container-pos',
+        code: lastFail && lastFail.code,
+    };
 }
 
 // ---------------------------------------------------------------------------

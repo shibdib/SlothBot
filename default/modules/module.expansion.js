@@ -88,6 +88,10 @@ class ExpansionControl {
         const allyRemote = this.getAllyRemoteBlock(roomName);
         if (allyRemote) return false;
 
+        if (typeof IS_SEASON !== 'undefined' && IS_SEASON && targetIntel.thoriumAmount === 0) {
+            return false;
+        }
+
         return true;
     }
 
@@ -156,7 +160,11 @@ class ExpansionControl {
         const candidates = this.worthyRooms
             .map(room => ({room, ...this.roomScores[room.name]}))
             .filter(r => r.claimValue != null && r.claimValue > -Infinity);
-        const max = _.max(candidates, 'claimValue');
+        const withThorium = (typeof IS_SEASON !== 'undefined' && IS_SEASON)
+            ? candidates.filter(r => r.room && r.room.thoriumAmount > 0)
+            : null;
+        const pool = (withThorium && withThorium.length) ? withThorium : candidates;
+        const max = _.max(pool, 'claimValue');
         if (max && max.room) {
             this.claimTarget = {room: max.room.name, tick: Game.time};
             Memory.claimTarget = this.claimTarget;
@@ -178,6 +186,9 @@ class ExpansionControl {
         if (ownRemote) return ownRemote.rejectReason;
         const allyRemote = this.getAllyRemoteBlock(roomName);
         if (allyRemote) return allyRemote.rejectReason;
+        if (typeof IS_SEASON !== 'undefined' && IS_SEASON && intel.thoriumAmount === 0) {
+            return 'no thorium';
+        }
         return 'invalid';
     }
 
@@ -497,9 +508,16 @@ class ExpansionControl {
 
         if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
             score += season.roomNorthValue(room.name) * 150;
-            const thoriumAmt = room.thoriumAmount || (room.mineral === RESOURCE_THORIUM ? room.mineralAmount : 0) || 0;
-            if (thoriumAmt > 0) score += Math.min(thoriumAmt / 10, 4000);
-            else score -= 2000;
+            // `thoriumAmount` is null until a scout/observer looks. Do not treat
+            // unknown as empty — that used to -2000 every unsurveyed candidate.
+            const thoriumAmt = room.thoriumAmount;
+            if (thoriumAmt == null) {
+                score -= 400;
+            } else if (!(thoriumAmt > 0)) {
+                score -= 8000;
+            } else {
+                score += Math.min(thoriumAmt / 5, 12000);
+            }
         }
 
         if (myRoomInSectorCheck(room.name)) score += 7000;
@@ -671,8 +689,17 @@ class ExpansionControl {
         const candidates = [];
         const stale = (name) => {
             const intel = INTEL[name];
-            return !intel || !intel.hubCheck || intel.cached + 10000 <= Game.time;
+            if (!intel || !intel.hubCheck || intel.cached + 10000 <= Game.time) return true;
+            if (typeof IS_SEASON !== 'undefined' && IS_SEASON && intel.thoriumAmount == null) return true;
+            return false;
         };
+
+        if (typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+            for (let i = 0; i < this.worthyRooms.length; i++) {
+                const room = this.worthyRooms[i];
+                if (room && room.thoriumAmount == null) candidates.push(room.name);
+            }
+        }
 
         if (this.claimTarget.room) {
             candidates.push(this.claimTarget.room);

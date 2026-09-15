@@ -934,7 +934,11 @@ function civilianShouldFlee(creep) {
     if (!room || MY_ROOMS.includes(room.name)) return false;
     const intel = INTEL[room.name];
     if ((room.memory && room.memory.sk) || (intel && intel.sk)) return false;
-    if (intel && intel.towers) return true;
+    const towers = room.towers || [];
+    for (let i = 0; i < towers.length; i++) {
+        const t = towers[i];
+        if (t && !t.my && t.store && t.store[RESOURCE_ENERGY] >= TOWER_ENERGY_COST) return true;
+    }
     const hostiles = room.hostileCreeps;
     if (!hostiles || !hostiles.length) return false;
     for (let i = 0; i < hostiles.length; i++) {

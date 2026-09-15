@@ -13,6 +13,9 @@ const {
     civilianShouldFlee
 } = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
+
+// Seed a hauler trip before spending WORK on the pad. Do not pick this pile up.
+const GROUND_SURPLUS = 200;
 const {
     canPlaceConstructionSite,
     tryCreateConstructionSite,
@@ -213,21 +216,17 @@ class RoleRemoteHarvester {
 
         if (!this.container || Game.time % 5 === 0) this.refreshContainerTarget();
 
-        if (!this.container) {
-            harvestDepositContainer(this.source, this.creep);
-            this.refreshContainerTarget();
+        const built = this.container && this.container.hits;
+        if (!built) {
+            return this.harvestThenBuildPad();
         }
 
-        if (this.container) {
-            if (!this.moveToContainerSpot()) return;
-        } else if (!this.creep.pos.isNearTo(this.source)) {
-            return this.creep.shibMove(this.source);
-        }
+        if (!this.moveToContainerSpot()) return;
 
         // Build/repair consumes the work intent — do not harvest the same tick.
-        if (this.container && this.handleContainer()) return;
+        if (this.handleContainer()) return;
 
-        if (!this.container || !this.container.store) this.handleDroppedResources();
+        this.handleDroppedResources();
 
         const result = this.creep.harvest(this.source);
         if (result === OK) {
@@ -311,19 +310,67 @@ class RoleRemoteHarvester {
         }
 
         if (!this.container.progressTotal) return false;
+        return this.buildContainerSite();
+    }
 
-        if (this.creep.store[RESOURCE_ENERGY]) {
-            this.creep.build(this.container);
-            return true;
+    harvestThenBuildPad() {
+        const padPos = (this.container && this.container.pos) || findBestContainerPos(this.source);
+        if (padPos) {
+            if (!this.creep.pos.isEqualTo(padPos)) {
+                this.creep.memory.onContainer = undefined;
+                return this.creep.shibMove(padPos, {range: 0});
+            }
+            this.creep.memory.onContainer = true;
+        } else if (!this.creep.pos.isNearTo(this.source)) {
+            return this.creep.shibMove(this.source);
         }
-        const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
-        if (dropped && dropped.resourceType === RESOURCE_ENERGY) {
-            this.creep.pickup(dropped);
-            return true;
+
+        this.handleDroppedResources();
+        if (this.groundEnergyNear(this.creep.pos) >= GROUND_SURPLUS) {
+            this.creep.memory.padSurplus = true;
         }
-        this.creep.memory.energyAmount = dropped ? dropped.amount : 0;
-        this.creep.memory.energyId = dropped ? dropped.id : undefined;
-        return false;
+
+        const full = !this.creep.store.getFreeCapacity(RESOURCE_ENERGY);
+        if (this.creep.memory.padSurplus && this.creep.store[RESOURCE_ENERGY]
+            && (full || this.creep.memory.buildingPad)) {
+            this.creep.memory.buildingPad = true;
+            if (!this.container) {
+                harvestDepositContainer(this.source, this.creep);
+                this.refreshContainerTarget();
+            }
+            if (this.buildContainerSite()) return;
+        }
+        this.creep.memory.buildingPad = undefined;
+
+        const result = this.creep.harvest(this.source);
+        if (result === OK) {
+            if (!this.creep.memory.other.haulingRequired) {
+                const sourceInfo = _.find(ROOM_REMOTE_TARGETS[this.creep.memory.colony], (s) => s.source === this.creep.memory.other.source);
+                if (sourceInfo) updateHaulingRequired(this.creep, sourceInfo);
+            }
+        } else if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(this.source);
+        } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
+            this.onSourceEmpty();
+        }
+    }
+
+    buildContainerSite() {
+        if (!this.container || !this.container.progressTotal) return false;
+        if (!this.creep.memory.padSurplus) return false;
+        if (!this.creep.store[RESOURCE_ENERGY]) return false;
+        this.creep.build(this.container);
+        return true;
+    }
+
+    groundEnergyNear(pos, range = 1) {
+        if (!pos || !pos.findInRange) return 0;
+        const drops = pos.findInRange(FIND_DROPPED_RESOURCES, range);
+        let amt = 0;
+        for (let i = 0; i < drops.length; i++) {
+            if (drops[i].resourceType === RESOURCE_ENERGY) amt += drops[i].amount || 0;
+        }
+        return amt;
     }
 
     handleDroppedResources() {

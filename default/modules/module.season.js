@@ -111,12 +111,7 @@ function scanVisibleRooms() {
         const intel = INTEL[name];
         if (!intel) continue;
 
-        const minerals = room.find(FIND_MINERALS);
-        let amount = 0;
-        for (let i = 0; i < minerals.length; i++) {
-            if (minerals[i].mineralType === t) amount += minerals[i].mineralAmount || 0;
-        }
-        intel.thoriumAmount = amount;
+        stampThoriumIntel(room, intel);
 
         if (reactors.length) {
             const r = reactors[0];
@@ -295,6 +290,40 @@ function planThoriumTransfers(transfers, profiles) {
     }
 }
 
+/**
+ * Persist remaining Thorium on INTEL. `null`/missing = never observed;
+ * `0` = looked and the deposit is gone. Claim scoring must not treat
+ * unknown as empty.
+ */
+function stampThoriumIntel(room, intel) {
+    if (!isSeason() || !room || !intel) return intel;
+    const t = thoriumType();
+    let amount = 0;
+    const thorium = room.thorium;
+    if (thorium) amount = thorium.mineralAmount || 0;
+    else {
+        const minerals = room.find(FIND_MINERALS) || [];
+        for (let i = 0; i < minerals.length; i++) {
+            if (minerals[i].mineralType === t) amount += minerals[i].mineralAmount || 0;
+        }
+    }
+    intel.thoriumAmount = amount;
+    return intel;
+}
+
+function isPossibleClaimIntel(intel) {
+    if (!intel || intel.owner) return false;
+    if (intel.obstacles) return false;
+    return !!(intel.hubCheck || intel.sources === 2);
+}
+
+function needsThoriumIntel(intel) {
+    if (!isSeason()) return false;
+    if (!intel) return true;
+    if (intel.thoriumAmount != null) return false;
+    return isPossibleClaimIntel(intel);
+}
+
 function getFeederKeep(roomName) {
     const feeder = Memory.season && Memory.season.feederRoom;
     if (feeder && roomName === feeder) return FEEDER_KEEP;
@@ -309,6 +338,9 @@ module.exports = {
     findReactors,
     planThoriumTransfers,
     getFeederKeep,
+    stampThoriumIntel,
+    needsThoriumIntel,
+    isPossibleClaimIntel,
     thoriumType,
     reactorType,
     reactorCapacity,

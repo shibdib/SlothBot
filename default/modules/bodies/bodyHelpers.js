@@ -83,6 +83,30 @@ function isCriticalBuildStructureType(structureType) {
     return !!structureType && CRITICAL_BUILD_STRUCTURE_TYPES.includes(structureType);
 }
 
+function liveControllerLink(room) {
+    if (!room || !room.memory) return null;
+    const obj = Game.getObjectById(room.memory.controllerLink);
+    return (obj && obj.structureType === STRUCTURE_LINK) ? obj : null;
+}
+
+function liveControllerContainer(room) {
+    return (global.resolveControllerContainer && global.resolveControllerContainer(room)) || null;
+}
+
+/** RCL2+ runs a parked upgrader on a controller container and/or link. */
+function roomExpectsUpgradePad(room) {
+    const rcl = (room && room.controller && room.controller.level) || 0;
+    return rcl >= 2;
+}
+
+function roomHasUpgradePad(room) {
+    return !!(liveControllerLink(room) || liveControllerContainer(room));
+}
+
+function roomMissingUpgradePad(room) {
+    return roomExpectsUpgradePad(room) && !roomHasUpgradePad(room);
+}
+
 /** Built + sited extensions still short of this RCL's cap. */
 function getOwnedExtensionDeficit(room) {
     if (!room || !room.controller) return 0;
@@ -351,6 +375,11 @@ module.exports = {
     clampWorkCarryPair,
     roomHasCriticalBuildSites,
     isCriticalBuildStructureType,
+    liveControllerLink,
+    liveControllerContainer,
+    roomExpectsUpgradePad,
+    roomHasUpgradePad,
+    roomMissingUpgradePad,
     getOwnedExtensionDeficit,
     roomUsesDedicatedHauler,
     roomHasExtensionFiller,
