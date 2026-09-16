@@ -6,8 +6,7 @@ const profiler = require("tools.profiler");
 const {getRemoteHarvesterForSource} = require('spawnCounts');
 const {
     getMiningRouteRooms,
-    hasSkAttackerOnSite,
-    skGuardRoom,
+    skGuardBlocksWork,
     remoteCombatBlocksMining,
     civilianShouldFlee
 } = require('remoteMining');
@@ -44,9 +43,7 @@ class RoleRemoteHauler {
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
         const remoteRoom = this.memory.other && this.memory.other.remoteRoom;
         if (!this.store.getUsedCapacity()) {
-            const guard = (this.memory.other && this.memory.other.skRoom)
-                || (remoteRoom && skGuardRoom(this.memory.colony, remoteRoom));
-            if (guard && !hasSkAttackerOnSite(guard)) {
+            if (remoteRoom && skGuardBlocksWork(this.memory.colony, remoteRoom)) {
                 if (this.room.name !== this.memory.colony) {
                     this.creep.fleeHome(true);
                     return true;

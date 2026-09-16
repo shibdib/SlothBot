@@ -7,8 +7,8 @@ const {routeHasBuiltRoads} = require('bodyHelpers');
 const {
     effectiveHaulScore,
     getMiningRouteRooms,
-    hasSkAttackerOnSite,
     skGuardRoom,
+    skGuardBlocksWork,
     remoteCombatBlocksMining,
     civilianShouldFlee
 } = require('remoteMining');
@@ -103,6 +103,10 @@ class RoleRemoteHarvester {
     stationaryHarvest() {
         if (!this.creep.memory.onContainer || !this.source) return false;
         if (this.isSkRoom()) return false;
+        // Sector-center harvest sits behind an SK. Recheck the guard every tick
+        // so an invader wave in the SK room pauses this room too.
+        const dest = this.creep.memory.destination;
+        if (dest && skGuardRoom(this.creep.memory.colony, dest)) return false;
         if (Game.time % 50 === 0) return false;
         if (!this.container || !this.creep.pos.isEqualTo(this.container.pos)) {
             this.creep.memory.onContainer = undefined;
@@ -125,16 +129,15 @@ class RoleRemoteHarvester {
             return true;
         }
 
-        // Don't sit on keepers while the SKAttacker is only queued, spawning, or dead.
+        // Don't sit on keepers while the SKAttacker is queued, spawning, traveling, or dead.
         const dest = this.creep.memory.destination;
-        const guard = dest && skGuardRoom(this.creep.memory.colony, dest);
-        if (guard && !hasSkAttackerOnSite(guard)) {
+        if (dest && skGuardBlocksWork(this.creep.memory.colony, dest)) {
             this.creep.memory.onContainer = undefined;
-            if (this.creep.room.name === dest || this.creep.room.name === guard) {
-                this.creep.fleeHome(true);
+            if (this.creep.room.name === this.creep.memory.colony) {
+                this.creep.idleFor(10);
                 return true;
             }
-            this.creep.idleFor(10);
+            this.creep.fleeHome(true);
             return true;
         }
 

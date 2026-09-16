@@ -100,6 +100,7 @@ class ModuleBodyGenerator {
     getCacheKey() {
         const trendBucket = Math.round(this.trend);
         const dutyBucket = Math.round(this.upgraderDuty * 10);
+        const energyState = (this.room && this.room.energyState) || 0;
         const reboot = this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot;
         const rebootString = reboot ? 'reboot' : '';
         const recoveryString = roomInSpawnRecovery(this.room, this.creepInfo) ? 'rec' : '';
@@ -112,7 +113,7 @@ class ModuleBodyGenerator {
             const sid = this.creepInfo && this.creepInfo.other && this.creepInfo.other.source;
             bootstrapFlag = remoteSourcePadBuilt(sid) ? 'pad' : 'drop';
         }
-        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${rebootString}.${recoveryString}.${bootstrapFlag}.${stableCreepInfoKey(this.creepInfo)}`;
+        return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${energyState}.${rebootString}.${recoveryString}.${bootstrapFlag}.${stableCreepInfoKey(this.creepInfo)}`;
     }
 
     buildRoleParts() {

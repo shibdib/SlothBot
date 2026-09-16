@@ -75,7 +75,7 @@ const TOWER_HUB_MAX_DIST = 5;
 const TOWER_SEAL_BAND_MIN = 1;
 const TOWER_SEAL_BAND_MAX = 5;
 const TOWER_SEAL_BAND_WIDEN = 10;
-const TOWER_LAYOUT_VERSION = 4;
+const TOWER_LAYOUT_VERSION = 5;
 const TOWER_RESEAT_COOLDOWN = 300;
 const TOWER_SEAL_DRIFT_COUNT = 8;
 const TOWER_SEAL_DRIFT_CENTROID = 3;
@@ -1215,39 +1215,60 @@ function labTowerReserveKeys(room) {
     return keys;
 }
 
-function towerHubsBlockLabAccess(room, hubs) {
+function bunkerStampRadius() {
+    try {
+        return require('planGeomRamparts').templateStampRadius(bunkerTemplate) || 5;
+    } catch (e) {
+        return 5;
+    }
+}
+
+function towerHubRingMinDist(room) {
+    if (room.memory && room.memory.dynamicLayout) return TOWER_HUB_FALLBACK_MIN_DIST;
+    return bunkerStampRadius() + 1;
+}
+
+function towerHubsOnBlockedTiles(room, hubs) {
     if (!hubs || !hubs.length) return false;
-    const reserved = labTowerReserveKeys(room);
-    if (!reserved.size) return false;
+    const core = resolveHub(room);
+    if (!core) return false;
+    const blocked = collectTowerBlockedKeys(room, core.x, core.y);
     for (let i = 0; i < hubs.length; i++) {
-        if (reserved.has(towerTileKey(hubs[i].x, hubs[i].y))) return true;
+        if (blocked.has(towerTileKey(hubs[i].x, hubs[i].y))) return true;
     }
     return false;
 }
 
-/** Core/lab/special stamps a tower must not occupy. Roads are allowed (share the tile). */
+/** Core/lab/special stamps a tower must not occupy. Bunker roads are not shareable. */
 function collectTowerBlockedKeys(room, hubX, hubY) {
     const blocked = reservedHubTileKeys({x: hubX, y: hubY});
-    const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
-    for (let e = 0; e < tmpl.length; e++) {
-        const entry = tmpl[e];
-        if (!entry || entry.structureType === STRUCTURE_ROAD || entry.structureType === STRUCTURE_EXTENSION) {
-            continue;
+    if (room.memory && room.memory.dynamicLayout) {
+        const tmpl = coreTemplate;
+        for (let e = 0; e < tmpl.length; e++) {
+            const entry = tmpl[e];
+            if (!entry) continue;
+            const pos = entry.pos || [];
+            for (let i = 0; i < pos.length; i++) {
+                blocked.add(towerTileKey(hubX + pos[i].x, hubY + pos[i].y));
+            }
         }
-        const pos = entry.pos || [];
-        for (let i = 0; i < pos.length; i++) {
-            blocked.add(towerTileKey(hubX + pos[i].x, hubY + pos[i].y));
+        const assignments = getDynamicSpecialAssignments(room) || [];
+        for (let i = 0; i < assignments.length; i++) {
+            blocked.add(towerTileKey(assignments[i].x, assignments[i].y));
+        }
+    } else {
+        // Whole bunker disk, including roads. Towers are impassable, so a
+        // stamp-road hub cuts the bunker traffic grid.
+        const r = bunkerStampRadius();
+        for (let dx = -r; dx <= r; dx++) {
+            for (let dy = -r; dy <= r; dy++) {
+                blocked.add(towerTileKey(hubX + dx, hubY + dy));
+            }
         }
     }
     labTowerReserveKeys(room).forEach(function (key) {
         blocked.add(key);
     });
-    if (room.memory.dynamicLayout) {
-        const assignments = getDynamicSpecialAssignments(room) || [];
-        for (let i = 0; i < assignments.length; i++) {
-            blocked.add(towerTileKey(assignments[i].x, assignments[i].y));
-        }
-    }
     return blocked;
 }
 
@@ -1519,8 +1540,8 @@ function collectSealBandCandidates(room, hubXY, walls, sealSet, interior, blocke
 
 function collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensionStamp, skipExit, maxDist, walls) {
     const candidates = [];
-    const minR = TOWER_HUB_FALLBACK_MIN_DIST;
-    const maxR = maxDist || TOWER_HUB_MAX_DIST;
+    const minR = towerHubRingMinDist(room);
+    const maxR = maxDist || Math.max(TOWER_HUB_MAX_DIST, minR + 2);
     for (let r = minR; r <= maxR; r++) {
         forEachChebyshevRing(hubXY.x, hubXY.y, r, 2, 47, 2, 47, function (x, y) {
             const c = candidateAllowed(room, x, y, blocked, srcPos, ctrlPos, extensionStamp, hubXY, !!skipExit);
@@ -1646,7 +1667,8 @@ function selectTowerHubs(room) {
 
     if (candidates.length < MAX_TOWER_HUBS) {
         const wide = collectHubRingCandidates(
-            room, hubXY, blocked, srcPos, ctrlPos, extensionStamp, true, TOWER_HUB_MAX_DIST + 3, walls);
+            room, hubXY, blocked, srcPos, ctrlPos, extensionStamp, true,
+            Math.max(TOWER_HUB_MAX_DIST + 3, towerHubRingMinDist(room) + 4), walls);
         const seen = new Set();
         for (let i = 0; i < candidates.length; i++) seen.add(candidates[i].key);
         for (let i = 0; i < wide.length; i++) {
@@ -1660,7 +1682,8 @@ function selectTowerHubs(room) {
     let emergency = false;
     if (!picked.length) {
         // Source/mineral/exit clearance can wipe the band. Last resort still
-        // rejects spawn/storage/terminal; extensions are soft, not skipped.
+        // rejects spawn/storage/terminal and the bunker stamp; extensions
+        // outside the stamp are soft, not skipped.
         const loose = collectEmergencyTowerCandidates(room, hubXY, blocked, extensionStamp, walls);
         picked = pickEvenSealTowers(loose, walls.length ? walls : loose);
         if (picked.length) {
@@ -1681,14 +1704,15 @@ function selectTowerHubs(room) {
 }
 
 /**
- * Last-resort tower tiles: walkable, not a core stamp. Hard world structures
- * (spawn/storage/terminal/…) still block; extensions/containers/walls do not.
+ * Last-resort tower tiles: walkable, not a core/bunker stamp. Hard world
+ * structures (spawn/storage/terminal/…) still block; extensions/containers/walls
+ * outside the stamp do not.
  */
 function collectEmergencyTowerCandidates(room, hubXY, blocked, extensionStamp, walls) {
     const candidates = [];
     const terrain = Game.map.getRoomTerrain(room.name);
     const spawnTiles = spawnTilesForTowers(room, hubXY);
-    const minR = TOWER_HUB_FALLBACK_MIN_DIST;
+    const minR = towerHubRingMinDist(room);
     for (let r = minR; r <= TOWER_HUB_MAX_DIST + 5; r++) {
         forEachChebyshevRing(hubXY.x, hubXY.y, r, 2, 47, 2, 47, function (x, y) {
             if (terrain.get(x, y) === TERRAIN_MASK_WALL) return;
@@ -1912,8 +1936,8 @@ function ensureTowerHubs(room, options) {
 
     const existingNow = resolveTowerHubs(room);
     const reseatSpawn = existingNow.length && towerHubsTooCloseToSpawn(room, existingNow);
-    const reseatLab = existingNow.length && towerHubsBlockLabAccess(room, existingNow);
-    const stale = opts.forceSearch || towerLayoutStale(room) || reseatSpawn || reseatLab;
+    const reseatBlocked = existingNow.length && towerHubsOnBlockedTiles(room, existingNow);
+    const stale = opts.forceSearch || towerLayoutStale(room) || reseatSpawn || reseatBlocked;
     if (!stale) {
         const existing = existingNow;
         if (existing.length) {
@@ -1922,7 +1946,7 @@ function ensureTowerHubs(room, options) {
             return {ok: true, hubs: existing.slice(), reason: 'existing'};
         }
         const recovered = recoverTowerHubsFromWorld(room);
-        if (recovered.length && !towerHubsBlockLabAccess(room, recovered)) {
+        if (recovered.length && !towerHubsOnBlockedTiles(room, recovered)) {
             commitTowerHubs(room, recovered);
             refreshPerimeterAfterTowerHubs(room);
             stampTowerLayout(room);
@@ -1965,7 +1989,10 @@ function ensureTowerHubs(room, options) {
             };
         }
         if (existing.length) {
-            const reserved = labTowerReserveKeys(room);
+            const core = resolveHub(room);
+            const reserved = core
+                ? collectTowerBlockedKeys(room, core.x, core.y)
+                : labTowerReserveKeys(room);
             const kept = [];
             for (let i = 0; i < existing.length; i++) {
                 if (!reserved.has(towerTileKey(existing[i].x, existing[i].y))) kept.push(existing[i]);
@@ -1981,7 +2008,7 @@ function ensureTowerHubs(room, options) {
                 return {
                     ok: true,
                     hubs: kept.slice(),
-                    reason: kept.length === existing.length ? 'search_empty_keep' : 'search_empty_drop_lab',
+                    reason: kept.length === existing.length ? 'search_empty_keep' : 'search_empty_drop_blocked',
                     candidateCount: selected.candidateCount,
                     alongSeal: selected.alongSeal,
                 };
@@ -2224,8 +2251,8 @@ function clearTowerHubBlockers(room, pos) {
             && s.structureType !== STRUCTURE_WALL) {
             continue;
         }
-        if (s.structureType === STRUCTURE_EXTENSION && room.memory && room.memory.dynamicLayout
-            && !towerMayClaimExtensionTile(room, pos)) {
+        if (s.structureType === STRUCTURE_EXTENSION
+            && !(room.memory && room.memory.dynamicLayout && towerMayClaimExtensionTile(room, pos))) {
             continue;
         }
         try {
@@ -2256,7 +2283,8 @@ function placeTowerSites(room, maxPerCall) {
     let hubs = resolveTowerHubs(room);
     let search = null;
     const coreHub = resolveHub(room);
-    if (hubs && hubs.length && towerHubsTooCloseToSpawn(room, hubs)) {
+    if (hubs && hubs.length
+        && (towerHubsTooCloseToSpawn(room, hubs) || towerHubsOnBlockedTiles(room, hubs))) {
         hubs = [];
     }
     if (!hubs || !hubs.length) {

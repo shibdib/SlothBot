@@ -103,6 +103,19 @@ function maxStationaryUpgraderWork(room, energyAmount) {
 }
 
 /**
+ * Energy/tick kept out of upgrade so storage can move.
+ * Overflow (state 2+) keeps the +10 dump floor. Below target, keep a share of
+ * gross spare so energyState 0 does not freeze the rest of the economy.
+ */
+function upgradeAccrualFloor(room, grossSpare) {
+    const state = (room && room.energyState) || 0;
+    const spare = grossSpare > 0 ? grossSpare : 0;
+    if (state <= 0) return Math.max(ENERGY_ACCRUAL_FLOOR, spare * 0.55);
+    if (state === 1) return Math.max(ENERGY_ACCRUAL_FLOOR, spare * 0.35);
+    return ENERGY_ACCRUAL_FLOOR;
+}
+
+/**
  * How many upgraders a room should run. Prefer one body that fills the spawn
  * cap; only add a second when RCL energy cannot put the spare on one creep.
  */
@@ -121,9 +134,10 @@ function planUpgraderNeed(room, flow = {}) {
     const existingWork = (room.energyDiag && room.energyDiag.upgradeExpense) || 0;
 
     let count = 1;
-    const upgradeBudget = effectiveSpare - ENERGY_ACCRUAL_FLOOR;
+    const grossSpare = existingWork + effectiveSpare;
+    const upgradeBudget = grossSpare - upgradeAccrualFloor(room, grossSpare);
     if (upgradeBudget > 0) {
-        count = Math.max(1, Math.ceil((existingWork + upgradeBudget) / Math.max(1, maxWork)));
+        count = Math.max(1, Math.ceil(upgradeBudget / Math.max(1, maxWork)));
     }
 
     const stand = container && container.pos && container.pos.countOpenTerrainAround
@@ -177,19 +191,25 @@ function buildUpgrader(gen) {
                 }
                 work = Math.min(affordableWork, feedCap);
             }
-            // RCL push: stored energy is upgrade fuel. Only shrink on a
-            // true pre-storage famine (empty spawn, no stock).
-            const stored = (gen.room.rawEnergy || 0) > 1000;
-            if (!gen.room.energyState && !stored) work *= 0.25;
             work = Math.min(affordableWork, work);
         }
 
-        // spareIncome is already net of upgrade. Keep a floor so RCL7 dump
-        // does not zero out storage the moment energyState hits 3.
+        // spareIncome is already net of upgrade. Size to gross spare minus a
+        // state-scaled accrual floor: dump at energyState 2+, keep more of the
+        // income for storage while the room is below target.
         const ei = gen.room.energyInfo;
         const currentUpgrade = (ei && ei.upgrade) || (gen.room.energyDiag && gen.room.energyDiag.upgradeExpense) || 0;
-        const upgradeBudget = Math.max(1, (gen.spareIncome || 0) + currentUpgrade - ENERGY_ACCRUAL_FLOOR);
-        work = Math.min(work, upgradeBudget);
+        const grossSpare = (gen.spareIncome || 0) + currentUpgrade;
+        if (grossSpare || gen.spareIncome < 0) {
+            const upgradeBudget = Math.max(1, Math.floor(grossSpare - upgradeAccrualFloor(gen.room, grossSpare)));
+            work = Math.min(work, upgradeBudget);
+        }
+        // 5W is hasDedicatedUpgrader's floor — smaller and drones leftover-upgrade.
+        // True famine (empty spawn, no stock) may drop to 1W so the body can spawn.
+        const stored = (gen.room.rawEnergy || 0) > 1000;
+        if ((gen.room.energyState || stored) && affordableWork >= 5) {
+            work = Math.max(work, 5);
+        }
 
         work = Math.max(Math.min(work, 49), 1);
         move = 0;

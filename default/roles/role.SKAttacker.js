@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {skCombatBlocksMining} = require("remoteMining");
 
 // Source Keeper: 19 ATTACK, 2 RANGED_ATTACK, 7 HEAL, 13 MOVE
 const SK_HITS = 4100;
@@ -25,9 +26,9 @@ class RoleSKAttacker {
             this.creep.memory.keeper = undefined;
             this.creep.memory.lair = undefined;
             this.creep.memory.skMelee = undefined;
+            this.creep.memory.arrived = undefined;
             this.travel();
         } else {
-            this.creep.memory.arrived = true;
             this.SKAttackerTasks();
         }
     }
@@ -39,13 +40,11 @@ class RoleSKAttacker {
             this.creep.recycleCreep();
             return true;
         }
-        // Handle invader core in sk
-        if (this.room.hostileStructures.length) {
-            let core = _.filter(this.room.impassibleStructures, (s) => s.structureType === STRUCTURE_INVADER_CORE)[0];
-            if (core) {
-                this.room.cacheRoomIntel(true);
-                return this.creep.recycleCreep();
-            }
+        const core = this.room.impassibleStructures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
+        if (core) {
+            this.room.cacheRoomIntel(true);
+            this.creep.suicide();
+            return true;
         }
     }
 
@@ -55,10 +54,19 @@ class RoleSKAttacker {
             return;
         }
         this.healSelf();
-        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
+        const dest = this.creep.memory.destination;
+        // Invader waves are kitey ranged groups. Do not walk a 4100 melee
+        // body back in, and do not park it at home for the rest of the TTL.
+        if (skCombatBlocksMining(dest)) {
+            this.creep.recycleCreep();
+            return;
+        }
+        this.creep.shibMove(new RoomPosition(25, 25, dest), {range: 23});
     }
 
     SKAttackerTasks() {
+        if (this.abandonInvaders()) return;
+        this.creep.memory.arrived = true;
         this.healSelf();
         const sourceKeeper = this.findKeeper();
         if (sourceKeeper) {
@@ -107,6 +115,25 @@ class RoleSKAttacker {
 
     isKeeper(creep) {
         return creep.owner && creep.owner.username === 'Source Keeper';
+    }
+
+    abandonInvaders() {
+        const hostiles = this.room.hostileCreeps;
+        let armed = false;
+        for (let i = 0; i < hostiles.length; i++) {
+            const c = hostiles[i];
+            if (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) {
+                armed = true;
+                break;
+            }
+        }
+        if (!armed) return false;
+        this.room.cacheRoomIntel(true);
+        this.room.invaderCheck();
+        this.creep.memory.arrived = undefined;
+        this.healSelf();
+        this.creep.recycleCreep();
+        return true;
     }
 
     holdOutside(target) {

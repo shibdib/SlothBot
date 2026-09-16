@@ -125,7 +125,10 @@ function maxHaulersForSource(room, dest, keeperYield) {
 }
 
 function hasSkAttackerCoverage(remoteName) {
-    return remoteMining.hasLiveSkAttacker(remoteName);
+    // Spawn workers only after the attacker is in dest. Live-but-spawning used
+    // to park harvesters/haulers in the hallway until it arrived.
+    return remoteMining.hasSkAttackerOnSite(remoteName)
+        && !remoteMining.skCombatBlocksMining(remoteName);
 }
 
 function skTowersOrCombatBlock(remoteName) {
@@ -170,7 +173,10 @@ function purgeUnguardedSkQueue(room) {
             delete queue[key];
             continue;
         }
-        if (entry.role === 'SKAttacker') continue;
+        if (entry.role === 'SKAttacker') {
+            if (skTowersOrCombatBlock(guard)) delete queue[key];
+            continue;
+        }
         if (!remoteMining.SK_GUARD_DEPENDENT_ROLES.has(entry.role)) continue;
         if (hasSkAttackerCoverage(guard)) continue;
         delete queue[key];
@@ -827,11 +833,20 @@ function shouldSkipRemote(room, remoteName) {
 }
 
 function handleInvaderCore(room, remoteName) {
-    if (isSkRoom(remoteName) || INTEL[remoteName].obstacles) return;
+    if (!INTEL[remoteName] || INTEL[remoteName].obstacles) return;
+    // Stronghold towers are high-command, not a lone attacker.
+    if (isSkRoom(remoteName) && INTEL[remoteName].towers) return;
     queueCreepIfNeeded({
         room, role: 'attacker', priority: PRIORITIES.remoteHarvester - 1,
         numberNeeded: 1, destination: remoteName
     });
+}
+
+function skRoomHasInvaderCore(remoteName) {
+    const vis = Game.rooms[remoteName];
+    if (vis && vis.structures.some(s => s.structureType === STRUCTURE_INVADER_CORE)) return true;
+    const intel = INTEL[remoteName];
+    return !!(intel && intel.invaderCore && intel.invaderCore > Game.time);
 }
 
 function remoteCreepQueue(room) {
@@ -887,9 +902,10 @@ function remoteCreepQueue(room) {
         const guarded = new Set();
         const queueGuard = (name) => {
             if (!name || guarded.has(name) || !isSkRoom(name)) return;
-            if (skTowersOrCombatBlock(name)) return;
             if (!remoteMining.isAllowedSkRoom(room.name, name)) return;
             guarded.add(name);
+            if (skRoomHasInvaderCore(name)) handleInvaderCore(room, name);
+            if (skTowersOrCombatBlock(name)) return;
             handleSkCreeps(room, name);
             remoteMining.probeMiningRoute(room.name, name, {allowLive: false});
             ingestColonyRemoteSources(room, name);

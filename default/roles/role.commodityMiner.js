@@ -3,6 +3,7 @@
  */
 
 const profiler = require("tools.profiler");
+const {skGuardBlocksWork, civilianShouldFlee} = require("remoteMining");
 
 class RoleCommodityMiner {
     constructor(creep) {
@@ -29,8 +30,25 @@ class RoleCommodityMiner {
         // Boosting
         if (this.creep.tryToBoost()) return true;
 
+        if (civilianShouldFlee(this.creep)) {
+            this.creep.fleeHome(true);
+            return true;
+        }
+
         // SK Safety - Throttled
         if ((this.room.memory.sk || (INTEL[this.room.name] && INTEL[this.room.name].sk)) && this.creep.skSafety()) return true;
+
+        if (!_.sum(this.creep.store)) {
+            const dest = this.creep.memory.destination;
+            if (dest && skGuardBlocksWork(this.creep.memory.colony, dest)) {
+                if (this.room.name === this.creep.memory.colony) {
+                    this.creep.idleFor(10);
+                    return true;
+                }
+                this.creep.fleeHome(true);
+                return true;
+            }
+        }
 
         // Set dropoff
         this.creep.memory.closestRoom = this.creep.memory.closestRoom || findClosestOwnedRoom(this.room.name, false, 4) || this.creep.memory.colony;

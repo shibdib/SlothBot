@@ -945,8 +945,8 @@ const CIVILIAN_FLEE_RANGE = 12;
 function civilianShouldFlee(creep) {
     const room = creep.room;
     if (!room || MY_ROOMS.includes(room.name)) return false;
-    const intel = INTEL[room.name];
-    if ((room.memory && room.memory.sk) || (intel && intel.sk)) return false;
+    // hostileCreeps already excludes Source Keepers, so SK rooms still flee
+    // invaders/players at CIVILIAN_FLEE_RANGE and kite keepers via skSafety.
     const towers = room.towers || [];
     for (let i = 0; i < towers.length; i++) {
         const t = towers[i];
@@ -972,6 +972,7 @@ function skCombatBlocksMining(remoteName) {
     const vis = Game.rooms[remoteName];
     if (vis) {
         if (vis.structures.some(s => s.structureType === STRUCTURE_TOWER && !s.my)) return true;
+        if (vis.structures.some(s => s.structureType === STRUCTURE_INVADER_CORE)) return true;
         return visionHasArmedHostiles(vis);
     }
     if (intel.invaderCore && intel.invaderCore > Game.time) return true;
@@ -1015,7 +1016,8 @@ function shouldSkipRemotePrune(colonyRoom, remoteName) {
     if (isSk && !(SK_MINING && colonyRoom.level >= SK_MINING_LEVEL)) return true;
     if (isSk) {
         if (!isExitNeighbor(colonyRoom.name, remoteName)) return true;
-        if (skCombatBlocksMining(remoteName)) return true;
+        // Invaders/cores pause spawn. Dropping the SK claim orphans the
+        // sector-center add-on and forces a full restaff after the wave.
         return false;
     }
     // Transient combat pauses spawn (shouldSkipRemote) but must not drop the
@@ -1431,10 +1433,11 @@ function refreshLiveSkAttackers() {
     for (const name in Game.creeps) {
         const creep = Game.creeps[name];
         if (!creep.my || creep.memory.role !== 'SKAttacker') continue;
+        if (creep.memory.recycling) continue;
         const dest = creep.memory.destination || creep.room.name;
         if (!dest) continue;
         liveSkByDest[dest] = true;
-        if (!creep.spawning && (creep.room.name === dest || creep.memory.arrived)) {
+        if (!creep.spawning && creep.room.name === dest && creep.memory.arrived) {
             onSiteSkByDest[dest] = true;
         }
     }
@@ -1450,6 +1453,27 @@ function hasSkAttackerOnSite(remoteName) {
     if (!remoteName) return false;
     refreshLiveSkAttackers();
     return !!onSiteSkByDest[remoteName];
+}
+
+/** True when SK/center work should stop: parent SK has invaders/core, or no on-site attacker. */
+function skGuardBlocksWork(colonyName, remoteName) {
+    const guard = skGuardRoom(colonyName, remoteName);
+    if (!guard || !isSkRoomName(guard)) return false;
+    if (skCombatBlocksMining(guard)) return true;
+    return !hasSkAttackerOnSite(guard);
+}
+
+function hasQueuedSkAttacker(remoteName) {
+    if (!remoteName) return false;
+    for (const colony in CREEP_QUEUES) {
+        const queue = CREEP_QUEUES[colony];
+        if (!queue) continue;
+        for (const key in queue) {
+            const entry = queue[key];
+            if (entry && entry.role === 'SKAttacker' && entry.destination === remoteName) return true;
+        }
+    }
+    return false;
 }
 
 function creepRemoteDest(creep) {
@@ -1513,7 +1537,7 @@ function shouldRecycleUnguardedSkCreep(creep) {
         delete skUnguardedSince[name];
         return false;
     }
-    if (hasLiveSkAttacker(guard)) {
+    if (hasLiveSkAttacker(guard) || hasQueuedSkAttacker(guard)) {
         delete skUnguardedSince[name];
         return false;
     }
@@ -1579,6 +1603,7 @@ module.exports = {
     isKeeperYieldRoom,
     hasLiveSkAttacker,
     hasSkAttackerOnSite,
+    skGuardBlocksWork,
     shouldRecycleUnguardedSkCreep,
     SK_GUARD_DEPENDENT_ROLES,
     SK_UNGUARDED_RECYCLE_TICKS,

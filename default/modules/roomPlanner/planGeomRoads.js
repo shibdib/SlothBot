@@ -24,7 +24,7 @@ const {
     isRemoteRoadRoomEligible,
     roomConstructionSiteBudget,
 } = require('planUtils');
-const {getMiningRouteRooms, hasLiveSkAttacker, skGuardRoom} = require('remoteMining');
+const {getMiningRouteRooms, skGuardBlocksWork} = require('remoteMining');
 
 const COSTS = {
     owned: {wall: 255, swamp: 75, plain: 45, road: 1, container: 255},
@@ -1645,8 +1645,7 @@ function roomNeedsRoadWorkByName(roomName, colony) {
     if (!isRemoteRoadRoomEligible(roomName)) return false;
     const intel = INTEL[roomName];
     if (!intel) return false;
-    const guard = skGuardRoom(colony, roomName);
-    if (guard && !hasLiveSkAttacker(guard)) return false;
+    if (skGuardBlocksWork(colony, roomName)) return false;
     const context = isColonyRoadRoom(roomName, colony);
     if (!context) return false;
     const room = Game.rooms[roomName];

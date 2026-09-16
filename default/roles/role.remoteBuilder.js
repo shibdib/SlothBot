@@ -8,7 +8,7 @@
 const profiler = require("tools.profiler");
 const {setRoadsBuiltFlag, ensureSourceContainerSite, roomHasUnbuiltSourcePad} = require('planUtils');
 const {getCreepCount} = require('spawnCounts');
-const {skGuardRoom, getMiningRouteRooms} = require('remoteMining');
+const {skGuardRoom, getMiningRouteRooms, skGuardBlocksWork} = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
 
 const SCAN_INTERVAL = 5;
@@ -47,6 +47,18 @@ class RoleRemoteBuilder {
         }
         const here = this.creep.room;
         if ((here.memory.sk || (INTEL[here.name] && INTEL[here.name].sk)) && this.creep.skSafety()) return;
+
+        const dest = this.creep.memory.destination;
+        const colony = this.creep.memory.colony;
+        if (dest && skGuardBlocksWork(colony, dest)) {
+            this.creep.memory.destination = undefined;
+            this.creep.memory.constructionSite = undefined;
+            this.creep.memory.task = undefined;
+            if (here.name !== colony) {
+                this.creep.fleeHome(true);
+                return;
+            }
+        }
 
         if (!this.creep.memory.working) {
             this.getEnergy();
