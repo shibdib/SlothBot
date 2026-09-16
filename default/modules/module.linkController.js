@@ -1,6 +1,6 @@
 const profiler = require("tools.profiler");
 const {isControllerAreaLink} = require('planUtils');
-const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
+const {ENERGY_ACCRUAL_FLOOR, upgraderFeedWorkCap} = require('spawnFlow');
 
 const CONTROLLER_LINK_RANGE = 3;
 const UPGRADER_STARVE_THRESHOLD = 0.65;
@@ -8,6 +8,14 @@ const HUB_OVERFLOW_RATIO = 0.85;
 const HUB_DRIP_MIN = 400;
 const CONTROLLER_FEED_TICKS = 40;
 const CONTROLLER_DRIP_MIN = 100;
+// 3% tax + 1-tick cooldown makes a 10-energy send worse than waiting to batch.
+const LINK_SEND_MIN = 200;
+
+function linkSendWorth(amount, urgent) {
+    if (!(amount > 0)) return false;
+    if (amount >= LINK_SEND_MIN) return true;
+    return !!(urgent && amount >= CONTROLLER_DRIP_MIN);
+}
 
 function getUpgradeWork(room) {
     const diag = room.energyDiag;
@@ -20,24 +28,46 @@ function getUpgradeWork(room) {
     return Math.max(work, 1);
 }
 
+function linkCapacity() {
+    return typeof LINK_CAPACITY === 'number' ? LINK_CAPACITY : 800;
+}
+
+/**
+ * How much energy the controller link should hold. RCL8 uses live WORK.
+ * Below RCL8 a leftover dump-sized upgrader must not keep the link full while
+ * the room is below its stockpile target.
+ */
+function scaledControllerTarget(room, upgradeWork) {
+    const cap = linkCapacity();
+    const full = Math.min(cap, Math.max(1, upgradeWork) * CONTROLLER_FEED_TICKS);
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    if (rcl >= 8) return full;
+    const feedCap = upgraderFeedWorkCap(room);
+    const feedWork = feedCap ? Math.min(upgradeWork, feedCap) : upgradeWork;
+    return Math.min(full, Math.max(CONTROLLER_DRIP_MIN, feedWork * CONTROLLER_FEED_TICKS));
+}
+
 function buildLinkPolicy(room, hubLink, controllerLink) {
     const energyInfo = room.energyInfo;
     const upgraderDuty = (energyInfo && typeof energyInfo.upgraderDuty === 'number') ? energyInfo.upgraderDuty : 1;
     const upgradeWork = getUpgradeWork(room);
-    const controllerTarget = Math.min(LINK_CAPACITY, upgradeWork * CONTROLLER_FEED_TICKS);
+    const controllerTarget = scaledControllerTarget(room, upgradeWork);
     const controllerMin = Math.max(CONTROLLER_DRIP_MIN, Math.floor(controllerTarget * 0.25));
     const hubEnergy = hubLink ? hubLink.store.getUsedCapacity(RESOURCE_ENERGY) : 0;
-    const hubFill = hubLink ? hubEnergy / LINK_CAPACITY : 0;
+    const hubFill = hubLink ? hubEnergy / linkCapacity() : 0;
     const controllerEnergy = controllerLink ? controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) : 0;
     const upgraderStarved = upgraderDuty < UPGRADER_STARVE_THRESHOLD;
-    const isStockpiling = room.level >= 8 && room.energyState >= 3;
-    const buildingStock = room.level >= 8 && room.energyState === 2;
+    const energyState = room.energyState || 0;
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    const isStockpiling = rcl >= 8 && energyState >= 3;
+    const buildingStock = rcl >= 8 && energyState === 2;
     const needsControllerDrip = !!controllerLink && controllerEnergy < controllerMin;
     const downgradeTicks = room.controller && room.controller.ticksToDowngrade;
-    const downgradeRisk = room.level === 8 && downgradeTicks
+    const downgradeRisk = rcl === 8 && downgradeTicks
         && typeof CONTROLLER_DOWNGRADE !== 'undefined'
         && downgradeTicks < CONTROLLER_DOWNGRADE[8] * 0.25;
     const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
+    const spareOk = spareIncome >= ENERGY_ACCRUAL_FLOOR;
 
     return {
         upgraderDuty,
@@ -48,14 +78,17 @@ function buildLinkPolicy(room, hubLink, controllerLink) {
         upgraderStarved,
         isStockpiling,
         buildingStock,
+        energyState,
         hubSaturated: hubFill >= HUB_OVERFLOW_RATIO,
         needsControllerDrip,
         allowHubToController: downgradeRisk ||
-            (room.level < 8 && spareIncome >= ENERGY_ACCRUAL_FLOOR) ||
-            (buildingStock && needsControllerDrip && spareIncome >= ENERGY_ACCRUAL_FLOOR) ||
-            (isStockpiling && upgraderDuty < 0.75 && needsControllerDrip && spareIncome >= ENERGY_ACCRUAL_FLOOR),
+            (rcl < 8 && energyState >= 2 && spareOk) ||
+            (rcl < 8 && energyState === 1 && needsControllerDrip && spareOk) ||
+            (buildingStock && needsControllerDrip && spareOk) ||
+            (isStockpiling && upgraderDuty < 0.75 && needsControllerDrip && spareOk),
         allowControllerOverflow: isStockpiling && hubFill >= HUB_OVERFLOW_RATIO && upgraderStarved,
-        recycleControllerSurplus: isStockpiling && controllerEnergy > controllerTarget,
+        recycleControllerSurplus: (isStockpiling && controllerEnergy > controllerTarget)
+            || (rcl < 8 && energyState < 2 && controllerEnergy > controllerTarget),
     };
 }
 
@@ -84,22 +117,35 @@ class LinkControl {
         const policy = buildLinkPolicy(room, hubLink, controllerLink);
 
         let hubFreeRemaining = hubLink ? hubLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
+        let hubBusy = false;
+        let hubInboundThisTick = false;
 
         if (controllerLink && !controllerLink.cooldown && hubLink && !hubLink.cooldown &&
             policy.recycleControllerSurplus &&
             hubFreeRemaining > 0) {
-            if (controllerLink.transferEnergy(hubLink) === OK) {
+            const surplus = Math.max(0, policy.controllerEnergy - policy.controllerTarget);
+            const send = Math.min(surplus, hubFreeRemaining);
+            if (linkSendWorth(send, false) && controllerLink.transferEnergy(hubLink, send) === OK) {
                 hubFreeRemaining = hubLink.store.getFreeCapacity(RESOURCE_ENERGY);
+                hubBusy = true;
+                hubInboundThisTick = true;
             }
         }
 
-        if (controllerLink && hubLink && !hubLink.cooldown &&
+        if (!hubBusy && controllerLink && hubLink && !hubLink.cooldown &&
             policy.allowHubToController &&
             policy.needsControllerDrip &&
             hubLink.store.getUsedCapacity(RESOURCE_ENERGY) >= HUB_DRIP_MIN &&
             controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-            if (hubLink.transferEnergy(controllerLink) === OK) {
+            const remaining = Math.max(0, policy.controllerTarget - policy.controllerEnergy);
+            const send = Math.min(
+                hubLink.store.getUsedCapacity(RESOURCE_ENERGY),
+                controllerLink.store.getFreeCapacity(RESOURCE_ENERGY),
+                remaining
+            );
+            if (linkSendWorth(send, true) && hubLink.transferEnergy(controllerLink, send) === OK) {
                 hubFreeRemaining = hubLink.store.getFreeCapacity(RESOURCE_ENERGY);
+                hubBusy = true;
             }
         }
 
@@ -110,20 +156,31 @@ class LinkControl {
             l.store[RESOURCE_ENERGY] > 0
         ).sort((a, b) => b.store[RESOURCE_ENERGY] - a.store[RESOURCE_ENERGY]);
 
-        let hubInboundThisTick = false;
         let controllerFreeRemaining = controllerLink ? controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0;
+        const cap = linkCapacity();
         for (const link of sourceLinks) {
-            const target = this.pickSourceDestination(link, controllerLink, hubLink, room, policy, {
+            let target = this.pickSourceDestination(link, controllerLink, hubLink, room, policy, {
                 hubFreeRemaining,
                 controllerFreeRemaining,
-                allowHubInbound: !hubInboundThisTick,
+                allowHubInbound: !hubInboundThisTick && !hubBusy,
             });
             if (!target) continue;
             const amount = link.store[RESOURCE_ENERGY];
             let sendAmount = amount;
             if (target === hubLink) sendAmount = Math.min(amount, hubFreeRemaining);
-            else if (target === controllerLink) sendAmount = Math.min(amount, controllerFreeRemaining);
-            if (sendAmount <= 0) continue;
+            else if (target === controllerLink) {
+                const cUsed = cap - controllerFreeRemaining;
+                sendAmount = Math.min(amount, controllerFreeRemaining,
+                    Math.max(0, policy.controllerTarget - cUsed));
+            }
+            const urgent = target === controllerLink && policy.needsControllerDrip;
+            if (!linkSendWorth(sendAmount, urgent)) {
+                if (target !== controllerLink || hubInboundThisTick || hubBusy
+                    || !hubLink || hubLink.id === link.id || !(hubFreeRemaining > 0)) continue;
+                target = hubLink;
+                sendAmount = Math.min(amount, hubFreeRemaining);
+                if (!linkSendWorth(sendAmount, false)) continue;
+            }
             if (link.transferEnergy(target, sendAmount) !== OK) continue;
             if (target === hubLink) {
                 hubInboundThisTick = true;
@@ -135,10 +192,13 @@ class LinkControl {
 
         const rcl = (room.controller && room.controller.level) || room.level || 0;
         if (controllerLink && !controllerLink.cooldown && hubLink &&
-            controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
             rcl >= 8 &&
             (!room.energyState || (room.energyState < 2 && !policy.allowHubToController))) {
-            controllerLink.transferEnergy(hubLink);
+            const drain = Math.min(
+                controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) || 0,
+                hubLink.store.getFreeCapacity(RESOURCE_ENERGY) || 0
+            );
+            if (linkSendWorth(drain, false)) controllerLink.transferEnergy(hubLink, drain);
         }
     }
 
@@ -149,22 +209,29 @@ class LinkControl {
         const hFree = options.hubFreeRemaining != null
             ? options.hubFreeRemaining
             : (hubLink ? hubLink.store.getFreeCapacity(RESOURCE_ENERGY) : 0);
-        const cEnergy = controllerLink ? controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) : 0;
+        const cap = linkCapacity();
+        const cUsed = controllerLink ? cap - cFree : 0;
         const allowHubInbound = options.allowHubInbound !== false;
-        const hubFill = hubLink ? (LINK_CAPACITY - hFree) / LINK_CAPACITY : 0;
+        const hubFill = hubLink ? (cap - hFree) / cap : 0;
         const hubSaturated = hubFill >= HUB_OVERFLOW_RATIO;
         const canSendToHub = allowHubInbound && hubLink && hubLink.id !== link.id && hFree > 0;
-        const canSendToController = controllerLink && cFree > 0 && cEnergy < policy.controllerTarget;
+        const canSendToController = controllerLink && cFree > 0 && cUsed < policy.controllerTarget;
 
         const rcl = (room.controller && room.controller.level) || room.level || 0;
-        // Pre-RCL8: energyState 0 is "below the stockpile target", not famine.
-        // Harvest goes to the controller so rooms actually level.
-        if (!room.energyState && rcl >= 8) {
+        const energyState = policy.energyState != null ? policy.energyState : (room.energyState || 0);
+        if (!energyState && rcl >= 8) {
             if (canSendToHub) return hubLink;
             return canSendToController ? controllerLink : null;
         }
 
         if (rcl < 8) {
+            if (energyState >= 2) {
+                if (canSendToController) return controllerLink;
+                return canSendToHub ? hubLink : null;
+            }
+            // Below target: keep a drip so praising does not stall, then storage.
+            if (canSendToController && policy.needsControllerDrip) return controllerLink;
+            if (canSendToHub && !hubSaturated) return hubLink;
             if (canSendToController) return controllerLink;
             return canSendToHub ? hubLink : null;
         }

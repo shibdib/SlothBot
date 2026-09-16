@@ -822,7 +822,8 @@ Creep.prototype.haulerDelivery = function () {
     const hubLink = Game.getObjectById(this.room.memory.hubLink);
     const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
     const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
-    if (rcl < 8 && hubLink && controllerLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+    if (rcl < 8 && (this.room.energyState || 0) >= 2 && hubLink && controllerLink
+        && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0
         && roomHasPositiveFlow(this.room)) {
         targets.push(hubLink);
     }

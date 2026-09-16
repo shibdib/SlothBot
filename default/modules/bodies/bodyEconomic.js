@@ -14,7 +14,7 @@ const {
     liveControllerContainer,
 } = require('bodyHelpers');
 const {getRegenSourceOperatorForRoom} = require('powerSpec');
-const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
+const {ENERGY_ACCRUAL_FLOOR, upgraderFeedWorkCap} = require('spawnFlow');
 
 function droneHasBuildWork(room) {
     if (!room) return false;
@@ -135,7 +135,11 @@ function planUpgraderNeed(room, flow = {}) {
 
     let count = 1;
     const grossSpare = existingWork + effectiveSpare;
-    const upgradeBudget = grossSpare - upgradeAccrualFloor(room, grossSpare);
+    let upgradeBudget = grossSpare - upgradeAccrualFloor(room, grossSpare);
+    if (hasLink) {
+        const feedCap = upgraderFeedWorkCap(room);
+        if (feedCap) upgradeBudget = Math.min(upgradeBudget, feedCap);
+    }
     if (upgradeBudget > 0) {
         count = Math.max(1, Math.ceil(upgradeBudget / Math.max(1, maxWork)));
     }
@@ -185,7 +189,13 @@ function buildUpgrader(gen) {
                 let feedCap = Math.floor(sourceRate * linked) + 1;
                 // Receiver has no cooldown. Hub can drip ~800/40 ticks from storage/remotes.
                 const stored = (gen.room.rawEnergy || 0) > 1000;
-                if (gen.room.memory.hubLink && (gen.room.controller.level < 8 || gen.room.energyState >= 2 || stored)) {
+                // Hub only drips to the controller at energyState 2+ (RCL < 8)
+                // or when RCL8 is not pulling the link back to storage.
+                const hubFeedsController = gen.room.memory.hubLink && (
+                    (gen.room.controller.level < 8 && (gen.room.energyState || 0) >= 2)
+                    || (gen.room.controller.level >= 8 && (gen.room.energyState >= 2 || stored))
+                );
+                if (hubFeedsController) {
                     const linkCap = typeof LINK_CAPACITY === 'number' ? LINK_CAPACITY : 800;
                     feedCap += Math.floor(linkCap / 40);
                 }
@@ -203,6 +213,12 @@ function buildUpgrader(gen) {
         if (grossSpare || gen.spareIncome < 0) {
             const upgradeBudget = Math.max(1, Math.floor(grossSpare - upgradeAccrualFloor(gen.room, grossSpare)));
             work = Math.min(work, upgradeBudget);
+        }
+        // Match controller-link feed so a leftover dump body is not rebuilt
+        // at 18W while the link only drips 5W.
+        if (hasLink) {
+            const feedCap = upgraderFeedWorkCap(gen.room);
+            if (feedCap) work = Math.min(work, feedCap);
         }
         // 5W is hasDedicatedUpgrader's floor — smaller and drones leftover-upgrade.
         // True famine (empty spawn, no stock) may drop to 1W so the body can spawn.

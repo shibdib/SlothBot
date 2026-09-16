@@ -208,6 +208,7 @@ class RoleHubManager {
         if (!hubLink) return false;
         const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
         if (rcl >= 8) return false;
+        if ((this.room.energyState || 0) < 2) return false;
         if (!roomHasPositiveFlow(this.room)) return false;
         if (this.spawnNeed().length) return false;
         const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
