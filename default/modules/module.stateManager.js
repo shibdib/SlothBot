@@ -27,17 +27,18 @@ class StateManager {
     }
 
     run() {
-        const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
         if (global.isPostResetDangerWindow && global.isPostResetDangerWindow()) return;
 
-        // Run every 10 ticks
-        const lastRun = LAST_UPDATE.tick || 0;
-        if (lastRun + 10 > Game.time) return;
-        LAST_UPDATE.tick = Game.time;
-
-        this.pruneEnergyTracker();
-        const census = this.censusAllColonies();
-        this.myRooms.forEach(roomName => this.roomTracking(roomName, census));
+        // Census + funnel/builders every 10 ticks. Flow snapshot every tick so
+        // power/nuker/upgrade dumps see spareIncome from the current ring.
+        const censusDue = !LAST_UPDATE.tick || LAST_UPDATE.tick + 10 <= Game.time;
+        if (censusDue) {
+            LAST_UPDATE.tick = Game.time;
+            this.pruneEnergyTracker();
+            LAST_UPDATE.census = this.censusAllColonies();
+        }
+        const census = LAST_UPDATE.census;
+        this.myRooms.forEach(roomName => this.roomTracking(roomName, census, censusDue));
     }
 
     emptyCensus() {
@@ -106,7 +107,7 @@ class StateManager {
         }
     }
 
-    roomTracking(roomName, census) {
+    roomTracking(roomName, census, censusDue) {
         const room = Game.rooms[roomName];
         let controllerMy = false;
         try {
@@ -117,9 +118,11 @@ class StateManager {
         if (!room || !room.controller || !controllerMy) return;
 
         this.energyTracking(room, census && census[roomName]);
-        this.levelingStatTracking(room);
-        this.requestBuilders(room);
-        this.funnelRequest(room);
+        if (censusDue) {
+            this.levelingStatTracking(room);
+            this.requestBuilders(room);
+            this.funnelRequest(room);
+        }
     }
 
     energyTracking(room, counts) {

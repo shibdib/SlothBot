@@ -6,7 +6,7 @@ const profiler = require("tools.profiler");
 const FactoryControl = require('module.factoryController');
 const {getRoomKeepAmount, getOperationalProtectAmount, getRoomOperationalNeed} = require('termKeep');
 const {isCoreRoom} = require('module.colonyProfile');
-const {roomCanBurnSurplus, roomCanProcessPower} = require('spawnFlow');
+const {roomCanBurnSurplus, roomCanProcessPower, noteNukerEnergyDeposit} = require('spawnFlow');
 const {hasLiveHubManager} = require('spawnHub');
 
 const BALANCE_MIN_TRANSFER = 100;
@@ -2049,6 +2049,7 @@ class RoleLabTech {
             return this.fallbackDelivery();
         }
         if (this.creep.transfer(deliveryTarget, task.resource, transferAmount) === OK) {
+            noteNukerEnergyDeposit(deliveryTarget, task.resource, transferAmount);
             this.dropTask(task);
             const next = this.creep.memory.tasks
                 && this.creep.memory.tasks.find(t => t.pickedUp && this.creep.store[t.resource] > 0);

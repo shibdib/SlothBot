@@ -56,6 +56,13 @@ function roomHasPositiveFlow(room) {
     return !flowStressed && spareIncome >= ENERGY_ACCRUAL_FLOOR;
 }
 
+function noteNukerEnergyDeposit(dest, resource, amount) {
+    if (resource && resource !== RESOURCE_ENERGY) return;
+    if (!dest || dest.structureType !== STRUCTURE_NUKER) return;
+    if (!(amount > 0)) return;
+    if (global.bumpEnergyExpense) global.bumpEnergyExpense('nuke', dest.room.name, amount);
+}
+
 module.exports = {
     ENERGY_ACCRUAL_FLOOR,
     spawnEnergyState,
@@ -63,4 +70,5 @@ module.exports = {
     roomCanBurnSurplus,
     roomCanProcessPower,
     roomHasPositiveFlow,
+    noteNukerEnergyDeposit,
 };

@@ -12,6 +12,7 @@ const {
     releaseTruckRef,
     clearTrailerTowState,
     clearShibMove,
+    inRangeSameRoom,
 } = require('pathUtils');
 
 const STALL_LIMIT = 30;
@@ -92,7 +93,7 @@ function requestTow(trailer, heading, options) {
     }
 
     const range = options.range ?? 1;
-    if (trailer.pos.getRangeTo(heading) <= range) {
+    if (inRangeSameRoom(trailer.pos, heading, range)) {
         clearTrailerTowState(trailer);
         return false;
     }

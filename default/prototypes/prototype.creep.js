@@ -24,7 +24,7 @@
 const {runTowTruck} = require('pathTow');
 const {clearShibMove, getShibMove, pathLeavesForSameRoomTarget, pathIsSameRoomDetour} = require('pathUtils');
 const {stepInlandOffExit, isSquadCreep} = require('pathFormation');
-const {roomCanBurnSurplus, ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
+const {roomCanBurnSurplus, ENERGY_ACCRUAL_FLOOR, noteNukerEnergyDeposit, roomHasPositiveFlow} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 
 const exitTileCache = {};
@@ -709,8 +709,10 @@ Creep.prototype.haulerDelivery = function () {
         let storageItem = Game.getObjectById(this.memory.storageDestination);
         if (storageItem && storageItem.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
             for (let resourceType in this.store) {
+                const moved = Math.min(this.store[resourceType] || 0, storageItem.store.getFreeCapacity(resourceType) || 0);
                 let result = this.transfer(storageItem, resourceType);
                 if (result === OK) {
+                    noteNukerEnergyDeposit(storageItem, resourceType, moved);
                     delete this.memory.storageDestination;
                     clearShibMove(this);
                     return true;
@@ -790,7 +792,8 @@ Creep.prototype.haulerDelivery = function () {
     const hubLink = Game.getObjectById(this.room.memory.hubLink);
     const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
     const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
-    if (rcl < 8 && hubLink && controllerLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+    if (rcl < 8 && hubLink && controllerLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+        && roomHasPositiveFlow(this.room)) {
         targets.push(hubLink);
     }
 
@@ -1040,6 +1043,11 @@ Creep.prototype.builderFunction = function () {
         this.memory.siteRoom = undefined;
         this.memory.targetHits = undefined;
         return false;
+    }
+
+    if (construction.pos.roomName !== this.pos.roomName) {
+        this.shibMove(construction, {range: 1});
+        return true;
     }
 
     if (!this.memory.task) this.memory.task = 'build';

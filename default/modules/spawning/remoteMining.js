@@ -5,6 +5,7 @@
  */
 
 const {findRoute, getRoute} = require('pathRoute');
+const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
 
 const MINING_ROUTE_TTL = 1500;
 const DEFAULT_ROUTE_MAX = 3;
@@ -157,7 +158,7 @@ function colonyNeedsRemoteIncome(room) {
     const ei = room.energyInfo;
     const spare = (ei && ei.spareIncome) || 0;
     const stressed = !!(ei && ei.flowStressed);
-    return energyState < 3 || stressed || spare < 0;
+    return energyState < 3 || stressed || spare < ENERGY_ACCRUAL_FLOOR;
 }
 
 function miningRouteHasRoads(colonyName, destName) {
@@ -862,7 +863,7 @@ function shouldProbeNewRemotes(room) {
     const energyState = room.energyState || 0;
     // Overflow + healthy flow: no new remotes. Otherwise keep probing — harvest is
     // how a room stops being net-negative, and blocking it is a death spiral.
-    if (energyState >= 3 && ei && !ei.flowStressed && (ei.spareIncome || 0) >= 8) return false;
+    if (energyState >= 3 && ei && !ei.flowStressed && (ei.spareIncome || 0) >= ENERGY_ACCRUAL_FLOOR) return false;
     return true;
 }
 

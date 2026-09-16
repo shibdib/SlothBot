@@ -381,6 +381,7 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     cache.squadSize = squadSize;
     cache.endpoint = getPosKey(result.path[result.path.length - 1]);
     cache.path = serializePath(origin, result.path);
+    cache.sameRoomDetour = options.sameRoomDetour || undefined;
     cache.searchFailed = undefined;
     return squadMove(this, cache.path);
 };

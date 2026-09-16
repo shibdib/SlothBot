@@ -408,6 +408,17 @@ function endpointInRange(endpointKey, target, range) {
     return Math.max(Math.abs(parsed.x - target.x), Math.abs(parsed.y - target.y)) <= range;
 }
 
+/** Arrival checks must not use world-range across a portal. Edge roads sit
+ *  at Chebyshev 1–3 from the neighbor landing, so range-3 build "arrived"
+ *  in the wrong room and never walked back. */
+function inRangeSameRoom(from, to, range) {
+    if (!from || !to || range == null) return false;
+    const fromRoom = from.roomName;
+    const toRoom = to.roomName || (to.pos && to.pos.roomName);
+    if (!fromRoom || !toRoom || fromRoom !== toRoom) return false;
+    return from.getRangeTo(to) <= range;
+}
+
 function directionExitsRoom(pos, dir) {
     if (!pos || !dir) return false;
     const dx = (dir === 2 || dir === 3 || dir === 4) ? 1
@@ -432,7 +443,7 @@ function pathLeavesForSameRoomTarget(creep) {
 
 function pathIsSameRoomDetour(creep) {
     const move = getShibMove(creep);
-    return !!(move && move.sameRoomDetour && move.path && move.path.length);
+    return !!(move && move.sameRoomDetour);
 }
 
 function roomNeedsMazeOps(roomName) {
@@ -464,6 +475,7 @@ module.exports = {
     normalizePos,
     reverseDirection,
     directionExitsRoom,
+    inRangeSameRoom,
     pathLeavesForSameRoomTarget,
     pathIsSameRoomDetour,
     getPathKey,

@@ -12,7 +12,7 @@
  */
 
 const profiler = require('tools.profiler');
-const {roomCanBurnSurplus, roomCanProcessPower} = require('spawnFlow');
+const {roomCanBurnSurplus, roomCanProcessPower, roomHasPositiveFlow, noteNukerEnergyDeposit} = require('spawnFlow');
 const RoleLabTech = require('role.labTech');
 const {hubManagerNeedsBiggerBody} = require('bodyEconomic');
 
@@ -168,7 +168,9 @@ class RoleHubManager {
         if (task && (this.creep.store[task.resource] || 0) > 0) {
             const dest = Game.getObjectById(task.deliveryTarget);
             if (dest && adjacentTo(this.creep, dest) && dest.store.getFreeCapacity(task.resource) > 0) {
+                const moved = Math.min(this.creep.store[task.resource] || 0, dest.store.getFreeCapacity(task.resource) || 0);
                 if (this.creep.transfer(dest, task.resource) === OK) {
+                    noteNukerEnergyDeposit(dest, task.resource, moved);
                     this.creep.memory.warehouse = task.swapReverse || undefined;
                 }
                 return;
@@ -206,6 +208,7 @@ class RoleHubManager {
         if (!hubLink) return false;
         const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
         if (rcl >= 8) return false;
+        if (!roomHasPositiveFlow(this.room)) return false;
         if (this.spawnNeed().length) return false;
         const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
         if (!controllerLink || !controllerLink.store) return false;
@@ -243,7 +246,10 @@ class RoleHubManager {
 
         const sink = this.surplusSink();
         if (sink) {
-            this.creep.transfer(sink, RESOURCE_ENERGY);
+            const moved = Math.min(this.creep.store[RESOURCE_ENERGY] || 0, sink.store.getFreeCapacity(RESOURCE_ENERGY) || 0);
+            if (this.creep.transfer(sink, RESOURCE_ENERGY) === OK) {
+                noteNukerEnergyDeposit(sink, RESOURCE_ENERGY, moved);
+            }
             return;
         }
 

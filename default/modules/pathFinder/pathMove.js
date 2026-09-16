@@ -16,7 +16,7 @@ const {
     normalizePos, clearTrailerTowState,
     tryPullSwapThrough, isPullSwapBlocker, isImmobileBlocker,
     getShibMove, setShibMove, ensureShibMove, clearShibMove,
-    roomNeedsMazeOps, getMoveWeight,
+    roomNeedsMazeOps, getMoveWeight, inRangeSameRoom,
 } = require('pathUtils');
 
 const {requestTow, needsTow} = require('pathTow');
@@ -94,13 +94,23 @@ const HOP_AFTER = 2;
 function applyLongDistanceHop(creep, origin, target, options) {
     if (origin.roomName === target.roomName) return null;
     if (options.noHop) return null;
+    const stored = getShibMove(creep);
+    // Detour allow-list is every neighbor, not an ordered hop route. Using it
+    // as findRoute sent the creep to a random other neighbor instead of back.
+    if (stored && stored.sameRoomDetour) {
+        const rooms = stored.sameRoomDetourRooms || stored.route;
+        if (rooms && rooms.length) {
+            options.route = rooms.includes(origin.roomName) ? rooms : [origin.roomName].concat(rooms);
+            options.maxRooms = Math.max(options.maxRooms || 0, options.route.length + 1);
+        }
+        return null;
+    }
     // Caller already scoped a 1–2 room search (reserver hops).
     if (options.route && options.route.length <= HOP_WINDOW + 1 &&
         options.maxRooms != null && options.maxRooms <= HOP_WINDOW + 1) {
         return null;
     }
 
-    const stored = getShibMove(creep);
     const destRoom = target.roomName;
     let route = options.fullRoute || options.claimRoute || stored?.fullRoute || options.route || stored?.route;
     if (!route || !route.length || !route.includes(destRoom)) {
@@ -244,7 +254,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     }
 
     if (!pathOnly && !options.flee && !options.portal && !(creep.memory && creep.memory.repathing)
-        && origin.getRangeTo(target) <= options.range) {
+        && inRangeSameRoom(origin, target, options.range)) {
         if (getShibMove(creep)) {
             clearShibMove(creep);
             clearTrailerTowState(creep);
@@ -397,7 +407,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
 }
 
 function executePath(creep, pathInfo, options, origin, heading) {
-    if (!options.flee && heading && creep.pos.getRangeTo(heading) <= (options.range ?? 1)) {
+    if (!options.flee && heading && inRangeSameRoom(creep.pos, heading, options.range ?? 1)) {
         clearShibMove(creep);
         clearTrailerTowState(creep);
         return false;
@@ -411,11 +421,12 @@ function executePath(creep, pathInfo, options, origin, heading) {
 
     if (pathInfo.pathPos) {
         if (pathInfo.pathPos !== posKey) {
-            pathInfo.path = ([0, 49].includes(creep.pos.x) || [0, 49].includes(creep.pos.y))
-                ? pathInfo.path.slice(2)
-                : pathInfo.path.slice(1);
+            // One PF tile per serialized dir. slice(2) on 0/49 skipped the
+            // hop itself on same-room neighbor detours and left creeps stuck
+            // on the portal.
+            pathInfo.path = pathInfo.path.slice(1);
             if (!pathInfo.path.length) {
-                if (!options.flee && creep.pos.getRangeTo(heading) <= options.range) {
+                if (!options.flee && inRangeSameRoom(creep.pos, heading, options.range)) {
                     clearShibMove(creep);
                     clearTrailerTowState(creep);
                 }
@@ -450,10 +461,10 @@ function executePath(creep, pathInfo, options, origin, heading) {
         return false;
     }
 
-    // Same-room path (combat, 25,25) must not leave dest through a neighbor
-    // corridor. fleeHome targets another room and is unaffected.
+    // Same-room path (combat, 25,25) must not wander out of dest — except a
+    // scored neighbor detour, whose next step is this portal.
     const pathTargetRoom = pathInfo.target && pathInfo.target.roomName;
-    if (dest && creep.pos.roomName === dest && pathTargetRoom === dest) {
+    if (dest && creep.pos.roomName === dest && pathTargetRoom === dest && !pathInfo.sameRoomDetour) {
         const leavePos = posAfterMove(creep.pos, nextDirection);
         if (leavePos && leavePos.roomName !== dest) {
             clearShibMove(creep);
@@ -551,8 +562,13 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 
     // Prefer precomputed / in-progress route. Always re-calling findRoute ignored
     // reserver mining routes and paid Game.map.findRoute on every repath.
-    let allowedRooms = pathInfo.route || options.route;
-    if (roomDistance) {
+    let allowedRooms = pathInfo.sameRoomDetourRooms || pathInfo.route || options.route;
+    if (pathInfo.sameRoomDetour && pathInfo.sameRoomDetourRooms && pathInfo.sameRoomDetourRooms.length) {
+        allowedRooms = pathInfo.sameRoomDetourRooms;
+        if (!allowedRooms.includes(origin.roomName)) {
+            allowedRooms = [origin.roomName].concat(allowedRooms);
+        }
+    } else if (roomDistance) {
         if (allowedRooms && allowedRooms.length) {
             if (!allowedRooms.includes(creep.room.name)) {
                 allowedRooms = [creep.room.name].concat(allowedRooms);
@@ -604,7 +620,15 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     if (!result.incomplete) {
         pathInfo.target = {x: target.x, y: target.y, roomName: target.roomName};
         pathInfo.path = serializePath(creep.pos, result.path);
-        if (options.sameRoomDetour) pathInfo.sameRoomDetour = true;
+        if (options.sameRoomDetour) {
+            pathInfo.sameRoomDetour = true;
+            if (options.sameRoomDetourRooms && options.sameRoomDetourRooms.length) {
+                pathInfo.sameRoomDetourRooms = options.sameRoomDetourRooms;
+            }
+        } else if (origin.roomName === target.roomName) {
+            pathInfo.sameRoomDetour = undefined;
+            pathInfo.sameRoomDetourRooms = undefined;
+        }
         pathInfo.pathKey = pathKey;
         pathInfo.pathAge = 0;
         pathInfo.pathPos = undefined;

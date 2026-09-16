@@ -171,15 +171,10 @@ function executeNukeLaunch(launcher, intel, options = {}) {
         log.w(`Nuke launch aborted for ${roomLink(roomName)} — no useful impact tile (refusing room-center fallback).`, 'HIGH COMMAND: ');
         return false;
     }
-    const nukeEnergySunk = launcher.store[RESOURCE_ENERGY] || 0;
     const result = launcher.launchNuke(target);
     if (result !== OK) {
         log.w(`Nuke launch failed for ${roomLink(roomName)} from ${roomLink(launcher.room.name)}: ${result} @ ${target.x},${target.y}`, 'HIGH COMMAND: ');
         return false;
-    }
-
-    if (nukeEnergySunk > 0) {
-        if (global.bumpEnergyExpense) global.bumpEnergyExpense('nuke', launcher.room.name, nukeEnergySunk);
     }
 
     intel.lastNuke = Game.time;

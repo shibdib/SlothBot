@@ -63,7 +63,7 @@ function cachePath(creep, from, to, pathInfo) {
     entry.structuresHash = hashRoomStructures(creep.room);
     entry.uses = (entry.uses || 0) + 1;
 
-    if (from.roomName === to.roomName) {
+    if (from.roomName === to.roomName && !pathInfo.sameRoomDetour) {
         const reverseKey = getPathKey(to, from, weight);
         if (!CACHE.PATH_CACHE[reverseKey]) {
             CACHE.PATH_CACHE[reverseKey] = {

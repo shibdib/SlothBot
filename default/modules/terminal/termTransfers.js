@@ -15,6 +15,7 @@ const {
 const {getDerivedCommodityAmount} = require('termCache');
 const FactoryControl = require('module.factoryController');
 const {getColonyRole, isCoreRoom} = require('module.colonyProfile');
+const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
 const profiler = require('tools.profiler');
 
 const RESOURCE_SEND_MAX = 5000;
@@ -443,9 +444,8 @@ function canDonateEnergy(room) {
     const rcl = (room.controller && room.controller.level) || room.level || 0;
     // Climbing rooms keep spare energy for a second upgrader, not empire fills.
     if (rcl < 8) return false;
-    const srcState = room.energyState || 0;
-    if (srcState >= 3) return true;
-    return srcState >= 2 && roomSpareIncome(room) > 0;
+    if ((room.energyState || 0) < 2) return false;
+    return roomSpareIncome(room) >= ENERGY_ACCRUAL_FLOOR;
 }
 
 function empireEnergyHungry(profiles) {
