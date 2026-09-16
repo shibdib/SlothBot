@@ -1186,6 +1186,66 @@ function shouldSkipControllerContainer(room) {
     return hasSharedSourceControllerLink(room);
 }
 
+const LINK_STAND_HARD_AVOID = -500;
+
+/**
+ * Penalty for parking an upgrader on a shared controller/source link.
+ * Harvest pad and source tile are last resort; reserved hub access is next.
+ */
+function linkUpgradeStandPenalty(room, pos) {
+    const source = getControllerNeighborSource(room);
+    if (!source || !pos) return 0;
+    if (pos.x === source.pos.x && pos.y === source.pos.y) return LINK_STAND_HARD_AVOID;
+    const container = resolveSourceContainer(source, room, false);
+    if (container && pos.x === container.pos.x && pos.y === container.pos.y) return LINK_STAND_HARD_AVOID;
+    const reserved = source.memory && source.memory.accessReserved;
+    if (reserved && pos.x === reserved.x && pos.y === reserved.y) return -200;
+    if (pos.isNearTo(source)) return -40;
+    if (container && pos.isNearTo(container)) return -10;
+    return 0;
+}
+
+/**
+ * Walkable tile next to a controller link for a stationary upgrader.
+ * Prefers the controller side so a shared harvest link keeps source access open.
+ * @param {Room} room
+ * @param {StructureLink} link
+ * @param {Object<string, boolean>} [taken] map of `x_y` already claimed
+ * @returns {RoomPosition|null}
+ */
+function pickLinkUpgradeStand(room, link, taken) {
+    if (!room || !room.controller || !link || !link.pos) return null;
+    const ctrl = room.controller.pos;
+    const claimed = taken || {};
+    let best = null;
+    let bestScore = -Infinity;
+    let bestSoft = null;
+    let bestSoftScore = -Infinity;
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (!xOff && !yOff) continue;
+            const x = link.pos.x + xOff;
+            const y = link.pos.y + yOff;
+            if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+            if (claimed[`${x}_${y}`]) continue;
+            const pos = new RoomPosition(x, y, link.pos.roomName);
+            if (pos.checkForWall() || pos.checkForObstacleStructure()) continue;
+            if (pos.getRangeTo(ctrl) > CONTROLLER_LINK_MAX_RANGE) continue;
+            const penalty = linkUpgradeStandPenalty(room, pos);
+            const score = (CONTROLLER_LINK_MAX_RANGE - pos.getRangeTo(ctrl)) + penalty;
+            if (score > bestScore) {
+                bestScore = score;
+                best = pos;
+            }
+            if (penalty > LINK_STAND_HARD_AVOID && score > bestSoftScore) {
+                bestSoftScore = score;
+                bestSoft = pos;
+            }
+        }
+    }
+    return bestSoft || best;
+}
+
 function controllerContainersNear(room) {
     if (!room.controller) return [];
     if (global.posStructuresInRange) {
@@ -1587,6 +1647,10 @@ module.exports = {
     isSharedLinkReserveTile,
 
     shouldSkipControllerContainer,
+
+    pickLinkUpgradeStand,
+
+    linkUpgradeStandPenalty,
 
     CONTROLLER_LINK_MAX_RANGE,
 

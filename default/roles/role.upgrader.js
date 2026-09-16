@@ -5,6 +5,7 @@
 const profiler = require("tools.profiler");
 const {planUpgraderNeed} = require('bodyEconomic');
 const {liveControllerLink, roomExpectsUpgradePad} = require('bodyHelpers');
+const {pickLinkUpgradeStand, linkUpgradeStandPenalty, hasSharedSourceControllerLink} = require('planUtils');
 
 const RETIRE_INTERVAL = 10;
 const retireCache = {};
@@ -113,16 +114,19 @@ class RoleUpgrader {
         }
         this.creep.memory.other.stationary = true;
         this.creep.memory.other.noMove = true;
-        // Handle getting in place
-        if (!this.creep.memory.inPosition || Game.time % 100 === 0) {
+        // Handle getting in place. Re-pick immediately when parked on the
+        // harvest pad / hub-access tile of a shared controller/source link.
+        const blockingStand = this.link && linkUpgradeStandPenalty(this.room, this.creep.pos) <= -40;
+        if (!this.creep.memory.inPosition || Game.time % 100 === 0 || blockingStand) {
             if (!this.link && this.container) {
                 if (this.creep.pos.isEqualTo(this.container.pos) || this.creep.pos.isNearTo(this.container)) this.creep.memory.inPosition = true;
                 else return this.creep.shibMove(this.container, {range: 0});
-            } else if (this.link && !this.container) {
+            } else if (this.link && (!this.container || hasSharedSourceControllerLink(this.room))) {
                 const targetPos = this.findLinkUpgradePosition();
                 if (targetPos && this.creep.pos.isEqualTo(targetPos)) this.creep.memory.inPosition = true;
                 else if (targetPos) return this.creep.shibMove(targetPos, {range: 0});
-                else if (this.creep.pos.isNearTo(this.link) && this.creep.pos.getRangeTo(this.room.controller) <= 3) this.creep.memory.inPosition = true;
+                else if (this.creep.pos.isNearTo(this.link) && this.creep.pos.getRangeTo(this.room.controller) <= 3
+                    && !blockingStand) this.creep.memory.inPosition = true;
                 else return this.creep.shibMove(this.link, {range: 1});
             } else if (this.container && this.link) {
                 if (this.creep.pos.isEqualTo(this.container.pos) || this.creep.pos.isNearTo(this.link)) this.creep.memory.inPosition = true;
@@ -165,12 +169,6 @@ class RoleUpgrader {
     }
 
     findLinkUpgradePosition() {
-        const cached = this.creep.memory.linkUpgradePos;
-        if (cached) {
-            const pos = new RoomPosition(cached.x, cached.y, cached.roomName);
-            if (pos.isNearTo(this.link) && pos.getRangeTo(this.room.controller) <= 3) return pos;
-            this.creep.memory.linkUpgradePos = undefined;
-        }
         const taken = {};
         for (const c of this.room.myCreeps) {
             if (c.id !== this.creep.id && c.memory.role === 'upgrader' && c.memory.linkUpgradePos) {
@@ -178,25 +176,13 @@ class RoleUpgrader {
                 taken[`${p.x}_${p.y}`] = true;
             }
         }
-        let fallback;
-        for (let xOff = -1; xOff <= 1; xOff++) {
-            for (let yOff = -1; yOff <= 1; yOff++) {
-                if (xOff === 0 && yOff === 0) continue;
-                const x = this.link.pos.x + xOff;
-                const y = this.link.pos.y + yOff;
-                if (x < 1 || x > 48 || y < 1 || y > 48) continue;
-                const pos = new RoomPosition(x, y, this.link.pos.roomName);
-                if (pos.checkForWall() || pos.checkForObstacleStructure()) continue;
-                if (pos.getRangeTo(this.room.controller) > 3) continue;
-                if (taken[`${x}_${y}`]) {
-                    if (!fallback) fallback = pos;
-                    continue;
-                }
-                this.creep.memory.linkUpgradePos = {x: pos.x, y: pos.y, roomName: pos.roomName};
-                return pos;
-            }
+        const picked = pickLinkUpgradeStand(this.room, this.link, taken);
+        if (picked) {
+            this.creep.memory.linkUpgradePos = {x: picked.x, y: picked.y, roomName: picked.roomName};
+            return picked;
         }
-        return fallback;
+        this.creep.memory.linkUpgradePos = undefined;
+        return undefined;
     }
 
     withdraw() {

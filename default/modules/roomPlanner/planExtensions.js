@@ -47,6 +47,8 @@ const {
     resolveControllerContainer,
     hasControllerContainerSite,
     shouldSkipControllerContainer,
+    isControllerNeighborSource,
+    pickLinkUpgradeStand,
     isPlannedConstructionSite,
     alreadyFreedSiteSlots,
     markFreedSiteSlots,
@@ -517,6 +519,25 @@ function buildSourceExtensions(room, options) {
             delete source.memory.accessReserved;
         }
 
+        // Shared controller/source link: keep an upgrader stand that is not the
+        // hub-access tile. If the only stand is that access tile, leave the
+        // harvest ring open so the parked upgrader does not seal the source.
+        let upgraderStand = null;
+        let standBlocksAccess = false;
+        const sharedLink = isControllerNeighborSource(source, room)
+            && room.memory.controllerLink && link.id === room.memory.controllerLink;
+        if (sharedLink) {
+            upgraderStand = pickLinkUpgradeStand(room, link);
+            if (upgraderStand) {
+                source.memory.upgraderStand = {x: upgraderStand.x, y: upgraderStand.y};
+                const reserved = source.memory.accessReserved;
+                standBlocksAccess = !!(reserved
+                    && upgraderStand.x === reserved.x && upgraderStand.y === reserved.y);
+            } else {
+                delete source.memory.upgraderStand;
+            }
+        }
+
         // Fill the back of the container first so harvest-adjacent roads stay open.
         extensionCandidates.sort((a, b) => {
             const as = a.inRangeTo(source, 1) ? 1 : 0;
@@ -530,6 +551,8 @@ function buildSourceExtensions(room, options) {
             if (source.memory.accessReserved
                 && pos.x === source.memory.accessReserved.x
                 && pos.y === source.memory.accessReserved.y) continue;
+            if (upgraderStand && pos.x === upgraderStand.x && pos.y === upgraderStand.y) continue;
+            if (standBlocksAccess && pos.inRangeTo(source, 1)) continue;
             // Keep one harvest tile so the owned road net can still reach the source.
             if (pos.inRangeTo(source, 1) && !hasOtherSourceHarvestTile(room, source, pos)) continue;
             if (!canPlaceFn(room)) return false;
