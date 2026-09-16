@@ -11,7 +11,14 @@
  * Dual-write of anchor coords to bunkerHub/towerHubs/labHub removed (C5).
  */
 
-const {coreTemplate, bunkerTemplate, labTemplate, hubLinkOffset, reservedHubTileKeys} = require('planTemplates');
+const {
+    coreTemplate,
+    bunkerTemplate,
+    labTemplate,
+    labRoadTemplate,
+    hubLinkOffset,
+    reservedHubTileKeys
+} = require('planTemplates');
 
 const {
     determineTowerDamage,
@@ -68,7 +75,7 @@ const TOWER_HUB_MAX_DIST = 5;
 const TOWER_SEAL_BAND_MIN = 1;
 const TOWER_SEAL_BAND_MAX = 5;
 const TOWER_SEAL_BAND_WIDEN = 10;
-const TOWER_LAYOUT_VERSION = 3;
+const TOWER_LAYOUT_VERSION = 4;
 const TOWER_RESEAT_COOLDOWN = 300;
 const TOWER_SEAL_DRIFT_COUNT = 8;
 const TOWER_SEAL_DRIFT_CENTROID = 3;
@@ -969,6 +976,9 @@ function isLabTileValid(ctx, cx, cy, index) {
         const ay = cy + perim[i].y;
         if (ax < 1 || ax > 48 || ay < 1 || ay > 48) continue;
         if (terrain.get(ax, ay) === TERRAIN_MASK_WALL) continue;
+        // Towers / bunker stamps / world structures — a stand tile that is
+        // only walkable terrain but occupied still traps the lab.
+        if (blocked.has(ax + ',' + ay)) continue;
         return true;
     }
     return false;
@@ -1187,6 +1197,34 @@ function towerTileKey(x, y) {
     return x + ',' + y;
 }
 
+/** Lab stamp plus collar stand/walk tiles. A tower on the collar can trap a lab. */
+function labTowerReserveKeys(room) {
+    const keys = new Set();
+    const lab = resolveLabHub(room);
+    if (!lab || !lab.hub || !labTemplate) return keys;
+    const hx = lab.hub.x;
+    const hy = lab.hub.y;
+    for (let i = 0; i < labTemplate.length; i++) {
+        keys.add(towerTileKey(hx + labTemplate[i].x, hy + labTemplate[i].y));
+    }
+    if (labRoadTemplate) {
+        for (let i = 0; i < labRoadTemplate.length; i++) {
+            keys.add(towerTileKey(hx + labRoadTemplate[i].x, hy + labRoadTemplate[i].y));
+        }
+    }
+    return keys;
+}
+
+function towerHubsBlockLabAccess(room, hubs) {
+    if (!hubs || !hubs.length) return false;
+    const reserved = labTowerReserveKeys(room);
+    if (!reserved.size) return false;
+    for (let i = 0; i < hubs.length; i++) {
+        if (reserved.has(towerTileKey(hubs[i].x, hubs[i].y))) return true;
+    }
+    return false;
+}
+
 /** Core/lab/special stamps a tower must not occupy. Roads are allowed (share the tile). */
 function collectTowerBlockedKeys(room, hubX, hubY) {
     const blocked = reservedHubTileKeys({x: hubX, y: hubY});
@@ -1201,12 +1239,9 @@ function collectTowerBlockedKeys(room, hubX, hubY) {
             blocked.add(towerTileKey(hubX + pos[i].x, hubY + pos[i].y));
         }
     }
-    const lab = resolveLabHub(room);
-    if (lab && lab.hub && labTemplate) {
-        for (let i = 0; i < labTemplate.length; i++) {
-            blocked.add(towerTileKey(lab.hub.x + labTemplate[i].x, lab.hub.y + labTemplate[i].y));
-        }
-    }
+    labTowerReserveKeys(room).forEach(function (key) {
+        blocked.add(key);
+    });
     if (room.memory.dynamicLayout) {
         const assignments = getDynamicSpecialAssignments(room) || [];
         for (let i = 0; i < assignments.length; i++) {
@@ -1877,7 +1912,8 @@ function ensureTowerHubs(room, options) {
 
     const existingNow = resolveTowerHubs(room);
     const reseatSpawn = existingNow.length && towerHubsTooCloseToSpawn(room, existingNow);
-    const stale = opts.forceSearch || towerLayoutStale(room) || reseatSpawn;
+    const reseatLab = existingNow.length && towerHubsBlockLabAccess(room, existingNow);
+    const stale = opts.forceSearch || towerLayoutStale(room) || reseatSpawn || reseatLab;
     if (!stale) {
         const existing = existingNow;
         if (existing.length) {
@@ -1886,7 +1922,7 @@ function ensureTowerHubs(room, options) {
             return {ok: true, hubs: existing.slice(), reason: 'existing'};
         }
         const recovered = recoverTowerHubsFromWorld(room);
-        if (recovered.length) {
+        if (recovered.length && !towerHubsBlockLabAccess(room, recovered)) {
             commitTowerHubs(room, recovered);
             refreshPerimeterAfterTowerHubs(room);
             stampTowerLayout(room);
@@ -1929,14 +1965,27 @@ function ensureTowerHubs(room, options) {
             };
         }
         if (existing.length) {
-            ensureTowerRamparts(room, existing);
-            return {
-                ok: true,
-                hubs: existing.slice(),
-                reason: 'search_empty_keep',
-                candidateCount: selected.candidateCount,
-                alongSeal: selected.alongSeal,
-            };
+            const reserved = labTowerReserveKeys(room);
+            const kept = [];
+            for (let i = 0; i < existing.length; i++) {
+                if (!reserved.has(towerTileKey(existing[i].x, existing[i].y))) kept.push(existing[i]);
+            }
+            if (kept.length) {
+                if (kept.length !== existing.length) {
+                    commitTowerHubs(room, kept);
+                    if (!isPlannerShadow(room) && !roomUnsafeForTowerMove(room)) {
+                        relocateOffPlanTowers(room, kept);
+                    }
+                }
+                ensureTowerRamparts(room, kept);
+                return {
+                    ok: true,
+                    hubs: kept.slice(),
+                    reason: kept.length === existing.length ? 'search_empty_keep' : 'search_empty_drop_lab',
+                    candidateCount: selected.candidateCount,
+                    alongSeal: selected.alongSeal,
+                };
+            }
         }
         return {
             ok: false,

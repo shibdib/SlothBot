@@ -223,6 +223,15 @@ function allowRoadMaintenance(room, roadsOnly) {
     return ownedRoomRepairsRoads(room);
 }
 
+function isSourceAdjacentContainer(room, structure) {
+    if (!room || !structure || structure.structureType !== STRUCTURE_CONTAINER) return false;
+    const sources = room.sources || [];
+    for (let i = 0; i < sources.length; i++) {
+        if (structure.pos.isNearTo(sources[i])) return true;
+    }
+    return false;
+}
+
 function isNearRoomSource(creep) {
     const sources = creep.room.sources;
     for (let i = 0; i < sources.length; i++) {
@@ -673,10 +682,12 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     if (['shuttle', 'remoteHauler', 'drone'].includes(this.memory.role) || !room.storage
         || room.myCreeps.length < 4 || (room.energyState || 0) < 2) {
         const ctrlContainer = global.resolveControllerContainer(room);
+        const skipSourcePads = this.memory.role === 'remoteBuilder' || this.memory.role === 'roadBuilder';
         const containers = room.containers;
         for (let i = 0; i < containers.length; i++) {
             const s = containers[i];
             if ((s.id !== (ctrlContainer && ctrlContainer.id) || room.level === 8) && s.store[RESOURCE_ENERGY] > 0) {
+                if (skipSourcePads && isSourceAdjacentContainer(room, s) && (s.store[RESOURCE_ENERGY] || 0) < 1600) continue;
                 if (!myCreepsFilter(s.id) || s.store[RESOURCE_ENERGY] > (myCreepsFilter(s.id) + 1) * (freeCapacity * 0.5)) {
                     potentialEnergy.push(s);
                 }
@@ -912,6 +923,16 @@ Creep.prototype.constructionWork = function (scope) {
     const damagedRoads = allowRoads ? damage.roads.filter(onPlanRoad) : [];
 
     if (roadsOnly) {
+        const sources = room.sources || [];
+        if (sources.length) {
+            const padSites = available(sites.byType[STRUCTURE_CONTAINER] || []).filter((s) => {
+                for (let i = 0; i < sources.length; i++) {
+                    if (s.pos.isNearTo(sources[i])) return true;
+                }
+                return false;
+            });
+            if (padSites.length) return buildClosest(padSites);
+        }
         if (roadSites.length) return buildClosest(roadSites);
         site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.5));
         if (site) return repair(site, site.hitsMax * 0.8);

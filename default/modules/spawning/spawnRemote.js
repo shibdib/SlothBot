@@ -11,6 +11,8 @@ const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
 const {
     routeHasBuiltRoads,
     countQueuedHaulersForSource,
+    remoteSourcePadBuilt,
+    remoteHaulerMinCarry,
     roomNeedsSpawnReboot,
     getOwnedExtensionDeficit,
     roomHasStableWorkingSet
@@ -696,7 +698,7 @@ function scanColonyRemoteCreeps() {
         if (c.memory.role === 'remoteHarvester') {
             if (c.memory.other && c.memory.other.source) bucket.occupiedSources.add(c.memory.other.source);
             if (c.memory.destination) bucket.liveRemoteRooms.add(c.memory.destination);
-            if (c.memory.other && c.memory.other.haulingRequired) bucket.harvesters.push(c);
+            if (c.memory.other && c.memory.other.source) bucket.harvesters.push(c);
         } else if (c.memory.role === 'reserver' && c.memory.destination) {
             bucket.liveRemoteRooms.add(c.memory.destination);
         } else if (c.memory.role === 'remoteHauler' && c.memory.other && c.memory.other.source) {
@@ -747,7 +749,14 @@ function handleRemoteHaulers(room) {
         const sourceId = harvester.memory.other.source;
         const assignedHaulers = (scan.haulersBySource[sourceId] || [])
             .filter(c => !haulerExpiringSoon(c, dest));
-        const targetCapacity = harvester.memory.other.haulingRequired;
+        let targetCapacity = harvester.memory.other.haulingRequired;
+        if (!targetCapacity) {
+            const srcInfo = _.find(ROOM_REMOTE_TARGETS[room.name], s => s.source === sourceId);
+            const power = harvester.getActiveBodyparts
+                ? harvester.getActiveBodyparts(WORK) * HARVEST_POWER : 0;
+            targetCapacity = remoteMining.estimateHaulingRequired(
+                room.name, dest, (srcInfo && srcInfo.score) || (harvester.memory.other.score) || 0, power);
+        }
         const onRoads = routeHasBuiltRoads(room.name, dest);
         const maxCarryPerHauler = room.level < 7
             ? room.level * 2
@@ -755,14 +764,20 @@ function handleRemoteHaulers(room) {
         const destIntel = INTEL[dest];
         const keeperYield = remoteMining.isKeeperYieldRoom(dest) || !!(destIntel && destIntel.sk);
         const maxHaulers = maxHaulersForSource(room, dest, keeperYield);
-        const minCarryPerHauler = room.level >= 7 ? (onRoads ? 12 : 8) : Math.max(2, room.level * 2);
+        const padBuilt = remoteSourcePadBuilt(sourceId);
+        const minCarryPerHauler = remoteHaulerMinCarry(room.level, onRoads, padBuilt);
         const count = Math.min(maxHaulers, Math.max(1,
             Math.ceil(targetCapacity / (maxCarryPerHauler * CARRY_CAPACITY))));
         const queuedHaulers = countQueuedHaulersForSource(room.name, sourceId);
-        if (assignedHaulers.length + queuedHaulers >= count) continue;
+        const assignedForCount = padBuilt
+            ? assignedHaulers.filter(c => haulerCarryCapacity(c) >= minCarryPerHauler * CARRY_CAPACITY * 0.75)
+            : assignedHaulers;
+        if (assignedForCount.length + queuedHaulers >= count) continue;
         const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + haulerCarryCapacity(creep), 0);
         const queuedCapacity = queuedHaulers * minCarryPerHauler * CARRY_CAPACITY;
         if (!targetCapacity || haulingCapacity + queuedCapacity >= targetCapacity) continue;
+        const srcObj = Game.getObjectById(sourceId);
+        const pickupPos = srcObj && srcObj.pos;
         const priority = PRIORITIES.remoteHauler;
         queueCreep(room, priority + assignedHaulers.length + queuedHaulers, {
             role: 'remoteHauler',
@@ -772,7 +787,9 @@ function handleRemoteHaulers(room) {
                 remoteRoom: dest,
                 harvestAmount: targetCapacity,
                 harvestRate: harvester.memory.other.harvestRate,
-                skRoom: guard || undefined
+                skRoom: guard || undefined,
+                pickupX: pickupPos && pickupPos.x,
+                pickupY: pickupPos && pickupPos.y,
             }
         });
     }

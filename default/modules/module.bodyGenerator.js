@@ -7,6 +7,7 @@ const {
     stableCreepInfoKey,
     maxBodyNonMoveParts,
     roomHasCriticalBuildSites,
+    remoteSourcePadBuilt,
     harvesterWorkCapUnlocked,
     roomInSpawnRecovery,
     recoverySpawnEnergy,
@@ -107,6 +108,9 @@ class ModuleBodyGenerator {
         else if (this.role === 'shuttle') {
             const other = this.creepInfo && this.creepInfo.other;
             if ((other && other.haulUrgent) || roomHasCriticalBuildSites(this.room)) bootstrapFlag = 'crit';
+        } else if (this.role === 'remoteHauler') {
+            const sid = this.creepInfo && this.creepInfo.other && this.creepInfo.other.source;
+            bootstrapFlag = remoteSourcePadBuilt(sid) ? 'pad' : 'drop';
         }
         return `${this.energyAmount}.${this.role}.${this.spareIncome}.${trendBucket}.${dutyBucket}.${rebootString}.${recoveryString}.${bootstrapFlag}.${stableCreepInfoKey(this.creepInfo)}`;
     }

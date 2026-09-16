@@ -1398,6 +1398,85 @@ function hasSourceContainerSite(source) {
     return sourceContainerSitesAdjacent(source).length > 0;
 }
 
+function sourceHasBuiltContainer(source, room) {
+    return !!resolveSourceContainer(source, room);
+}
+
+function roomHasUnbuiltSourcePad(room) {
+    if (!room || !room.sources) return false;
+    for (let i = 0; i < room.sources.length; i++) {
+        if (!sourceHasBuiltContainer(room.sources[i], room)) return true;
+    }
+    return false;
+}
+
+function sourceContainerSitesInRoom(room) {
+    if (!room || !room.sources) return [];
+    const out = [];
+    const seen = new Set();
+    for (let i = 0; i < room.sources.length; i++) {
+        const sites = sourceContainerSitesAdjacent(room.sources[i]);
+        for (let j = 0; j < sites.length; j++) {
+            if (seen.has(sites[j].id)) continue;
+            seen.add(sites[j].id);
+            out.push(sites[j]);
+        }
+    }
+    return out;
+}
+
+function containerCandidatePositions(source) {
+    const best = findBestContainerPos(source);
+    const spots = [];
+    const seen = new Set();
+    const add = (pos) => {
+        if (!pos) return;
+        const key = pos.x + 'x' + pos.y;
+        if (seen.has(key)) return;
+        seen.add(key);
+        spots.push(pos);
+    };
+    add(best);
+    if (!source || !source.pos) return spots;
+    for (let xOff = -1; xOff <= 1; xOff++) {
+        for (let yOff = -1; yOff <= 1; yOff++) {
+            if (!xOff && !yOff) continue;
+            add(new RoomPosition(source.pos.x + xOff, source.pos.y + yOff, source.pos.roomName));
+        }
+    }
+    return spots;
+}
+
+/** Place a source-container site if none exists. Harvester still harvests; builders build. */
+function ensureSourceContainerSite(source, room) {
+    if (!source) return null;
+    room = room || Game.rooms[source.pos.roomName];
+    const built = resolveSourceContainer(source, room);
+    if (built) return built;
+    const existing = resolveSourceContainerSite(source);
+    if (existing) return existing;
+    if (!room || !canPlaceConstructionSite(room)) return null;
+    if (!canPlaceStructureType(room, STRUCTURE_CONTAINER) && !freeRemoteContainerSlot(room)) return null;
+
+    const spots = containerCandidatePositions(source);
+    for (let i = 0; i < spots.length; i++) {
+        const buildPos = spots[i];
+        if (buildPos.checkForWall() || buildPos.checkForObstacleStructure()) continue;
+        const existingSite = buildPos.checkForConstructionSites();
+        if (existingSite) {
+            if (existingSite.structureType === STRUCTURE_CONTAINER) return existingSite;
+            if (existingSite.structureType === STRUCTURE_ROAD && i === 0) {
+                existingSite.remove();
+            }
+            continue;
+        }
+        if (tryCreateConstructionSite(buildPos, STRUCTURE_CONTAINER) === OK) {
+            return resolveSourceContainerSite(source);
+        }
+    }
+    return null;
+}
+
 function hasControllerContainerSite(room) {
     return controllerContainerSitesAdjacent(room).length > 0;
 }
@@ -1524,6 +1603,10 @@ module.exports = {
     resolveSourceContainerSite,
 
     hasSourceContainerSite,
+    sourceHasBuiltContainer,
+    roomHasUnbuiltSourcePad,
+    sourceContainerSitesInRoom,
+    ensureSourceContainerSite,
 
     sourceContainersAdjacent,
 

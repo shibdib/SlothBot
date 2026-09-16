@@ -9,6 +9,8 @@ const {
     maxBodyNonMoveParts,
     getHaulersBySource,
     countQueuedHaulersForSource,
+    remoteSourcePadBuilt,
+    remoteHaulerMinCarry,
 } = require('bodyHelpers');
 const {reservationTicksLeft} = require('remoteMining');
 
@@ -121,12 +123,12 @@ const builders = {
         const {haulerCarryCapacity} = require('spawnCounts');
         const currentHaulingCapacity = _.sum(otherAssignedHaulers, haulerCarryCapacity);
 
-        const work = gen.room.level >= 7 ? 1 : 0;
         const fullRouteHasRoads = routeHasBuiltRoads(gen.room.name, remoteRoomName);
-
-        const minCarryParts = gen.room.level >= 7
-            ? (fullRouteHasRoads ? 12 : 8)
-            : Math.max(2, gen.room.level * 2);
+        const padBuilt = remoteSourcePadBuilt(sourceId);
+        // Until the source pad exists, spawn a drop-scoop body. A 1-CARRY
+        // harvester used to drip the 5k site; haulers were full-size and late.
+        const work = (padBuilt && gen.room.level >= 7) ? 1 : 0;
+        const minCarryParts = remoteHaulerMinCarry(gen.room.level, fullRouteHasRoads, padBuilt);
         const queuedHaulers = countQueuedHaulersForSource(gen.room.name, sourceId);
         const queuedCapacity = queuedHaulers * minCarryParts * CARRY_CAPACITY;
         const harvestAmount = gen.creepInfo.other.harvestAmount || 0;
@@ -150,6 +152,7 @@ const builders = {
             ? Math.max(1, maxNonMove - (work || 0))
             : gen.room.level * 2;
         carry = Math.min(carry, maxCarry);
+        if (!padBuilt) carry = Math.min(carry, minCarryParts);
         carry = Math.max(minCarryParts, carry);
         return {work, carry, halfMove};
     },

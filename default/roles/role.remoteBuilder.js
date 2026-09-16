@@ -6,7 +6,7 @@
  */
 
 const profiler = require("tools.profiler");
-const {setRoadsBuiltFlag} = require('planUtils');
+const {setRoadsBuiltFlag, ensureSourceContainerSite, roomHasUnbuiltSourcePad} = require('planUtils');
 const {getCreepCount} = require('spawnCounts');
 const {skGuardRoom, getMiningRouteRooms} = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
@@ -70,12 +70,18 @@ class RoleRemoteBuilder {
             return;
         }
 
-        const colonyRoom = Game.rooms[this.creep.memory.colony];
+        const colony = this.creep.memory.colony;
+        const colonyRoom = Game.rooms[colony];
         const colonyLevel = (colonyRoom && colonyRoom.level) || 0;
-        // RCL7+: never strip sources. Owned RCL>=3: wait for logistics.
+        // RCL7+: never strip sources. Empty in a remote: refill at home instead
+        // of idling next to the pad we just stopped stealing from.
         if (colonyLevel >= 7
             || (this.creep.room.controller && this.creep.room.controller.my && this.creep.room.level >= 3)) {
             this.creep.memory.harvest = undefined;
+            if (colony && this.creep.room.name !== colony) {
+                this.travelTo(colony);
+                return;
+            }
             this.creep.idleFor(5);
             return;
         }
@@ -191,6 +197,10 @@ class RoleRemoteBuilder {
             return;
         }
 
+        // Source pads unlock haul. Place before roads so constructionWork
+        // can claim the site this tick.
+        this.ensureSourcePads(room);
+
         // Build/repair an assigned site without replanning or placing.
         if (activeSite) {
             this.creep.builderFunction();
@@ -213,12 +223,13 @@ class RoleRemoteBuilder {
         // Plan complete (no missing tiles / sites) — leave even if some roads need repair
         // so other remotes can get paved. Repair-only rooms are picked only when nothing
         // is missing empire-wide for this colony.
-        if (isRemoteRoadPlanComplete(room, colony, context)) {
+        if (isRemoteRoadPlanComplete(room, colony, context) && !roomHasUnbuiltSourcePad(room)) {
             this.markRoadsComplete(room);
             return;
         }
 
-        if (countRoadConstructionSites(room) > 0 || remoteRoomNeedsRoadWork(room, colony, context)) {
+        if (roomHasUnbuiltSourcePad(room)
+            || countRoadConstructionSites(room) > 0 || remoteRoomNeedsRoadWork(room, colony, context)) {
             this.creep.idleFor(2);
             return;
         }
@@ -245,6 +256,13 @@ class RoleRemoteBuilder {
             this.creep.memory.other.roadRoom = destination;
         }
         return destination;
+    }
+
+    ensureSourcePads(room) {
+        const sources = room.sources || [];
+        for (let i = 0; i < sources.length; i++) {
+            ensureSourceContainerSite(sources[i], room);
+        }
     }
 
     tryPlaceRoadSites(room, colony, context) {

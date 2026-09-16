@@ -308,6 +308,31 @@ function getHaulersBySource() {
     return _haulersBySource;
 }
 
+const PAD_HAULER_CARRY_ROADS = 6;
+const PAD_HAULER_CARRY_OFFROAD = 4;
+
+function remoteSourcePadBuilt(sourceId) {
+    if (!sourceId) return false;
+    const source = Game.getObjectById(sourceId);
+    if (!source) return false;
+    try {
+        return !!require('planUtils').resolveSourceContainer(source, source.room);
+    } catch (e) {
+        const id = source.memory && (source.memory.container || source.memory.containerID);
+        const obj = id && Game.getObjectById(id);
+        return !!(obj && obj.structureType === STRUCTURE_CONTAINER && obj.hits);
+    }
+}
+
+function remoteHaulerMinCarry(roomLevel, onRoads, padBuilt) {
+    const normal = roomLevel >= 7
+        ? (onRoads ? 12 : 8)
+        : Math.max(2, roomLevel * 2);
+    if (padBuilt) return normal;
+    const pad = onRoads ? PAD_HAULER_CARRY_ROADS : PAD_HAULER_CARRY_OFFROAD;
+    return Math.min(normal, pad);
+}
+
 function countQueuedHaulersForSource(roomName, sourceId) {
     const queue = CREEP_QUEUES[roomName];
     if (!queue) return 0;
@@ -392,6 +417,8 @@ module.exports = {
     roomHasStableWorkingSet,
     harvesterWorkCapUnlocked,
     routeHasBuiltRoads,
+    remoteSourcePadBuilt,
+    remoteHaulerMinCarry,
     getHaulersBySource,
     countQueuedHaulersForSource,
     creepBodyHas,

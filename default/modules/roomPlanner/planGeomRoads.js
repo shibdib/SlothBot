@@ -17,6 +17,7 @@ const {
     setRoadsBuiltFlag,
     getRoadsBuiltFlag,
     resolveSourceContainer,
+    roomHasUnbuiltSourcePad,
     getPosKey,
     isRoadSatisfied,
     isRoadPlaceable,
@@ -1659,7 +1660,11 @@ function getColonyRoadWorkRooms(colony) {
     if (cached && cached.remotesStamp === remotesStamp && cached.tick + COLONY_WORK_ROOMS_TTL > Game.time) {
         return cached.rooms.slice();
     }
-    const rooms = getColonyRoadRooms(colony).filter(entry => roomNeedsRoadWorkByName(entry.room, colony));
+    const rooms = getColonyRoadRooms(colony).filter((entry) => {
+        const vis = Game.rooms[entry.room];
+        if (vis && roomHasUnbuiltSourcePad(vis)) return true;
+        return roomNeedsRoadWorkByName(entry.room, colony);
+    });
     COLONY_WORK_ROOMS_CACHE[colony] = {tick: Game.time, remotesStamp, rooms};
     return rooms.slice();
 }
@@ -1689,8 +1694,10 @@ function countRemoteBuilderClaims(colony, excludeCreepName) {
 }
 
 function roomNeedsBuildWorkByName(roomName, colony) {
+    const vis = Game.rooms[roomName];
+    if (vis && roomHasUnbuiltSourcePad(vis)) return true;
     if (!roomNeedsRoadWorkByName(roomName, colony)) return false;
-    const room = Game.rooms[roomName];
+    const room = vis;
     if (!room) {
         const intel = INTEL[roomName];
         return !!(intel && !intel.roadsBuilt);
@@ -1722,6 +1729,9 @@ function pickRoadWorkRoom(colony, creepName) {
 
     const claims = countRemoteBuilderClaims(colony, creepName);
     pickList.sort((a, b) => {
+        const padA = roomHasUnbuiltSourcePad(Game.rooms[a.room]) ? 0 : 1;
+        const padB = roomHasUnbuiltSourcePad(Game.rooms[b.room]) ? 0 : 1;
+        if (padA !== padB) return padA - padB;
         const ca = claims[a.room] || 0;
         const cb = claims[b.room] || 0;
         if (ca !== cb) return ca - cb;
@@ -1749,7 +1759,7 @@ function remoteRoomNeedsRoadWork(room, colony, context = {}) {
     const cached = NEEDS_WORK_CACHE[cacheKey];
     if (cached && cached.tick + VERIFY_CACHE_TTL > Game.time) return cached.needsWork;
 
-    let needsWork = countRoadConstructionSites(room) > 0;
+    let needsWork = roomHasUnbuiltSourcePad(room) || countRoadConstructionSites(room) > 0;
     if (!needsWork) {
         for (const road of room.roads) {
             if (road.hits < road.hitsMax * 0.75) {

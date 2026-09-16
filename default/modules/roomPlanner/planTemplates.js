@@ -98,6 +98,7 @@ let bunkerTemplate = [
     },
 ]
 
+// Interior labs (0,0) and (0,1) have one stand tile each: (-1,-1) and (1,2).
 let labTemplate = [{"x": 0, "y": 0}, {"x": 0, "y": 1}, {"x": 1, "y": 0}, {"x": -1, "y": 0}, {"x": 0, "y": -1}, {
     "x": 1,
     "y": -1

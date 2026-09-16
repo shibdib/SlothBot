@@ -13,15 +13,9 @@ const {
     civilianShouldFlee
 } = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
-
-// Seed a hauler trip before spending WORK on the pad. Do not pick this pile up.
-const GROUND_SURPLUS = 200;
 const {
-    canPlaceConstructionSite,
-    tryCreateConstructionSite,
     findBestContainerPos,
-    canPlaceStructureType,
-    freeRemoteContainerSlot,
+    ensureSourceContainerSite,
 } = require('planUtils');
 
 class RoleRemoteHarvester {
@@ -309,11 +303,15 @@ class RoleRemoteHarvester {
             return false;
         }
 
-        if (!this.container.progressTotal) return false;
-        return this.buildContainerSite();
+        // Site is the road builder's job. Stay on the tile and harvest.
+        return false;
     }
 
     harvestThenBuildPad() {
+        if (!this.container) {
+            ensureSourceContainerSite(this.source, this.room);
+            this.refreshContainerTarget();
+        }
         const padPos = (this.container && this.container.pos) || findBestContainerPos(this.source);
         if (padPos) {
             if (!this.creep.pos.isEqualTo(padPos)) {
@@ -326,21 +324,6 @@ class RoleRemoteHarvester {
         }
 
         this.handleDroppedResources();
-        if (this.groundEnergyNear(this.creep.pos) >= GROUND_SURPLUS) {
-            this.creep.memory.padSurplus = true;
-        }
-
-        const full = !this.creep.store.getFreeCapacity(RESOURCE_ENERGY);
-        if (this.creep.memory.padSurplus && this.creep.store[RESOURCE_ENERGY]
-            && (full || this.creep.memory.buildingPad)) {
-            this.creep.memory.buildingPad = true;
-            if (!this.container) {
-                harvestDepositContainer(this.source, this.creep);
-                this.refreshContainerTarget();
-            }
-            if (this.buildContainerSite()) return;
-        }
-        this.creep.memory.buildingPad = undefined;
 
         const result = this.creep.harvest(this.source);
         if (result === OK) {
@@ -353,24 +336,6 @@ class RoleRemoteHarvester {
         } else if (result === ERR_NOT_ENOUGH_RESOURCES) {
             this.onSourceEmpty();
         }
-    }
-
-    buildContainerSite() {
-        if (!this.container || !this.container.progressTotal) return false;
-        if (!this.creep.memory.padSurplus) return false;
-        if (!this.creep.store[RESOURCE_ENERGY]) return false;
-        this.creep.build(this.container);
-        return true;
-    }
-
-    groundEnergyNear(pos, range = 1) {
-        if (!pos || !pos.findInRange) return 0;
-        const drops = pos.findInRange(FIND_DROPPED_RESOURCES, range);
-        let amt = 0;
-        for (let i = 0; i < drops.length; i++) {
-            if (drops[i].resourceType === RESOURCE_ENERGY) amt += drops[i].amount || 0;
-        }
-        return amt;
     }
 
     handleDroppedResources() {
@@ -418,67 +383,6 @@ function updateHaulingRequired(creep, sourceInfo, onlyIfChanged) {
     let roundTripBuffer = roadsBuilt ? 1.25 : 1.4;
     if (keeperYield) roundTripBuffer += 0.15;
     creep.memory.other.haulingRequired = actualRate * haulScore * 2 * roundTripBuffer;
-}
-
-function harvestDepositContainer(source, creep) {
-    const container = global.resolveSourceContainer(source, creep.room);
-    if (container) {
-        creep.memory.containerID = container.id;
-        delete creep.memory.containerSite;
-        return container.id;
-    }
-
-    const site = global.resolveSourceContainerSite(source);
-    if (site) {
-        creep.memory.containerSite = site.id;
-        delete creep.memory.containerID;
-        return site.id;
-    }
-
-    if (!canPlaceConstructionSite(creep.room)) return;
-    // Unowned/SK rooms cap at 5 containers. A stray pad or duplicate at another
-    // source makes every adjacent tile fail with -14 (ERR_RCL_NOT_ENOUGH).
-    if (!canPlaceStructureType(creep.room, STRUCTURE_CONTAINER)
-        && !freeRemoteContainerSlot(creep.room)) {
-        return;
-    }
-
-    const spots = containerCandidatePositions(source);
-    for (let i = 0; i < spots.length; i++) {
-        const buildPos = spots[i];
-        if (buildPos.checkForWall() || buildPos.checkForObstacleStructure()) continue;
-        const existing = buildPos.checkForConstructionSites();
-        if (existing) {
-            if (existing.structureType === STRUCTURE_CONTAINER) return;
-            // Source container outranks a road site on the harvest tile.
-            if (existing.structureType === STRUCTURE_ROAD && i === 0) {
-                existing.remove();
-            }
-            continue;
-        }
-        if (tryCreateConstructionSite(buildPos, STRUCTURE_CONTAINER) === OK) return;
-    }
-}
-
-function containerCandidatePositions(source) {
-    const best = findBestContainerPos(source);
-    const spots = [];
-    const seen = new Set();
-    const add = (pos) => {
-        if (!pos) return;
-        const key = pos.x + 'x' + pos.y;
-        if (seen.has(key)) return;
-        seen.add(key);
-        spots.push(pos);
-    };
-    add(best);
-    for (let xOff = -1; xOff <= 1; xOff++) {
-        for (let yOff = -1; yOff <= 1; yOff++) {
-            if (!xOff && !yOff) continue;
-            add(new RoomPosition(source.pos.x + xOff, source.pos.y + yOff, source.pos.roomName));
-        }
-    }
-    return spots;
 }
 
 profiler.registerClass(RoleRemoteHarvester, 'RemoteHarvester');

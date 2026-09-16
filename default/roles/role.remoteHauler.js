@@ -131,7 +131,11 @@ class RoleRemoteHauler {
             if (this.pickupColonyDroppedEnergy()) return true;
             const colony = this.memory.colony;
             const route = colony ? getMiningRouteRooms(colony, remoteRoom) : [];
-            return travelRouteHops(this.creep, remoteRoom, route, {range: 20});
+            const pickup = pickupPosFor(other, remoteRoom);
+            return travelRouteHops(this.creep, remoteRoom, route, {
+                range: pickup ? 1 : 23,
+                target: pickup,
+            });
         }
 
         if (this.memory.energyDestination && this.creep.withdrawResource()) {
@@ -140,13 +144,14 @@ class RoleRemoteHauler {
 
         const container = Game.getObjectById(this.memory.containerID);
         if (container && container.store) {
+            stampPickup(other, container.pos);
             return pickupFromAssignedContainer(this.creep, container);
         }
 
         const harvester = refreshAssignedHarvester(other);
         if (harvester) {
-            if (harvester.memory.containerID) this.memory.containerID = harvester.memory.containerID;
-            else if (harvester.memory.containerSite) this.memory.containerID = harvester.memory.containerSite;
+            const pad = Game.getObjectById(harvester.memory.containerID);
+            if (pad && pad.store) this.memory.containerID = pad.id;
             const fresh = Game.getObjectById(this.memory.containerID);
             if (fresh && fresh.store && fresh.store[RESOURCE_ENERGY]) {
                 this.memory.energyDestination = fresh.id;
@@ -276,7 +281,9 @@ function shouldDeliver(creep) {
     if (creep.isFull) return true;
     const remoteRoom = creep.memory.other && creep.memory.other.remoteRoom;
     if (!remoteRoom || creep.room.name !== remoteRoom) return true;
-    return ttlTooLowToWait(creep);
+    if (ttlTooLowToWait(creep)) return true;
+    // Source empty / no pile: don't sit a regen cycle on a half load.
+    return used >= CARRY_CAPACITY && !energyWaitingAtAssignment(creep);
 }
 
 function ttlTooLowToWait(creep) {
@@ -294,14 +301,15 @@ function ttlTooLowToWait(creep) {
 }
 
 function pickupFromAssignedContainer(creep, container) {
-    if (container.store[RESOURCE_ENERGY]) {
+    if (container.store && container.store[RESOURCE_ENERGY]) {
         creep.memory.energyDestination = container.id;
         return creep.withdrawResource();
     }
     if (creep.pos.getRangeTo(container) > 1) {
         return creep.shibMove(container, {range: 1});
     }
-    const pile = energyPileAt(container.pos, creep.room);
+    const pile = nearestEnergyPile(container.pos, creep.room, 1)
+        || energyPileAt(container.pos, creep.room);
     if (pile) {
         creep.memory.energyDestination = pile.id;
         return creep.withdrawResource();
@@ -323,6 +331,58 @@ function refreshAssignedHarvester(other) {
     harvester = getRemoteHarvesterForSource(other.source);
     other.harvester = harvester ? harvester.id : undefined;
     return harvester;
+}
+
+function stampPickup(other, pos) {
+    if (!other || !pos) return;
+    other.pickupX = pos.x;
+    other.pickupY = pos.y;
+}
+
+function pickupPosFor(other, remoteRoom) {
+    if (!other || !remoteRoom) return undefined;
+    if (other.pickupX != null && other.pickupY != null) {
+        return new RoomPosition(other.pickupX, other.pickupY, remoteRoom);
+    }
+    const src = other.source && Game.getObjectById(other.source);
+    if (src && src.pos && src.pos.roomName === remoteRoom) return src.pos;
+    return undefined;
+}
+
+function energyWaitingAtAssignment(creep) {
+    const other = creep.memory.other || {};
+    const container = Game.getObjectById(creep.memory.containerID);
+    if (container && container.store && container.store[RESOURCE_ENERGY] > 0) return true;
+    if (container && nearestEnergyPile(container.pos, creep.room, 1)) return true;
+    const harvester = Game.getObjectById(other.harvester);
+    if (harvester && harvester.store && harvester.store[RESOURCE_ENERGY] > 0) return true;
+    const source = other.source && Game.getObjectById(other.source);
+    if (source && source.energy > 0 && harvester) return true;
+    const piles = creep.room.droppedEnergy;
+    if (piles) {
+        for (let i = 0; i < piles.length; i++) {
+            if (piles[i].amount >= 50 && creep.pos.getRangeTo(piles[i]) <= 3) return true;
+        }
+    }
+    return false;
+}
+
+function nearestEnergyPile(pos, room, range) {
+    if (!pos || !room) return null;
+    const piles = room.droppedEnergy;
+    if (!piles || !piles.length) return null;
+    let best = null;
+    let bestR = range + 1;
+    for (let i = 0; i < piles.length; i++) {
+        const r = piles[i];
+        if (!(r.amount > 0)) continue;
+        const d = pos.getRangeTo(r);
+        if (d < bestR) {
+            best = r;
+            bestR = d;
+        }
+    }
+    return best;
 }
 
 function energyPileAt(pos, room) {

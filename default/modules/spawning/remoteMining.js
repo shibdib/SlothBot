@@ -185,6 +185,18 @@ function maxHaulerCarryParts(roomLevel, onRoads) {
     return Math.max(1, maxNonMove - 1);
 }
 
+function estimateHaulingRequired(colonyName, destName, score, harvestPower) {
+    if (!colonyName || !destName) return 0;
+    const haulScore = effectiveHaulScore(colonyName, destName, score);
+    const colonyRoom = Game.rooms[colonyName];
+    const rateCap = sourceHarvestRate(colonyRoom, {room: destName, score: score});
+    const actualRate = harvestPower > 0 ? Math.min(harvestPower, rateCap) : rateCap;
+    const roads = miningRouteHasRoads(colonyName, destName);
+    let buffer = roads ? 1.25 : 1.4;
+    if (isKeeperYieldRoom(destName)) buffer += 0.15;
+    return actualRate * haulScore * 2 * buffer;
+}
+
 function sourceHaulersNeeded(colonyRoom, sourceEntry) {
     const colonyName = colonyRoom && colonyRoom.name;
     const remoteName = sourceEntry && sourceEntry.room;
@@ -1532,6 +1544,7 @@ module.exports = {
     sourcePickScore,
     colonyNeedsRemoteIncome,
     reservationTicksLeft,
+    estimateHaulingRequired,
     sourceHaulersNeeded,
     isRemoteSourceWorthMining,
     remoteSourceStaffCap,
