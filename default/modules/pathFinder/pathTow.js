@@ -342,6 +342,16 @@ function assignTowsForRoom(room) {
     drawTowLinksForRoom(room);
 }
 
+function boosterWaitingOffLab(trailer) {
+    const boosts = trailer && trailer.memory && trailer.memory.boosts;
+    if (!boosts || !boosts.labs) return false;
+    for (const key in boosts.labs) {
+        const lab = Game.getObjectById(boosts.labs[key]);
+        if (lab && trailer.pos.getRangeTo(lab) > 1) return true;
+    }
+    return false;
+}
+
 function runTowTruck(truck) {
     if (!truck.memory.trailer) return false;
     const trailer = Game.getObjectById(truck.memory.trailer);
@@ -364,6 +374,12 @@ function runTowTruck(truck) {
     if (truck.store.getUsedCapacity()) {
         releaseTruckRef(truck);
         if (trailer.memory.towCreep === truck.id) trailer.memory.towCreep = undefined;
+        return false;
+    }
+
+    // labTech filling the booster's lab beats towing them back onto the pad.
+    if (truck.memory.role === 'labTech' && boosterWaitingOffLab(trailer)) {
+        endTow(truck, trailer);
         return false;
     }
 

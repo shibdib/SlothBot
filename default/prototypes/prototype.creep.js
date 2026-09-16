@@ -22,7 +22,13 @@
 'use strict';
 
 const {runTowTruck} = require('pathTow');
-const {clearShibMove, getShibMove, pathLeavesForSameRoomTarget, pathIsSameRoomDetour} = require('pathUtils');
+const {
+    clearShibMove,
+    getShibMove,
+    pathLeavesForSameRoomTarget,
+    pathIsSameRoomDetour,
+    clearTrailerTowState
+} = require('pathUtils');
 const {stepInlandOffExit, isSquadCreep} = require('pathFormation');
 const {roomCanBurnSurplus, ENERGY_ACCRUAL_FLOOR, noteNukerEnergyDeposit, roomHasPositiveFlow} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
@@ -1650,6 +1656,36 @@ function labReadyForBoost(lab, boostNeeded, amountNeeded) {
     return lab.mineralAmount >= amountNeeded;
 }
 
+// 0-MOVE on the lab pad blocks labTech. Park at Chebyshev 2 until the lab is
+// ready — towing to a spawn and back is the fill/tow bounce.
+function stepOffBoostLab(creep, lab) {
+    const room = creep.room;
+    const terrain = room.getTerrain();
+    let best = null;
+    let bestDist = Infinity;
+    for (let dx = -2; dx <= 2; dx++) {
+        for (let dy = -2; dy <= 2; dy++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== 2) continue;
+            const x = lab.pos.x + dx;
+            const y = lab.pos.y + dy;
+            if (x < 1 || x > 48 || y < 1 || y > 48) continue;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            const pos = new RoomPosition(x, y, room.name);
+            if (pos.checkForObstacleStructure && pos.checkForObstacleStructure()) continue;
+            const occ = pos.checkForCreep && pos.checkForCreep();
+            if (occ && occ.id !== creep.id) continue;
+            const d = creep.pos.getRangeTo(pos);
+            if (d < bestDist) {
+                bestDist = d;
+                best = pos;
+            }
+        }
+    }
+    creep.say(ICONS.boost);
+    if (best) return creep.shibMove(best, {range: 0, forceSolo: true});
+    return true;
+}
+
 function getEntryLab(creep, entryKey, boostNeeded) {
     const labs = creep.memory.boosts.labs;
     if (!labs) return null;
@@ -1780,21 +1816,12 @@ function applyBoost(creep, entryKey) {
         const waitFor = creep.memory.misc && creep.memory.misc.waitFor;
         if (!(waitFor > 1) && !creep.memory.hasBoosted && creep.hasActiveBodyparts(MOVE) &&
             creep.handleRenewing(BOOST_RENEW_WAITING)) return true;
-        // 0-MOVE on a lab access tile (often the only one) blocks labTech fill.
+        // 0-MOVE on the access pad blocks fill. Step to range 2 and sit until
+        // the lab is ready — pathing back (or to a spawn) re-blocks labTech.
         if (!creep.hasActiveBodyparts(MOVE)) {
-            if (creep.pos.isNearTo(lab)) {
-                const spawns = creep.room.spawns;
-                for (let i = 0; i < (spawns ? spawns.length : 0); i++) {
-                    const spawn = spawns[i];
-                    if (spawn && !spawn.pos.isNearTo(lab)) {
-                        creep.say(ICONS.boost);
-                        return creep.shibMove(spawn, {range: 1, forceSolo: true});
-                    }
-                }
-                return true;
-            }
-            creep.say(ICONS.boost);
-            return creep.shibMove(lab, {forceSolo: true});
+            if (creep.pos.isNearTo(lab)) return stepOffBoostLab(creep, lab);
+            if (creep.memory.towDestination) clearTrailerTowState(creep);
+            return true;
         }
         if (!creep.pos.isNearTo(lab)) {
             creep.say(ICONS.boost);
