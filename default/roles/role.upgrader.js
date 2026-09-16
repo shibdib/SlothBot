@@ -6,6 +6,51 @@ const profiler = require("tools.profiler");
 const {planUpgraderNeed} = require('bodyEconomic');
 const {liveControllerLink, roomExpectsUpgradePad} = require('bodyHelpers');
 
+const RETIRE_INTERVAL = 10;
+const retireCache = {};
+const retireBuiltAt = {};
+
+function getUpgraderRetireState(room) {
+    const cached = retireCache[room.name];
+    const builtAt = retireBuiltAt[room.name] || 0;
+    if (cached && (builtAt === Game.time || builtAt + RETIRE_INTERVAL > Game.time)) return cached;
+
+    const energyInfo = room.energyInfo;
+    const plan = planUpgraderNeed(room, {
+        spareIncome: (energyInfo && energyInfo.spareIncome) || 0,
+        trend: (energyInfo && energyInfo.trend) || 0,
+    });
+    const creeps = room.myCreeps || [];
+    const pack = [];
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c || !c.memory || c.memory.role !== 'upgrader' || c.memory.recycling) continue;
+        if (c.spawning || (c.ticksToLive || 1500) < 200) continue;
+        pack.push(c);
+    }
+    const cull = {};
+    if (pack.length > plan.count) {
+        pack.sort((a, b) => {
+            const dw = b.getActiveBodyparts(WORK) - a.getActiveBodyparts(WORK);
+            if (dw) return dw;
+            return (b.ticksToLive || 0) - (a.ticksToLive || 0);
+        });
+        for (let i = plan.count; i < pack.length; i++) cull[pack[i].id] = true;
+    }
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    const stored = (room.rawEnergy || 0) > 1000;
+    const cap = room.energyCapacityAvailable || 0;
+    const avail = room.energyAvailable || 0;
+    const state = {
+        cull,
+        cullReboot: rcl < 8 && plan.maxWork >= 8 && ((room.energyState || 0) >= 1 || stored)
+            && cap && avail >= cap * 0.85,
+    };
+    retireCache[room.name] = state;
+    retireBuiltAt[room.name] = Game.time;
+    return state;
+}
+
 class RoleUpgrader {
     constructor(creep) {
         this.creep = creep;
@@ -48,41 +93,10 @@ class RoleUpgrader {
     shouldRetire() {
         if (this.creep.spawning) return false;
         if ((this.creep.ticksToLive || 1500) < 200) return false;
-        const energyInfo = this.room.energyInfo;
-        const plan = planUpgraderNeed(this.room, {
-            spareIncome: (energyInfo && energyInfo.spareIncome) || 0,
-            trend: (energyInfo && energyInfo.trend) || 0,
-        });
-        const creeps = this.room.myCreeps || [];
-        const pack = [];
-        for (let i = 0; i < creeps.length; i++) {
-            const c = creeps[i];
-            if (!c || !c.memory || c.memory.role !== 'upgrader' || c.memory.recycling) continue;
-            // Spawn queues a replacement during lead time. Dying/spawning
-            // bodies are overlap, not surplus — counting them culls the new one.
-            if (c.spawning || (c.ticksToLive || 1500) < 200) continue;
-            pack.push(c);
-        }
-        if (pack.length > plan.count) {
-            pack.sort((a, b) => {
-                const dw = b.getActiveBodyparts(WORK) - a.getActiveBodyparts(WORK);
-                if (dw) return dw;
-                return (b.ticksToLive || 0) - (a.ticksToLive || 0);
-            });
-            const keepIds = {};
-            for (let i = 0; i < plan.count; i++) keepIds[pack[i].id] = true;
-            if (!keepIds[this.creep.id]) return true;
-        }
+        const state = getUpgraderRetireState(this.room);
+        if (state.cull[this.creep.id]) return true;
         // Reboot leftovers (2–3W) only. Flow-scaled bodies must not suicide.
-        const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
-        const myWork = this.creep.getActiveBodyparts(WORK);
-        const stored = (this.room.rawEnergy || 0) > 1000;
-        if (rcl < 8 && plan.maxWork >= 8 && myWork <= 4 && ((this.room.energyState || 0) >= 1 || stored)) {
-            const cap = this.room.energyCapacityAvailable || 0;
-            const avail = this.room.energyAvailable || 0;
-            if (cap && avail >= cap * 0.85) return true;
-        }
-        return false;
+        return !!(state.cullReboot && this.creep.getActiveBodyparts(WORK) <= 4);
     }
 
     retireForPadRebuild() {

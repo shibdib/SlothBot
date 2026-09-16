@@ -21,7 +21,8 @@ class RoleHauler {
 
     housekeeping() {
         this.creep.say(ICONS.haul, true);
-        if (this.creep.room.energyAvailable < this.creep.room.energyCapacityAvailable) {
+        if (this.creep.store[RESOURCE_ENERGY]
+            && this.creep.room.energyAvailable < this.creep.room.energyCapacityAvailable) {
             this.creep.opportunisticFill();
         }
     }

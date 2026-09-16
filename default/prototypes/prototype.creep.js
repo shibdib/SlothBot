@@ -490,30 +490,43 @@ Creep.prototype.opportunisticRepair = function () {
     }
 };
 
+let hungryFillTick = -1;
+const hungryFillCache = {};
+
+function hungryFillIndex(room) {
+    if (!room) return null;
+    if (hungryFillTick !== Game.time) {
+        hungryFillTick = Game.time;
+        for (const key in hungryFillCache) delete hungryFillCache[key];
+    }
+    if (hungryFillCache[room.name] !== undefined) return hungryFillCache[room.name];
+    const map = {};
+    let n = 0;
+    const add = (s) => {
+        if (!s || !s.my || !s.store || s.store.getFreeCapacity(RESOURCE_ENERGY) <= 0) return;
+        map[`${s.pos.x},${s.pos.y}`] = s;
+        n++;
+    };
+    const spawns = room.spawns || [];
+    for (let i = 0; i < spawns.length; i++) add(spawns[i]);
+    const extensions = room.extensions || [];
+    for (let i = 0; i < extensions.length; i++) add(extensions[i]);
+    const index = n ? map : null;
+    hungryFillCache[room.name] = index;
+    return index;
+}
+
 Creep.prototype.opportunisticFill = function () {
     if (!this.store[RESOURCE_ENERGY] || !this.room.level) return false;
-    let nearbyItems;
-    try {
-        nearbyItems = this.room.lookAtArea(this.pos.y - 1, this.pos.x - 1, this.pos.y + 1, this.pos.x + 1, true);
-    } catch (e) {
-        return false;
-    }
-    if (!nearbyItems || !nearbyItems.length) return false;
-
-    try {
-        for (let i = 0; i < nearbyItems.length; i++) {
-            const item = nearbyItems[i];
-            if (item.type === LOOK_STRUCTURES) {
-                const s = item.structure;
-                if (!s || !s.store) continue;
-                if (s.structureType !== STRUCTURE_EXTENSION && s.structureType !== STRUCTURE_SPAWN) continue;
-                if (s.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-                    return this.transfer(s, RESOURCE_ENERGY) === OK;
-                }
-            }
+    const index = hungryFillIndex(this.room);
+    if (!index) return false;
+    const x = this.pos.x;
+    const y = this.pos.y;
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            const s = index[`${x + dx},${y + dy}`];
+            if (s) return this.transfer(s, RESOURCE_ENERGY) === OK;
         }
-    } catch (e) {
-        return false;
     }
     return false;
 };

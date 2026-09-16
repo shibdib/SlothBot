@@ -41,9 +41,7 @@ class RoleDrone {
         const usedCapacity = this.creep.store.getUsedCapacity();
         if (usedCapacity === 0) {
             delete this.creep.memory.working;
-            delete this.creep.memory.currentTarget;
-            delete this.creep.memory.task;
-            delete this.creep.memory.targetWallHits;
+            // Keep task / constructionSite / currentTarget across refills.
         } else if (this.creep.isFull) {
             delete this.creep.memory.energyDestination;
             delete this.creep.memory.source;
@@ -85,15 +83,15 @@ class RoleDrone {
     }
 
     jobManager() {
-        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
+        const flags = droneRoomFlags(this.room);
+        const energy = this.creep.store.getUsedCapacity(RESOURCE_ENERGY) || 0;
 
-        if (controllerDowngradeUrgent(this.room) && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+        if (flags.downgradeUrgent && energy > 0) {
             if (this.creep.memory.task && this.creep.memory.task !== 'upgrade') clearDroneTaskForUpgrade(this.creep);
             if (this.upgrading(true)) return;
         }
 
-        if ((roomHasCriticalBuildSites(this.room) || roomMissingUpgradePad(this.room))
-            && !controllerDowngradeUrgent(this.room)) {
+        if (flags.criticalBuild && !flags.downgradeUrgent) {
             if (this.creep.memory.task === 'upgrade') {
                 delete this.creep.memory.task;
             }
@@ -108,15 +106,18 @@ class RoleDrone {
             }
         }
 
-        if (shouldInterruptForSpawnFill(this.creep, this.room)) {
-            delete this.creep.memory.task;
-            delete this.creep.memory.constructionSite;
-            delete this.creep.memory.sitePos;
-            delete this.creep.memory.currentTarget;
-            delete this.creep.memory.targetWallHits;
+        if (!flags.hasHauler && energy > 0 && flags.spawnNeedsFill) {
+            const task = this.creep.memory.task;
+            if (task === 'build' || task === 'repair' || task === 'upgrade' || task === 'waller') {
+                delete this.creep.memory.task;
+                delete this.creep.memory.constructionSite;
+                delete this.creep.memory.sitePos;
+                delete this.creep.memory.currentTarget;
+                delete this.creep.memory.targetWallHits;
+            }
         }
 
-        if (isRebuildBootstrap(this.creep, this.room) && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+        if (isRebuildBootstrap(this.creep, this.room) && energy > 0) {
             const hasSpawn = this.room.spawns && this.room.spawns.length;
             const spawnSite = roomHasSpawnSite(this.room);
             if (!hasSpawn && !spawnSite && this.room.controller.level < 2) {
@@ -138,14 +139,12 @@ class RoleDrone {
         // Fill spawn/extensions before sites until a live shuttle or hauler exists.
         if (this.hauling()) return;
 
-        const hasBuilderWork = this.room.constructionSites.some(s =>
-            s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART);
-        if (hasBuilderWork && this.creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0 && this.building()) return;
+        if (flags.hasBuilderWork && energy > 0 && this.building()) return;
 
-        if ((threatLevel || this.creep.memory.currentTarget) && (!this.room.controller || !this.room.controller.safeMode) && this.walling()) return;
+        if ((flags.threatLevel || this.creep.memory.currentTarget) && (!this.room.controller || !this.room.controller.safeMode) && this.walling()) return;
         if (this.building()) return;
         if (this.upgrading()) return;
-        if ((shouldLeftoverUpgrade(this.room) || this.creep.memory.destination) && this.upgrading(true)) return;
+        if ((flags.leftoverUpgrade || this.creep.memory.destination) && this.upgrading(true)) return;
         this.creep.memory.task = undefined;
         this.creep.idleFor(5);
     }
@@ -249,8 +248,6 @@ class RoleDrone {
         if (!this.creep.memory.other) this.creep.memory.other = {};
         this.creep.memory.other.stationary = undefined;
         this.creep.memory.working = undefined;
-        this.creep.memory.constructionSite = undefined;
-        this.creep.memory.task = undefined;
 
         // Always re-validate via locateEnergy — a cached id can point at an emptied store.
         if (this.creep.locateEnergy()) {
@@ -453,6 +450,37 @@ class RoleDrone {
 
 profiler.registerClass(RoleDrone, 'Drone');
 module.exports = RoleDrone;
+
+let droneFlagsTick = -1;
+const droneFlagsCache = {};
+
+function droneRoomFlags(room) {
+    if (droneFlagsTick !== Game.time) {
+        droneFlagsTick = Game.time;
+        for (const key in droneFlagsCache) delete droneFlagsCache[key];
+    }
+    if (droneFlagsCache[room.name]) return droneFlagsCache[room.name];
+    let hasBuilderWork = false;
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        const t = sites[i].structureType;
+        if (t !== STRUCTURE_WALL && t !== STRUCTURE_RAMPART) {
+            hasBuilderWork = true;
+            break;
+        }
+    }
+    const flags = {
+        downgradeUrgent: controllerDowngradeUrgent(room),
+        criticalBuild: roomHasCriticalBuildSites(room) || roomMissingUpgradePad(room),
+        hasHauler: hasLiveHauler(room),
+        spawnNeedsFill: spawnEnergyNeedsFill(room),
+        threatLevel: (INTEL[room.name] && INTEL[room.name].threatLevel) || 0,
+        leftoverUpgrade: shouldLeftoverUpgrade(room),
+        hasBuilderWork,
+    };
+    droneFlagsCache[room.name] = flags;
+    return flags;
+}
 
 function isRebuildBootstrap(creep, room) {
     if (!room || !room.controller || !room.controller.my) return false;
