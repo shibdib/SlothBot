@@ -390,9 +390,9 @@ class RoleSiegeDuo {
             return true;
         }
 
-        // Intel picked a staging neighbor. Don't hop dest from a different face.
-        if (staging && staging !== dest && creep.room.name !== staging
-            && !exitDirectionTo(creep.room.name, dest)) {
+        // Intel picked a staging neighbor. Walk around dest even from the
+        // closest (usually hottest) face.
+        if (staging && staging !== dest && creep.room.name !== staging) {
             creep.shibMove(new RoomPosition(25, 25, staging), {range: 22});
             return true;
         }

@@ -3,7 +3,8 @@
  *
  * Per-room rolling ring buffers (WINDOW ticks) of:
  *   - income  (EVENT_HARVEST on a source)
- *   - expense (EVENT_UPGRADE_CONTROLLER + EVENT_BUILD + EVENT_REPAIR + tower EVENT_ATTACK)
+ *   - expense (upgrade/build/repair/tower events + ENERGY_EXPENSE bumps from the
+ *     previous tick: terminal, renewal, nuke, factory, power spawn, boost)
  *   - upgrade (EVENT_UPGRADE_CONTROLLER only — used for upgrader duty-cycle feedback)
  *
  * Per-colony ring buffer of summed (home + remotes) spareIncome per tick, so trend
@@ -18,6 +19,18 @@ const profiler = require("tools.profiler");
 const WINDOW = 50;
 const TRACKER = {};
 const COLONY = {};
+const EXTRA_KINDS = ['terminal', 'renewal', 'nuke', 'factory', 'power', 'boost'];
+
+function extraExpenseFor(roomName) {
+    const bags = global.ENERGY_EXPENSE;
+    if (!bags || !roomName) return 0;
+    let n = 0;
+    for (let i = 0; i < EXTRA_KINDS.length; i++) {
+        const bag = bags[EXTRA_KINDS[i]];
+        if (bag) n += bag[roomName] || 0;
+    }
+    return isFinite(n) ? n : 0;
+}
 
 function getOrInit(roomName) {
     let s = TRACKER[roomName];
@@ -72,9 +85,6 @@ function tickRoom(room) {
         const linkIds = new Set();
         const links = room.links;
         if (links) for (const l of links) linkIds.add(l.id);
-        const powerSpawnIds = new Set();
-        if (room.powerSpawn) powerSpawnIds.add(room.powerSpawn.id);
-
         for (let i = 0; i < events.length; i++) {
             const e = events[i];
             const d = e.data;
@@ -103,9 +113,6 @@ function tickRoom(room) {
                 case EVENT_HEAL:
                     if (towerIds.has(e.objectId)) exp += TOWER_ENERGY_COST;
                     break;
-                case EVENT_POWER:
-                    if (powerSpawnIds.has(e.objectId)) exp += (d.power || 0) * POWER_SPAWN_ENERGY_RATIO;
-                    break;
                 case EVENT_TRANSFER:
                     // Link → link transfers lose LINK_LOSS_RATIO of the amount. Only count when
                     // both ends are links — creep→link or link→creep transfers are lossless.
@@ -120,9 +127,9 @@ function tickRoom(room) {
 
     // Snapshot theoretical upgrader WORK at this tick. Only meaningful in owned rooms;
     // remotes never have upgraders so we skip the iteration there.
-    // Note: additional sinks like terminal exports, renewals, nuke payloads, and factory energy components
-    // are accounted as manual expenses in stateManager (snapshotted from previous tick activity) since
-    // they are not (fully) reflected in the room event log.
+    // Terminal/renewal/nuke/factory/power/boost bumps from last tick (ENERGY_EXPENSE
+    // has not been rolled yet) sit on the same sample as last tick's event log.
+    exp += extraExpenseFor(room.name);
     let theoryUpg = 0;
     if (room.controller && room.controller.my) {
         const creeps = room.myCreeps;

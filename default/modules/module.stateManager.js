@@ -6,6 +6,7 @@ const profiler = require("tools.profiler");
 const energyTracker = require("module.energyTracker");
 const {isLiveCombatReady, isLiveAuxReady, isRoomStruggling} = require('hcReadiness');
 const {energyTarget, getColonyRole} = require('module.colonyProfile');
+const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
 const LAST_UPDATE = {};
 const ENERGY_TRACKER = {};
 
@@ -145,18 +146,16 @@ class StateManager {
         const maintenanceExpense = Math.ceil(maintenanceWork);
         const spawnExpense = Math.ceil(economicBodyCost / CREEP_LIFE_TIME);
         const militarySpawnExpense = Math.ceil(militaryBodyCost / CREEP_LIFE_TIME);
-        // Add previously untracked sinks:
-        // - terminal export (sends for balancing + tx fees for deals/sells/buys)
-        // - renewal energy (spawn.renewCreep to extend economy creep life)
-        // These are real ongoing expenses not fully in event log.
+        // Terminal/renewal/nuke/factory/power/boost are already in snap.expense
+        // (folded into the 50-tick ring). Last-tick bags stay on the diag.
         const termExp = global.prevTickTerminalEnergyExpense ? (global.prevTickTerminalEnergyExpense[room.name] || 0) : 0;
         const renewalExp = global.prevTickRenewalEnergyExpense ? (global.prevTickRenewalEnergyExpense[room.name] || 0) : 0;
         const nukeExp = global.prevTickNukeEnergyExpense ? (global.prevTickNukeEnergyExpense[room.name] || 0) : 0;
         const factoryExp = global.prevTickFactoryEnergyExpense ? (global.prevTickFactoryEnergyExpense[room.name] || 0) : 0;
-        const expense = Math.round(snap.expense) + spawnExpense + termExp + renewalExp + nukeExp + factoryExp;
+        const expense = Math.round(snap.expense) + spawnExpense + militarySpawnExpense;
         const spareIncome = income - expense;
         const flowSpare = spareIncome + militarySpawnExpense;
-        const flowStressed = flowSpare < 0 || trend < -2;
+        const flowStressed = spareIncome < ENERGY_ACCRUAL_FLOOR || trend < -2;
 
         // Upgrader duty cycle = avg actual upgrade energy / avg theoretical WORK, both over
         // the same 50-tick window so a recent body resize doesn't skew the ratio. < 1 means
@@ -168,6 +167,7 @@ class StateManager {
 
         room.energyInfo = {
             income, expense, spareIncome, flowSpare, trend, upgraderDuty, flowStressed, militarySpawnExpense,
+            upgrade: Math.round(roomSnap.upgrade),
         };
 
         room.energyDiag = {

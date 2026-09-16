@@ -14,6 +14,7 @@ const {
     liveControllerContainer,
 } = require('bodyHelpers');
 const {getRegenSourceOperatorForRoom} = require('powerSpec');
+const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
 
 function droneHasBuildWork(room) {
     if (!room) return false;
@@ -73,7 +74,7 @@ function buildRoadDroneWaller(gen) {
             const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.3, 15);
             work *= scale;
             carry *= scale;
-        } else if (leanColony && (gen.room.energyState < 2 || gen.trend < 0 || gen.spareIncome < 0)) {
+        } else if (leanColony && (gen.room.energyState < 2 || gen.trend < 0 || gen.spareIncome < ENERGY_ACCRUAL_FLOOR)) {
             const scale = gen.flowScale(0.5, 15);
             work *= scale;
             carry *= scale;
@@ -120,8 +121,9 @@ function planUpgraderNeed(room, flow = {}) {
     const existingWork = (room.energyDiag && room.energyDiag.upgradeExpense) || 0;
 
     let count = 1;
-    if (effectiveSpare > 0) {
-        count = Math.max(1, Math.ceil((existingWork + effectiveSpare) / Math.max(1, maxWork)));
+    const upgradeBudget = effectiveSpare - ENERGY_ACCRUAL_FLOOR;
+    if (upgradeBudget > 0) {
+        count = Math.max(1, Math.ceil((existingWork + upgradeBudget) / Math.max(1, maxWork)));
     }
 
     const stand = container && container.pos && container.pos.countOpenTerrainAround
@@ -181,6 +183,13 @@ function buildUpgrader(gen) {
             if (!gen.room.energyState && !stored) work *= 0.25;
             work = Math.min(affordableWork, work);
         }
+
+        // spareIncome is already net of upgrade. Keep a floor so RCL7 dump
+        // does not zero out storage the moment energyState hits 3.
+        const ei = gen.room.energyInfo;
+        const currentUpgrade = (ei && ei.upgrade) || (gen.room.energyDiag && gen.room.energyDiag.upgradeExpense) || 0;
+        const upgradeBudget = Math.max(1, (gen.spareIncome || 0) + currentUpgrade - ENERGY_ACCRUAL_FLOOR);
+        work = Math.min(work, upgradeBudget);
 
         work = Math.max(Math.min(work, 49), 1);
         move = 0;

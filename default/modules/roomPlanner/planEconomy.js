@@ -1968,11 +1968,21 @@ function isSourceOrControllerPad(room, pos) {
     return !!(room.controller && pos.isNearTo(room.controller));
 }
 
-/** Remove a depleted-thorium extractor, leftover site, and its pad container. */
-function vacateThoriumExtractor(room, thoriumPos) {
-    if (!thoriumPos || isPlannerShadow(room)) return false;
+function rememberedThoriumPos(room) {
+    const mem = room.memory && room.memory.thoriumPos;
+    if (!mem || mem.x == null || mem.y == null) return null;
+    return new RoomPosition(mem.x, mem.y, mem.roomName || room.name);
+}
+
+function posKey(pos) {
+    return pos ? (pos.x + 'x' + pos.y) : '';
+}
+
+/** Remove an extractor (and leftover site) plus its pad container at `pos`. */
+function vacateExtractorPad(room, pos) {
+    if (!pos || isPlannerShadow(room)) return false;
     let changed = false;
-    const site = extractorSiteOn(thoriumPos);
+    const site = extractorSiteOn(pos);
     if (site) {
         try {
             if (site.remove() === OK) {
@@ -1982,13 +1992,13 @@ function vacateThoriumExtractor(room, thoriumPos) {
         } catch (e) { /* ignore */
         }
     }
-    const extractor = extractorOn(thoriumPos);
+    const extractor = extractorOn(pos);
     if (extractor) {
         try {
             if (extractor.destroy() === OK) {
                 changed = true;
                 if (typeof log !== 'undefined' && log.a) {
-                    log.a(`${room.name} thorium depleted, moving extractor to mineral`, 'PLANNER');
+                    log.a(`${room.name} removing extractor at ${pos.x},${pos.y} (thorium depleted)`, 'PLANNER');
                 }
             }
         } catch (e) { /* ignore */
@@ -1997,7 +2007,7 @@ function vacateThoriumExtractor(room, thoriumPos) {
     const containers = room.containers || [];
     for (let i = 0; i < containers.length; i++) {
         const c = containers[i];
-        if (!c || !c.pos || c.pos.getRangeTo(thoriumPos) !== 1) continue;
+        if (!c || !c.pos || c.pos.getRangeTo(pos) !== 1) continue;
         if (isSourceOrControllerPad(room, c.pos)) continue;
         try {
             if (c.destroy() === OK) {
@@ -2011,7 +2021,7 @@ function vacateThoriumExtractor(room, thoriumPos) {
     for (let i = 0; i < sites.length; i++) {
         const s = sites[i];
         if (!s || s.structureType !== STRUCTURE_CONTAINER) continue;
-        if (s.pos.getRangeTo(thoriumPos) !== 1) continue;
+        if (s.pos.getRangeTo(pos) !== 1) continue;
         if (isSourceOrControllerPad(room, s.pos)) continue;
         try {
             if (s.remove() === OK) {
@@ -2022,6 +2032,58 @@ function vacateThoriumExtractor(room, thoriumPos) {
         }
     }
     if (changed && room._invalidateStructureCaches) room._invalidateStructureCaches();
+    return changed;
+}
+
+function thoriumDepositGone(thorium) {
+    return !thorium || !(thorium.mineralAmount > 0);
+}
+
+/** Extractor / pad leftover after Thorium vanishes (FIND_MINERALS may drop it). */
+function vacateLeftoverThoriumPads(room, mineral) {
+    const keep = mineral && mineral.pos;
+    const seen = {};
+    const queue = [];
+    const add = (pos) => {
+        if (!pos) return;
+        const key = posKey(pos);
+        if (seen[key]) return;
+        if (keep && pos.isEqualTo(keep)) return;
+        seen[key] = true;
+        queue.push(pos);
+    };
+
+    add(room.thorium && room.thorium.pos);
+    add(rememberedThoriumPos(room));
+
+    const extractors = (room._ensureStructuresByType && room._ensureStructuresByType()[STRUCTURE_EXTRACTOR])
+        || [];
+    for (let i = 0; i < extractors.length; i++) {
+        add(extractors[i] && extractors[i].pos);
+    }
+
+    const sites = room.constructionSites || [];
+    for (let i = 0; i < sites.length; i++) {
+        if (sites[i] && sites[i].structureType === STRUCTURE_EXTRACTOR) add(sites[i].pos);
+    }
+
+    const rememberedPad = Game.getObjectById(room.memory.extractorContainer);
+    if (rememberedPad && rememberedPad.pos && !(keep && rememberedPad.pos.getRangeTo(keep) === 1)
+        && !isPlannerShadow(room) && !isSourceOrControllerPad(room, rememberedPad.pos)) {
+        try {
+            if (rememberedPad.destroy() === OK) {
+                room.memory.extractorContainer = undefined;
+                if (room._invalidateStructureCaches) room._invalidateStructureCaches();
+            }
+        } catch (e) { /* ignore */
+        }
+    }
+
+    let changed = false;
+    for (let i = 0; i < queue.length; i++) {
+        if (vacateExtractorPad(room, queue[i])) changed = true;
+    }
+    if (changed) delete room.memory.thoriumPos;
     return changed;
 }
 
@@ -2073,6 +2135,7 @@ function placeMineral(room) {
     // container so harvest does not drop and decay), then destroy and move
     // onto the regular mineral once the deposit is gone.
     if (thorium && thorium.mineralAmount > 0) {
+        room.memory.thoriumPos = {x: thorium.pos.x, y: thorium.pos.y, roomName: room.name};
         if (!(extractorOn(thorium.pos) || extractorSiteOn(thorium.pos))) {
             const r = tryPlaceExtractor(room, thorium.pos, 'thorium-extractor');
             if (r) return r;
@@ -2083,8 +2146,8 @@ function placeMineral(room) {
         return placeExtractorContainer(room, thoriumExtractor);
     }
 
-    if (thorium && (extractorOn(thorium.pos) || extractorSiteOn(thorium.pos))) {
-        vacateThoriumExtractor(room, thorium.pos);
+    if (thoriumDepositGone(thorium)) {
+        vacateLeftoverThoriumPads(room, mineral);
     }
 
     if (!mineral) return {placed: 0, reason: 'no-mineral'};
@@ -2092,9 +2155,8 @@ function placeMineral(room) {
     const placed = tryPlaceExtractor(room, mineral.pos, 'extractor');
     if (placed && (placed.placed || isBudgetFail(placed) || placed.reason === 'site')) return placed;
 
-    const extractor = extractorOn(mineral.pos) || room.extractor;
+    const extractor = extractorOn(mineral.pos);
     if (!extractor) return {placed: 0, reason: 'extractor-blocked'};
-    if (thorium && extractorOn(thorium.pos)) return {placed: 0, reason: 'thorium-extractor-stuck'};
 
     return placeExtractorContainer(room, extractor);
 }

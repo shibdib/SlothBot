@@ -33,6 +33,7 @@ const {
     onExitTile
 } = require("module.pathFinder");
 const {isBumperCandidate, yieldOccupant} = require("pathTraffic");
+const {hitsFromDump} = require("bodySiegeBoosts");
 
 const stagingCache = {}; // creepId → {x, y, tick, roomName}
 const musterCache = {}; // roomName → {x, y, tick}
@@ -2214,12 +2215,11 @@ class RoleLongbowSquad {
         if (this.inHomeColony(creep) && !sharesExit && !split) return false;
         if (!inDest && !sharesExit && !split) return false;
 
-        // Intel picked a staging neighbor. Do not hop in from a different
-        // adjacent room just because the shortest path brushed dest's other face.
+        // Intel picked a staging neighbor. Walk around dest even from dest-facing
+        // of the wrong (usually closest / hottest) neighbor.
         const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
         const stagingShares = !!(staging && staging !== dest && exitDirectionTo(staging, dest));
-        if (!inDest && !split && stagingShares && creep.room.name !== staging
-            && !this.onDestFacingExit(creep, dest)) {
+        if (!inDest && !split && stagingShares && creep.room.name !== staging) {
             this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
             return true;
         }
@@ -2393,10 +2393,15 @@ class RoleLongbowSquad {
         return 1 + (POWER_INFO[PWR_OPERATE_TOWER].effect[op.level - 1] / 100);
     }
 
-    liveTowerDump(towers) {
+    liveTowerDumpAt(pos, towers) {
         let dump = 0;
         for (let i = 0; i < towers.length; i++) {
-            dump += TOWER_POWER_ATTACK * this.towerOperateMultiplier(towers[i]);
+            const t = towers[i];
+            const range = pos.getRangeTo(t);
+            const base = (typeof TOWER_POWER_FROM_RANGE === 'function')
+                ? TOWER_POWER_FROM_RANGE(range, TOWER_POWER_ATTACK)
+                : TOWER_POWER_ATTACK;
+            dump += base * this.towerOperateMultiplier(t);
         }
         return dump;
     }
@@ -2405,11 +2410,28 @@ class RoleLongbowSquad {
         const towers = this.liveHostileTowers();
         if (!towers.length) return true;
         const squad = this.getSquad().concat(creep);
-        let hps = 0;
+        let rawHeal = 0;
+        let minToughHits = Infinity;
+        let toughMod = 1;
+        let dump = 0;
         for (let i = 0; i < squad.length; i++) {
-            hps += abilityPower(squad[i].body).effectiveHeal;
+            const c = squad[i];
+            if (!c) continue;
+            const ap = abilityPower(c.body);
+            rawHeal += ap.heal;
+            if (ap.damageMultiplier < toughMod) toughMod = ap.damageMultiplier;
+            let toughHits = 0;
+            const body = c.body || [];
+            for (let p = 0; p < body.length; p++) {
+                if (body[p] && body[p].hits > 0 && body[p].type === TOUGH) toughHits += body[p].hits;
+            }
+            if (toughHits < minToughHits) minToughHits = toughHits;
+            const d = this.liveTowerDumpAt(c.pos, towers);
+            if (d > dump) dump = d;
         }
-        return hps >= this.liveTowerDump(towers);
+        if (minToughHits === Infinity) minToughHits = 0;
+        // Focus-fire: one body's remaining tough, pooled squad heal, current range.
+        return rawHeal >= hitsFromDump(dump, minToughHits, toughMod);
     }
 
     // Packed dest combat stays in dest. Cannot-tank used to path to staging
@@ -3592,17 +3614,19 @@ class RoleLongbowSquad {
         if (!dest) return false;
         const staging = creep.memory.misc && creep.memory.misc.stagingRoom;
         const destAdjacent = !!exitDirectionTo(creep.room.name, dest);
-        // Dest-adjacent on the wrong face: walk around to the tunnel staging
-        // unless we are already committed on dest-facing tiles.
-        if (staging && staging !== dest && destAdjacent && creep.room.name !== staging
-            && !this.onDestFacingExit(creep, dest)) {
+        // Dest-adjacent on the wrong face: walk around dest to the scored
+        // staging, including from dest-facing tiles (pathfinder avoids dest).
+        if (staging && staging !== dest && destAdjacent && creep.room.name !== staging) {
             return this.leaderTransit(new RoomPosition(25, 25, staging), {range: 22});
         }
-        // Packed quad: dest is just another room. Walk the 2×2 there.
+        // Packed quad: go to the scored staging first. Pathing dest (25,25)
+        // from origin takes the closest neighbor — the hot face on RCL8.
         if (this.isQuad(creep) && dest !== creep.room.name && !creep.memory.quadSnake) {
             const together = this.isFormationPacked(this.getSquad().concat(creep), creep);
             if (together && this.quadPresentForEntry(creep)) {
-                return this.leaderTransit(new RoomPosition(25, 25, dest), {range: 22});
+                const target = (staging && staging !== dest && !creep.memory.misc.staged
+                    && creep.room.name !== staging) ? staging : dest;
+                return this.leaderTransit(new RoomPosition(25, 25, target), {range: 22});
             }
         }
         if (staging && staging !== dest && creep.room.name === staging) {

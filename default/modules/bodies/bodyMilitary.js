@@ -83,8 +83,9 @@ function buildLongbowFamily(gen) {
 
     const siegeDamage = getSiegeTowerDamage(INTEL[gen.creepInfo && gen.creepInfo.destination]);
     if (wantsHealBoost(gen) && siegeDamage) {
-        // Combat pools squad effectiveHeal against one tower volley. Size each
-        // body as its share of waitFor, not as a solo tank of the full shot.
+        // Towers focus one body; squad heal is pooled. Size each body as its
+        // share of waitFor. Tough is per-focus (not stacked) — checkForNeededHeal
+        // applies that, so do not pre-discount the dump here.
         const exposure = 1 / waitFor;
         heal = false;
         if (wantsListedBoost(gen, TOUGH)) {

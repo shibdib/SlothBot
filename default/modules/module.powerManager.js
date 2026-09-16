@@ -149,7 +149,9 @@ module.exports.powerControl = function () {
         }
     }
     for (const powerSpawn of powerSpawns) {
-        powerSpawn.processPower();
+        if (powerSpawn.processPower() === OK && global.bumpEnergyExpense) {
+            global.bumpEnergyExpense('power', powerSpawn.room.name, POWER_SPAWN_ENERGY_RATIO);
+        }
     }
 
     if (!Game.gpl || !Game.gpl.level) return;

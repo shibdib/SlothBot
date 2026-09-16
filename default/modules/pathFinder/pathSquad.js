@@ -200,9 +200,9 @@ function squadMove(creep, path) {
     const leaderEnteringDest = !!(dest && newLeaderPos && newLeaderPos.roomName === dest
         && creep.pos.roomName !== dest);
     const misc = creep.memory.misc;
-    const destAdjacent = !!(dest && exitDirectionTo(creep.pos.roomName, dest));
     const stagingBypass = !!(dest && misc && misc.stagingRoom && misc.stagingRoom !== dest
-        && !misc.staged && creep.pos.roomName !== dest && !destAdjacent);
+        && !misc.staged && creep.pos.roomName !== dest
+        && creep.pos.roomName !== misc.stagingRoom);
     if (leaderEnteringDest && stagingBypass) {
         dropSquadPath(creep);
         return false;

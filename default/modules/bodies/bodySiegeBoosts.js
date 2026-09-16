@@ -48,20 +48,30 @@ function checkForNeededMove(gen, squadSize = 1) {
     return {boost: undefined, factor: 1};
 }
 
+// Hits lost on the focused target after one volley. Tough only multiplies
+// the raw it can actually absorb (hits / toughMod); overflow is full damage.
+// abilityPower.effectiveHeal = heal / toughMod assumes infinite tough, which
+// 6 T3 parts cannot cover for a 6-tower close dump (3600 raw vs 2000 cover).
+function hitsFromDump(damage, toughHits, toughMod) {
+    if (!(damage > 0)) return 0;
+    if (!(toughHits > 0) || !(toughMod > 0) || toughMod >= 1) return damage;
+    const rawCovered = toughHits / toughMod;
+    if (damage <= rawCovered) return Math.ceil(damage * toughMod);
+    return Math.ceil(toughHits + (damage - rawCovered));
+}
+
 function getSiegeTowerDamage(intel) {
     if (!intel) return 0;
     const n = intel.towers || 0;
     const td = intel.towerData;
-    // canTankLiveTowers compares squad effectiveHeal to n × 600 (full shot at
-    // range 3–5). The worst walkable tile is usually the tower cluster, which
-    // the squad never occupies — sizing against it asks for 60+ HEAL parts.
+    // Focus-fire dump at range ≤5 (n × 600). Attack routing should still pick
+    // the far face; this is the volley we have to survive if we cannot.
     let damage = n * TOWER_POWER_ATTACK;
     if (!damage && td) {
         damage = td.average || td.maxDamage || 0;
     }
-    if (td && td.operated) {
-        damage = Math.ceil(damage * 1.1);
-    }
+    const op = (td && td.operateMult) || (td && td.operated ? 1.5 : 1);
+    if (op > 1) damage = Math.ceil(damage * op);
     return damage;
 }
 
@@ -87,19 +97,24 @@ function checkForNeededHeal(gen, exposureBodies = 1, toughModifier = 1, rangedPa
         return false;
     }
 
-    const tiers = determineNeededHeals(damageToTank);
+    // Towers focus-fire one body. That body's tough absorbs first; squad heal
+    // is pooled. exposureBodies < 1 is this body's share of the pool (1/waitFor).
+    // exposureBodies >= 1 is a single healer covering that many times the dump
+    // (siege-duo stacked pair).
+    const dumpMult = exposureBodies >= 1 ? exposureBodies : 1;
+    const squadShare = (exposureBodies > 0 && exposureBodies < 1) ? exposureBodies : 1;
+    const hitsLost = hitsFromDump(damageToTank * dumpMult, (toughCount || 0) * 100, toughModifier || 1);
+    const perBodyHits = Math.ceil(hitsLost * squadShare);
+
+    const tiers = determineNeededHeals(perBodyHits);
     const MIN_RANGED_PARTS = rangedParts ? 5 : 0;
     const MAX_HEAL_PARTS = getMaxSiegeHealParts(toughCount, MIN_RANGED_PARTS, moveFactor);
     const moveShare = BODYPART_COST[MOVE] / Math.max(1, moveFactor || 1);
     const reservedEnergy = MIN_RANGED_PARTS * (BODYPART_COST[RANGED_ATTACK] + moveShare);
     const energyPerHealPair = BODYPART_COST[HEAL] + moveShare;
-    // Combat effectiveHeal = heal / toughMult. Flooring TOUGH at 0.85 made T3
-    // XGHO2 (0.35) look like T1 and asked for ~2.4× the heal parts a boosted
-    // squad actually needs.
-    const healToughFactor = toughModifier || 1;
 
     function tryTier(tier) {
-        const rawHeals = Math.ceil(tier.amount * exposureBodies * healToughFactor);
+        const rawHeals = tier.amount;
         if (rawHeals > MAX_HEAL_PARTS || rawHeals < 1) return 0;
         if (rawHeals * energyPerHealPair + reservedEnergy > gen.energyAmount) return 0;
         if (gen.room.store(tier.boost) < 30 * rawHeals) return 0;
@@ -147,7 +162,8 @@ function checkForNeededTough(gen, squadSize = 1, rangedCreep = false, moveFactor
     if (siegeDamage < 300) return {boost: undefined, count: 0};
 
     let partCount = siegeDamage >= 1000 ? 8 : (siegeDamage >= 600 ? 6 : 4);
-    if (rangedCreep) partCount = Math.min(partCount, 6);
+    // 6 T3 tough covers 2000 raw. A 6-tower close dump is 3600 — keep 8 so
+    // overflow (and the heal it demands) stays inside a 50-part body.
     const healReserve = rangedCreep ? 10 : 12;
     const rangedReserve = rangedCreep ? 5 : 0;
     partCount = Math.min(partCount, Math.max(0, getMaxSiegeCombatBudget(moveFactor) - healReserve - rangedReserve));
@@ -194,6 +210,7 @@ module.exports = {
     moveFatigueFactor,
     getMaxSiegeCombatBudget,
     getMaxSiegeHealParts,
+    hitsFromDump,
     getSiegeTowerDamage,
     determineNeededHeals,
     checkForNeededHeal,

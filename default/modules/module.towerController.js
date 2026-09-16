@@ -4,6 +4,8 @@
 
 'use strict';
 
+const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
+
 const towerCache = {};
 const drainState = {};
 
@@ -111,9 +113,10 @@ module.exports.towerController = function (room) {
     const energyInfo = room.energyInfo;
     const trend = (energyInfo && energyInfo.trend) || 0;
     const spareIncome = (energyInfo && energyInfo.spareIncome) || 0;
-    const repairAllowed = room.energyState >= 3
-        || (room.energyState >= 2 && spareIncome > 0 && trend >= 0)
-        || (room.energyState === 1 && trend >= 0 && spareIncome > 0);
+    const repairAllowed = spareIncome >= ENERGY_ACCRUAL_FLOOR && (
+        room.energyState >= 3
+        || (room.energyState >= 1 && trend >= 0)
+    );
     if (cache.hasHostiles || cache.injuredFriendlies.length) {
         if (!drainState[cacheKey]) drainState[cacheKey] = {};
         const roomDrain = drainState[cacheKey];

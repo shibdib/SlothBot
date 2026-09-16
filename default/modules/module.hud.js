@@ -342,7 +342,7 @@ class HUD {
 
         const diag = room.energyDiag;
         const info = room.energyInfo;
-        const spendDetail = `upg ${diag.upgradeExpense} · drn ${diag.maintenanceExpense || diag.droneExpense || 0} · spn ${diag.spawnExpense}`;
+        const spendDetail = `upg ${diag.upgradeExpense} · drn ${diag.maintenanceExpense || diag.droneExpense || 0} · spn ${diag.spawnExpense} · mil ${diag.militarySpawnExpense || 0}`;
 
         this.drawHudSeparator(room, x, y, width);
         this.drawHudRowSplit(room, x, y, width, 'Income', `+${info.income}/t`, `harv ${diag.statHarv} · rem ${diag.remoteHarv}`, {

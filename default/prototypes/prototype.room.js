@@ -816,17 +816,20 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             if (newOwner !== roomIntel.owner) roomIntel.ownerChanged = true;
             roomIntel.owner = newOwner;
             if (roomIntel.owner && !isFriendlyOwner(roomIntel.owner)) {
-                const attack = determineBestAttackRoute(this);
+                const attack = pickAttackRoute(this);
                 if (attack) {
-                    roomIntel.attackDirection = attack;
+                    roomIntel.attackDirection = attack.staging;
                     roomIntel.attackDirectionOrigin = attackRouteOrigin(this.name);
+                    roomIntel.attackTowerDmg = attack.towerDmg;
                 } else {
                     delete roomIntel.attackDirection;
                     delete roomIntel.attackDirectionOrigin;
+                    delete roomIntel.attackTowerDmg;
                 }
             } else {
                 delete roomIntel.attackDirection;
                 delete roomIntel.attackDirectionOrigin;
+                delete roomIntel.attackTowerDmg;
             }
             roomIntel.reservation = this.controller.reservation?.username;
             if (this.controller.reservation) {
@@ -1112,6 +1115,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         delete roomIntel.level;
         delete roomIntel.attackDirection;
         delete roomIntel.attackDirectionOrigin;
+        delete roomIntel.attackTowerDmg;
         delete roomIntel.owner;
         delete roomIntel.reservation;
         delete roomIntel.safemode;
@@ -1298,8 +1302,8 @@ function isFriendlyOwner(owner) {
     return typeof FRIENDLIES !== 'undefined' && FRIENDLIES.includes(owner);
 }
 
-// How many extra route hops past the closest staging neighbor we will accept
-// for a better combat exit. 2 rooms is a flank; 3+ is walking around the target.
+// Extra hops past the closest staging neighbor that we still score. Cooler
+// faces beyond this are still kept if they beat the lowest dump by >300.
 global.ATTACK_ROUTE_MAX_EXTRA_HOPS = 2;
 
 function attackRouteHops(from, to) {
@@ -1353,6 +1357,22 @@ function exitTileDamage(pos, towers) {
     return dmg;
 }
 
+function tileDamage(roomName, x, y, towers) {
+    if (x < 0 || x > 49 || y < 0 || y > 49) return 0;
+    return exitTileDamage(new RoomPosition(x, y, roomName), towers);
+}
+
+// Exit plus 3 tiles inland — that's the breach strip, not the portal line.
+function approachDamage(room, tile, dir, towers) {
+    const {dx, dy} = inwardDelta(dir);
+    let worst = exitTileDamage(tile, towers);
+    for (let step = 1; step <= 3; step++) {
+        const d = tileDamage(room.name, tile.x + dx * step, tile.y + dy * step, towers);
+        if (d > worst) worst = d;
+    }
+    return worst;
+}
+
 function inwardBarrierHits(room, x, y, dir) {
     const {dx, dy} = inwardDelta(dir);
     let hits = 0;
@@ -1386,7 +1406,10 @@ function scoreExitEdge(room, dir, towers) {
     open.sort((a, b) => along(a) - along(b));
 
     const scorePair = (a, b) => {
-        const towerDmg = Math.max(exitTileDamage(a, towers), b ? exitTileDamage(b, towers) : 0);
+        const towerDmg = Math.max(
+            approachDamage(room, a, dir, towers),
+            b ? approachDamage(room, b, dir, towers) : 0
+        );
         let barrierHits = inwardBarrierHits(room, a.x, a.y, dir);
         if (b) barrierHits += inwardBarrierHits(room, b.x, b.y, dir);
         return {towerDmg, barrierHits, quadWidth: b ? 2 : 1};
@@ -1418,9 +1441,9 @@ function scoreExitEdge(room, dir, towers) {
     return best;
 }
 
-function determineBestAttackRoute(room, origin) {
+function pickAttackRoute(room, origin) {
     const exits = Game.map.describeExits(room.name);
-    if (!exits) return undefined;
+    if (!exits) return null;
 
     const originRoom = origin || attackRouteOrigin(room.name);
     const towers = (room.towers || []).filter((t) => {
@@ -1448,24 +1471,30 @@ function determineBestAttackRoute(room, origin) {
             quadWidth: geom.quadWidth
         });
     }
-    if (!candidates.length) return undefined;
+    if (!candidates.length) return null;
 
     let minHops = Infinity;
+    let minDmg = Infinity;
     for (let i = 0; i < candidates.length; i++) {
         if (candidates[i].hops < minHops) minHops = candidates[i].hops;
+        if (candidates[i].towerDmg < minDmg) minDmg = candidates[i].towerDmg;
     }
+
+    const extraHopsCap = (typeof global.ATTACK_ROUTE_MAX_EXTRA_HOPS === 'number')
+        ? global.ATTACK_ROUTE_MAX_EXTRA_HOPS : 2;
 
     let best = null;
     let bestScore = Infinity;
     for (let i = 0; i < candidates.length; i++) {
         const c = candidates[i];
         const extra = (c.hops < Infinity && minHops < Infinity) ? c.hops - minHops : 0;
-        if (extra > global.ATTACK_ROUTE_MAX_EXTRA_HOPS) continue;
-        // 1-wide open tunnel used to lose to a 2-wide walled face: quadWidth
-        // added 2000 while 5M walls only added 100 (hits/50000).
-        const score = c.towerDmg
+        // Hop cap is a convenience, not a veto of a cooler face. 2 extra hops
+        // used to cost 800 vs raw tower HP, so a range-16 vs range-20 face
+        // (720 dmg) lost to the closest (hot) neighbor.
+        if (extra > extraHopsCap && c.towerDmg > minDmg + 300) continue;
+        const score = c.towerDmg * 4
             + (c.barrierHits > 0 ? 10000 + c.barrierHits / 50000 : 0)
-            + extra * 400
+            + extra * 80
             + (c.quadWidth >= 2 ? 0 : 50)
             + c.stagingCost;
         if (score < bestScore) {
@@ -1475,11 +1504,16 @@ function determineBestAttackRoute(room, origin) {
     }
     if (!best) {
         for (let i = 0; i < candidates.length; i++) {
-            if (candidates[i].hops === minHops) return candidates[i].staging;
+            if (candidates[i].hops === minHops) return candidates[i];
         }
-        return candidates[0].staging;
+        return candidates[0];
     }
-    return best.staging;
+    return best;
+}
+
+function determineBestAttackRoute(room, origin) {
+    const best = pickAttackRoute(room, origin);
+    return best ? best.staging : undefined;
 }
 
 Room.prototype.determineBestAttackRoute = function (origin) {
@@ -1589,6 +1623,7 @@ Room.prototype.towerData = function (towers) {
     let maxDamage = 0;
     let dangerousSpot;
     let operated = false;
+    let maxOperate = 1;
     const damageTracker = [];
 
     for (let y = 0; y < 50; y++) {
@@ -1599,6 +1634,7 @@ Room.prototype.towerData = function (towers) {
                 towers.forEach(t => {
                     const operateMult = getTowerOperateMultiplier(t);
                     if (operateMult > 1) operated = true;
+                    if (operateMult > maxOperate) maxOperate = operateMult;
                     damage += determineDamage(pos.getRangeTo(t)) * operateMult;
                 });
                 damageTracker.push(damage);
@@ -1621,7 +1657,8 @@ Room.prototype.towerData = function (towers) {
             roomName: dangerousSpot.roomName
         } : undefined,
         average: p85,
-        operated: operated
+        operated: operated,
+        operateMult: maxOperate > 1 ? maxOperate : undefined
     };
 
     function determineDamage(range) {

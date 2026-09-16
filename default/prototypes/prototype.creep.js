@@ -24,7 +24,7 @@
 const {runTowTruck} = require('pathTow');
 const {clearShibMove, getShibMove, pathLeavesForSameRoomTarget, pathIsSameRoomDetour} = require('pathUtils');
 const {stepInlandOffExit, isSquadCreep} = require('pathFormation');
-const {roomCanBurnSurplus} = require('spawnFlow');
+const {roomCanBurnSurplus, ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 
 const exitTileCache = {};
@@ -808,7 +808,7 @@ Creep.prototype.haulerDelivery = function () {
         }));
     }
 
-    if (!this.room.memory.controllerLink && (rcl < 8 || this.room.energyState >= 3)) {
+    if (!this.room.memory.controllerLink && (rcl < 8 || roomCanBurnSurplus(this.room))) {
         const controllerContainer = global.resolveControllerContainer(this.room);
         if (controllerContainer && controllerContainer.store.getFreeCapacity(RESOURCE_ENERGY) > 200) targets.push(controllerContainer);
     }
@@ -834,7 +834,7 @@ Creep.prototype.haulerDelivery = function () {
     }
 
     // Fill controller container from spare energy. RCL8 stockpiles unless overflowing.
-    if (rcl < 8 || this.room.energyState >= 3) {
+    if (rcl < 8 || roomCanBurnSurplus(this.room)) {
         const controllerContainer = Game.getObjectById(this.room.memory.controllerContainer)
             || (global.resolveControllerContainer && global.resolveControllerContainer(this.room));
         if (controllerContainer && !controllerContainer.store.getUsedCapacity(RESOURCE_ENERGY)) {
@@ -938,8 +938,10 @@ Creep.prototype.constructionWork = function (scope) {
 
         const trend = (room.energyInfo && room.energyInfo.trend) || 0;
         const spareIncome = (room.energyInfo && room.energyInfo.spareIncome) || 0;
-        if (room.energyState >= 3 || (room.energyState >= 2 && spareIncome > 0 && trend >= 0)
-            || (room.energyState === 1 && trend >= 0 && spareIncome > 0)) {
+        if (spareIncome >= ENERGY_ACCRUAL_FLOOR && (
+            room.energyState >= 3
+            || (room.energyState >= 2 && trend >= 0)
+            || (room.energyState === 1 && trend >= 0))) {
             const walls = wallBarrierSites();
             if (walls.length) return buildClosest(walls);
             const repairPool = available(damage.walls.concat(damage.ramparts.filter(s => s.hits >= SAFE_RAMPART_HITS)));
@@ -1005,7 +1007,8 @@ Creep.prototype.constructionWork = function (scope) {
 
     const trend = (room.energyInfo && room.energyInfo.trend) || 0;
     const spareIncome = (room.energyInfo && room.energyInfo.spareIncome) || 0;
-    if (room.energyState >= 3 || (room.energyState >= 1 && spareIncome > 0 && trend >= 0)) {
+    if (spareIncome >= ENERGY_ACCRUAL_FLOOR && (
+        room.energyState >= 3 || (room.energyState >= 1 && trend >= 0))) {
         if (sites.misc.length) return buildClosest(sites.misc);
         site = weakestByHitsRatio(available(damage.containers).filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
@@ -1771,12 +1774,18 @@ function applyBoost(creep, entryKey) {
         return true;
     }
 
+    const energyBefore = lab.store[RESOURCE_ENERGY] || 0;
     switch (lab.boostCreep(creep)) {
-        case OK:
+        case OK: {
+            const cost = energyBefore - (lab.store[RESOURCE_ENERGY] || 0);
+            if (cost > 0 && global.bumpEnergyExpense) {
+                global.bumpEnergyExpense('boost', (lab.room && lab.room.name) || creep.room.name, cost);
+            }
             (creep.memory.hasBoosted = creep.memory.hasBoosted || []).push(boostNeeded);
             (creep.memory.boostedFromLab = creep.memory.boostedFromLab || {})[lab.id] = boostNeeded;
             creep.say(ICONS.testFinished);
             return true;
+        }
         case ERR_NOT_IN_RANGE:
         case ERR_NOT_ENOUGH_RESOURCES:
             creep.say(ICONS.boost);

@@ -1,5 +1,6 @@
 const profiler = require("tools.profiler");
 const {isControllerAreaLink} = require('planUtils');
+const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
 
 const CONTROLLER_LINK_RANGE = 3;
 const UPGRADER_STARVE_THRESHOLD = 0.65;
@@ -49,10 +50,10 @@ function buildLinkPolicy(room, hubLink, controllerLink) {
         buildingStock,
         hubSaturated: hubFill >= HUB_OVERFLOW_RATIO,
         needsControllerDrip,
-        allowHubToController: room.level < 8 ||
-            downgradeRisk ||
-            (buildingStock && needsControllerDrip && spareIncome > 0) ||
-            (isStockpiling && upgraderDuty < 0.75 && needsControllerDrip && spareIncome > 0),
+        allowHubToController: downgradeRisk ||
+            (room.level < 8 && spareIncome >= ENERGY_ACCRUAL_FLOOR) ||
+            (buildingStock && needsControllerDrip && spareIncome >= ENERGY_ACCRUAL_FLOOR) ||
+            (isStockpiling && upgraderDuty < 0.75 && needsControllerDrip && spareIncome >= ENERGY_ACCRUAL_FLOOR),
         allowControllerOverflow: isStockpiling && hubFill >= HUB_OVERFLOW_RATIO && upgraderStarved,
         recycleControllerSurplus: isStockpiling && controllerEnergy > controllerTarget,
     };

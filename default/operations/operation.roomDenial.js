@@ -1,9 +1,6 @@
 const highCommand = require('module.highCommand');
 const {recordSiegeWave} = require('hcTargets');
-
-function extraHopsCap() {
-    return (typeof global.ATTACK_ROUTE_MAX_EXTRA_HOPS === 'number') ? global.ATTACK_ROUTE_MAX_EXTRA_HOPS : 2;
-}
+const {hitsFromDump} = require('bodySiegeBoosts');
 
 function isFriendlyOwner(owner) {
     if (!owner) return true;
@@ -101,16 +98,11 @@ function resolveDenialStaging(dest, origin) {
     }
 
     const attackRoom = resolveAttackRoom(dest);
-    const closest = closestFriendlyNeighbor(dest, origin);
-    if (attackRoom && origin && origin !== dest && origin !== attackRoom) {
-        const intel = INTEL[dest];
-        const sameOrigin = intel && intel.attackDirectionOrigin === origin;
-        const attackHops = attackRouteHops(origin, attackRoom);
-        const minHops = closest ? attackRouteHops(origin, closest) : attackHops;
-        if (sameOrigin || attackHops <= minHops + extraHopsCap()) return attackRoom;
-        return closest;
-    }
-    return attackRoom || closest;
+    // Intel / live scoring already paid extra hops for a cooler face. Falling
+    // back to closestFriendlyNeighbor here is how we kept walking in under the
+    // towers from the assigned room's shared wall.
+    if (attackRoom) return attackRoom;
+    return closestFriendlyNeighbor(dest, origin);
 }
 
 Creep.prototype.ensureDenialStaging = function () {
@@ -128,20 +120,19 @@ Creep.prototype.ensureDenialStaging = function () {
     const currentOk = current && current !== dest && isViableStaging(current, dest);
     const here = this.room.name;
     const hereStaging = here !== dest && isViableStaging(here, dest);
-    const onDestFace = !!(dest && here !== dest && posFacesDest(this.pos, dest));
-    // Lock this neighbor only when it is the intel pick or we are already on
-    // dest-facing tiles. Otherwise a closer walled face overwrote the tunnel.
-    if (hereStaging && (onDestFace || !resolved || resolved === here)) {
+    // Only lock this neighbor when it is the scored face. Dest-facing of the
+    // closest (hot) neighbor used to overwrite the tunnel and we hopped in.
+    if (hereStaging && resolved === here) {
         this.memory.misc.stagingRoom = here;
     } else if (!currentOk) {
         this.memory.misc.stagingRoom = resolved;
         if (current && current !== resolved) this.memory.misc.staged = undefined;
-    } else if (resolved && current !== resolved && !onDestFace) {
+    } else if (resolved && current !== resolved) {
         this.memory.misc.stagingRoom = resolved;
         this.memory.misc.staged = undefined;
     }
-    // Dest-facing of any dest-adjacent room is staged — not only the intel pick.
-    if (dest && this.room.name !== dest && posFacesDest(this.pos, dest)) {
+    if (dest && this.room.name !== dest && posFacesDest(this.pos, dest)
+        && resolved === this.room.name) {
         this.memory.misc.staged = true;
     }
 };
@@ -222,11 +213,22 @@ function soloCanTankTowers(creep) {
                 }
             }
         }
-        dump += TOWER_POWER_ATTACK * mult;
+        const range = creep.pos.getRangeTo(t);
+        const base = (typeof TOWER_POWER_FROM_RANGE === 'function')
+            ? TOWER_POWER_FROM_RANGE(range, TOWER_POWER_ATTACK)
+            : TOWER_POWER_ATTACK;
+        dump += base * mult;
     }
     if (!dump) return true;
-    const hps = (typeof abilityPower === 'function') ? abilityPower(creep.body).effectiveHeal : 0;
-    return hps >= dump;
+    const ap = (typeof abilityPower === 'function') ? abilityPower(creep.body) : null;
+    if (!ap) return false;
+    let toughHits = 0;
+    const body = creep.body || [];
+    for (let i = 0; i < body.length; i++) {
+        const p = body[i];
+        if (p && p.hits > 0 && p.type === TOUGH) toughHits += p.hits;
+    }
+    return ap.heal >= hitsFromDump(dump, toughHits, ap.damageMultiplier || 1);
 }
 
 function engageDenialBreach(creep, barrier) {
