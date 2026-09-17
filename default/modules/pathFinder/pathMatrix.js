@@ -52,7 +52,7 @@ function getBaseMatrix(roomName, creep, options) {
         : 'no-room';
     const skSelf = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'SKAttacker');
     const skHarvestCover = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'remoteHarvester');
-    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}_${skHarvestCover}`;
+    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}_${skHarvestCover}_${!!options.ignoreSk}`;
     const baseKey = `${roomName}_base_${cacheStamp}_${structuresHash}`;
 
     // Per-tick reuse (biggest CPU win). Stamp includes type/wrecker so a
@@ -264,6 +264,7 @@ function addHostilesToMatrix(room, matrix) {
 }
 
 function addSksToMatrix(roomName, matrix, options, creep) {
+    if (options && options.ignoreSk) return matrix;
     const intel = INTEL[roomName];
     if (!intel?.sk) return matrix;
 

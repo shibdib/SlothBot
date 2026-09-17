@@ -240,6 +240,9 @@ function ingestColonyRemoteSources(colonyRoom, rName) {
  * harvester so roads/builders can start (otherwise chicken-and-egg with remoteBuilder).
  */
 function passesNoRoadSpawnGate(colonyRoom, sourceEntry) {
+    // SK / sector-center: already paying for the attacker. The one-bootstrap-per-room
+    // gate left the far sources unstaffed until roads existed.
+    if (remoteMining.isKeeperYieldRoom(sourceEntry.room)) return true;
     const ratio = typeof REMOTE_NO_ROAD_SCORE_RATIO !== 'undefined' ? REMOTE_NO_ROAD_SCORE_RATIO : 0.8;
     if (sourceEntry.score <= REMOTE_DISTANCE_MAX * ratio) return true;
     if (colonyRoom.level < 7) return true;

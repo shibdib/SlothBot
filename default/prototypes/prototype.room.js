@@ -937,12 +937,16 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             const staleScores = Game.time - (roomIntel.activeRemote || 0) > 500;
             // Force scoring when bootstrap set remoteRoom but source data never landed
             // (path fail / incomplete first visit) so nearby remotes can still be claimed.
-            const missingSourceData = !roomIntel.remoteSourceData || !roomIntel.remoteSourceData.length;
+            // Partial lists used to stick: one SK source scoring successfully skipped
+            // the other two until the 500-tick stale window.
+            const haveSourceData = roomIntel.remoteSourceData ? roomIntel.remoteSourceData.length : 0;
+            const missingSourceData = haveSourceData < this.sources.length;
             const needsUpdate = staleScores || missingSourceData;
             if (needsUpdate) {
                 let lowestScore = Infinity;
                 let lowestRoom = roomIntel.remoteRoom[0];
                 if (!roomIntel.remoteSourceData) roomIntel.remoteSourceData = [];
+                let filledNew = false;
 
                 for (const source of this.sources) {
                     lowestScore = Infinity;
@@ -966,15 +970,18 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                                 source: source.id,
                                 score: lowestScore
                             });
+                            filledNew = true;
                         }
                     }
                 }
                 // Only force colony remote refresh when we newly filled data or did a
                 // stale recompute — not on every routine micro update.
-                for (const colony of roomIntel.remoteRoom) {
-                    if (INTEL[colony]) INTEL[colony].refreshRemotes = true;
+                if (filledNew || (staleScores && roomIntel.remoteSourceData.length)) {
+                    for (const colony of roomIntel.remoteRoom) {
+                        if (INTEL[colony]) INTEL[colony].refreshRemotes = true;
+                    }
+                    roomIntel.activeRemote = Game.time;
                 }
-                roomIntel.activeRemote = Game.time;
             }
         }
 
