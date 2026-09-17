@@ -6,11 +6,6 @@ const profiler = require("tools.profiler");
 const {skCombatBlocksMining} = require("remoteMining");
 
 // Source Keeper: 19 ATTACK, 2 RANGED_ATTACK, 7 HEAL, 13 MOVE
-const SK_HITS = 4100;
-const SK_HEAL = 7 * HEAL_POWER;
-const SK_DPS = 19 * ATTACK_POWER + 2 * RANGED_ATTACK_POWER;
-const HOLD_RANGE = 4;
-const SURVIVE_BUFFER = 200;
 
 class RoleSKAttacker {
     constructor(creep) {
@@ -24,7 +19,6 @@ class RoleSKAttacker {
         if (this.room.name !== this.creep.memory.destination) {
             this.creep.memory.keeper = undefined;
             this.creep.memory.lair = undefined;
-            this.creep.memory.skMelee = undefined;
             this.creep.memory.arrived = undefined;
             this.travel();
         } else {
@@ -97,27 +91,6 @@ class RoleSKAttacker {
         this.creep.healInRange();
     }
 
-    meleeHitsNeeded() {
-        const attack = this.creep.getActiveBodyparts(ATTACK);
-        const heal = this.creep.getActiveBodyparts(HEAL);
-        const net = attack * ATTACK_POWER - SK_HEAL;
-        if (net <= 0) return Infinity;
-        const ttk = Math.ceil(SK_HITS / net);
-        const incoming = SK_DPS * ttk;
-        const during = heal * HEAL_POWER * (ttk + HOLD_RANGE - 1);
-        return incoming - during + SURVIVE_BUFFER;
-    }
-
-    canSurviveMelee() {
-        if (!this.creep.getActiveBodyparts(ATTACK)) return false;
-        const needed = this.meleeHitsNeeded();
-        if (!isFinite(needed)) return false;
-        // 20A/5H tanks a keeper. Kiting never kills (no RA); stay in melee
-        // and heal between fights. Only refuse a fresh engage at critical HP.
-        if (this.creep.memory.skMelee) return true;
-        return this.creep.hits > this.creep.hitsMax * 0.2;
-    }
-
     isKeeper(creep) {
         return creep.owner && creep.owner.username === 'Source Keeper';
     }
@@ -140,73 +113,14 @@ class RoleSKAttacker {
         return true;
     }
 
-    holdOutside(target) {
-        const range = this.creep.pos.getRangeTo(target);
-        if (range > HOLD_RANGE) {
-            this.creep.shibMove(target, {range: HOLD_RANGE});
-            return;
-        }
-        if (range >= HOLD_RANGE) return;
-        // shibKite uses fleeRange+2, which overshot 4 → 6 and yo-yoed. Step
-        // to a higher range, preferring road then plains so we do not walk swamp.
-        const dir = this.stepAwayFrom(target);
-        if (dir) this.creep.move(dir);
-        else this.creep.shibKite(HOLD_RANGE - 2);
-    }
-
-    stepAwayFrom(target) {
-        const pos = this.creep.pos;
-        const terrain = Game.map.getRoomTerrain(pos.roomName);
-        const current = pos.getRangeTo(target);
-        let bestDir = 0;
-        let bestScore = -Infinity;
-        for (let d = TOP; d <= TOP_LEFT; d++) {
-            const next = pos.positionAtDirection(d);
-            if (!next || next.x < 1 || next.x > 48 || next.y < 1 || next.y > 48) continue;
-            const tile = terrain.get(next.x, next.y);
-            if (tile === TERRAIN_MASK_WALL) continue;
-            if (next.checkForObstacleStructure()) continue;
-            if (next.checkForCreep()) continue;
-            const nextRange = next.getRangeTo(target);
-            if (nextRange <= current) continue;
-            const rangeScore = nextRange <= HOLD_RANGE
-                ? nextRange
-                : HOLD_RANGE - (nextRange - HOLD_RANGE);
-            let score = rangeScore * 10;
-            if (next.checkForRoad()) score += 8;
-            else if (tile !== TERRAIN_MASK_SWAMP) score += 4;
-            if (score > bestScore) {
-                bestScore = score;
-                bestDir = d;
-            }
-        }
-        return bestDir;
-    }
-
     fightKeeper(keeper) {
-        switch (this.creep.attack(keeper)) {
-            case ERR_NOT_IN_RANGE:
-                if (!this.canSurviveMelee()) {
-                    this.creep.memory.skMelee = undefined;
-                    this.holdOutside(keeper);
-                    return;
-                }
-                this.creep.memory.skMelee = true;
-                this.creep.shibMove(keeper);
-                break;
-            case ERR_NO_BODYPART:
-                this.creep.memory.skMelee = undefined;
-                this.holdOutside(keeper);
-                break;
-            case OK:
-                this.creep.memory.skMelee = true;
-                break;
+        if (this.creep.attack(keeper) === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(keeper, {range: 1, ignoreKeeper: keeper.id});
         }
     }
 
     campLair() {
         this.creep.memory.keeper = undefined;
-        this.creep.memory.skMelee = undefined;
         let lair = Game.getObjectById(this.creep.memory.lair);
         // Live keepers leave ticksToSpawn undefined. Don't camp that lair.
         if (!lair || !lair.ticksToSpawn) {
@@ -218,14 +132,7 @@ class RoleSKAttacker {
             return;
         }
         this.creep.memory.lair = lair.id;
-        if (!this.canSurviveMelee()) {
-            this.holdOutside(lair);
-            return;
-        }
-        if (this.creep.pos.isNearTo(lair)) {
-            const wait = (lair.ticksToSpawn || 1) - 1;
-            if (wait > 0) this.creep.idleFor(wait);
-        } else this.creep.shibMove(lair);
+        if (!this.creep.pos.isNearTo(lair)) this.creep.shibMove(lair, {range: 1});
     }
 
     nextLair() {
