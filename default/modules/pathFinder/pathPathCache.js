@@ -14,8 +14,8 @@ const {STATE_STUCK} = require('pathState');
 const {getPathKey, hashRoomStructures, reverseDirection, getShibMove} = require('pathUtils');
 const {directionBetween} = require('pathFormation');
 
-const PATH_CACHE_TTL = 25;
-const PATH_CACHE_MAX = 300;
+const PATH_CACHE_TTL = 80;
+const PATH_CACHE_MAX = 800;
 
 function prunePathCache() {
     const cache = CACHE.PATH_CACHE;

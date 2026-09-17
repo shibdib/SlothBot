@@ -255,8 +255,8 @@ class World {
             }
 
             try {
-                cpuWatch.mark('colony', roomName);
                 // invaderCheck runs inside Colony.defenseController — avoid duplicate creep scans here
+                const t0 = Game.cpu.getUsed();
                 const intel = INTEL[roomName];
                 const now = Game.time;
                 if (!intel || !intel.microUpdate || intel.microUpdate + 150 < now
@@ -264,6 +264,14 @@ class World {
                     room.cacheRoomIntel();
                 }
                 new colony(room, this.colonyCreeps[roomName] || []);
+                const spent = Game.cpu.getUsed() - t0;
+                if (spent >= 12) {
+                    const creeps = room._colonyCreepsCpu || 0;
+                    const detail = creeps >= 8
+                        ? `${roomName} creeps ${creeps.toFixed(0)}`
+                        : roomName;
+                    cpuWatch.mark('colony', detail, spent);
+                }
             } catch (e) {
                 log.e(`Colony Module experienced an error in room ${roomLink(roomName)}`);
                 log.e(e.stack);

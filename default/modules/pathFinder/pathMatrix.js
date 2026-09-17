@@ -15,6 +15,37 @@ const {MATRIX_CACHE, ROOM_BASE_MATRIX_CACHE} = require('pathState');
 const {hashStructures, applyLookObstaclesToMatrix, lookObstacleHash} = require('pathUtils');
 const {isHomeRoomYieldingSquad} = require('pathTraffic');
 
+// Terrain never changes. Structure-hash misses used to re-walk 2500 tiles.
+const TERRAIN_MATRIX = Object.create(null);
+
+function terrainMatrixKey(roomName, plainCost, swampCost, flee) {
+    return `${roomName}_${plainCost}_${swampCost}_${flee ? 1 : 0}`;
+}
+
+function cloneTerrainMatrix(roomName, plainCost, swampCost, flee) {
+    const key = terrainMatrixKey(roomName, plainCost, swampCost, flee);
+    const cached = TERRAIN_MATRIX[key];
+    if (cached) return cached.clone();
+    const matrix = new PathFinder.CostMatrix();
+    const terrain = Game.map.getRoomTerrain(roomName);
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            const tile = terrain.get(x, y);
+            if (tile === TERRAIN_MASK_WALL) {
+                matrix.set(x, y, 256);
+            } else if (x === 0 || x === 49 || y === 0 || y === 49) {
+                matrix.set(x, y, flee ? 1 : 10);
+            } else if (tile === TERRAIN_MASK_SWAMP) {
+                matrix.set(x, y, swampCost);
+            } else {
+                matrix.set(x, y, plainCost);
+            }
+        }
+    }
+    TERRAIN_MATRIX[key] = matrix;
+    return matrix.clone();
+}
+
 function getBaseMatrix(roomName, creep, options) {
     const room = Game.rooms[roomName];
     const noWallWrecker = creep instanceof Creep
@@ -76,25 +107,8 @@ function getBaseMatrix(roomName, creep, options) {
         return MATRIX_CACHE[baseKey].matrix.clone();
     }
 
-    // Build once
-    const matrix = new PathFinder.CostMatrix();
-    const terrain = Game.map.getRoomTerrain(roomName);
-
-    // Base terrain costs
-    for (let y = 0; y < 50; y++) {
-        for (let x = 0; x < 50; x++) {
-            const tile = terrain.get(x, y);
-            if (tile === TERRAIN_MASK_WALL) {
-                matrix.set(x, y, 256);
-            } else if (x === 0 || x === 49 || y === 0 || y === 49) {
-                matrix.set(x, y, options.flee ? 1 : 10);
-            } else if (tile === TERRAIN_MASK_SWAMP) {
-                matrix.set(x, y, swampCost);
-            } else {
-                matrix.set(x, y, plainCost);
-            }
-        }
-    }
+    // Build once — terrain clone + structure overlay.
+    const matrix = cloneTerrainMatrix(roomName, plainCost, swampCost, !!options.flee);
 
     if (room) {
         for (const structure of room.structures) {
