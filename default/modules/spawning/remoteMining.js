@@ -222,18 +222,30 @@ function sourceNetEnergyPerTick(colonyRoom, sourceEntry, haulers) {
 
 function isRemoteSourceWorthMining(colonyRoom, sourceEntry) {
     if (!sourceEntry || !colonyRoom) return false;
+    const keeper = isKeeperYieldRoom(sourceEntry.room);
+    // Keeper 4000-energy sources are a package with the SKAttacker. Inflated
+    // walk scores (keeper blankets) used to fail the estimate*mult check and
+    // prune a source that was already being mined — then it never restaffed.
+    if (keeper) {
+        const score = sourceEntry.score;
+        if (score !== undefined && score !== null && isFinite(score) && score <= remoteDistanceMax()) {
+            return true;
+        }
+        const estimate = getRouteEstimateScore(sourceEntry.room, colonyRoom.name);
+        if (estimate === null) return true;
+        return estimate <= remoteDistanceMax();
+    }
     if (!isRemoteSourceScoreAcceptable(colonyRoom.name, sourceEntry.room, sourceEntry.score, {allowMissingEstimate: true})) {
         return false;
     }
-    const keeper = isKeeperYieldRoom(sourceEntry.room);
     const needed = sourceHaulersNeeded(colonyRoom, sourceEntry);
-    const roadCap = !keeper && (colonyRoom.level || 0) >= 7
+    const roadCap = (colonyRoom.level || 0) >= 7
     && miningRouteHasRoads(colonyRoom.name, sourceEntry.room) ? 1 : 2;
-    const haulers = Math.min(needed, keeper ? 4 : roadCap);
+    const haulers = Math.min(needed, roadCap);
     if (sourceNetEnergyPerTick(colonyRoom, sourceEntry, haulers) <= 0) return false;
     // Surplus RCL7+: a second hauler is ~0.3 CPU for <1 e/t. A 1-hauler road
     // remote is still ~6 e/t net even if the uncapped formula wanted two.
-    if (!keeper && haulers > 1 && (colonyRoom.level || 0) >= 7 && !colonyNeedsRemoteIncome(colonyRoom)) {
+    if (haulers > 1 && (colonyRoom.level || 0) >= 7 && !colonyNeedsRemoteIncome(colonyRoom)) {
         return false;
     }
     return true;
@@ -264,17 +276,35 @@ function pruneToStaffCap(colonyName, colonyRoom) {
     const targets = ROOM_REMOTE_TARGETS[colonyName];
     if (!targets || !targets.length) return;
     const cap = remoteSourceStaffCap(colonyRoom);
-    if (targets.length <= cap) return;
-    const ranked = targets.slice().sort((a, b) => {
-        const kA = isKeeperYieldRoom(a.room) ? 0 : 1;
-        const kB = isKeeperYieldRoom(b.room) ? 0 : 1;
-        if (kA !== kB) return kA - kB;
+
+    const sk = [];
+    const rest = [];
+    for (let i = 0; i < targets.length; i++) {
+        const s = targets[i];
+        if (s && isSkRoomName(s.room)) sk.push(s);
+        else rest.push(s);
+    }
+    if (sk.length + rest.length <= cap) return;
+
+    rest.sort((a, b) => {
+        const cA = isSectorCenterRoomName(a.room) ? 0 : 1;
+        const cB = isSectorCenterRoomName(b.room) ? 0 : 1;
+        if (cA !== cB) return cA - cB;
         return (a.score || 99) - (b.score || 99);
     });
+
+    // Assigned SK sources stay with the attacker. cpuOverage 24 used to cut
+    // cap to 2 and drop the 3rd SK source; the live harvester recycled and
+    // never came back. Cap applies to center + regular remotes only.
+    const restSlots = Math.max(0, cap - sk.length);
     const keepIds = new Set();
-    for (let i = 0; i < cap; i++) {
-        if (ranked[i] && ranked[i].source) keepIds.add(ranked[i].source);
+    for (let i = 0; i < sk.length; i++) {
+        if (sk[i].source) keepIds.add(sk[i].source);
     }
+    for (let i = 0; i < restSlots && i < rest.length; i++) {
+        if (rest[i].source) keepIds.add(rest[i].source);
+    }
+
     const next = [];
     const removedByRoom = {};
     for (let i = 0; i < targets.length; i++) {
@@ -286,6 +316,7 @@ function pruneToStaffCap(colonyName, colonyRoom) {
             removedByRoom[s.room].push(s.source);
         }
     }
+    if (next.length === targets.length) return;
     ROOM_REMOTE_TARGETS[colonyName] = next;
     for (const remoteName in removedByRoom) {
         unindexColonyRemote(colonyName, remoteName, removedByRoom[remoteName]);

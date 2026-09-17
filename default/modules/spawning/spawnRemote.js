@@ -667,8 +667,11 @@ function handleRemoteHarvesters(room) {
     const skUnstaffed = eligible.filter(s =>
         remoteMining.isKeeperYieldRoom(s.room)
         && !getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source));
-    const pool = replacements.length ? replacements
-        : (skUnstaffed.length ? skUnstaffed : (atCap ? [] : eligible));
+    // Empty SK/center sources first — replacements used to win every time a
+    // regular remote was in its TTL window (~80% of ticks at cap 6), so a
+    // dead SK source never got a body.
+    const pool = skUnstaffed.length ? skUnstaffed
+        : (replacements.length ? replacements : (atCap ? [] : eligible));
     let pick = null;
     let bestPickScore = Infinity;
     for (let i = 0; i < pool.length; i++) {
