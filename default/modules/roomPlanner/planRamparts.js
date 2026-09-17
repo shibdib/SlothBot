@@ -10,6 +10,7 @@ const {ensurePlan, getPlan, packTiles, pushFailure, FailureCodes} = require('pla
 const siteBudget = require('planSiteBudget');
 const {isPlannerShadow} = require('planFlag');
 const {computeLayoutPending} = require('planLayout');
+const {plannerShouldStop, canAffordMinCut} = require('planState');
 
 const geom = require('planGeomRamparts');
 const {
@@ -23,6 +24,7 @@ const {
     bunkerLevelAllowsPerimeter,
     shouldComputeBunkerRampartSpots,
     invalidateRampartSpots,
+    perimeterCacheValid,
     initializeRampartSpots,
     auditRampartRecalc,
     isRemovableStrayBarrier,
@@ -313,8 +315,11 @@ function purgeOrphanBarriers(room) {
 
 function consumePerimeterDirty(room) {
     if (!room || !room.memory || !room.memory._perimeterDirty) return false;
+    if (!shouldComputeBunkerRampartSpots(room) || perimeterCacheValid(room)) {
+        delete room.memory._perimeterDirty;
+        return false;
+    }
     delete room.memory._perimeterDirty;
-    if (!shouldComputeBunkerRampartSpots(room)) return false;
     recalculateRampartsForRoom(room, undefined, {destroyOffPlan: false, holdCleanup: false});
     return true;
 }
@@ -330,6 +335,17 @@ function consumePerimeterDirty(room) {
  *   holdCleanup: when destroyOffPlan is false, delay off-plan cleanup (default true).
  */
 function recalculateRampartsForRoom(room, layout, options = {}) {
+    if (!(options && options.force) && perimeterCacheValid(room, layout)) {
+        if (room && room.memory) delete room.memory._perimeterDirty;
+        return {spots: getPerimeterSpots(room.name).length, skipped: 'cache'};
+    }
+    if (plannerShouldStop() || !canAffordMinCut()) {
+        if (room && room.memory) room.memory._perimeterDirty = 1;
+        const cached = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]
+            ? JSON.parse(ROOM_RAMPART_SPOTS[room.name])
+            : [];
+        return {spots: cached.length, deferred: true, reason: 'cpu'};
+    }
     const destroyOffPlan = options.destroyOffPlan !== false;
     const tmpl = layout || (room.memory.dynamicLayout ? coreTemplate : bunkerTemplate);
     const oldSpots = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[room.name]

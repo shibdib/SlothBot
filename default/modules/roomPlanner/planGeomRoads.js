@@ -1713,17 +1713,19 @@ function roomNeedsBuildWorkByName(roomName, colony) {
  * remoteBuilders spread out instead of stacking on one hash bucket.
  * Missing tiles / sites beat repair-only so a swamp corridor does not hold the crew.
  */
-function pickRoadWorkRoom(colony, creepName) {
+function pickRoadWorkRoom(colony, creepName, excludeRoom) {
     const work = getColonyRoadWorkRooms(colony);
     if (!work.length) return null;
 
     const buildRooms = work.filter(e => roomNeedsBuildWorkByName(e.room, colony));
-    const pickList = buildRooms.length ? buildRooms : work;
+    const raw = buildRooms.length ? buildRooms : work;
+    const pickList = excludeRoom ? raw.filter(e => e.room !== excludeRoom) : raw;
+    if (!pickList.length) return null;
 
     if (creepName) {
         const creep = Game.creeps[creepName];
         const current = creep && creep.memory.destination;
-        if (current && pickList.some(e => e.room === current)) return current;
+        if (current && current !== excludeRoom && pickList.some(e => e.room === current)) return current;
     }
 
     const claims = countRemoteBuilderClaims(colony, creepName);

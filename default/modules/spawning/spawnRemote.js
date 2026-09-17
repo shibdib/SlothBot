@@ -461,14 +461,18 @@ function handleBlockedRoom(room) {
 }
 
 function handleThreatLevel(room, remoteName) {
-    if (!remoteName || !INTEL[remoteName] || INTEL[remoteName].sk) return;
+    if (!remoteName || !INTEL[remoteName]) return;
+    if (remoteMining.isKeeperYieldRoom(remoteName) || INTEL[remoteName].sk) return;
     room.memory.borderPatrol = remoteName;
 }
 
 function assignedRemoteNeedsPatrol(remoteName) {
     if (!remoteName) return false;
     const intel = INTEL[remoteName];
-    if (!intel || intel.sk) return false;
+    if (!intel) return false;
+    // SK and sector-center: abandon the wave. Longbows pathing through
+    // keepers is worse than waiting out invaderTTL.
+    if (intel.sk || remoteMining.isKeeperYieldRoom(remoteName)) return false;
     if (intel.threatLevel > 1 && (intel.tickDetected || 0) + CREEP_LIFE_TIME >= Game.time) return true;
     const vis = Game.rooms[remoteName];
     if (!vis) return false;
@@ -693,7 +697,7 @@ function scanColonyRemoteCreeps() {
     for (const key in colonyRemoteCreepScan) delete colonyRemoteCreepScan[key];
     for (const name in Game.creeps) {
         const c = Game.creeps[name];
-        if (!c.my || !c.memory.colony) continue;
+        if (!c.my || !c.memory.colony || c.memory.recycling) continue;
         const colony = c.memory.colony;
         if (!colonyRemoteCreepScan[colony]) {
             colonyRemoteCreepScan[colony] = {
@@ -834,19 +838,13 @@ function shouldSkipRemote(room, remoteName) {
 
 function handleInvaderCore(room, remoteName) {
     if (!INTEL[remoteName] || INTEL[remoteName].obstacles) return;
-    // Stronghold towers are high-command, not a lone attacker.
-    if (isSkRoom(remoteName) && INTEL[remoteName].towers) return;
+    // SK cores sit on keeper pads. A generic attacker dies to keepers; abandon
+    // like an invader wave (skCombatBlocksMining) until the core is gone.
+    if (isSkRoom(remoteName)) return;
     queueCreepIfNeeded({
         room, role: 'attacker', priority: PRIORITIES.remoteHarvester - 1,
         numberNeeded: 1, destination: remoteName
     });
-}
-
-function skRoomHasInvaderCore(remoteName) {
-    const vis = Game.rooms[remoteName];
-    if (vis && vis.structures.some(s => s.structureType === STRUCTURE_INVADER_CORE)) return true;
-    const intel = INTEL[remoteName];
-    return !!(intel && intel.invaderCore && intel.invaderCore > Game.time);
 }
 
 function remoteCreepQueue(room) {
@@ -904,7 +902,6 @@ function remoteCreepQueue(room) {
             if (!name || guarded.has(name) || !isSkRoom(name)) return;
             if (!remoteMining.isAllowedSkRoom(room.name, name)) return;
             guarded.add(name);
-            if (skRoomHasInvaderCore(name)) handleInvaderCore(room, name);
             if (skTowersOrCombatBlock(name)) return;
             handleSkCreeps(room, name);
             remoteMining.probeMiningRoute(room.name, name, {allowLive: false});

@@ -52,6 +52,7 @@ global.SK_MINING_MAX_ROOMS = 1; // Max source-keeper rooms a colony will mine
 global.OFFENSIVE_OPERATIONS = true; // Room attacks (occupy / remote denial / siege). Harassment is independent.
 global.OFFENSIVE_NUKES = true; // Escalate stalled roomDenial sieges with nukes
 global.SIEGE_NOTIFY = true; // Email Game.notify for roomDenial launch, milestones, and end
+global.CPU_SPIKE_NOTIFY = true; // Email Game.notify on tick timeouts and abnormal CPU spikes
 global.OFFENSIVE_NUKE_RESERVE = 1; // Keep this many loaded nukers available for MAD retaliation
 global.OFFENSIVE_NUKE_COOLDOWN = 50000; // Ticks between proactive nuke launches (matches nuke land time)
 global.OFFENSIVE_NUKE_MIN_WAVES = 12; // Escalate at the failed-siege wave cutoff

@@ -818,7 +818,7 @@ function buildSourceLink(room, source) {
         const res = tryPlace(room, 'links', position, STRUCTURE_LINK);
         if (res.ok) {
             try {
-                invalidateRampartSpots(room);
+                invalidateRampartSpots(room, {soft: true});
             } catch (e) { /* optional */
             }
             noteLayerTile(room, 'links', position);
@@ -1382,7 +1382,7 @@ function destroyLinkStructure(room, link) {
                 if (room._invalidateStructureCaches) room._invalidateStructureCaches();
             }
             try {
-                invalidateRampartSpots(room);
+                invalidateRampartSpots(room, {soft: true});
             } catch (e) { /* optional */
             }
             return {id, x, y};
@@ -1527,7 +1527,7 @@ function ensureHubLink(room) {
         if (res.ok) {
             noteLayerTile(room, 'links', pos);
             try {
-                invalidateRampartSpots(room);
+                invalidateRampartSpots(room, {soft: true});
             } catch (e) { /* optional */
             }
             return {ok: true, x: pos.x, y: pos.y, shadow: res.shadow};

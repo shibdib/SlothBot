@@ -14,6 +14,7 @@ const DefenseVisualizer = require('module.defenseVisualizer');
 const StateManager = require('module.stateManager');
 const energyTracker = require('module.energyTracker');
 const profiler = require('tools.profiler');
+const cpuWatch = require('module.cpuWatch');
 const {sortCreepsForMovement} = require('pathTraffic');
 const {stripLegacyShibMemory} = require('pathUtils');
 const planner = require('module.roomPlanner');
@@ -54,9 +55,11 @@ class World {
         // Compile before colony work. A timeout mid-require sticks that module
         // for the rest of the global; loadRole swallows that instead of throwing.
         for (const roleName in rolesToLoad) loadRole(roleName);
+        cpuWatch.mark('roles');
 
         // General housekeeping
         this.houseKeeping();
+        cpuWatch.mark('house');
 
         // Manage segments
         this.segmentManager();
@@ -80,15 +83,19 @@ class World {
 
         // Manage room states
         this.stateManager();
+        cpuWatch.mark('state');
 
         // Manage rooms
         this.colonyManager();
+        cpuWatch.mark('colonies');
 
         // Manage military creeps
         this.militaryCreepManager();
+        cpuWatch.mark('military');
 
         // Manage Power Creeps
         this.powerCreepManager();
+        cpuWatch.mark('power');
 
         // Update HUD -- defer for first few ticks after reset (room + map visuals add up)
         {
@@ -102,6 +109,7 @@ class World {
 
         // Handle room building
         this.constructionController();
+        cpuWatch.mark('planner');
 
         // Global Queue (Every 10 Ticks)
         {
@@ -114,11 +122,13 @@ class World {
 
         // High Command
         this.highCommand();
+        cpuWatch.mark('hc');
 
         // Expansion Manager
         {
             const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
             if (sinceReset > 100 && (tickTracker['expansionManager'] || 0) + 100 < Game.time) {
+                cpuWatch.mark('expand');
                 this.expansionManager();
                 tickTracker['expansionManager'] = Game.time;
             }
@@ -245,6 +255,7 @@ class World {
             }
 
             try {
+                cpuWatch.mark('colony', roomName);
                 // invaderCheck runs inside Colony.defenseController — avoid duplicate creep scans here
                 const intel = INTEL[roomName];
                 const now = Game.time;

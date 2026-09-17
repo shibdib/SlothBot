@@ -46,7 +46,19 @@ class RoleRemoteBuilder {
             return;
         }
         const here = this.creep.room;
-        if ((here.memory.sk || (INTEL[here.name] && INTEL[here.name].sk)) && this.creep.skSafety()) return;
+        if (here.memory.sk || (INTEL[here.name] && INTEL[here.name].sk)) {
+            const dest = this.creep.memory.destination;
+            const site = this.getActiveConstructionSite();
+            const sitePos = site && site.pos;
+            if (dest === here.name && (this.creep.skThreatNear(this.creep.pos)
+                || (sitePos && this.creep.skThreatNear(sitePos)))) {
+                this.creep.memory.skRoadSkip = here.name;
+                this.creep.memory.skRoadSkipUntil = Game.time + 300;
+                this.releaseRoom(here);
+                return;
+            }
+            if (this.creep.skSafety({keepMoving: true})) return;
+        }
 
         const dest = this.creep.memory.destination;
         const colony = this.creep.memory.colony;
@@ -260,7 +272,13 @@ class RoleRemoteBuilder {
 
     pickDestination() {
         const colony = this.creep.memory.colony;
-        const destination = pickRoadWorkRoom(colony, this.creep.name);
+        let skip = this.creep.memory.skRoadSkip;
+        if (skip && this.creep.memory.skRoadSkipUntil && this.creep.memory.skRoadSkipUntil < Game.time) {
+            skip = undefined;
+            this.creep.memory.skRoadSkip = undefined;
+            this.creep.memory.skRoadSkipUntil = undefined;
+        }
+        const destination = pickRoadWorkRoom(colony, this.creep.name, skip);
         if (destination) {
             this.creep.memory.destination = destination;
             if (!this.creep.memory.other) this.creep.memory.other = {};

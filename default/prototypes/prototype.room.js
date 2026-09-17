@@ -388,8 +388,24 @@ Object.defineProperty(Room.prototype, 'droppedEnergy', {
     get: function () {
         if (!this._droppedEnergy) {
             const hostiles = this.hostileCreeps;
-            if (hostiles.length) {
-                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: r => r.resourceType === RESOURCE_ENERGY && hostiles.every(h => r.pos.getRangeTo(h) > 3)});
+            if (this._skCreepsTick !== Game.time) {
+                this._skCreeps = this.creeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
+                this._skCreepsTick = Game.time;
+            }
+            const keepers = this._skCreeps || [];
+            if (hostiles.length || keepers.length) {
+                this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {
+                    filter: r => {
+                        if (r.resourceType !== RESOURCE_ENERGY) return false;
+                        for (let i = 0; i < hostiles.length; i++) {
+                            if (r.pos.getRangeTo(hostiles[i]) <= 3) return false;
+                        }
+                        for (let i = 0; i < keepers.length; i++) {
+                            if (r.pos.getRangeTo(keepers[i]) <= 3) return false;
+                        }
+                        return true;
+                    },
+                });
             } else {
                 this._droppedEnergy = this.find(FIND_DROPPED_RESOURCES, {filter: r => r.resourceType === RESOURCE_ENERGY});
             }

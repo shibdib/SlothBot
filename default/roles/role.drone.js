@@ -95,7 +95,9 @@ class RoleDrone {
             if (this.creep.memory.task === 'upgrade') {
                 delete this.creep.memory.task;
             }
-            if (this.creep.memory.constructionSite) {
+            // Extension dumps must not yank a live road/container/site every tick.
+            // Only spawn/tower sites beat upkeep.
+            if (flags.spawnTowerSites && this.creep.memory.constructionSite) {
                 const current = Game.getObjectById(this.creep.memory.constructionSite);
                 if (current && !isCriticalBuildStructureType(current.structureType)
                     && !shouldKeepInfrastructureWork(this.creep, current)) {
@@ -131,6 +133,20 @@ class RoleDrone {
                     delete this.creep.memory.sitePos;
                 }
                 if (spawnAnchorRampartWork(this.creep, this.room)) return;
+            }
+        }
+
+        const buildTask = this.creep.memory.task;
+        if (this.creep.memory.constructionSite && (!buildTask || buildTask === 'build' || buildTask === 'repair')) {
+            const current = Game.getObjectById(this.creep.memory.constructionSite);
+            if (current) {
+                if (this.continueBuild()) return;
+            } else {
+                delete this.creep.memory.constructionSite;
+                delete this.creep.memory.sitePos;
+                if (buildTask === 'build' || buildTask === 'repair') {
+                    delete this.creep.memory.task;
+                }
             }
         }
 
@@ -386,9 +402,15 @@ class RoleDrone {
 
     building() {
         if (this.creep.memory.task && this.creep.memory.task !== 'build' && this.creep.memory.task !== 'repair') return false;
-        if (this.creep.memory.constructionSite) return this.continueBuild();
-        if (this.creep.constructionWork() && this.creep.builderFunction()) return true;
-        return false;
+        if (this.creep.memory.constructionSite) {
+            const current = Game.getObjectById(this.creep.memory.constructionSite);
+            if (current) return this.continueBuild();
+            delete this.creep.memory.constructionSite;
+            delete this.creep.memory.sitePos;
+        }
+        if (this._constructionScanTried) return false;
+        this._constructionScanTried = true;
+        return !!(this.creep.constructionWork() && this.creep.builderFunction());
     }
 
     walling() {
@@ -461,17 +483,17 @@ function droneRoomFlags(room) {
     }
     if (droneFlagsCache[room.name]) return droneFlagsCache[room.name];
     let hasBuilderWork = false;
+    let spawnTowerSites = false;
     const sites = room.constructionSites || [];
     for (let i = 0; i < sites.length; i++) {
         const t = sites[i].structureType;
-        if (t !== STRUCTURE_WALL && t !== STRUCTURE_RAMPART) {
-            hasBuilderWork = true;
-            break;
-        }
+        if (t !== STRUCTURE_WALL && t !== STRUCTURE_RAMPART) hasBuilderWork = true;
+        if (t === STRUCTURE_SPAWN || t === STRUCTURE_TOWER) spawnTowerSites = true;
     }
     const flags = {
         downgradeUrgent: controllerDowngradeUrgent(room),
         criticalBuild: roomHasCriticalBuildSites(room) || roomMissingUpgradePad(room),
+        spawnTowerSites,
         hasHauler: hasLiveHauler(room),
         spawnNeedsFill: spawnEnergyNeedsFill(room),
         threatLevel: (INTEL[room.name] && INTEL[room.name].threatLevel) || 0,

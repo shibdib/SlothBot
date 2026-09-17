@@ -736,7 +736,7 @@ function placeSpecials(room, options) {
             placed++;
             details.push({type: a.structureType, x: a.x, y: a.y, status: 'placed'});
             try {
-                require('planGeomRamparts').invalidateRampartSpots(room);
+                require('planGeomRamparts').invalidateRampartSpots(room, {soft: true});
             } catch (e) { /* optional */
             }
             if (typeof log !== 'undefined' && log.a) {

@@ -506,6 +506,7 @@ module.exports = {
 
     output: Profiler.output,
     callgrind: Profiler.callgrind,
+    isProfiling: Profiler.isProfiling,
 
     registerObject: profileObjectFunctions,
     registerFN: profileFunction,

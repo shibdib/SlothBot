@@ -11,7 +11,6 @@ const SK_HEAL = 7 * HEAL_POWER;
 const SK_DPS = 19 * ATTACK_POWER + 2 * RANGED_ATTACK_POWER;
 const HOLD_RANGE = 4;
 const SURVIVE_BUFFER = 200;
-const DISENGAGE_BUFFER = 400;
 
 class RoleSKAttacker {
     constructor(creep) {
@@ -34,12 +33,18 @@ class RoleSKAttacker {
     }
 
     housekeeping() {
-        // Boosting
-        if (this.creep.tryToBoost()) return true;
-        if (!this.creep.memory.destination) {
+        const dest = this.creep.memory.destination;
+        if (!dest) {
             this.creep.recycleCreep();
             return true;
         }
+        // Recycle before labs finish if dest is already blocked — a boosted
+        // 4100 body walking into a wave is a mineral dump.
+        if (this.room.name !== dest && skCombatBlocksMining(dest)) {
+            this.creep.recycleCreep();
+            return true;
+        }
+        if (this.creep.tryToBoost()) return true;
         const core = this.room.impassibleStructures.find(s => s.structureType === STRUCTURE_INVADER_CORE);
         if (core) {
             this.room.cacheRoomIntel(true);
@@ -104,13 +109,13 @@ class RoleSKAttacker {
     }
 
     canSurviveMelee() {
+        if (!this.creep.getActiveBodyparts(ATTACK)) return false;
         const needed = this.meleeHitsNeeded();
         if (!isFinite(needed)) return false;
-        if (!this.creep.getActiveBodyparts(ATTACK)) return false;
-        // Estimate already exceeds remaining hitsMax — kite cannot win, commit.
-        if (needed > this.creep.hitsMax) return true;
-        if (this.creep.memory.skMelee) return this.creep.hits >= needed - DISENGAGE_BUFFER;
-        return this.creep.hits >= needed;
+        // 20A/5H tanks a keeper. Kiting never kills (no RA); stay in melee
+        // and heal between fights. Only refuse a fresh engage at critical HP.
+        if (this.creep.memory.skMelee) return true;
+        return this.creep.hits > this.creep.hitsMax * 0.2;
     }
 
     isKeeper(creep) {
@@ -131,8 +136,7 @@ class RoleSKAttacker {
         this.room.cacheRoomIntel(true);
         this.room.invaderCheck();
         this.creep.memory.arrived = undefined;
-        this.healSelf();
-        this.creep.recycleCreep();
+        this.creep.suicide();
         return true;
     }
 
@@ -196,7 +200,6 @@ class RoleSKAttacker {
                 break;
             case OK:
                 this.creep.memory.skMelee = true;
-                if (!this.canSurviveMelee()) this.holdOutside(keeper);
                 break;
         }
     }
@@ -205,9 +208,9 @@ class RoleSKAttacker {
         this.creep.memory.keeper = undefined;
         this.creep.memory.skMelee = undefined;
         let lair = Game.getObjectById(this.creep.memory.lair);
-        if (!lair) {
-            const lairs = _.filter(this.room.keeperLairs, (s) => s.room.name === this.creep.memory.destination);
-            lair = lairs.length ? _.min(lairs, 'ticksToSpawn') : undefined;
+        // Live keepers leave ticksToSpawn undefined. Don't camp that lair.
+        if (!lair || !lair.ticksToSpawn) {
+            lair = this.nextLair();
         }
         if (!lair || !lair.id) {
             this.creep.memory.lair = undefined;
@@ -219,8 +222,27 @@ class RoleSKAttacker {
             this.holdOutside(lair);
             return;
         }
-        if (this.creep.pos.isNearTo(lair)) this.creep.idleFor(lair.ticksToSpawn - 1);
-        else this.creep.shibMove(lair);
+        if (this.creep.pos.isNearTo(lair)) {
+            const wait = (lair.ticksToSpawn || 1) - 1;
+            if (wait > 0) this.creep.idleFor(wait);
+        } else this.creep.shibMove(lair);
+    }
+
+    nextLair() {
+        const dest = this.creep.memory.destination;
+        const lairs = this.room.keeperLairs;
+        let best = undefined;
+        let bestTicks = Infinity;
+        for (let i = 0; i < lairs.length; i++) {
+            const s = lairs[i];
+            const ticks = s.ticksToSpawn;
+            if (typeof ticks !== 'number' || s.room.name !== dest) continue;
+            if (ticks < bestTicks) {
+                bestTicks = ticks;
+                best = s;
+            }
+        }
+        return best;
     }
 }
 

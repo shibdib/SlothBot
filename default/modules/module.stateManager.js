@@ -173,6 +173,10 @@ class StateManager {
             upgrade: Math.round(roomSnap.upgrade),
         };
 
+        const offset = (room.name.charCodeAt(0) || 0) % 5;
+        const diagDue = !room.energyDiag || (Game.time % 5 === offset);
+        if (!diagDue) return;
+
         room.energyDiag = {
             statHarv: statHarvesters.length,
             statHarvWork: _.sum(statHarvesters, c => c.getActiveBodyparts(WORK)) || 0,

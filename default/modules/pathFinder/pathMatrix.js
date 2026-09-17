@@ -51,7 +51,8 @@ function getBaseMatrix(roomName, creep, options) {
         ? (lookHash ? `${impassibleHash}|L:${lookHash}` : impassibleHash) || 'no-obstacles'
         : 'no-room';
     const skSelf = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'SKAttacker');
-    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}`;
+    const skHarvestCover = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'remoteHarvester');
+    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}_${skHarvestCover}`;
     const baseKey = `${roomName}_base_${cacheStamp}_${structuresHash}`;
 
     // Per-tick reuse (biggest CPU win). Stamp includes type/wrecker so a
@@ -270,20 +271,33 @@ function addSksToMatrix(roomName, matrix, options, creep) {
     const isSkAttacker = !!(creep && creep.memory && creep.memory.role === 'SKAttacker');
     const skOnSite = isSkAttacker && creep.memory.destination === roomName;
 
-    // Miners path to the source once our SKAttacker is in dest. The attacker
-    // itself still needs other-keeper bubbles (ignoreKeeper drops the target).
+    // Miners path to the source once a covering attacker is on site. Haulers
+    // and builders keep keeper costs so they route around a spawn instead of
+    // walking up and parking at kite range.
     if (room && !skOnSite) {
-        const activeMining = room.myCreeps.find(c => c.memory.role === 'SKAttacker' && c.memory.destination === roomName);
-        if (activeMining) return matrix;
+        const covering = room.myCreeps.find(c =>
+            c.memory.role === 'SKAttacker'
+            && !c.spawning
+            && !c.memory.recycling
+            && c.memory.destination === roomName
+            && c.memory.arrived
+        );
+        const role = creep && creep.memory && creep.memory.role;
+        if (covering && role === 'remoteHarvester') return matrix;
     }
 
     const terrain = Game.map.getRoomTerrain(roomName);
 
     // Live SK creep positions take priority when we have vision — they're the actual
     // current threat and may have wandered off their lair/source.
+    // hostileCreeps excludes Source Keepers, so use the same creeps scan as skSafety.
     let sks = [];
     if (room) {
-        sks = room.hostileCreeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
+        if (room._skCreepsTick !== Game.time) {
+            room._skCreeps = room.creeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
+            room._skCreepsTick = Game.time;
+        }
+        sks = room._skCreeps;
         if (options.ignoreKeeper) sks = sks.filter(c => c.id !== options.ignoreKeeper);
     }
 

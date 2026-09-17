@@ -34,6 +34,11 @@ const BOOST_TIER_WEIGHT = 4;
 const WAVE_SHORTFALL_WEIGHT = 4;
 const STEAL_MARGIN = 4;
 const STEAL_CHECK_INTERVAL = 15;
+// Better-source steals used load/flow, which flips every interval and
+// ping-ponged whole batches between two origins in one tick.
+const BETTER_SOURCE_HOLD = 200;
+const BETTER_SOURCE_INTERVAL = 50;
+const BETTER_SOURCE_MARGIN = 2;
 const ROLE_ASSIGN_WEIGHT = {
     longbowSquad: 100,
     siegeDuo: 90,
@@ -53,6 +58,7 @@ const COLONY_ASSIGN_PENALTY = {
 const assignmentCooldown = {};
 const assignmentExcludeUntil = {};
 const stealCheckAt = {};
+let betterSourceStealTick = -1;
 let militaryLoadCache = {tick: -1, loads: null};
 let assignedRoomCache = {tick: -1, results: {}};
 let waveBoostBodiesCache = {tick: -1, results: {}};
@@ -537,9 +543,12 @@ function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
 
             clearAssignmentWaitState(opMemory);
 
-            if (stealCheckDue(target, opMemory.assignedAt)) {
-                const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, 'Better source room.');
-                if (stolen) return stolen;
+            if (canStealForBetterSource(opMemory, target)) {
+                const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, 'Better source room.', {betterSource: true});
+                if (stolen) {
+                    betterSourceStealTick = Game.time;
+                    return stolen;
+                }
             }
             return opMemory.assignedRoom;
         }
@@ -557,6 +566,13 @@ function stealCheckDue(target, assignedAt) {
     if (last + STEAL_CHECK_INTERVAL > Game.time) return false;
     stealCheckAt[target] = Game.time;
     return true;
+}
+
+function canStealForBetterSource(opMemory, target) {
+    if (betterSourceStealTick !== -1 && betterSourceStealTick + BETTER_SOURCE_INTERVAL > Game.time) return false;
+    const assignedAt = (opMemory && opMemory.assignedAt) || 0;
+    if (assignedAt + BETTER_SOURCE_HOLD > Game.time) return false;
+    return stealCheckDue(target, assignedAt);
 }
 
 function commitAssignment(target, opMemory, entry, roomName) {
@@ -595,7 +611,12 @@ function tryStealAssignment(target, opMemory, levelTarget, entry, reason, option
         const loads = getMilitaryLoadByColony();
         const flags = assignmentFlags(target, creepInfo);
         const currentEval = assigned && evaluateAssignmentCandidate(assigned, target, levelTarget, creepInfo, loads, flags);
-        if (currentEval && best.score + STEAL_MARGIN > currentEval.score) return null;
+        if (currentEval) {
+            const margin = options.betterSource ? BETTER_SOURCE_MARGIN : STEAL_MARGIN;
+            const bestCmp = options.betterSource ? best.stickyScore : best.score;
+            const curCmp = options.betterSource ? currentEval.stickyScore : currentEval.score;
+            if (bestCmp + margin > curCmp) return null;
+        }
     }
 
     unassignRoom(target, reason || 'Better source room.', {excludeRoom: force});
@@ -760,10 +781,16 @@ function evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads
     const generated = tryGenerateAssignableBody(myRoom, creepInfo);
     if (!generated) return null;
 
-    const score = computeAssignmentScore(myRoom, distance, load, flags.isAuxiliary)
-        + optionalBoostPenalty(myRoom, generated.info, generated.body)
+    const boosts = optionalBoostPenalty(myRoom, generated.info, generated.body)
         + boostQualityPenalty(myRoom, generated.info, generated.body);
-    return {key, score, distance, load};
+    const scored = computeAssignmentScore(myRoom, distance, load, flags.isAuxiliary);
+    return {
+        key,
+        score: scored.score + boosts,
+        stickyScore: scored.sticky + boosts,
+        distance,
+        load,
+    };
 }
 
 function isBetterAssignmentCandidate(score, distance, load, key, best) {
@@ -778,7 +805,7 @@ function isBetterAssignmentCandidate(score, distance, load, key, best) {
 }
 
 function computeAssignmentScore(myRoom, routeDistance, load, isAuxiliary) {
-    let score = routeDistance + (COLONY_ASSIGN_PENALTY[getColonyRole(myRoom)] || 0);
+    let sticky = routeDistance + (COLONY_ASSIGN_PENALTY[getColonyRole(myRoom)] || 0);
 
     const energyState = spawnEnergyState(myRoom) || 0;
     const ei = myRoom.energyInfo;
@@ -791,8 +818,9 @@ function computeAssignmentScore(myRoom, routeDistance, load, isAuxiliary) {
     // Weights are hop-equivalent. Energy 2 vs 3 used to cost 6 rooms and skip
     // a healthy neighbor for a distant full bunker.
     const energyWeight = isAuxiliary ? 1 : 2;
-    if (energyState < 3) score += (3 - energyState) * energyWeight;
+    if (energyState < 3) sticky += (3 - energyState) * energyWeight;
 
+    let score = sticky;
     if (flowStressed) score += isAuxiliary ? 3 : 6;
     else if (!isAuxiliary && energyState < 2 && !stocked) score += 2;
 
@@ -803,7 +831,7 @@ function computeAssignmentScore(myRoom, routeDistance, load, isAuxiliary) {
     const spawnCap = CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][myRoom.level];
     if (spawnCap > 0) score += (load / spawnCap) * 2;
 
-    return score;
+    return {score, sticky};
 }
 
 function getAssignedRoomResult(targetRoom, level, creepInfo, options = {}) {

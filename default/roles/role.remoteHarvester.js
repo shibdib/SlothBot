@@ -24,7 +24,11 @@ class RoleRemoteHarvester {
         this.room = creep.room;
         if (!this.creep.memory.other) this.creep.memory.other = {};
         this.source = this.resolveSource();
-        if (this.creep.memory.onContainer && Game.time % 50 !== 0) {
+        const dest = this.creep.memory.destination;
+        const skGuarded = dest && skGuardRoom(this.creep.memory.colony, dest);
+        // Site completion and SK rooms need a live object, not a 50-tick stale id.
+        if (this.creep.memory.onContainer && Game.time % 50 !== 0
+            && !this.creep.memory.containerSite && !skGuarded) {
             this.container = Game.getObjectById(this.creep.memory.containerID)
                 || Game.getObjectById(this.creep.memory.containerSite);
         } else {
@@ -45,14 +49,34 @@ class RoleRemoteHarvester {
 
         const colony = this.creep.memory.colony;
         const destination = this.creep.memory.destination;
-        if (colony && destination && ROOM_REMOTE_TARGETS[colony]) {
-            const match = _.find(ROOM_REMOTE_TARGETS[colony],
-                s => s.room === destination && (!other.source || s.source === other.source));
-            if (match) {
-                other.source = match.source;
-                source = Game.getObjectById(match.source);
-                if (source) return source;
-            }
+        if (!colony || !destination || !ROOM_REMOTE_TARGETS[colony]) return undefined;
+
+        const inDest = this.creep.room.name === destination;
+        const targets = ROOM_REMOTE_TARGETS[colony];
+        const tryBind = (sourceId) => {
+            if (!sourceId) return undefined;
+            const obj = Game.getObjectById(sourceId);
+            if (!obj) return undefined;
+            other.source = sourceId;
+            return obj;
+        };
+
+        if (!inDest) {
+            if (other.source) return tryBind(other.source);
+            const match = _.find(targets, s => s.room === destination);
+            return match ? tryBind(match.source) : undefined;
+        }
+
+        // In dest a stale id is not coming back. Rebind to a live assigned source.
+        if (other.source) {
+            const preferred = tryBind(other.source);
+            if (preferred) return preferred;
+        }
+        for (let i = 0; i < targets.length; i++) {
+            const s = targets[i];
+            if (s.room !== destination) continue;
+            const obj = tryBind(s.source);
+            if (obj) return obj;
         }
         return undefined;
     }
@@ -207,8 +231,8 @@ class RoleRemoteHarvester {
                 const route = colony ? getMiningRouteRooms(colony, dest) : [];
                 return travelRouteHops(this.creep, dest, route, {range: 23});
             }
-            this.creep.idleFor(5);
-            return;
+            // Assigned sources are visible in dest. Stale id / empty claim: recycle.
+            return this.creep.recycleCreep();
         }
 
         if (!this.container || Game.time % 5 === 0) this.refreshContainerTarget();
@@ -239,8 +263,8 @@ class RoleRemoteHarvester {
     }
 
     /**
-     * Stand on the container/site. Keeper/stranger on the tile: harvest from
-     * range 1. Our own replacement/hauler: wait and dump carry into the pad.
+     * Stand on the container/site. Occupied tile: stay at range 1 and harvest.
+     * Transfer into the pad if a friendly is sitting on it (does not consume WORK).
      */
     moveToContainerSpot() {
         if (this.creep.pos.isEqualTo(this.container.pos)) {
@@ -258,25 +282,25 @@ class RoleRemoteHarvester {
             this.creep.shibMove(this.container, {range: 1});
             return false;
         }
-        if (occupant.my) {
-            if (this.creep.store[RESOURCE_ENERGY] && this.container.store
-                && this.container.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-                this.creep.transfer(this.container, RESOURCE_ENERGY);
-            }
-            return false;
+        if (occupant.my && this.creep.store[RESOURCE_ENERGY] && this.container.store
+            && this.container.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+            this.creep.transfer(this.container, RESOURCE_ENERGY);
         }
         return true;
     }
 
     onSourceEmpty() {
         const container = this.container;
-        if (container && container.hits && container.hits < container.hitsMax) {
+        if (container && container.hits && container.hits < this.container.hitsMax) {
             if (this.creep.store[RESOURCE_ENERGY]) this.creep.repair(container);
             return;
         }
         if (!container || !container.progressTotal) {
+            const dest = this.creep.memory.destination;
+            // idle skips the role (and skSafety / combatFlee) until it expires.
+            if (this.isSkRoom() || (dest && skGuardRoom(this.creep.memory.colony, dest))) return;
             const regen = this.source && this.source.ticksToRegeneration;
-            this.creep.idleFor(Math.max(1, regen || 1));
+            this.creep.idleFor(Math.max(1, Math.min(5, regen || 1)));
         }
     }
 
@@ -302,11 +326,13 @@ class RoleRemoteHarvester {
             this.creep.memory.energyId = this.container.id;
             // Full pad: leave energy in the source instead of dropping, unless
             // we still need one harvest tick to load carry for repair.
-            if (full && !sourceEmpty && (carry || !damaged)) return true;
+            if (full && !sourceEmpty && (carry || !damaged)) {
+                this.handleDroppedResources();
+                return true;
+            }
             return false;
         }
 
-        // Site is the road builder's job. Stay on the tile and harvest.
         return false;
     }
 
@@ -319,11 +345,26 @@ class RoleRemoteHarvester {
         if (padPos) {
             if (!this.creep.pos.isEqualTo(padPos)) {
                 this.creep.memory.onContainer = undefined;
-                return this.creep.shibMove(padPos, {range: 0});
+                const occupant = padPos.checkForCreep && padPos.checkForCreep();
+                if (occupant && occupant.id !== this.creep.id) {
+                    if (!this.creep.pos.isNearTo(padPos)) {
+                        return this.creep.shibMove(padPos, {range: 1});
+                    }
+                } else {
+                    return this.creep.shibMove(padPos, {range: 0});
+                }
+            } else {
+                this.creep.memory.onContainer = true;
             }
-            this.creep.memory.onContainer = true;
         } else if (!this.creep.pos.isNearTo(this.source)) {
             return this.creep.shibMove(this.source);
+        }
+
+        const site = this.container && this.container.progressTotal && !this.container.hits
+            ? this.container : null;
+        if (site && this.creep.isFull) {
+            this.creep.build(site);
+            return;
         }
 
         this.handleDroppedResources();
@@ -342,6 +383,7 @@ class RoleRemoteHarvester {
     }
 
     handleDroppedResources() {
+        // Stamp only. Pickup would consume the harvest intent on a 1-CARRY body.
         const dropped = this.creep.pos.lookFor(LOOK_RESOURCES)[0];
         if (dropped) {
             this.creep.memory.energyAmount = dropped.amount;

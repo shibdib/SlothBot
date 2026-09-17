@@ -89,9 +89,11 @@ function findNeedyBorderPatrol(roomName) {
 function miscCreepQueue(room) {
     if (!spawnState.throttleReady(spawnState.miscTick, room.name, spawnState.MISC_INTERVAL)) return;
     const energyState = spawnEnergyState(room);
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    const season = typeof IS_SEASON !== 'undefined' && IS_SEASON;
+    const thorium = season ? room.thorium : null;
+    const miningThorium = !!(rcl >= 6 && thorium && thorium.mineralAmount > 0);
 
-    const miningThorium = typeof IS_SEASON !== 'undefined' && IS_SEASON
-        && room.level >= 6 && room.thorium && room.thorium.mineralAmount > 0;
     if (room.storage && (room.terminal || room.factory || miningThorium)) {
         queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.hauler + 1, numberNeeded: 1});
     }
@@ -123,9 +125,8 @@ function miscCreepQueue(room) {
 
     const explorerCount = getExplorerNeededCount(room);
     if (explorerCount > 0) {
-        const rcl = (room.controller && room.controller.level) || room.level || 0;
         // Season used to queue explorers at 1 and starve the RCL4–5 dump.
-        const explorerPriority = (typeof IS_SEASON !== 'undefined' && IS_SEASON && rcl >= 4)
+        const explorerPriority = (season && rcl >= 4)
             ? PRIORITIES.remoteHarvester : PRIORITIES.medium;
         queueCreepIfNeeded({
             colony: room,
@@ -135,43 +136,46 @@ function miscCreepQueue(room) {
         });
     }
 
-    const rcl = (room.controller && room.controller.level) || room.level || 0;
-    // Thorium is non-renewable. Mine as soon as the pad container exists —
-    // harvesting onto the ground decays the ore.
+    // Extractors unlock at RCL 6. Mine as soon as the pad container exists.
+    // Thorium first (non-renewable, dropped ore decays); regular mineral after.
     let queuedMineralHarvester = false;
-    if (typeof IS_SEASON !== 'undefined' && IS_SEASON && rcl >= 6) {
-        const thorium = room.thorium;
-        if (thorium && thorium.mineralAmount > 0 && liveExtractorContainer(room, thorium.pos)) {
-            queueCreepIfNeeded({
-                room, role: 'mineralHarvester',
-                priority: PRIORITIES.priority,
-                numberNeeded: 1,
-                misc: {boosts: [WORK]},
-                assignment: thorium.id,
-                other: {assignedMineral: thorium.id, thorium: true, source: thorium.id}
-            });
-            queuedMineralHarvester = true;
-        }
+
+    if (miningThorium && liveExtractorContainer(room, thorium.pos)) {
+        queueCreepIfNeeded({
+            room, role: 'mineralHarvester',
+            priority: PRIORITIES.priority,
+            numberNeeded: 1,
+            misc: {boosts: [WORK]},
+            assignment: thorium.id,
+            other: {assignedMineral: thorium.id, thorium: true, source: thorium.id}
+        });
+        queuedMineralHarvester = true;
     }
 
-    if (room.storage && room.level >= 6
-        && room.storage.store.getFreeCapacity() >= STORAGE_CAPACITY * 0.1) {
-        const {flowStressed} = getFlowContext(room);
-        if (energyState >= 1 && !flowStressed) {
-            const mineral = room.mineral;
-            const thoriumLeft = typeof IS_SEASON !== 'undefined' && IS_SEASON
-                && room.thorium && room.thorium.mineralAmount > 0;
-            // Regular minerals wait for RCL8, the extractor to leave Thorium, and a live pad.
-            if (rcl >= 8 && mineral && mineral.mineralAmount && !thoriumLeft
-                && liveExtractorContainer(room, mineral.pos)) {
-                queueCreepIfNeeded({
-                    room, role: 'mineralHarvester', priority: PRIORITIES.mineralHarvester,
-                    numberNeeded: 1, misc: {boosts: [WORK]},
-                    assignment: mineral.id,
-                    other: {assignedMineral: mineral.id, source: mineral.id}
-                });
-                queuedMineralHarvester = true;
+    if (!queuedMineralHarvester) {
+        const mineral = room.mineral;
+        const mineralPad = rcl >= 6 && mineral && mineral.mineralAmount
+            && liveExtractorContainer(room, mineral.pos);
+        let spawnRegular = false;
+        if (mineralPad && !miningThorium) {
+            if (season) {
+                spawnRegular = true;
+            } else if (room.storage
+                && room.storage.store.getFreeCapacity() >= STORAGE_CAPACITY * 0.1) {
+                const {flowStressed} = getFlowContext(room);
+                spawnRegular = energyState >= 1 && !flowStressed;
             }
+        }
+        if (spawnRegular) {
+            queueCreepIfNeeded({
+                room, role: 'mineralHarvester',
+                // RCL 6–7 remotes otherwise starve the one miner.
+                priority: rcl < 8 ? PRIORITIES.remoteHarvester : PRIORITIES.mineralHarvester,
+                numberNeeded: 1, misc: {boosts: [WORK]},
+                assignment: mineral.id,
+                other: {assignedMineral: mineral.id, source: mineral.id}
+            });
+            queuedMineralHarvester = true;
         }
     }
     if (!queuedMineralHarvester) clearRoomRoleQueue(room.name, 'mineralHarvester');

@@ -66,6 +66,9 @@ function updateCreepCountCache() {
 
     for (const creep of allCreeps) {
         if (!creep.my) continue;
+        // Recycling is walking home. Counting it as the live slot delayed
+        // SKAttacker restaff until the old body reached a spawn.
+        if (creep.memory.recycling) continue;
         processCreepForCache(counts, creep);
         if (creep.memory.role === 'remoteHarvester') {
             const sourceId = creep.memory.other && creep.memory.other.source;
@@ -208,7 +211,7 @@ function creepExpiringSoon(room = undefined, role, destination = undefined, oper
 
     let ttl = data.minTTL;
     let bodyLen = data.bodyLen;
-    if (role === 'reserver') {
+    if (role === 'reserver' || role === 'remoteHarvester') {
         // Don't stack a second walker while the live one is still in transit.
         if (data.minTTLAtDest === Infinity) return false;
         ttl = data.minTTLAtDest;

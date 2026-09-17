@@ -13,7 +13,7 @@
  * in planExtensions / templates / planRoads / planRamparts helpers.
  */
 
-const {tickTracker} = require('planState');
+const {tickTracker, beginPlannerCpu, plannerShouldStop} = require('planState');
 const {isColonyEarlyRush} = require('bodyHelpers');
 const {listVisibleOwnedRooms} = require('planUtils');
 
@@ -328,7 +328,36 @@ function shouldRunAuxiliary(lastRun) {
     return !lastRun.task || lastRun.task === 'layout';
 }
 
+const CRITICAL_PHASES = {
+    [PHASE.HUB]: true,
+    [PHASE.SPAWN]: true,
+    [PHASE.TOWERS]: true,
+};
+const WATCH_PHASES = {
+    [PHASE.HUB]: true,
+    [PHASE.ANCHORS]: true,
+    [PHASE.RAMPARTS]: true,
+    [PHASE.ROADS]: true,
+    [PHASE.ECONOMY]: true,
+    [PHASE.GLOBAL_PERIMETER]: true,
+    [PHASE.GLOBAL_ROADS]: true,
+};
+
+function markPlannerPhase(label) {
+    if (!WATCH_PHASES[label]) return;
+    try {
+        require('module.cpuWatch').mark('planner:' + label);
+    } catch (e) { /* optional */
+    }
+}
+
 function safeRun(label, fn, report) {
+    if (plannerShouldStop() && !CRITICAL_PHASES[label]) {
+        if (report && report.phases) {
+            report.phases.push({phase: label, ok: true, skipped: 'cpu'});
+        }
+        return false;
+    }
     const t0 = typeof Game !== 'undefined' && Game.cpu && Game.cpu.getUsed
         ? Game.cpu.getUsed()
         : null;
@@ -341,6 +370,7 @@ function safeRun(label, fn, report) {
             }
             report.phases.push(entry);
         }
+        markPlannerPhase(label);
         return true;
     } catch (e) {
         if (typeof log !== 'undefined' && log.e) {
@@ -357,6 +387,7 @@ function safeRun(label, fn, report) {
             }
             report.phases.push(entry);
         }
+        markPlannerPhase(label);
         if (typeof Memory !== 'undefined') {
             Memory._plannerPhaseError = {
                 tick: Game.time,
@@ -448,6 +479,10 @@ function needsCriticalCore(room) {
  * Tower layout reset is intentionally NOT here — V1 only runs it after throttle.
  */
 function runGlobalPhases(report) {
+    if (plannerShouldStop()) {
+        report.globalSkipped = 'cpu';
+        return;
+    }
     safeRun(PHASE.GLOBAL_PERIMETER, () => {
         // Always siteBudget path (Phase 2 — no V1 ensure hybrid).
         require('planRamparts').ensureAllIncompletePerimeters();
@@ -767,6 +802,7 @@ function runRoomPhases(room, lastRun, ctx, report) {
  * Main entry — behavioral parity with planBuild.buildRoom, structured.
  */
 function buildRoom() {
+    beginPlannerCpu();
     const cpuStart = typeof Game !== 'undefined' && Game.cpu && Game.cpu.getUsed
         ? Game.cpu.getUsed()
         : 0;

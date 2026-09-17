@@ -132,38 +132,75 @@ function wallRepairCap(room, structure) {
     return entry.targetLimit;
 }
 
-function collectStructureDamage(room, claimedIds, ownedByMe) {
-    const walls = [];
-    const ramparts = [];
-    const containers = [];
-    const roads = [];
-    const other = [];
-    const allBarriers = [];
+function addDamagedStructures(list, dest, claimedIds) {
+    if (!list) return;
+    for (let i = 0; i < list.length; i++) {
+        const s = list[i];
+        if (!s || claimedIds.has(s.id) || s.hits >= s.hitsMax) continue;
+        dest.push(s);
+    }
+}
+
+function emptyStructureDamage() {
+    return {
+        walls: [],
+        ramparts: [],
+        containers: [],
+        roads: [],
+        other: [],
+        allBarriers: [],
+        _barriers: false,
+        _containers: false,
+        _roads: false,
+        _other: false,
+    };
+}
+
+function fillDamageBarriers(room, claimedIds, damage) {
+    if (damage._barriers) return;
+    damage._barriers = true;
     const barriers = room.barriers || [];
-    for (const s of barriers) {
-        allBarriers.push(s);
+    for (let i = 0; i < barriers.length; i++) {
+        const s = barriers[i];
+        damage.allBarriers.push(s);
         if (claimedIds.has(s.id)) continue;
         if (s.structureType === STRUCTURE_WALL) {
-            if (s.hits < wallRepairCap(room, s)) walls.push(s);
+            if (s.hits < wallRepairCap(room, s)) damage.walls.push(s);
         } else if (s.structureType === STRUCTURE_RAMPART && s.hits < s.hitsMax) {
-            ramparts.push(s);
+            damage.ramparts.push(s);
         }
     }
-    const addDamaged = (list, dest) => {
-        for (const s of list) {
-            if (claimedIds.has(s.id) || s.hits >= s.hitsMax) continue;
-            dest.push(s);
-        }
-    };
-    addDamaged(room.containers, containers);
-    addDamaged(room.roads, roads);
-    if (ownedByMe) {
-        const extras = (room.spawns || []).concat(room.extensions || [], room.towers || [], room.labs || [], room.links || []);
-        if (room.storage) extras.push(room.storage);
-        if (room.terminal) extras.push(room.terminal);
-        addDamaged(extras, other);
-    }
-    return {walls, ramparts, containers, roads, other, allBarriers};
+}
+
+function fillDamageContainers(room, claimedIds, damage) {
+    if (damage._containers) return;
+    damage._containers = true;
+    addDamagedStructures(room.containers, damage.containers, claimedIds);
+}
+
+function fillDamageRoads(room, claimedIds, damage) {
+    if (damage._roads) return;
+    damage._roads = true;
+    addDamagedStructures(room.roads, damage.roads, claimedIds);
+}
+
+function fillDamageOther(room, claimedIds, damage) {
+    if (damage._other) return;
+    damage._other = true;
+    if (!room.controller || !room.controller.my) return;
+    const extras = (room.spawns || []).concat(room.extensions || [], room.towers || [], room.labs || [], room.links || []);
+    if (room.storage) extras.push(room.storage);
+    if (room.terminal) extras.push(room.terminal);
+    addDamagedStructures(extras, damage.other, claimedIds);
+}
+
+function fillScanDamage(scan, room, need) {
+    const damage = scan.damage;
+    const claimedIds = scan.claimedIds;
+    if (need.barriers) fillDamageBarriers(room, claimedIds, damage);
+    if (need.containers) fillDamageContainers(room, claimedIds, damage);
+    if (need.roads) fillDamageRoads(room, claimedIds, damage);
+    if (need.other) fillDamageOther(room, claimedIds, damage);
 }
 
 let constructionScanTick = -1;
@@ -187,7 +224,7 @@ function getConstructionScan(room) {
         intel,
         ownedByMe,
         claimedIds,
-        damage: collectStructureDamage(room, claimedIds, ownedByMe),
+        damage: emptyStructureDamage(),
         sites: collectConstructionBuckets(room),
         roadKeep,
     };
@@ -435,7 +472,8 @@ Creep.prototype.findSource = function (ignoreOthers = false) {
     return false;
 };
 
-Creep.prototype.skSafety = function () {
+Creep.prototype.skSafety = function (opts) {
+    opts = opts || {};
     if (this.room.controller) {
         if (this.room.controller.safeMode) return false;
         if (this.room.controller.owner && FRIENDLIES.includes(this.room.controller.owner.username) && this.room.towers[0]) return false;
@@ -454,12 +492,8 @@ Creep.prototype.skSafety = function () {
 
     const range = 7;
     const room = this.room;
-    if (room._skCreepsTick !== Game.time) {
-        room._skCreeps = room.creeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
-        room._skCreepsTick = Game.time;
-    }
-    const sk = room._skCreeps.find(c => c.pos.inRangeTo(this, range));
-    const lair = room.keeperLairs.find(s => s.ticksToSpawn && s.ticksToSpawn <= 5 && s.pos.inRangeTo(this, range));
+    const sk = this.skThreatNear(this.pos, range, true);
+    const lair = !sk && this.skImminentLair(this.pos, range);
 
     if (sk || lair) {
         this.shibKite(range + 2, sk || lair);
@@ -468,7 +502,7 @@ Creep.prototype.skSafety = function () {
     } else if (this.memory.fledSK) {
         if (this.memory.fledSK + 5 <= Game.time) {
             delete this.memory.fledSK;
-        } else {
+        } else if (!(opts && opts.keepMoving)) {
             this.idleFor(10);
             return true;
         }
@@ -476,6 +510,39 @@ Creep.prototype.skSafety = function () {
 
     if (this.room.invaderCore) return this.suicide() === OK;
     return false;
+};
+
+function roomSourceKeepers(room) {
+    if (room._skCreepsTick !== Game.time) {
+        room._skCreeps = room.creeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
+        room._skCreepsTick = Game.time;
+    }
+    return room._skCreeps;
+}
+
+/** Live keeper in range, or the object if wantObject. */
+Creep.prototype.skThreatNear = function (pos, range, wantObject) {
+    const room = this.room;
+    if (!room || !pos) return wantObject ? undefined : false;
+    range = range || 7;
+    const sks = roomSourceKeepers(room);
+    for (let i = 0; i < sks.length; i++) {
+        if (sks[i].pos.inRangeTo(pos, range)) return wantObject ? sks[i] : true;
+    }
+    if (wantObject) return undefined;
+    return !!this.skImminentLair(pos, range);
+};
+
+Creep.prototype.skImminentLair = function (pos, range) {
+    const room = this.room;
+    if (!room || !pos) return undefined;
+    range = range || 7;
+    const lairs = room.keeperLairs;
+    for (let i = 0; i < lairs.length; i++) {
+        const s = lairs[i];
+        if (s.ticksToSpawn && s.ticksToSpawn <= 5 && s.pos.inRangeTo(pos, range)) return s;
+    }
+    return undefined;
 };
 
 Creep.prototype.opportunisticRepair = function () {
@@ -913,6 +980,7 @@ Creep.prototype.constructionWork = function (scope) {
     let site;
 
     const pickCombatBarriers = () => {
+        fillScanDamage(scan, room, {barriers: true});
         let site = available(damage.walls).find(s => s.hits < 5000) || available(damage.ramparts).find(s => s.hits < 5000);
         if (site) return repair(site, 12500);
         if (intel && intel.threatLevel && (!this.room.controller || !this.room.controller.safeMode)) {
@@ -927,6 +995,7 @@ Creep.prototype.constructionWork = function (scope) {
     const pickUnsafeRampartWork = () => {
         const rampartSites = sites.byType[STRUCTURE_RAMPART];
         if (rampartSites && rampartSites.length) return buildClosest(rampartSites);
+        fillScanDamage(scan, room, {barriers: true});
         const unsafeRamparts = available(damage.ramparts).filter(s => s.hits < SAFE_RAMPART_HITS);
         if (unsafeRamparts.length) {
             const target = _.min(unsafeRamparts, 'hits');
@@ -940,9 +1009,13 @@ Creep.prototype.constructionWork = function (scope) {
     const roadKeep = scan.roadKeep;
     const onPlanRoad = (s) => !roadKeep || roadKeep.has(s.pos.x + 'x' + s.pos.y);
     const roadSites = allowRoads ? sites.roads.filter(onPlanRoad) : [];
-    const damagedRoads = allowRoads ? damage.roads.filter(onPlanRoad) : [];
+    const plannedRoads = () => {
+        fillScanDamage(scan, room, {roads: true});
+        return damage.roads.filter(onPlanRoad);
+    };
 
     if (roadsOnly) {
+        fillScanDamage(scan, room, {containers: true, roads: true});
         const sources = room.sources || [];
         if (sources.length) {
             const padSites = available(sites.byType[STRUCTURE_CONTAINER] || []).filter((s) => {
@@ -954,6 +1027,7 @@ Creep.prototype.constructionWork = function (scope) {
             if (padSites.length) return buildClosest(padSites);
         }
         if (roadSites.length) return buildClosest(roadSites);
+        const damagedRoads = plannedRoads();
         site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.5));
         if (site) return repair(site, site.hitsMax * 0.8);
         site = weakestByHitsRatio(available(damagedRoads).filter(s => s.hits < s.hitsMax * 0.75));
@@ -963,6 +1037,7 @@ Creep.prototype.constructionWork = function (scope) {
     }
 
     if (barriersOnly) {
+        fillScanDamage(scan, room, {barriers: true});
         const combat = pickCombatBarriers();
         if (combat) return combat;
 
@@ -1028,6 +1103,9 @@ Creep.prototype.constructionWork = function (scope) {
         if (list && list.length) return build(list[0]);
     }
 
+    fillScanDamage(scan, room, {containers: true, roads: allowRoads});
+    const damagedRoads = allowRoads ? plannedRoads() : [];
+
     // Keep existing roads/containers alive through an RCL dump. New extensions
     // used to starve this until swamp roads and source containers hit 0.
     site = available(damage.containers).find(s => s.hits < s.hitsMax * INFRA_DECAY_RATIO);
@@ -1056,6 +1134,7 @@ Creep.prototype.constructionWork = function (scope) {
         if (sites.misc.length) return buildClosest(sites.misc);
         site = weakestByHitsRatio(available(damage.containers).filter(s => s.hits < s.hitsMax * 0.75));
         if (site) return repair(site, site.hitsMax * 0.75);
+        fillScanDamage(scan, room, {other: true});
         site = available(damage.containers)[0] || available(damagedRoads)[0] || available(damage.other)[0];
         if (site) return repair(site, site.hitsMax);
     }

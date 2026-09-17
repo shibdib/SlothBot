@@ -19,7 +19,14 @@
  * stamps/anchors so a recompute does not shrink past work already in progress.
  */
 
-const {extensionPositionCache, quadTraps, walkwayCache} = require('planState');
+const {
+    extensionPositionCache,
+    quadTraps,
+    walkwayCache,
+    canAffordMinCut,
+    noteMinCut,
+    plannerShouldStop
+} = require('planState');
 
 const {bunkerTemplate, coreTemplate, labTemplate} = require('planTemplates');
 const mincut = require('util.minCut');
@@ -122,7 +129,10 @@ function invalidateRampartSpots(room, options) {
     if (ROOM_RAMPART_SPOTS) ROOM_RAMPART_SPOTS[room.name] = undefined;
     quadTraps[room.name] = undefined;
     if (walkwayCache) walkwayCache[room.name] = undefined;
-    if (room && room.memory) delete room.memory._perimeterDirty;
+    if (room && room.memory) {
+        delete room.memory._perimeterDirty;
+        delete room.memory.perimeterSeedFp;
+    }
 }
 
 /**
@@ -300,6 +310,10 @@ function filterHubReachableSpots(spots, flood) {
  */
 function estimateHubSealCost(room, hubXY, template) {
     if (!room || !hubXY) return Infinity;
+    if (!canAffordMinCut()) {
+        const terrain = Game.map.getRoomTerrain(room.name);
+        return countOpenStampRing(terrain, hubXY.x, hubXY.y, templateStampRadius(template));
+    }
     const seeds = collectTemplateSeeds(hubXY, template);
     const spots = computeMinCutSpots(room.name, seeds.length ? seeds : [hubXY]);
     if (!spots) return Infinity;
@@ -500,6 +514,45 @@ function collectProtectSeeds(room, layout) {
     }
 
     return seeds;
+}
+
+function hashProtectSeeds(seeds) {
+    const keys = [];
+    for (let i = 0; i < seeds.length; i++) keys.push(xyKey(seeds[i].x, seeds[i].y));
+    keys.sort();
+    let h = 0;
+    const s = keys.join('|');
+    for (let i = 0; i < s.length; i++) {
+        h = ((h << 5) - h) + s.charCodeAt(i);
+        h |= 0;
+    }
+    return (h >>> 0).toString(36) + ':' + keys.length;
+}
+
+function protectSeedFingerprint(room, layout) {
+    if (!room) return '';
+    const kind = room.memory && room.memory.dynamicLayout ? 'd' : 'b';
+    if (room._protectFpTick === Game.time && room._protectFpKind === kind && room._protectFp) {
+        return room._protectFp;
+    }
+    const fp = PERIMETER_PLAN_REV + ':' + hashProtectSeeds(collectProtectSeeds(room, layout));
+    room._protectFp = fp;
+    room._protectFpTick = Game.time;
+    room._protectFpKind = kind;
+    return fp;
+}
+
+function storePerimeterSeedFp(room, layout) {
+    if (!room || !room.memory) return;
+    room.memory.perimeterSeedFp = protectSeedFingerprint(room, layout);
+    room.memory.perimeterPlanRev = PERIMETER_PLAN_REV;
+}
+
+function perimeterCacheValid(room, layout) {
+    if (!room || !hasPerimeterSpots(room.name)) return false;
+    if (!room.memory) return false;
+    if (room.memory.perimeterPlanRev !== PERIMETER_PLAN_REV) return false;
+    return room.memory.perimeterSeedFp === protectSeedFingerprint(room, layout);
 }
 
 function filterValidSeeds(room, seeds, flood) {
@@ -741,6 +794,7 @@ function computeMinCutSpots(roomName, protectTiles) {
         tiles.push({x: t.x, y: t.y});
     }
     if (!tiles.length) return [];
+    noteMinCut();
     let positions;
     try {
         positions = mincut.GetCutTilesFromTiles(roomName, tiles);
@@ -1572,6 +1626,13 @@ function auditRampartRecalc(room, layout) {
 }
 
 function initializeRampartSpots(room, layout, count) {
+    if (perimeterCacheValid(room, layout)) {
+        room._perimeterComputeOk = true;
+        return count ? getPerimeterSpots(room.name).length : undefined;
+    }
+    if (plannerShouldStop() || !canAffordMinCut()) {
+        return count ? 0 : undefined;
+    }
     ROOM_RAMPART_SPOTS[room.name] = undefined;
     storeWalkwaySpots(room.name, '', []);
     room._perimeterComputeOk = false;
@@ -1594,17 +1655,22 @@ function initializeRampartSpots(room, layout, count) {
             ROOM_RAMPART_SPOTS[room.name] = undefined;
             storeWalkwaySpots(room.name, '', []);
             room._perimeterComputeOk = false;
-        } else if (Game.time % 100 === 0) {
-            const b = result.bounds;
-            const box = b ? `${b.x1},${b.y1}-${b.x2},${b.y2}` : '?';
-            const walkN = result.walkway ? result.walkway.length : 0;
-            log.a(`${room.name} ${result.algorithm || 'mincut'} seal: spots=${spots.length} walkway=${walkN} seeds=${result.validSeeds}/${result.seeds} box=${box}`, 'PLANNER');
+            if (room.memory) delete room.memory.perimeterSeedFp;
+        } else {
+            storePerimeterSeedFp(room, tmpl);
+            if (Game.time % 100 === 0) {
+                const b = result.bounds;
+                const box = b ? `${b.x1},${b.y1}-${b.x2},${b.y2}` : '?';
+                const walkN = result.walkway ? result.walkway.length : 0;
+                log.a(`${room.name} ${result.algorithm || 'mincut'} seal: spots=${spots.length} walkway=${walkN} seeds=${result.validSeeds}/${result.seeds} box=${box}`, 'PLANNER');
+            }
         }
     } catch (e) {
         log.e('Floodfill perimeter error in room ' + room.name);
         log.e(e.stack);
         ROOM_RAMPART_SPOTS[room.name] = undefined;
         room._perimeterComputeOk = false;
+        if (room.memory) delete room.memory.perimeterSeedFp;
     }
 
     if (count) {
@@ -2109,6 +2175,8 @@ module.exports = {
     shouldComputeBunkerRampartSpots,
     getBuiltBarrierKeySet,
     invalidateRampartSpots,
+    perimeterCacheValid,
+    protectSeedFingerprint,
     getDynamicExtensionProtectTiles,
     initializeRampartSpots,
     computeFloodfillPerimeter,

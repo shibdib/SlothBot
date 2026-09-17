@@ -56,6 +56,7 @@ const {
 } = require('planDoc');
 const siteBudget = require('planSiteBudget');
 const {isPlannerShadow} = require('planFlag');
+const {plannerShouldStop, canAffordMinCut} = require('planState');
 
 const LAB_HUB_SEARCH_COOLDOWN = 500;
 const LAB_HUB_SEARCH_CPU_RESERVE = 10;
@@ -64,7 +65,6 @@ const HUB_EXTENSION_VALIDATE_COOLDOWN = 500;
 const HUB_COLLAR_SNAP_COOLDOWN = 50;
 const HUB_SEARCH_MIN = 7;
 const HUB_SEARCH_MAX = 42;
-const HUB_SEAL_CANDIDATE_CAP = 8;
 const HUB_SEAL_WEIGHT = 4;
 const HUB_SECTOR_WEIGHT = 10;
 // Fallback ring around the hub when no seal exists yet (RCL < bunker).
@@ -75,7 +75,7 @@ const TOWER_HUB_MAX_DIST = 5;
 const TOWER_SEAL_BAND_MIN = 1;
 const TOWER_SEAL_BAND_MAX = 5;
 const TOWER_SEAL_BAND_WIDEN = 10;
-const TOWER_LAYOUT_VERSION = 5;
+const TOWER_LAYOUT_VERSION = 6;
 const TOWER_RESEAT_COOLDOWN = 300;
 const TOWER_SEAL_DRIFT_COUNT = 8;
 const TOWER_SEAL_DRIFT_CENTROID = 3;
@@ -523,24 +523,7 @@ function pickDefensibleHub(room, candidates, template, sources) {
         p._economy = eco.economy;
     }
     candidates.sort((a, b) => a._pre - b._pre || a.x - b.x || a.y - b.y);
-    const cpuHot = typeof Game !== 'undefined' && Game.cpu && Game.cpu.getUsed
-        && Game.cpu.getUsed() > (Game.cpu.tickLimit || 500) - 25;
-    if (cpuHot) return candidates[0];
-    const limit = Math.min(candidates.length, HUB_SEAL_CANDIDATE_CAP);
-    let best = candidates[0];
-    let bestScore = Infinity;
-    for (let i = 0; i < limit; i++) {
-        const p = candidates[i];
-        const seal = geom.estimateHubSealCost(room, p, template);
-        const score = seal * HUB_SEAL_WEIGHT + (p._economy != null ? p._economy : hubEconomyParts(room, p, sources).economy);
-        p._seal = seal;
-        p._score = score;
-        if (score < bestScore || (score === bestScore && p._ring < (best._ring || Infinity))) {
-            bestScore = score;
-            best = p;
-        }
-    }
-    return best;
+    return candidates[0];
 }
 
 function findCoreHub(room, options) {
@@ -828,7 +811,8 @@ function recoverLabHubFromLabs(room) {
 
 function labSearchCpuExceeded() {
     if (typeof Game === 'undefined' || !Game.cpu || !Game.cpu.getUsed) return false;
-    const limit = Game.cpu.tickLimit || 500;
+    if (plannerShouldStop()) return true;
+    const limit = Game.cpu.limit || 20;
     return Game.cpu.getUsed() > limit - LAB_HUB_SEARCH_CPU_RESERVE;
 }
 
@@ -1194,7 +1178,7 @@ function minDistToWalls(x, y, walls) {
 }
 
 function towerTileKey(x, y) {
-    return x + ',' + y;
+    return (x | 0) + ',' + (y | 0);
 }
 
 /** Lab stamp plus collar stand/walk tiles. A tower on the collar can trap a lab. */
@@ -1228,15 +1212,59 @@ function towerHubRingMinDist(room) {
     return bunkerStampRadius() + 1;
 }
 
-function towerHubsOnBlockedTiles(room, hubs) {
-    if (!hubs || !hubs.length) return false;
+function collectBunkerStampKeys(hubX, hubY) {
+    const keys = new Set();
+    const hx = hubX | 0;
+    const hy = hubY | 0;
+    const r = bunkerStampRadius();
+    for (let dx = -r; dx <= r; dx++) {
+        for (let dy = -r; dy <= r; dy++) {
+            keys.add(towerTileKey(hx + dx, hy + dy));
+        }
+    }
+    for (let e = 0; e < bunkerTemplate.length; e++) {
+        const pos = (bunkerTemplate[e] && bunkerTemplate[e].pos) || [];
+        for (let i = 0; i < pos.length; i++) {
+            keys.add(towerTileKey(hx + pos[i].x, hy + pos[i].y));
+        }
+    }
+    return keys;
+}
+
+function blockedSetForTowers(room) {
     const core = resolveHub(room);
-    if (!core) return false;
-    const blocked = collectTowerBlockedKeys(room, core.x, core.y);
-    for (let i = 0; i < hubs.length; i++) {
-        if (blocked.has(towerTileKey(hubs[i].x, hubs[i].y))) return true;
+    if (!core) return new Set();
+    return collectTowerBlockedKeys(room, core.x, core.y);
+}
+
+function coordsOnBlockedTiles(room, coords, blocked) {
+    if (!coords || !coords.length) return false;
+    const keys = blocked || blockedSetForTowers(room);
+    if (!keys.size) return false;
+    for (let i = 0; i < coords.length; i++) {
+        const p = coords[i];
+        if (!p) continue;
+        const x = p.x !== undefined ? p.x : (p.pos && p.pos.x);
+        const y = p.y !== undefined ? p.y : (p.pos && p.pos.y);
+        if (x === undefined || y === undefined) continue;
+        if (keys.has(towerTileKey(x, y))) return true;
     }
     return false;
+}
+
+function towerHubsOnBlockedTiles(room, hubs) {
+    return coordsOnBlockedTiles(room, hubs);
+}
+
+function liveTowersOnBlockedTiles(room) {
+    const keys = blockedSetForTowers(room);
+    if (coordsOnBlockedTiles(room, room.towers || [], keys)) return true;
+    const sites = room.constructionSites || [];
+    const towerSites = [];
+    for (let i = 0; i < sites.length; i++) {
+        if (sites[i] && sites[i].structureType === STRUCTURE_TOWER) towerSites.push(sites[i]);
+    }
+    return coordsOnBlockedTiles(room, towerSites, keys);
 }
 
 /** Core/lab/special stamps a tower must not occupy. Bunker roads are not shareable. */
@@ -1259,12 +1287,9 @@ function collectTowerBlockedKeys(room, hubX, hubY) {
     } else {
         // Whole bunker disk, including roads. Towers are impassable, so a
         // stamp-road hub cuts the bunker traffic grid.
-        const r = bunkerStampRadius();
-        for (let dx = -r; dx <= r; dx++) {
-            for (let dy = -r; dy <= r; dy++) {
-                blocked.add(towerTileKey(hubX + dx, hubY + dy));
-            }
-        }
+        collectBunkerStampKeys(hubX, hubY).forEach(function (key) {
+            blocked.add(key);
+        });
     }
     labTowerReserveKeys(room).forEach(function (key) {
         blocked.add(key);
@@ -1299,22 +1324,26 @@ function collectExtensionStampKeys(room, hubX, hubY) {
     return keys;
 }
 
-function isTowerTileBlockedByWorld(room, x, y) {
-    try {
-        const pos = new RoomPosition(x, y, room.name);
-        if (!pos.lookFor) return false;
-        const structs = pos.lookFor(LOOK_STRUCTURES) || [];
-        for (let i = 0; i < structs.length; i++) {
-            const t = structs[i].structureType;
-            if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
-            if (t === STRUCTURE_EXTENSION || t === STRUCTURE_CONTAINER || t === STRUCTURE_WALL) continue;
-            if (t === STRUCTURE_TOWER) continue;
-            return true;
-        }
-    } catch (e) {
-        return false;
+function worldBlockedTowerKeys(room) {
+    if (room._towerWorldBlockedTick === Game.time) return room._towerWorldBlocked;
+    const keys = new Set();
+    const structs = room.structures || [];
+    for (let i = 0; i < structs.length; i++) {
+        const s = structs[i];
+        if (!s || !s.pos) continue;
+        const t = s.structureType;
+        if (t === STRUCTURE_ROAD || t === STRUCTURE_RAMPART) continue;
+        if (t === STRUCTURE_EXTENSION || t === STRUCTURE_CONTAINER || t === STRUCTURE_WALL) continue;
+        if (t === STRUCTURE_TOWER) continue;
+        keys.add(towerTileKey(s.pos.x, s.pos.y));
     }
-    return false;
+    room._towerWorldBlocked = keys;
+    room._towerWorldBlockedTick = Game.time;
+    return keys;
+}
+
+function isTowerTileBlockedByWorld(room, x, y) {
+    return worldBlockedTowerKeys(room).has(towerTileKey(x, y));
 }
 
 /**
@@ -1534,7 +1563,7 @@ function collectSealBandCandidates(room, hubXY, walls, sealSet, interior, blocke
         }
     };
     fillBand(TOWER_SEAL_BAND_MAX);
-    if (candidates.length < MAX_TOWER_HUBS * 3) fillBand(TOWER_SEAL_BAND_WIDEN);
+    if (candidates.length < MAX_TOWER_HUBS * 3 && !plannerShouldStop()) fillBand(TOWER_SEAL_BAND_WIDEN);
     return candidates;
 }
 
@@ -1554,10 +1583,23 @@ function collectHubRingCandidates(room, hubXY, blocked, srcPos, ctrlPos, extensi
     return candidates;
 }
 
+const TOWER_COVERAGE_WALL_CAP = 40;
+
+function wallsForCoverage(walls) {
+    if (!walls || walls.length <= TOWER_COVERAGE_WALL_CAP) return walls || [];
+    const out = [];
+    const step = walls.length / TOWER_COVERAGE_WALL_CAP;
+    for (let i = 0; i < TOWER_COVERAGE_WALL_CAP; i++) {
+        out.push(walls[Math.min(walls.length - 1, Math.floor(i * step))]);
+    }
+    return out;
+}
+
 /** Greedy maximin coverage of seal tiles, then total damage, then closer to the wall. */
 function pickEvenSealTowers(candidates, walls) {
     const selected = [];
     const used = new Set();
+    walls = wallsForCoverage(walls);
     const wallDmg = [];
     for (let w = 0; w < walls.length; w++) wallDmg.push(0);
 
@@ -1691,7 +1733,12 @@ function selectTowerHubs(room) {
             emergency = true;
         }
     }
-    const selected = picked.map(function (c) {
+    const filtered = [];
+    for (let i = 0; i < picked.length; i++) {
+        const c = picked[i];
+        if (c && !blocked.has(towerTileKey(c.x, c.y))) filtered.push(c);
+    }
+    const selected = filtered.map(function (c) {
         return {x: c.x, y: c.y};
     });
     return {
@@ -1761,6 +1808,10 @@ function recoverTowerHubsFromWorld(room) {
 /** Expand the perimeter wrap to new tower hubs without tearing down the current seal. */
 function refreshPerimeterAfterTowerHubs(room) {
     if (!room || !room.controller || room.controller.level < (typeof BUNKER_LEVEL === 'number' ? BUNKER_LEVEL : 6)) {
+        return;
+    }
+    if (plannerShouldStop() || !canAffordMinCut()) {
+        if (room.memory) room.memory._perimeterDirty = 1;
         return;
     }
     try {
@@ -1843,15 +1894,9 @@ function hubsMatch(a, b) {
     return true;
 }
 
-function roomUnsafeForTowerMove(room) {
+function roomHasCombatHostiles(room) {
     if (!room) return true;
-    try {
-        if (isAttackRecoveryMode(room)) return true;
-    } catch (e) { /* ignore */
-    }
     if (room.memory && room.memory.dangerousAttack) return true;
-    const intel = typeof INTEL !== 'undefined' ? INTEL[room.name] : null;
-    if (intel && intel.threatLevel) return true;
     const hostiles = room.hostileCreeps || [];
     for (let i = 0; i < hostiles.length; i++) {
         const c = hostiles[i];
@@ -1862,6 +1907,17 @@ function roomUnsafeForTowerMove(room) {
         }
     }
     return false;
+}
+
+function roomUnsafeForTowerMove(room) {
+    if (!room) return true;
+    try {
+        if (isAttackRecoveryMode(room)) return true;
+    } catch (e) { /* ignore */
+    }
+    const intel = typeof INTEL !== 'undefined' ? INTEL[room.name] : null;
+    if (intel && intel.threatLevel) return true;
+    return roomHasCombatHostiles(room);
 }
 
 function relocateOffPlanTowers(room, hubs) {
@@ -1936,11 +1992,17 @@ function ensureTowerHubs(room, options) {
 
     const existingNow = resolveTowerHubs(room);
     const reseatSpawn = existingNow.length && towerHubsTooCloseToSpawn(room, existingNow);
-    const reseatBlocked = existingNow.length && towerHubsOnBlockedTiles(room, existingNow);
-    const stale = opts.forceSearch || towerLayoutStale(room) || reseatSpawn || reseatBlocked;
+    const stampStuck = (existingNow.length && towerHubsOnBlockedTiles(room, existingNow))
+        || liveTowersOnBlockedTiles(room);
+    const stale = opts.forceSearch || towerLayoutStale(room) || reseatSpawn || stampStuck;
+    const combat = roomHasCombatHostiles(room);
+    const unsafe = combat || (!stampStuck && roomUnsafeForTowerMove(room));
     if (!stale) {
         const existing = existingNow;
         if (existing.length) {
+            if (!isPlannerShadow(room) && !unsafe) {
+                relocateOffPlanTowers(room, existing);
+            }
             if (getTowerDeficit(room) > 0) placeTowerSites(room, Math.min(2, getTowerDeficit(room)));
             ensureTowerRamparts(room, existing);
             return {ok: true, hubs: existing.slice(), reason: 'existing'};
@@ -1958,7 +2020,7 @@ function ensureTowerHubs(room, options) {
         }
     }
 
-    if (stale && !opts.forceSearch && roomUnsafeForTowerMove(room)) {
+    if (stale && !opts.forceSearch && unsafe && !stampStuck) {
         const existing = resolveTowerHubs(room);
         if (existing.length) {
             return {ok: true, hubs: existing.slice(), reason: 'defer_relocate'};
@@ -2000,7 +2062,7 @@ function ensureTowerHubs(room, options) {
             if (kept.length) {
                 if (kept.length !== existing.length) {
                     commitTowerHubs(room, kept);
-                    if (!isPlannerShadow(room) && !roomUnsafeForTowerMove(room)) {
+                    if (!isPlannerShadow(room) && !unsafe) {
                         relocateOffPlanTowers(room, kept);
                     }
                 }
@@ -2026,13 +2088,13 @@ function ensureTowerHubs(room, options) {
     if (!same) commitTowerHubs(room, selected.hubs);
 
     let relocated = null;
-    if (!same && !isPlannerShadow(room) && !roomUnsafeForTowerMove(room)) {
+    if (!isPlannerShadow(room) && !unsafe) {
         relocated = relocateOffPlanTowers(room, selected.hubs);
         if (relocated.destroyed && typeof log !== 'undefined' && log.a) {
             log.a(room.name + ': moved towers — destroyed ' + relocated.destroyed
                 + ' off-plan tower(s), ' + relocated.sitesRemoved + ' site(s)', 'PLANNER');
         }
-        refreshPerimeterAfterTowerHubs(room);
+        if (!same || (relocated && relocated.destroyed)) refreshPerimeterAfterTowerHubs(room);
     }
     // Stamp after refresh so the frozen key is the post-tower-wrap seal, not the
     // stamp-ring fallback from a cleared ROOM_RAMPART_SPOTS cache.
@@ -2428,6 +2490,7 @@ function auditTowerHubTiles(room) {
     const terrain = Game.map.getRoomTerrain(room.name);
     const lastSiteError = room.memory.plannerLastSiteError;
     const search = (!hubs || !hubs.length) ? selectTowerHubs(room) : null;
+    const blockedKeys = coreHub ? collectTowerBlockedKeys(room, coreHub.x, coreHub.y) : new Set();
     return {
         rcl: level,
         allowed,
@@ -2446,6 +2509,11 @@ function auditTowerHubTiles(room) {
         siteBudget: roomConstructionSiteBudget(room),
         canPlace: canPlaceConstructionSite(room),
         totalSites: countRoomConstructionSites(room.name),
+        inStamp: {
+            dynamic: !!(room.memory && room.memory.dynamicLayout),
+            hubs: towerHubsOnBlockedTiles(room, hubs),
+            live: liveTowersOnBlockedTiles(room),
+        },
         hubs: hubs.map(function (h) {
             const x = h.x;
             const y = h.y;
@@ -2460,6 +2528,7 @@ function auditTowerHubTiles(room) {
                 site: site && site.structureType,
                 siteProgress: site && site.progress,
                 blocked: !!(structure || site),
+                inStamp: blockedKeys.has(towerTileKey(x, y)),
             };
         }),
         lastSiteError: lastSiteError && {

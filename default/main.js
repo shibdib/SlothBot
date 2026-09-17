@@ -9,6 +9,7 @@ let memWipe, running;
 let tools, world, cleanUp;
 const segments = require('module.segmentManager');
 const profiler = require('tools.profiler');
+const cpuWatch = require('module.cpuWatch');
 
 function tickLimitHeadroom() {
     const limit = (Game.cpu && Game.cpu.tickLimit) || 500;
@@ -66,7 +67,9 @@ function logBootSkip(reason) {
 module.exports.loop = function () {
     try {
         tryInitSameMemory();
+        cpuWatch.startTick();
 
+        try {
         // First loop after this global: require("require") already paid parse + globals().
         // Running World/intel/roles on the same tick is what trips
         // "Script execution timed out: CPU time limit reached". Skip the heavy loop;
@@ -223,6 +226,7 @@ module.exports.loop = function () {
 
             // Miscellaneous Tools
             try {
+                cpuWatch.mark('tools');
                 tools.CPULimits();
                 tools.tickLength();
                 tools.cleanMemory();
@@ -237,6 +241,7 @@ module.exports.loop = function () {
 
             // World
             try {
+                cpuWatch.mark('world');
                 new world();
             } catch (e) {
                 log.e('World Error: ');
@@ -246,6 +251,7 @@ module.exports.loop = function () {
 
             // Save Caches
             try {
+                cpuWatch.mark('save');
                 segments.storeIntel();
                 segments.storePathing();
                 segments.storeAllyRequests();
@@ -255,9 +261,16 @@ module.exports.loop = function () {
                 Game.notify(`${e} ${e.stack}`);
             }
         });
+        } finally {
+            cpuWatch.endTick();
+        }
     } catch (e) {
         log.e(`Error Caught - ${e.stack}`)
         Game.notify(`Error Caught - ${e.stack}`)
+        try {
+            cpuWatch.endTick();
+        } catch (e2) { /* ignore */
+        }
     }
 };
 

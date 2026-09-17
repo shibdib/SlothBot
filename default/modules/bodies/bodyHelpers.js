@@ -299,7 +299,8 @@ function getHaulersBySource() {
 
     for (const name in Game.creeps) {
         const c = Game.creeps[name];
-        if (c.my && c.memory.role === 'remoteHauler' && c.memory.other && c.memory.other.source) {
+        if (c.my && !c.memory.recycling && c.memory.role === 'remoteHauler'
+            && c.memory.other && c.memory.other.source) {
             const sid = c.memory.other.source;
             if (!_haulersBySource[sid]) _haulersBySource[sid] = [];
             _haulersBySource[sid].push(c);
