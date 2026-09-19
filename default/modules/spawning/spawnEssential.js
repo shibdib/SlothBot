@@ -124,8 +124,8 @@ function essentialCreepQueue(room) {
         }
     }
     const hasRoadMaintenance = maintainOwnedRoads
-        ? _.filter(room.structures, s => {
-            if (s.structureType !== STRUCTURE_ROAD || s.hits >= s.hitsMax * 0.5) return false;
+        ? (room.roads || []).filter(s => {
+            if (!s || s.hits >= s.hitsMax * 0.5) return false;
             return !keepRoads || keepRoads.has(s.pos.x + 'x' + s.pos.y);
         })
         : [];

@@ -28,45 +28,61 @@ class Colony {
         room._spawnEnergyState = this.energyState;
         room._spawnEnergyStateTick = Game.time;
 
-        // Handle room creeps
         const tCreeps = Game.cpu.getUsed();
         this.creepManager();
         room._colonyCreepsCpu = Game.cpu.getUsed() - tCreeps;
 
-        // Handle creep spawning
+        const tSpawn = Game.cpu.getUsed();
         this.creepSpawningController();
+        room._colonySpawnCpu = Game.cpu.getUsed() - tSpawn;
 
-        // Defense Controller
+        const tDef = Game.cpu.getUsed();
         this.defenseController();
+        room._colonyDefenseCpu = Game.cpu.getUsed() - tDef;
 
-        // Lab Controller
+        this.runOtherControllers(room);
+
+        this.storeCpuData(Game.cpu.getUsed() - worldStart);
+    }
+
+    runOtherControllers(room) {
+        const mark = (key, start) => {
+            const spent = Game.cpu.getUsed() - start;
+            if (spent >= 5) room[key] = spent;
+        };
+
+        let t = Game.cpu.getUsed();
         this.labController();
+        mark('_colonyLabCpu', t);
 
-        // Handle links if room level >= 5
-        if (this.room.level >= 5) this.linkController();
+        if (this.room.level >= 5) {
+            t = Game.cpu.getUsed();
+            this.linkController();
+            mark('_colonyLinkCpu', t);
+        }
 
-        // Handle terminal
+        t = Game.cpu.getUsed();
         this.terminalController();
+        mark('_colonyTermCpu', t);
 
-        // Observer controller for room level >= 8
         if (this.room.level >= 8) {
             const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
             const dangerTicks = global.POST_RESET_DANGER_TICKS || 150;
             if (since > dangerTicks - 1 || ((this.room.name.charCodeAt(1) || 0) % 3 === since % 3)) {
+                t = Game.cpu.getUsed();
                 this.observerController();
+                mark('_colonyObsCpu', t);
             }
         }
 
-        // Factory controller
         if (this.room.factory) {
             const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
             if (since > 15 || ((this.room.name.charCodeAt(3) || 0) % 2 === since % 2)) {
-                this.factoryController(); // defer ~15 ticks on reset
+                t = Game.cpu.getUsed();
+                this.factoryController();
+                mark('_colonyFacCpu', t);
             }
         }
-
-        // Store tick tracker and cpu usage data
-        this.storeCpuData(Game.cpu.getUsed() - worldStart);
     }
 
     creepManager() {
@@ -140,8 +156,9 @@ class Colony {
         spawning.processBuildQueue(this.room);
 
         const name = this.room.name;
-        const runQueue = (label, fn, tickMap, interval) => {
+        const runQueue = (label, fn, tickMap, interval, cpuKey) => {
             if (tickMap && !spawnState.throttleDue(tickMap, name, interval)) return;
+            const t0 = Game.cpu.getUsed();
             try {
                 fn(this.room);
             } catch (e) {
@@ -149,11 +166,13 @@ class Colony {
                 log.e(e.stack);
                 Game.notify(e.stack);
             }
+            const spent = Game.cpu.getUsed() - t0;
+            if (cpuKey && spent >= 5) this.room[cpuKey] = spent;
         };
 
-        runQueue('essentialSpawning', spawning.essentialCreepQueue, spawnState.essentialTick, spawnState.ESSENTIAL_INTERVAL);
-        runQueue('miscSpawning', spawning.miscCreepQueue, spawnState.miscTick, spawnState.MISC_INTERVAL);
-        runQueue('remoteSpawning', spawning.remoteCreepQueue, spawnState.remoteTick, spawnState.REMOTE_INTERVAL);
+        runQueue('essentialSpawning', spawning.essentialCreepQueue, spawnState.essentialTick, spawnState.ESSENTIAL_INTERVAL, '_colonySpawnEssCpu');
+        runQueue('miscSpawning', spawning.miscCreepQueue, spawnState.miscTick, spawnState.MISC_INTERVAL, '_colonySpawnMiscCpu');
+        runQueue('remoteSpawning', spawning.remoteCreepQueue, spawnState.remoteTick, spawnState.REMOTE_INTERVAL, '_colonySpawnRemoteCpu');
     }
 
     storeCpuData(used) {
@@ -272,7 +291,9 @@ class Colony {
         const Role = loadRole(roleName);
         if (!Role) return;
 
+        const tRole = Game.cpu.getUsed();
         new Role(minion);
+        if (typeof noteRoleCpu === 'function') noteRoleCpu(roleName, Game.cpu.getUsed() - tRole);
     }
 }
 

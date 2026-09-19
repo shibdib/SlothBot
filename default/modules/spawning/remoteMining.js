@@ -1406,7 +1406,7 @@ let scorePathCacheTick = -1;
 const scorePathCache = Object.create(null);
 
 function scorePathCacheKey(sourceId, colonyName) {
-    return `${sourceId}|${colonyName}`;
+    return `${sourceId}|${colonyName}|nosk`;
 }
 
 function getCachedSourceScore(sourceId, colonyName) {
@@ -1475,6 +1475,9 @@ function calculateRemoteSourceScore(room, source, colonyName) {
         range: 1,
         noLiveRoute: true,
         maxOps: 4000,
+        // Haul distance, not combat routing. Keeper blankets are cost 250 and
+        // pushed SK/center sources over REMOTE_DISTANCE_MAX even one hop away.
+        ignoreSk: true,
     });
     if (!pathResult || pathResult.incomplete || typeof pathResult.cost !== 'number') {
         // Vision without a complete path still allows hop-viable remotes via estimate.
@@ -1486,15 +1489,11 @@ function calculateRemoteSourceScore(room, source, colonyName) {
     }
 
     const raw = Math.ceil(pathResult.cost / 2);
-    if (raw > max) {
-        setCachedSourceScore(source.id, colonyName, Infinity);
-        return Infinity;
-    }
     // Cap windy paths at estimate * mult instead of rejecting — otherwise scouting a
     // hop-viable remote permanently blocks it when the walk path is longer than expected.
     const pathCap = Math.ceil(estimate * remoteScorePathMult());
     const capped = Math.min(raw, pathCap);
-    if (!isRemoteSourceScoreAcceptable(colonyName, room.name, capped)) {
+    if (capped > max || !isRemoteSourceScoreAcceptable(colonyName, room.name, capped)) {
         setCachedSourceScore(source.id, colonyName, Infinity);
         return Infinity;
     }

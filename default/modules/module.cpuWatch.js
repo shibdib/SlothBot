@@ -28,6 +28,97 @@ function notifyEnabled() {
     return typeof CPU_SPIKE_NOTIFY === 'undefined' || !!CPU_SPIKE_NOTIFY;
 }
 
+function cpuHeadroom() {
+    const tickLimit = (Game.cpu && Game.cpu.tickLimit) || 500;
+    const used = (Game.cpu && Game.cpu.getUsed) ? Game.cpu.getUsed() : 0;
+    return tickLimit - used;
+}
+
+let hookTick = -1;
+let pfSearches = 0;
+let pfOps = 0;
+let pfIncomplete = 0;
+let pfCpu = 0;
+let marketCalls = 0;
+let marketCpu = 0;
+let roleCpu = null;
+
+function resetHookStats() {
+    if (hookTick === Game.time) return;
+    hookTick = Game.time;
+    pfSearches = 0;
+    pfOps = 0;
+    pfIncomplete = 0;
+    pfCpu = 0;
+    marketCalls = 0;
+    marketCpu = 0;
+    roleCpu = Object.create(null);
+}
+
+function noteRoleCpu(role, spent) {
+    if (!(spent > 0)) return;
+    resetHookStats();
+    const key = role || '?';
+    roleCpu[key] = (roleCpu[key] || 0) + spent;
+}
+
+function installHooks() {
+    if (global._cpuWatchHooks) return;
+    global._cpuWatchHooks = true;
+    if (typeof PathFinder !== 'undefined' && PathFinder.search) {
+        const origPf = PathFinder.search.bind(PathFinder);
+        PathFinder.search = function (origin, goal, opts) {
+            resetHookStats();
+            const t0 = Game.cpu.getUsed();
+            const result = origPf(origin, goal, opts);
+            pfCpu += Game.cpu.getUsed() - t0;
+            pfSearches++;
+            if (result) {
+                pfOps += result.ops || 0;
+                if (result.incomplete) pfIncomplete++;
+            }
+            return result;
+        };
+    }
+    if (typeof Game !== 'undefined' && Game.market && Game.market.getAllOrders) {
+        const origOrders = Game.market.getAllOrders.bind(Game.market);
+        Game.market.getAllOrders = function (filter) {
+            resetHookStats();
+            const t0 = Game.cpu.getUsed();
+            const result = origOrders(filter);
+            marketCpu += Game.cpu.getUsed() - t0;
+            marketCalls++;
+            return result;
+        };
+    }
+}
+
+function hookBits() {
+    resetHookStats();
+    const parts = [];
+    if (pfSearches) {
+        let text = `pf ${pfSearches}/${Math.round(pfOps / 1000)}kops`;
+        if (pfCpu >= 3) text += ` ${pfCpu.toFixed(0)}cpu`;
+        if (pfIncomplete) text += ` ${pfIncomplete}inc`;
+        parts.push(text);
+    }
+    if (marketCalls) {
+        parts.push(`market ${marketCalls}x ${marketCpu.toFixed(0)}cpu`);
+    }
+    if (roleCpu) {
+        const rows = [];
+        for (const role in roleCpu) rows.push({role: role, cpu: roleCpu[role]});
+        rows.sort((a, b) => b.cpu - a.cpu);
+        const hot = [];
+        for (let i = 0; i < rows.length && hot.length < 5; i++) {
+            if (rows[i].cpu < 8) break;
+            hot.push(`${rows[i].role}:${rows[i].cpu.toFixed(0)}`);
+        }
+        if (hot.length) parts.push(`roles ${hot.join(',')}`);
+    }
+    return parts.join('. ');
+}
+
 function watchMem() {
     if (!Memory.cpuWatch) Memory.cpuWatch = {};
     return Memory.cpuWatch;
@@ -124,7 +215,7 @@ function topRooms(n) {
 function plannerBits() {
     try {
         const report = require('planOrchestrator').getLastTickReport();
-        if (!report || report.cpu == null || report.cpu < 5) return '';
+        if (!report || report.tick !== Game.time || report.cpu == null || report.cpu < 5) return '';
         let text = `planner ${report.cpu.toFixed(1)}`;
         if (report.room) text += ` ${report.room}`;
         if (report.skipReason) text += ` skip:${report.skipReason}`;
@@ -240,6 +331,8 @@ function reportSpike(kind, used, limit, tickLimit, phases) {
     if (rooms) msg += `. rooms ${rooms}`;
     const planText = plannerBits();
     if (planText) msg += `. ${planText}`;
+    const hooks = hookBits();
+    if (hooks) msg += `. ${hooks}`;
     const phaseText = formatPhases(phases);
     if (phaseText) msg += `. ${phaseText}`;
     const dump = profilerDump(350);
@@ -280,6 +373,8 @@ function startTick() {
     h.phases = [{name: 'start', cpu: Game.cpu.getUsed()}];
     h.ended = 0;
     watch.startedTick = Game.time;
+    installHooks();
+    resetHookStats();
 }
 
 function endTick() {
@@ -323,6 +418,7 @@ function testNotify() {
 if (typeof global !== 'undefined') {
     global.cpuWatchStatus = status;
     global.cpuSpikeTest = testNotify;
+    global.noteRoleCpu = noteRoleCpu;
 }
 
 module.exports = {
@@ -331,4 +427,6 @@ module.exports = {
     mark,
     status,
     testNotify,
+    cpuHeadroom,
+    noteRoleCpu,
 };

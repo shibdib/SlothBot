@@ -266,10 +266,22 @@ class World {
                 new colony(room, this.colonyCreeps[roomName] || []);
                 const spent = Game.cpu.getUsed() - t0;
                 if (spent >= 12) {
-                    const creeps = room._colonyCreepsCpu || 0;
-                    const detail = creeps >= 8
-                        ? `${roomName} creeps ${creeps.toFixed(0)}`
-                        : roomName;
+                    const bits = [];
+                    const add = (label, value) => {
+                        if (value >= 8) bits.push(`${label} ${value.toFixed(0)}`);
+                    };
+                    add('creeps', room._colonyCreepsCpu || 0);
+                    add('spawn', room._colonySpawnCpu || 0);
+                    add('ess', room._colonySpawnEssCpu || 0);
+                    add('miscQ', room._colonySpawnMiscCpu || 0);
+                    add('remoteQ', room._colonySpawnRemoteCpu || 0);
+                    add('def', room._colonyDefenseCpu || 0);
+                    add('obs', room._colonyObsCpu || 0);
+                    add('term', room._colonyTermCpu || 0);
+                    add('lab', room._colonyLabCpu || 0);
+                    add('fac', room._colonyFacCpu || 0);
+                    add('link', room._colonyLinkCpu || 0);
+                    const detail = bits.length ? `${roomName} ${bits.join(' ')}` : roomName;
                     cpuWatch.mark('colony', detail, spent);
                 }
             } catch (e) {
@@ -357,5 +369,7 @@ function minionController(minion) {
     const Role = loadRole(roleName);
     if (!Role) return;
 
+    const tRole = Game.cpu.getUsed();
     new Role(minion);
+    if (typeof noteRoleCpu === 'function') noteRoleCpu(roleName, Game.cpu.getUsed() - tRole);
 }

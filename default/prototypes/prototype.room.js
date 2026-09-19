@@ -1642,58 +1642,78 @@ Room.prototype.invaderCheck = function () {
 
 Room.prototype.towerData = function (towers) {
     if (!towers || !towers.length) return {maxDamage: 0, position: undefined, average: 0};
+
+    let fp = '';
+    for (let i = 0; i < towers.length; i++) {
+        const t = towers[i];
+        fp += t.id;
+        const effects = t.effects;
+        if (effects && effects.length) {
+            for (let e = 0; e < effects.length; e++) {
+                if (effects[e].effect === PWR_OPERATE_TOWER) fp += ':' + effects[e].level;
+            }
+        }
+        fp += ',';
+    }
+    if (this._towerDataFp === fp && this._towerDataCache) return this._towerDataCache;
+
     const terrain = Game.map.getRoomTerrain(this.name);
-    let maxDamage = 0;
-    let dangerousSpot;
+    const n = towers.length;
+    const tx = new Array(n);
+    const ty = new Array(n);
+    const tm = new Array(n);
     let operated = false;
     let maxOperate = 1;
-    const damageTracker = [];
+    for (let i = 0; i < n; i++) {
+        tx[i] = towers[i].pos.x;
+        ty[i] = towers[i].pos.y;
+        let mult = 1;
+        const effects = towers[i].effects;
+        if (effects && effects.length) {
+            for (let e = 0; e < effects.length; e++) {
+                if (effects[e].effect === PWR_OPERATE_TOWER && effects[e].level) {
+                    mult = 1 + (POWER_INFO[PWR_OPERATE_TOWER].effect[effects[e].level - 1] / 100);
+                    break;
+                }
+            }
+        }
+        tm[i] = mult;
+        if (mult > 1) operated = true;
+        if (mult > maxOperate) maxOperate = mult;
+    }
 
+    let maxDamage = 0;
+    let maxX = 0;
+    let maxY = 0;
+    const damageTracker = [];
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
-            if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
-                const pos = new RoomPosition(x, y, this.name);
-                let damage = 0;
-                towers.forEach(t => {
-                    const operateMult = getTowerOperateMultiplier(t);
-                    if (operateMult > 1) operated = true;
-                    if (operateMult > maxOperate) maxOperate = operateMult;
-                    damage += determineDamage(pos.getRangeTo(t)) * operateMult;
-                });
-                damageTracker.push(damage);
-                if (damage > maxDamage) {
-                    maxDamage = damage;
-                    dangerousSpot = pos;
-                }
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            let damage = 0;
+            for (let i = 0; i < n; i++) {
+                const range = Math.max(Math.abs(x - tx[i]), Math.abs(y - ty[i]));
+                damage += TOWER_POWER_FROM_RANGE(range, TOWER_POWER_ATTACK) * tm[i];
+            }
+            damageTracker.push(damage);
+            if (damage > maxDamage) {
+                maxDamage = damage;
+                maxX = x;
+                maxY = y;
             }
         }
     }
 
-    const sorted = damageTracker.slice().sort((a, b) => a - b);
-    const p85 = sorted[Math.floor(sorted.length * 0.85)];
-
-    return {
+    damageTracker.sort((a, b) => a - b);
+    const result = {
         maxDamage,
-        position: dangerousSpot ? {
-            x: dangerousSpot.x,
-            y: dangerousSpot.y,
-            roomName: dangerousSpot.roomName
-        } : undefined,
-        average: p85,
+        position: {x: maxX, y: maxY, roomName: this.name},
+        average: damageTracker[Math.floor(damageTracker.length * 0.85)] || 0,
         operated: operated,
         operateMult: maxOperate > 1 ? maxOperate : undefined
     };
-
-    function determineDamage(range) {
-        return TOWER_POWER_FROM_RANGE(range, TOWER_POWER_ATTACK);
-    }
-
-    function getTowerOperateMultiplier(tower) {
-        if (!tower.effects || !tower.effects.length) return 1;
-        const op = tower.effects.find(e => e.effect === PWR_OPERATE_TOWER);
-        if (!op || !op.level) return 1;
-        return 1 + (POWER_INFO[PWR_OPERATE_TOWER].effect[op.level - 1] / 100);
-    }
+    this._towerDataFp = fp;
+    this._towerDataCache = result;
+    return result;
 };
 
 /* Typed structure accessors — lazy per-tick index over this.structures (no ID round-trip). */

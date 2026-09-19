@@ -134,6 +134,20 @@ function skTowersOrCombatBlock(remoteName) {
     return remoteMining.skCombatBlocksMining(remoteName);
 }
 
+/** 1-MOVE scouts die to SK strongholds / invader cores. Do not queue them in. */
+function scoutBlockedByThreat(remoteName) {
+    if (!remoteName) return false;
+    if (remoteMining.skCombatBlocksMining(remoteName)) return true;
+    const intel = INTEL[remoteName];
+    if (!intel) return false;
+    if (intel.invaderCore && intel.invaderCore > Game.time) return true;
+    if (intel.sk && intel.towers) {
+        const seen = Math.max(intel.lastObservation || 0, intel.cached || 0, intel.microUpdate || 0);
+        if (seen && seen + CREEP_LIFE_TIME > Game.time) return true;
+    }
+    return false;
+}
+
 function queuedSkRoom(entry) {
     if (!entry) return undefined;
     if (entry.other && entry.other.skRoom) return entry.other.skRoom;
@@ -174,6 +188,10 @@ function purgeUnguardedSkQueue(room) {
         }
         if (entry.role === 'SKAttacker') {
             if (skTowersOrCombatBlock(guard)) delete queue[key];
+            continue;
+        }
+        if (entry.role === 'scout') {
+            if (skTowersOrCombatBlock(guard) || scoutBlockedByThreat(dest)) delete queue[key];
             continue;
         }
         if (!remoteMining.SK_GUARD_DEPENDENT_ROLES.has(entry.role)) continue;
@@ -285,6 +303,7 @@ function passesNoRoadSpawnGate(colonyRoom, sourceEntry) {
 function maybeScoutRemoteCandidate(room, rName) {
     if (!roomHasStableWorkingSet(room)) return false;
     if (Game.rooms[rName]) return false;
+    if (scoutBlockedByThreat(rName)) return false;
     const rec = remoteMining.getMiningRouteRecord(rName, room.name);
     if (!rec || rec.estimateScore > REMOTE_DISTANCE_MAX) return false;
     if (getCreepCount(undefined, 'scout', rName) || countQueuedRole(room.name, 'scout', rName)) return true;
@@ -314,6 +333,7 @@ function maybeScoutUnknownExits(room) {
         const intel = INTEL[rName];
         if (intel && (intel.owner || intel.sources)) continue;
         if (remoteMining.isSkRoomName(rName) && !skMiningAllowed(room)) continue;
+        if (scoutBlockedByThreat(rName)) continue;
         if (getCreepCount(undefined, 'scout', rName) || countQueuedRole(room.name, 'scout', rName)) return true;
         if (getCreepCount(undefined, 'explorer', rName)) return true;
         queueCreepIfNeeded({
@@ -338,6 +358,7 @@ function roomReadyForRemotes(room) {
 
 function maybeScoutAdjacent(room, rName) {
     if (Game.rooms[rName]) return false;
+    if (scoutBlockedByThreat(rName)) return false;
     if (getCreepCount(undefined, 'scout', rName) || countQueuedRole(room.name, 'scout', rName)) return true;
     if (getCreepCount(undefined, 'explorer', rName)) return true;
     queueCreepIfNeeded({
@@ -392,9 +413,13 @@ function assignNeighborRemotes(room) {
         remoteMining.ensureAdjacentMiningRoute(room.name, rName);
         remoteMining.trackRemoteRoom(rName, room);
         remoteMining.maybeRefreshRemoteIntel(rName);
-        if (!ingestColonyRemoteSources(room, rName, {adjacent: true})) {
-            maybeScoutAdjacent(room, rName);
-        }
+        if (ingestColonyRemoteSources(room, rName, {adjacent: true})) continue;
+        // Already assigned, or already have source IDs: ingest returning false
+        // used to mean "need vision" and spawned a scout every remote tick.
+        // Combat-blocked SK has no workers, so that was a death loop.
+        const assigned = (ROOM_REMOTE_TARGETS[room.name] || []).some(s => s.room === rName);
+        if (assigned || remoteMining.hasRemoteSourceDataForColony(room.name, rName)) continue;
+        maybeScoutAdjacent(room, rName);
     }
 }
 
