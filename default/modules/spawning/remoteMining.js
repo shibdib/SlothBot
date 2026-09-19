@@ -222,6 +222,9 @@ function sourceNetEnergyPerTick(colonyRoom, sourceEntry, haulers) {
 
 function isRemoteSourceWorthMining(colonyRoom, sourceEntry) {
     if (!sourceEntry || !colonyRoom) return false;
+    // Next-door remotes are always worth a harvester. Energy state, haul math,
+    // and score caps must not unassign an exit neighbor.
+    if (isExitNeighbor(colonyRoom.name, sourceEntry.room)) return true;
     if (!isRemoteSourceScoreAcceptable(colonyRoom.name, sourceEntry.room, sourceEntry.score, {allowMissingEstimate: true})) {
         return false;
     }
@@ -265,14 +268,20 @@ function pruneToStaffCap(colonyName, colonyRoom) {
     if (!targets || !targets.length) return;
     const cap = remoteSourceStaffCap(colonyRoom);
     if (targets.length <= cap) return;
-    const ranked = targets.slice().sort((a, b) => {
+    const keepIds = new Set();
+    for (let i = 0; i < targets.length; i++) {
+        if (targets[i].source && isExitNeighbor(colonyName, targets[i].room)) {
+            keepIds.add(targets[i].source);
+        }
+    }
+    const ranked = targets.slice().filter(s => s.source && !keepIds.has(s.source)).sort((a, b) => {
         const kA = isKeeperYieldRoom(a.room) ? 0 : 1;
         const kB = isKeeperYieldRoom(b.room) ? 0 : 1;
         if (kA !== kB) return kA - kB;
         return (a.score || 99) - (b.score || 99);
     });
-    const keepIds = new Set();
-    for (let i = 0; i < cap; i++) {
+    const farSlots = Math.max(0, cap - keepIds.size);
+    for (let i = 0; i < farSlots; i++) {
         if (ranked[i] && ranked[i].source) keepIds.add(ranked[i].source);
     }
     const next = [];
@@ -499,7 +508,13 @@ function pruneRemoteRoomCount(colonyName, colonyRoom) {
         return bestA - bestB;
     });
 
-    const keep = new Set(rooms.slice(0, maxRooms));
+    const keep = new Set();
+    for (let i = 0; i < rooms.length; i++) {
+        if (isExitNeighbor(colonyName, rooms[i])) keep.add(rooms[i]);
+    }
+    for (let i = 0; i < rooms.length && keep.size < maxRooms; i++) {
+        keep.add(rooms[i]);
+    }
     for (const remoteName in byRoom) {
         if (isSectorCenterRoomName(remoteName)) keep.add(remoteName);
     }
@@ -575,6 +590,108 @@ function isExitNeighbor(fromName, toName) {
         if (neighbor === toName) return true;
     }
     return false;
+}
+
+function isAllyName(name) {
+    if (!name || name === MY_USERNAME || name === 'Invader') return false;
+    return typeof FRIENDLIES !== 'undefined' && FRIENDLIES.includes(name);
+}
+
+/** Ally owns/reserves the remote, or an ally colony shares an exit with it. */
+function allyHoldsRemote(remoteName) {
+    if (!remoteName) return false;
+    const intel = INTEL[remoteName];
+    if (intel && (isAllyName(intel.owner) || isAllyName(intel.reservation))) {
+        return true;
+    }
+    const exits = Game.map.describeExits(remoteName);
+    if (!exits) return false;
+    for (const neighbor of Object.values(exits)) {
+        if (MY_ROOMS && MY_ROOMS.includes(neighbor)) continue;
+        const nIntel = INTEL[neighbor];
+        if (nIntel && isAllyName(nIntel.owner)) return true;
+    }
+    return false;
+}
+
+function countColonyRemoteSources(colonyName, exceptRoom) {
+    const targets = ROOM_REMOTE_TARGETS[colonyName];
+    if (!targets || !targets.length) return 0;
+    let n = 0;
+    for (let i = 0; i < targets.length; i++) {
+        if (exceptRoom && targets[i].room === exceptRoom) continue;
+        n++;
+    }
+    return n;
+}
+
+function borderingOwnedColonies(remoteName) {
+    const out = [];
+    if (!MY_ROOMS) return out;
+    for (let i = 0; i < MY_ROOMS.length; i++) {
+        const colony = MY_ROOMS[i];
+        if (!isExitNeighbor(colony, remoteName)) continue;
+        const room = Game.rooms[colony];
+        if (!room || (room.memory && room.memory.noRemote)) continue;
+        out.push(colony);
+    }
+    return out;
+}
+
+function currentAdjacentClaimant(remoteName) {
+    if (!MY_ROOMS) return null;
+    for (let i = 0; i < MY_ROOMS.length; i++) {
+        const colony = MY_ROOMS[i];
+        const targets = ROOM_REMOTE_TARGETS[colony];
+        if (!targets) continue;
+        for (let j = 0; j < targets.length; j++) {
+            if (targets[j] && targets[j].room === remoteName) return colony;
+        }
+    }
+    return null;
+}
+
+/** Own-room split: the bordering colony with the fewest remote sources wins. Ties keep the current claim. */
+function pickColonyForAdjacentRemote(remoteName) {
+    const candidates = borderingOwnedColonies(remoteName);
+    if (!candidates.length) return null;
+    if (candidates.length === 1) return candidates[0];
+    const current = currentAdjacentClaimant(remoteName);
+    candidates.sort((a, b) => {
+        const ca = countColonyRemoteSources(a, remoteName);
+        const cb = countColonyRemoteSources(b, remoteName);
+        if (ca !== cb) return ca - cb;
+        if (current === a) return -1;
+        if (current === b) return 1;
+        return a < b ? -1 : a > b ? 1 : 0;
+    });
+    return candidates[0];
+}
+
+function ensureAdjacentMiningRoute(colonyName, remoteName) {
+    if (!INTEL[remoteName]) INTEL[remoteName] = {name: remoteName, shardName: Game.shard.name};
+    const existing = getMiningRouteRecord(remoteName, colonyName);
+    if (existing && existing.route && existing.route.length) return existing;
+    storeMiningRoute(remoteName, colonyName, [remoteName], true);
+    return INTEL[remoteName].miningRoutes[colonyName];
+}
+
+function dropRemoteFromColony(colonyName, remoteName) {
+    const targets = ROOM_REMOTE_TARGETS[colonyName];
+    if (!targets || !targets.length) return;
+    const removed = [];
+    const next = [];
+    for (let i = 0; i < targets.length; i++) {
+        const s = targets[i];
+        if (s.room === remoteName) {
+            if (s.source) removed.push(s.source);
+        } else {
+            next.push(s);
+        }
+    }
+    if (!removed.length && next.length === targets.length) return;
+    ROOM_REMOTE_TARGETS[colonyName] = next;
+    unindexColonyRemote(colonyName, remoteName, removed);
 }
 
 function assignedSkHasNonAdjacent(colonyName, assigned) {
@@ -1020,6 +1137,14 @@ function shouldSkipRemotePrune(colonyRoom, remoteName) {
         // sector-center add-on and forces a full restaff after the wave.
         return false;
     }
+    if (allyHoldsRemote(remoteName)) return true;
+    // Next door: keep the assignment. Combat/reservation pause spawn, not the claim.
+    if (isExitNeighbor(colonyRoom.name, remoteName)) {
+        if (INTEL[remoteName].owner && INTEL[remoteName].owner !== MY_USERNAME) return true;
+        if (INTEL[remoteName].obstacles) return true;
+        if (pickColonyForAdjacentRemote(remoteName) !== colonyRoom.name) return true;
+        return false;
+    }
     // Transient combat pauses spawn (shouldSkipRemote) but must not drop the
     // assignment — restaffing after every invader wave is an income hole.
     if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
@@ -1077,7 +1202,9 @@ function pruneRoomRemoteTargets(colonyName, colonyRoom) {
         const s = targets[i];
         let keep = true;
         if (shouldSkipRemotePrune(colonyRoom, s.room)) keep = false;
-        else if (isRemoteClaimedByOther(colonyName, s.room, s.source)) keep = false;
+        else if (isExitNeighbor(colonyName, s.room)) {
+            if (pickColonyForAdjacentRemote(s.room) !== colonyName) keep = false;
+        } else if (isRemoteClaimedByOther(colonyName, s.room, s.source)) keep = false;
         else if (!isRemoteSourceWorthMining(colonyRoom, s)) keep = false;
         if (keep) {
             kept.push(s);
@@ -1218,6 +1345,23 @@ function bootstrapRemoteRoomOnVision(room) {
         return;
     }
 
+    if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS) {
+        let bordered = false;
+        for (let i = 0; i < MY_ROOMS.length; i++) {
+            if (isExitNeighbor(MY_ROOMS[i], room.name)) {
+                bordered = true;
+                break;
+            }
+        }
+        if (bordered) {
+            const pick = pickColonyForAdjacentRemote(room.name);
+            if (!pick) return;
+            ensureAdjacentMiningRoute(pick, room.name);
+            trackRemoteRoom(room.name, pick);
+            return;
+        }
+    }
+
     const colony = findClosestOwnedRoom(room.name, false, 4);
     if (!colony || colony === room.name) return;
 
@@ -1343,9 +1487,9 @@ function getActiveRemoteRooms(colonyRoom, shouldSkipRemote, deps = {}) {
     const rooms = new Set();
 
     for (const s of (ROOM_REMOTE_TARGETS[colony] || [])) {
-        if (isRemoteSourceScoreAcceptable(colony, s.room, s.score, {allowMissingEstimate: true})
-            && !shouldSkipRemote(colonyRoom, s.room)
-            && !isRemoteClaimedByOther(colony, s.room, s.source)) {
+        if (shouldSkipRemote(colonyRoom, s.room) || isRemoteClaimedByOther(colony, s.room, s.source)) continue;
+        if (isExitNeighbor(colony, s.room)
+            || isRemoteSourceScoreAcceptable(colony, s.room, s.score, {allowMissingEstimate: true})) {
             rooms.add(s.room);
         }
     }
@@ -1375,7 +1519,8 @@ function shouldProcessRemote(colonyRoom, remoteName, deps) {
     if (isRemoteClaimedByOther(colony, remoteName)) return false;
 
     if ((ROOM_REMOTE_TARGETS[colony] || []).some(s =>
-        s.room === remoteName && isRemoteSourceScoreAcceptable(colony, s.room, s.score, {allowMissingEstimate: true}))) {
+        s.room === remoteName && (isExitNeighbor(colony, remoteName)
+            || isRemoteSourceScoreAcceptable(colony, s.room, s.score, {allowMissingEstimate: true})))) {
         return true;
     }
     if (deps.getCreepCount(undefined, 'remoteHarvester', remoteName)) return true;
@@ -1392,7 +1537,12 @@ function isContestedRemoteCandidate(colonyRoom, remoteName) {
     if (roomStatus(remoteName) !== roomStatus(colonyRoom.name)) return false;
     const intel = INTEL[remoteName];
     if (intel.sk || intel.safemode || intel.towers || intel.obstacles || !intel.sources) return false;
-    if (!intel.user || intel.user === 'Invader' || FRIENDLIES.includes(intel.user)) return false;
+    if (allyHoldsRemote(remoteName)) return false;
+    const holder = intel.owner
+        || (intel.reservation && intel.reservation !== MY_USERNAME && intel.reservation !== 'Invader'
+            ? intel.reservation : null)
+        || (intel.user && intel.user !== 'Invader' ? intel.user : null);
+    if (!holder || holder === MY_USERNAME) return false;
     if ((intel.lastContest || 0) + (CREEP_LIFE_TIME * 4) >= Game.time) return false;
     return true;
 }
@@ -1591,6 +1741,11 @@ module.exports = {
     remoteCombatBlocksMining,
     civilianShouldFlee,
     isAllowedSkRoom,
+    isExitNeighbor,
+    allyHoldsRemote,
+    pickColonyForAdjacentRemote,
+    ensureAdjacentMiningRoute,
+    dropRemoteFromColony,
     getColonySkRooms,
     getColonySkGuardRooms,
     pruneExcessSkRooms,
