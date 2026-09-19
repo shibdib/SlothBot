@@ -14,7 +14,6 @@ const {
     remoteSourcePadBuilt,
     remoteHaulerMinCarry,
     roomNeedsSpawnReboot,
-    getOwnedExtensionDeficit,
     roomHasStableWorkingSet
 } = require('bodyHelpers');
 const {remoteBuildersNeeded, colonyNeedsRoadWork} = require('planGeomRoads');
@@ -183,41 +182,62 @@ function purgeUnguardedSkQueue(room) {
     }
 }
 
-function ingestColonyRemoteSources(colonyRoom, rName) {
+function ingestColonyRemoteSources(colonyRoom, rName, options = {}) {
     ensureSkIntel(rName);
     if (isSkRoom(rName) && !remoteMining.isAllowedSkRoom(colonyRoom.name, rName)) return false;
+    const adjacent = options.adjacent || remoteMining.isExitNeighbor(colonyRoom.name, rName);
+    if (adjacent) remoteMining.ensureAdjacentMiningRoute(colonyRoom.name, rName);
+
     const remoteIntel = INTEL[rName];
-    if (!remoteIntel || !remoteIntel.remoteSourceData) return false;
+    if (!remoteIntel) return false;
 
     const rec = remoteMining.getMiningRouteRecord(rName, colonyRoom.name);
     if (!rec) return false;
 
-    // Do not steal a remote another colony is actively mining.
-    if (remoteMining.isRemoteClaimedByOther(colonyRoom.name, rName)) return false;
+    if (!adjacent && remoteMining.isRemoteClaimedByOther(colonyRoom.name, rName)) return false;
 
     if (!ROOM_REMOTE_TARGETS[colonyRoom.name]) ROOM_REMOTE_TARGETS[colonyRoom.name] = [];
     const targets = ROOM_REMOTE_TARGETS[colonyRoom.name];
 
+    let data = remoteIntel.remoteSourceData;
+    if (adjacent && (!data || !data.length) && Game.rooms[rName]) {
+        const vis = Game.rooms[rName];
+        const sources = vis.sources || [];
+        if (sources.length) {
+            data = [];
+            for (let i = 0; i < sources.length; i++) {
+                data.push({
+                    source: sources[i].id,
+                    score: rec.estimateScore || 32,
+                    colony: colonyRoom.name,
+                });
+            }
+            remoteIntel.remoteSourceData = data;
+        }
+    }
+    if (!data || !data.length) return false;
+
     let added = false;
     let claimed = false;
-    for (const sd of remoteIntel.remoteSourceData) {
+    for (const sd of data) {
         if (targets.find(s => s.source === sd.source)) {
-            // Already have it — still ensure exclusive ownership if we hold targets.
             claimed = true;
             continue;
         }
 
-        // Prefer stored score when this colony owns the assignment; otherwise use route estimate
-        // so a nearby colony can reclaim sticky remoteSourceData from an idle assignee.
         let score = sd.colony === colonyRoom.name ? sd.score : rec.estimateScore;
-        if (!remoteMining.isRemoteSourceScoreAcceptable(colonyRoom.name, rName, score, {allowMissingEstimate: true})) {
-            if (score === rec.estimateScore) continue;
-            score = rec.estimateScore;
+        if (!adjacent) {
             if (!remoteMining.isRemoteSourceScoreAcceptable(colonyRoom.name, rName, score, {allowMissingEstimate: true})) {
-                continue;
+                if (score === rec.estimateScore) continue;
+                score = rec.estimateScore;
+                if (!remoteMining.isRemoteSourceScoreAcceptable(colonyRoom.name, rName, score, {allowMissingEstimate: true})) {
+                    continue;
+                }
             }
+            if (!remoteMining.isRemoteSourceWorthMining(colonyRoom, {room: rName, source: sd.source, score})) continue;
+        } else if (!score) {
+            score = rec.estimateScore || 32;
         }
-        if (!remoteMining.isRemoteSourceWorthMining(colonyRoom, {room: rName, source: sd.source, score})) continue;
 
         if (sd.colony !== colonyRoom.name) {
             sd.colony = colonyRoom.name;
@@ -240,6 +260,7 @@ function ingestColonyRemoteSources(colonyRoom, rName) {
  * harvester so roads/builders can start (otherwise chicken-and-egg with remoteBuilder).
  */
 function passesNoRoadSpawnGate(colonyRoom, sourceEntry) {
+    if (remoteMining.isExitNeighbor(colonyRoom.name, sourceEntry.room)) return true;
     // SK / sector-center: already paying for the attacker. The one-bootstrap-per-room
     // gate left the far sources unstaffed until roads existed.
     if (remoteMining.isKeeperYieldRoom(sourceEntry.room)) return true;
@@ -271,7 +292,7 @@ function maybeScoutRemoteCandidate(room, rName) {
     queueCreepIfNeeded({
         room,
         role: 'scout',
-        priority: PRIORITIES.remoteHarvester,
+        priority: PRIORITIES.high,
         numberNeeded: 1,
         destination: rName,
     });
@@ -283,7 +304,6 @@ function maybeScoutRemoteCandidate(room, rName) {
  * remoteIntelEligible / maybeScoutRemoteCandidate never see those rooms.
  */
 function maybeScoutUnknownExits(room) {
-    if (!roomHasStableWorkingSet(room)) return false;
     const exits = Game.map.describeExits(room.name);
     if (!exits) return false;
     for (const dir in exits) {
@@ -299,7 +319,7 @@ function maybeScoutUnknownExits(room) {
         queueCreepIfNeeded({
             room,
             role: 'scout',
-            priority: PRIORITIES.remoteHarvester,
+            priority: PRIORITIES.high,
             numberNeeded: 1,
             destination: rName,
         });
@@ -308,22 +328,74 @@ function maybeScoutUnknownExits(room) {
     return false;
 }
 
-/** Local harvest is staffed enough that one adjacent remote will not starve the spawn. */
+/** Local harvest still wins on spawn priority. Energy state must not hide remotes. */
 function roomReadyForRemotes(room) {
-    if (room.storage) return true;
     if (!room.controller) return false;
     if (room.level < 2) return false;
-    const sources = (room.sources && room.sources.length) || 0;
-    if (!sources) return false;
-    const rcl = room.controller.level || 0;
-    // Tower + RCL3 extensions first. Remotes at RCL3 used to steal spawn from both.
-    if (rcl < 3) return false;
-    if (!(room.towers && room.towers.length)) return false;
-    if (rcl <= 3 && getOwnedExtensionDeficit(room) > 0) return false;
-    if (getCreepCount(room, 'stationaryHarvester') < sources) return false;
-    if (!getCreepCount(room, 'shuttle') && !getCreepCount(room, 'hauler')) return false;
     if (roomNeedsSpawnReboot(room)) return false;
     return true;
+}
+
+function maybeScoutAdjacent(room, rName) {
+    if (Game.rooms[rName]) return false;
+    if (getCreepCount(undefined, 'scout', rName) || countQueuedRole(room.name, 'scout', rName)) return true;
+    if (getCreepCount(undefined, 'explorer', rName)) return true;
+    queueCreepIfNeeded({
+        room,
+        role: 'scout',
+        priority: PRIORITIES.high,
+        numberNeeded: 1,
+        destination: rName,
+    });
+    return true;
+}
+
+/** Exit neighbors are always assigned. Own-room split, ally skip, else compete. */
+function assignNeighborRemotes(room) {
+    const exits = Game.map.describeExits(room.name);
+    if (!exits) return;
+    for (const rName of Object.values(exits)) {
+        if (!rName || (MY_ROOMS && MY_ROOMS.includes(rName))) continue;
+        if (typeof roomStatus === 'function' && roomStatus(rName) === 'closed') continue;
+        if (typeof roomStatus === 'function' && roomStatus(room.name) && roomStatus(rName) !== roomStatus(room.name)) {
+            continue;
+        }
+
+        ensureSkIntel(rName);
+        if (isSkRoom(rName) && !skMiningAllowed(room)) continue;
+        if (isSkRoom(rName) && !remoteMining.isAllowedSkRoom(room.name, rName)) continue;
+
+        if (remoteMining.allyHoldsRemote(rName)) {
+            remoteMining.dropRemoteFromColony(room.name, rName);
+            continue;
+        }
+
+        const intel = INTEL[rName];
+        if (intel && intel.owner && intel.owner !== MY_USERNAME) {
+            remoteMining.dropRemoteFromColony(room.name, rName);
+            continue;
+        }
+
+        const owner = remoteMining.pickColonyForAdjacentRemote(rName);
+        if (owner && owner !== room.name) {
+            remoteMining.dropRemoteFromColony(room.name, rName);
+            continue;
+        }
+        if (!owner) continue;
+
+        if (intel && intel.sources === 0) continue;
+        if (!intel || !intel.sources) {
+            maybeScoutAdjacent(room, rName);
+            continue;
+        }
+
+        remoteMining.ensureAdjacentMiningRoute(room.name, rName);
+        remoteMining.trackRemoteRoom(rName, room);
+        remoteMining.maybeRefreshRemoteIntel(rName);
+        if (!ingestColonyRemoteSources(room, rName, {adjacent: true})) {
+            maybeScoutAdjacent(room, rName);
+        }
+    }
 }
 
 function refreshRemoteRoomTargets(room) {
@@ -520,7 +592,7 @@ function handleReservation(room, remoteName) {
     const ticks = remoteMining.reservationTicksLeft(remoteName);
     const reserved = INTEL[remoteName] && INTEL[remoteName].reservation === MY_USERNAME;
     const reserverPriority = (!reserved || ticks < 2000)
-        ? PRIORITIES.remoteHarvester
+        ? PRIORITIES.reserver - 1
         : PRIORITIES.reserver;
     queueCreepIfNeeded({
         room,
@@ -649,29 +721,35 @@ function handleRemoteHarvesters(room) {
 
     const eligible = [];
     const replacements = [];
+    const adjacentNeed = [];
     for (let i = 0; i < remoteSource.length; i++) {
         const s = remoteSource[i];
+        const adjacent = remoteMining.isExitNeighbor(room.name, s.room);
         if (shouldSkipRemote(room, s.room)) continue;
-        if (remoteMining.isRemoteClaimedByOther(room.name, s.room, s.source)) continue;
-        if (!remoteMining.isRemoteSourceWorthMining(room, s)) continue;
+        if (!adjacent && remoteMining.isRemoteClaimedByOther(room.name, s.room, s.source)) continue;
+        if (!adjacent && !remoteMining.isRemoteSourceWorthMining(room, s)) continue;
         const guard = remoteMining.skGuardRoom(room.name, s.room);
         if (guard && !hasSkAttackerCoverage(guard)) continue;
-        if (!passesNoRoadSpawnGate(room, s)) continue;
+        if (!adjacent && !passesNoRoadSpawnGate(room, s)) continue;
         if (!sourceNeedsHarvester(room.name, s.source, s.room)) continue;
         eligible.push(s);
+        if (adjacent) adjacentNeed.push(s);
         if (getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source) === 1) {
             replacements.push(s);
         }
     }
 
+    const unstaffedAdjacent = adjacentNeed.filter(s =>
+        !getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source));
     const skUnstaffed = eligible.filter(s =>
         remoteMining.isKeeperYieldRoom(s.room)
         && !getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source));
-    // Empty SK/center sources first — replacements used to win every time a
-    // regular remote was in its TTL window (~80% of ticks at cap 6), so a
-    // dead SK source never got a body.
-    const pool = skUnstaffed.length ? skUnstaffed
-        : (replacements.length ? replacements : (atCap ? [] : eligible));
+    // Empty next-door first, then empty SK/center. Replacements used to win
+    // every time a regular remote was in its TTL window, so a dead SK source
+    // never got a body.
+    const pool = unstaffedAdjacent.length ? unstaffedAdjacent
+        : (skUnstaffed.length ? skUnstaffed
+            : (replacements.length ? replacements : (atCap ? [] : eligible)));
     let pick = null;
     let bestPickScore = Infinity;
     for (let i = 0; i < pool.length; i++) {
@@ -683,7 +761,9 @@ function handleRemoteHarvesters(room) {
     }
 
     if (pick && pick.room) {
-        const priority = PRIORITIES.remoteHarvester;
+        const priority = remoteMining.isExitNeighbor(room.name, pick.room)
+            ? PRIORITIES.adjacentRemoteHarvester
+            : PRIORITIES.remoteHarvester;
         const skRoom = remoteMining.skGuardRoom(room.name, pick.room);
         queueCreepIfNeeded({
             room, role: 'remoteHarvester', priority,
@@ -826,6 +906,7 @@ function processRemoteSpecificTasks(room, remoteName) {
 function shouldSkipRemote(room, remoteName) {
     if (Memory.avoidRemotes && _.includes(Memory.avoidRemotes, remoteName)) return true;
     if (!INTEL[remoteName]) return true;
+    if (remoteMining.allyHoldsRemote(remoteName)) return true;
     if (isSkRoom(remoteName) && !skMiningAllowed(room)) return true;
     if (isSkRoom(remoteName) && !remoteMining.isAllowedSkRoom(room.name, remoteName)) return true;
     if (isSkRoom(remoteName)) return skTowersOrCombatBlock(remoteName);
@@ -836,8 +917,8 @@ function shouldSkipRemote(room, remoteName) {
         if (remoteMining.remoteCombatBlocksMining(remoteName)) return true;
         return skTowersOrCombatBlock(remoteMining.getSectorCenterSkParent(room.name, remoteName) || remoteName);
     }
-    if (INTEL[remoteName].level || !INTEL[remoteName].sources) return true;
-    if (INTEL[remoteName].reservation && ![MY_USERNAME, "Invader"].includes(INTEL[remoteName].reservation)) return true;
+    if (INTEL[remoteName].owner && INTEL[remoteName].owner !== MY_USERNAME) return true;
+    if (!INTEL[remoteName].sources) return true;
     if (INTEL[remoteName].obstacles) return true;
     return remoteMining.remoteCombatBlocksMining(remoteName);
 }
@@ -848,7 +929,7 @@ function handleInvaderCore(room, remoteName) {
     // like an invader wave (skCombatBlocksMining) until the core is gone.
     if (isSkRoom(remoteName)) return;
     queueCreepIfNeeded({
-        room, role: 'attacker', priority: PRIORITIES.remoteHarvester - 1,
+        room, role: 'attacker', priority: PRIORITIES.drone - 0.5,
         numberNeeded: 1, destination: remoteName
     });
 }
@@ -857,10 +938,10 @@ function remoteCreepQueue(room) {
     if (typeof REMOTE_MINING !== 'undefined' && !REMOTE_MINING) return;
     if (!spawnState.throttleReady(spawnState.remoteTick, room.name, spawnState.REMOTE_INTERVAL)) return;
     maybeScoutUnknownExits(room);
-    // Local 5W harvesters + a filler first. One adjacent remote after that;
-    // storage is not required (RCL 5 used to hide remotes for the whole 405k upgrade).
+    assignNeighborRemotes(room);
+    // Local 5W harvesters still beat remotes on priority. Energy state never
+    // blocks queueing a next-door harvester.
     if (!roomReadyForRemotes(room)) return;
-    const energyState = spawnEnergyState(room);
     room.memory.borderPatrol = undefined;
 
     const homeIntel = INTEL[room.name];
@@ -877,6 +958,7 @@ function remoteCreepQueue(room) {
     if (since > 1 && (forceRefresh || (refreshDue && remoteMining.refreshStaggerDue(room.name, forceRefresh)))) {
         refreshRemoteRoomTargets(room);
         if (homeIntel) homeIntel.refreshRemotes = undefined;
+        assignNeighborRemotes(room);
     }
 
     ingestAdjacentSkRooms(room);
@@ -923,12 +1005,13 @@ function remoteCreepQueue(room) {
     if (room.memory.noRemote) return;
 
     remoteMining.pruneRoomRemoteTargets(room.name, room);
+    assignNeighborRemotes(room);
     purgeUnguardedSkQueue(room);
     handleRemoteHarvesters(room);
     handleRemoteHaulers(room);
     handleRemoteBuilder(room);
 
-    if (spawnState.contestedRemotes[room.name] && energyState) handleContestedRoom(room);
+    if (spawnState.contestedRemotes[room.name]) handleContestedRoom(room);
 }
 
 module.exports = {remoteCreepQueue};

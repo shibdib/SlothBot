@@ -225,18 +225,30 @@ function isRemoteSourceWorthMining(colonyRoom, sourceEntry) {
     // Next-door remotes are always worth a harvester. Energy state, haul math,
     // and score caps must not unassign an exit neighbor.
     if (isExitNeighbor(colonyRoom.name, sourceEntry.room)) return true;
+    const keeper = isKeeperYieldRoom(sourceEntry.room);
+    // Keeper 4000-energy sources are a package with the SKAttacker. Inflated
+    // walk scores (keeper blankets) used to fail the estimate*mult check and
+    // prune a source that was already being mined — then it never restaffed.
+    if (keeper) {
+        const score = sourceEntry.score;
+        if (score !== undefined && score !== null && isFinite(score) && score <= remoteDistanceMax()) {
+            return true;
+        }
+        const estimate = getRouteEstimateScore(sourceEntry.room, colonyRoom.name);
+        if (estimate === null) return true;
+        return estimate <= remoteDistanceMax();
+    }
     if (!isRemoteSourceScoreAcceptable(colonyRoom.name, sourceEntry.room, sourceEntry.score, {allowMissingEstimate: true})) {
         return false;
     }
-    const keeper = isKeeperYieldRoom(sourceEntry.room);
     const needed = sourceHaulersNeeded(colonyRoom, sourceEntry);
-    const roadCap = !keeper && (colonyRoom.level || 0) >= 7
+    const roadCap = (colonyRoom.level || 0) >= 7
     && miningRouteHasRoads(colonyRoom.name, sourceEntry.room) ? 1 : 2;
-    const haulers = Math.min(needed, keeper ? 4 : roadCap);
+    const haulers = Math.min(needed, roadCap);
     if (sourceNetEnergyPerTick(colonyRoom, sourceEntry, haulers) <= 0) return false;
     // Surplus RCL7+: a second hauler is ~0.3 CPU for <1 e/t. A 1-hauler road
     // remote is still ~6 e/t net even if the uncapped formula wanted two.
-    if (!keeper && haulers > 1 && (colonyRoom.level || 0) >= 7 && !colonyNeedsRemoteIncome(colonyRoom)) {
+    if (haulers > 1 && (colonyRoom.level || 0) >= 7 && !colonyNeedsRemoteIncome(colonyRoom)) {
         return false;
     }
     return true;
@@ -267,22 +279,29 @@ function pruneToStaffCap(colonyName, colonyRoom) {
     const targets = ROOM_REMOTE_TARGETS[colonyName];
     if (!targets || !targets.length) return;
     const cap = remoteSourceStaffCap(colonyRoom);
-    if (targets.length <= cap) return;
     const keepIds = new Set();
+    const rest = [];
     for (let i = 0; i < targets.length; i++) {
-        if (targets[i].source && isExitNeighbor(colonyName, targets[i].room)) {
-            keepIds.add(targets[i].source);
+        const s = targets[i];
+        if (!s || !s.source) continue;
+        // Next-door and assigned SK stay with the attacker. cpuOverage used
+        // to cut cap to 2 and drop the 3rd SK source; it never restaffed.
+        if (isExitNeighbor(colonyName, s.room) || isSkRoomName(s.room)) {
+            keepIds.add(s.source);
+        } else {
+            rest.push(s);
         }
     }
-    const ranked = targets.slice().filter(s => s.source && !keepIds.has(s.source)).sort((a, b) => {
-        const kA = isKeeperYieldRoom(a.room) ? 0 : 1;
-        const kB = isKeeperYieldRoom(b.room) ? 0 : 1;
-        if (kA !== kB) return kA - kB;
+    rest.sort((a, b) => {
+        const cA = isSectorCenterRoomName(a.room) ? 0 : 1;
+        const cB = isSectorCenterRoomName(b.room) ? 0 : 1;
+        if (cA !== cB) return cA - cB;
         return (a.score || 99) - (b.score || 99);
     });
-    const farSlots = Math.max(0, cap - keepIds.size);
-    for (let i = 0; i < farSlots; i++) {
-        if (ranked[i] && ranked[i].source) keepIds.add(ranked[i].source);
+    const restSlots = Math.max(0, cap - keepIds.size);
+    if (rest.length <= restSlots) return;
+    for (let i = 0; i < restSlots; i++) {
+        if (rest[i] && rest[i].source) keepIds.add(rest[i].source);
     }
     const next = [];
     const removedByRoom = {};
@@ -295,6 +314,7 @@ function pruneToStaffCap(colonyName, colonyRoom) {
             removedByRoom[s.room].push(s.source);
         }
     }
+    if (next.length === targets.length) return;
     ROOM_REMOTE_TARGETS[colonyName] = next;
     for (const remoteName in removedByRoom) {
         unindexColonyRemote(colonyName, remoteName, removedByRoom[remoteName]);
