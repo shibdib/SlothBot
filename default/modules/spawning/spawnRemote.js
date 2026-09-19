@@ -289,7 +289,7 @@ function maybeScoutRemoteCandidate(room, rName) {
     queueCreepIfNeeded({
         room,
         role: 'scout',
-        priority: PRIORITIES.remoteHarvester,
+        priority: PRIORITIES.high,
         numberNeeded: 1,
         destination: rName,
     });
@@ -316,7 +316,7 @@ function maybeScoutUnknownExits(room) {
         queueCreepIfNeeded({
             room,
             role: 'scout',
-            priority: PRIORITIES.remoteHarvester,
+            priority: PRIORITIES.high,
             numberNeeded: 1,
             destination: rName,
         });
@@ -340,7 +340,7 @@ function maybeScoutAdjacent(room, rName) {
     queueCreepIfNeeded({
         room,
         role: 'scout',
-        priority: PRIORITIES.remoteHarvester,
+        priority: PRIORITIES.high,
         numberNeeded: 1,
         destination: rName,
     });
@@ -589,7 +589,7 @@ function handleReservation(room, remoteName) {
     const ticks = remoteMining.reservationTicksLeft(remoteName);
     const reserved = INTEL[remoteName] && INTEL[remoteName].reservation === MY_USERNAME;
     const reserverPriority = (!reserved || ticks < 2000)
-        ? PRIORITIES.remoteHarvester
+        ? PRIORITIES.reserver - 1
         : PRIORITIES.reserver;
     queueCreepIfNeeded({
         room,
@@ -755,7 +755,9 @@ function handleRemoteHarvesters(room) {
     }
 
     if (pick && pick.room) {
-        const priority = PRIORITIES.remoteHarvester;
+        const priority = remoteMining.isExitNeighbor(room.name, pick.room)
+            ? PRIORITIES.adjacentRemoteHarvester
+            : PRIORITIES.remoteHarvester;
         const skRoom = remoteMining.skGuardRoom(room.name, pick.room);
         queueCreepIfNeeded({
             room, role: 'remoteHarvester', priority,
@@ -921,7 +923,7 @@ function handleInvaderCore(room, remoteName) {
     // like an invader wave (skCombatBlocksMining) until the core is gone.
     if (isSkRoom(remoteName)) return;
     queueCreepIfNeeded({
-        room, role: 'attacker', priority: PRIORITIES.remoteHarvester - 1,
+        room, role: 'attacker', priority: PRIORITIES.drone - 0.5,
         numberNeeded: 1, destination: remoteName
     });
 }

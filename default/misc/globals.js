@@ -21,8 +21,11 @@ let globals = function () {
         upgrader: 6, drone: 3, mineralHarvester: 7,
         // Haulers — slightly behind harvesters since they're gated by harvester presence
         hauler: 2, hubManager: 2, miscHauler: 7,
-        // Remotes — harvesters before haulers (a hauler without a harvester does nothing)
-        remoteHarvester: 5, remoteHauler: 4, remoteBuilder: 7, roadBuilder: 7, fuelTruck: 8, reserver: 6,
+        // Remotes — next-door miners sit behind local haul, ahead of drones.
+        // Far harvesters beat haulers (a hauler without a harvester does nothing).
+        adjacentRemoteHarvester: 2.75,
+        remoteHarvester: 4, remoteHauler: 4.5, remoteBuilder: 7, roadBuilder: 7, fuelTruck: 8,
+        reserver: 6.5,
         // Military
         defender: 3, extreme: 3, priority: 4, urgent: 5, high: 6, medium: 7, secondary: 9,
         // Beat remotes (haulers, harvesters, reservers, road/remote builders).

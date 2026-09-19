@@ -281,9 +281,11 @@ function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
                 waitingOnEnergy = true;
                 break;
             }
-            // SKAttacker is 4100. Skipping it for cheap remotes/drones is how an
-            // SK-only colony starves: workers spawn, kite keepers, produce nothing.
-            if (ENERGY_HOLD_ROLES.has(item.role)) {
+            // SKAttacker is 4100. Hold only when the room can afford to save
+            // for it (state 2+). At 0/1 the hold starved local income and
+            // next-door miners while energy trickled in.
+            if (ENERGY_HOLD_ROLES.has(item.role) && opts.room
+                && spawnEnergyState(opts.room) >= 2) {
                 holdForEnergy = true;
                 waitingOnEnergy = true;
                 continue;

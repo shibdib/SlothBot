@@ -94,8 +94,9 @@ function miscCreepQueue(room) {
     const thorium = season ? room.thorium : null;
     const miningThorium = !!(rcl >= 6 && thorium && thorium.mineralAmount > 0);
 
-    if (room.storage && (room.terminal || room.factory || miningThorium)) {
-        queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.hauler + 1, numberNeeded: 1});
+    clearRoomRoleQueue(room.name, 'labTech');
+    if (energyState >= 2 && room.storage && (room.terminal || room.factory || miningThorium)) {
+        queueCreepIfNeeded({room, role: 'labTech', priority: PRIORITIES.mineralHarvester, numberNeeded: 1});
     }
 
     if (room.level >= MAX_LEVEL - 1 && room.level >= 4) {
@@ -127,7 +128,7 @@ function miscCreepQueue(room) {
     if (explorerCount > 0) {
         // Season used to queue explorers at 1 and starve the RCL4–5 dump.
         const explorerPriority = (season && rcl >= 4)
-            ? PRIORITIES.remoteHarvester : PRIORITIES.medium;
+            ? PRIORITIES.high : PRIORITIES.medium;
         queueCreepIfNeeded({
             colony: room,
             role: 'explorer',
@@ -169,8 +170,7 @@ function miscCreepQueue(room) {
         if (spawnRegular) {
             queueCreepIfNeeded({
                 room, role: 'mineralHarvester',
-                // RCL 6–7 remotes otherwise starve the one miner.
-                priority: rcl < 8 ? PRIORITIES.remoteHarvester : PRIORITIES.mineralHarvester,
+                priority: PRIORITIES.mineralHarvester,
                 numberNeeded: 1, misc: {boosts: [WORK]},
                 assignment: mineral.id,
                 other: {assignedMineral: mineral.id, source: mineral.id}

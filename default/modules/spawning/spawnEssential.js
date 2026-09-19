@@ -153,9 +153,15 @@ function essentialCreepQueue(room) {
     // Income creeps first while the room can only spend spawn regen — except
     // early rush, where drones *are* the income/build/upgrade crew.
     const dronePriority = (earlyRush && !wantDedicatedUpgrader) ? 1 : PRIORITIES.drone;
+    const liveDrones = getCreepCount(room, 'drone');
+    // First drone stays with defenders. Extra drones used to sit at 4–5 and
+    // starve remote miners; they belong with builders.
+    const droneQueuePriority = (liveDrones && dronePriority > 1)
+        ? PRIORITIES.upgrader
+        : dronePriority;
 
     queueCreepIfNeeded({
-        room, role: 'drone', priority: dronePriority + getCreepCount(room, 'drone'),
+        room, role: 'drone', priority: droneQueuePriority,
         numberNeeded: droneCount,
         rebootCondition: spawnReboot
     });
@@ -183,7 +189,8 @@ function essentialCreepQueue(room) {
         }
         if (wallerCount) {
             queueCreepIfNeeded({
-                room, role: 'waller', priority: PRIORITIES.drone + 1,
+                room, role: 'waller',
+                priority: bootstrap ? PRIORITIES.drone + 1 : PRIORITIES.remoteBuilder,
                 numberNeeded: wallerCount, misc: {boosts: [WORK]}
             });
         }

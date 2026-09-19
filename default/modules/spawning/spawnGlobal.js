@@ -153,13 +153,25 @@ function globalCreepQueue() {
         // which used to queue a scout forever and skip the mining team.
         const powerVisible = operation.type === 'power' && intel && intel.power > Game.time;
         if (operation.type !== 'rebuild' && (!intel || (intel.cached == null && !powerVisible))) {
-            queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
+            queueCreepIfNeeded({
+                role: 'scout',
+                priority: PRIORITIES.high,
+                numberNeeded: 1,
+                destination: key,
+                closestRoom: true
+            });
             continue;
         }
 
         switch (operation.type) {
             case 'scout':
-                queueCreepIfNeeded({role: 'scout', priority: 1, numberNeeded: 1, destination: key, closestRoom: true});
+                queueCreepIfNeeded({
+                    role: 'scout',
+                    priority: PRIORITIES.high,
+                    numberNeeded: 1,
+                    destination: key,
+                    closestRoom: true
+                });
                 break;
             case 'claim':
                 queueCreepIfNeeded({
@@ -264,7 +276,7 @@ function globalCreepQueue() {
                     if (!Game.rooms[key]) {
                         queueCreepIfNeeded({
                             role: 'scout',
-                            priority: 1,
+                            priority: PRIORITIES.high,
                             numberNeeded: 1,
                             destination: key,
                             closestRoom: true
@@ -283,7 +295,7 @@ function globalCreepQueue() {
                     if (!Game.rooms[key]) {
                         queueCreepIfNeeded({
                             role: 'scout',
-                            priority: 1,
+                            priority: PRIORITIES.high,
                             numberNeeded: 1,
                             destination: key,
                             closestRoom: true
@@ -310,7 +322,7 @@ function globalCreepQueue() {
                     if (!Game.rooms[key]) {
                         queueCreepIfNeeded({
                             role: 'scout',
-                            priority: 1,
+                            priority: PRIORITIES.high,
                             numberNeeded: 1,
                             destination: key,
                             closestRoom: true
@@ -347,7 +359,7 @@ function globalCreepQueue() {
                     clearRoomDenialCombatQueue(key);
                     queueCreepIfNeeded({
                         role: 'scout',
-                        priority: 1,
+                        priority: PRIORITIES.high,
                         numberNeeded: 1,
                         destination: key,
                         closestRoom: true
