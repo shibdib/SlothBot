@@ -29,7 +29,9 @@ class Colony {
         room._spawnEnergyStateTick = Game.time;
 
         // Handle room creeps
+        const tCreeps = Game.cpu.getUsed();
         this.creepManager();
+        room._colonyCreepsCpu = Game.cpu.getUsed() - tCreeps;
 
         // Handle creep spawning
         this.creepSpawningController();

@@ -40,11 +40,12 @@ function heap() {
     return global._cpuWatchHeap;
 }
 
-function mark(name, detail) {
+function mark(name, detail, spent) {
     const h = global._cpuWatchHeap;
     if (!h || h.tick !== Game.time) return;
     const entry = {name: name, cpu: Game.cpu.getUsed()};
     if (detail) entry.detail = detail;
+    if (typeof spent === 'number' && isFinite(spent)) entry.spent = spent;
     h.phases.push(entry);
     if (h.phases.length > MAX_PHASES) h.phases.shift();
 }
@@ -74,15 +75,30 @@ function classify(used, limit, tickLimit) {
 
 function formatPhases(phases) {
     if (!phases || !phases.length) return '';
-    const parts = [];
+    const rows = [];
     let prev = 0;
-    const start = Math.max(0, phases.length - 12);
-    for (let i = start; i < phases.length; i++) {
+    for (let i = 0; i < phases.length; i++) {
         const p = phases[i];
+        const delta = p.spent != null ? p.spent : p.cpu - prev;
         const label = p.detail ? `${p.name}:${p.detail}` : p.name;
-        const delta = p.cpu - prev;
-        parts.push(`${label} ${p.cpu.toFixed(1)}(+${delta.toFixed(1)})`);
+        rows.push({label: label, cpu: p.cpu, delta: delta, i: i});
         prev = p.cpu;
+    }
+    // Last-N with prev=0 used to attribute the whole tick to the first shown
+    // label (e.g. "planner 443(+443)" when planner spent 0.1).
+    const keep = new Set();
+    keep.add(0);
+    for (let i = Math.max(0, rows.length - 4); i < rows.length; i++) keep.add(i);
+    const hot = rows.slice().sort((a, b) => b.delta - a.delta);
+    for (let i = 0; i < hot.length && keep.size < 12; i++) {
+        if (hot[i].delta >= 8) keep.add(hot[i].i);
+    }
+    const idxs = [...keep].sort((a, b) => a - b);
+    const parts = [];
+    for (let k = 0; k < idxs.length; k++) {
+        const r = rows[idxs[k]];
+        if (k && idxs[k] !== idxs[k - 1] + 1) parts.push('…');
+        parts.push(`${r.label} ${r.cpu.toFixed(1)}(+${r.delta.toFixed(1)})`);
     }
     return parts.join(' > ');
 }
@@ -99,9 +115,32 @@ function topRooms(n) {
     const out = [];
     const limit = Math.min(n, rows.length);
     for (let i = 0; i < limit; i++) {
+        if (rows[i].last < 8) break;
         out.push(`${rows[i].name} ${rows[i].last.toFixed(1)}`);
     }
     return out.join(', ');
+}
+
+function plannerBits() {
+    try {
+        const report = require('planOrchestrator').getLastTickReport();
+        if (!report || report.cpu == null || report.cpu < 5) return '';
+        let text = `planner ${report.cpu.toFixed(1)}`;
+        if (report.room) text += ` ${report.room}`;
+        if (report.skipReason) text += ` skip:${report.skipReason}`;
+        const phases = report.phases;
+        if (phases && phases.length) {
+            const heavy = [];
+            for (let i = 0; i < phases.length; i++) {
+                const p = phases[i];
+                if (p && p.cpu >= 3) heavy.push(`${p.phase}:${p.cpu.toFixed(1)}`);
+            }
+            if (heavy.length) text += ` [${heavy.join(',')}]`;
+        }
+        return text;
+    } catch (e) {
+        return '';
+    }
 }
 
 function creepCount() {
@@ -121,6 +160,7 @@ function profilerDump(maxLen) {
         if (!Memory.profiler || !Memory.profiler.enabledTick) return '';
         const text = profiler.output(maxLen);
         if (!text || text === 'Profiler not active.') return '';
+        if (text.indexOf('Avg: 0.00') !== -1 && text.indexOf('Total: 0.00') !== -1) return '';
         return text;
     } catch (e) {
         return '';
@@ -196,8 +236,10 @@ function reportSpike(kind, used, limit, tickLimit, phases) {
     const avg = sampleAvg();
     if (avg) msg += ` avg ${avg.toFixed(1)}`;
     msg += `. ${contextBits()}`;
-    const rooms = topRooms(4);
+    const rooms = topRooms(6);
     if (rooms) msg += `. rooms ${rooms}`;
+    const planText = plannerBits();
+    if (planText) msg += `. ${planText}`;
     const phaseText = formatPhases(phases);
     if (phaseText) msg += `. ${phaseText}`;
     const dump = profilerDump(350);

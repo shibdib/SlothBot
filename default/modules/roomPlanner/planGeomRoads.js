@@ -38,6 +38,7 @@ const COSTS = {
 const PATH_CACHE_TTL = 5000;
 const PLAN_CACHE = Object.create(null);
 const MATRIX_HEAP = {owned: Object.create(null), remote: Object.create(null)};
+const TERRAIN_MATRIX = Object.create(null);
 const FAILED_PATH_RETRY = 50;
 /** Bump when desired-set geometry changes (lab collar, walkway, extension spurs, …) so packed plans rebuild. */
 const OWNED_ROAD_PLAN_REV = 4;
@@ -202,11 +203,13 @@ function collectAvoidRoadKeys(room) {
     return avoid;
 }
 
-function buildTerrainMatrix(roomName, profile) {
+function clonePlannerTerrain(roomName, profile) {
     const costs = COSTS[profile];
+    const key = `${roomName}_${profile}_${costs.wall}_${costs.swamp}_${costs.plain}`;
+    const cached = TERRAIN_MATRIX[key];
+    if (cached) return cached.clone();
     const matrix = new PathFinder.CostMatrix();
     const terrain = Game.map.getRoomTerrain(roomName);
-
     for (let y = 0; y < 50; y++) {
         for (let x = 0; x < 50; x++) {
             const tile = terrain.get(x, y);
@@ -215,6 +218,13 @@ function buildTerrainMatrix(roomName, profile) {
             else matrix.set(x, y, costs.plain);
         }
     }
+    TERRAIN_MATRIX[key] = matrix;
+    return matrix.clone();
+}
+
+function buildTerrainMatrix(roomName, profile) {
+    const costs = COSTS[profile];
+    const matrix = clonePlannerTerrain(roomName, profile);
 
     const room = Game.rooms[roomName];
     if (!room) return matrix;
