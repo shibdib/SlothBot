@@ -211,8 +211,10 @@ function creepExpiringSoon(room = undefined, role, destination = undefined, oper
 
     let ttl = data.minTTL;
     let bodyLen = data.bodyLen;
-    if (role === 'reserver' || role === 'remoteHarvester') {
+    if (role === 'reserver' || role === 'remoteHarvester' || role === 'reactorClaimer') {
         // Don't stack a second walker while the live one is still in transit.
+        // reactorClaimer lives 600; hops*50 lead time is >600 so every
+        // fresh body looked "expiring" and a second one queued on the pad.
         if (data.minTTLAtDest === Infinity) return false;
         ttl = data.minTTLAtDest;
         bodyLen = data.bodyLenAtDest || bodyLen;

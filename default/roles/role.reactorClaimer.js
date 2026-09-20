@@ -16,32 +16,47 @@ class RoleReactorClaimer {
 
     performRoleActions() {
         if (this.housekeeping()) return;
-        if (!this.creep.memory.destination || this.room.name !== this.creep.memory.destination) {
+        const dest = this.creep.memory.destination;
+        if (!dest || this.room.name !== dest) {
             this.travel();
+            if (this.creep.memory._claimAbort === dest && !this.freshAtHome()) {
+                this.creep.recycleCreep();
+            }
         } else {
             this.claim();
         }
     }
 
+    freshAtHome() {
+        const ttl = this.creep.ticksToLive || 0;
+        if (ttl < CREEP_CLAIM_LIFE_TIME - 80) return false;
+        const home = this.creep.memory.colony;
+        return this.room.name === home || !!(typeof MY_ROOMS !== 'undefined' && MY_ROOMS.includes(this.room.name));
+    }
+
     housekeeping() {
+        if (this.creep.spawning) return true;
         if (!this.creep.hasActiveBodyparts(CLAIM)) {
             this.creep.suicide();
             return true;
         }
         this.creep.say('Rx', true);
-        if (!this.creep.memory.destination) {
-            this.creep.recycleCreep();
-            return true;
+        let dest = this.creep.memory.destination;
+        if (!dest) {
+            dest = Memory.season && Memory.season.targetReactor;
+            if (dest) this.creep.memory.destination = dest;
         }
-        const hops = Game.map.getRoomLinearDistance(this.room.name, this.creep.memory.destination) || 0;
-        if (this.creep.ticksToLive < hops * 50 + 30 && this.room.name !== this.creep.memory.destination) {
-            this.creep.recycleCreep();
+        if (!dest) {
+            if (!this.freshAtHome()) this.creep.recycleCreep();
             return true;
         }
     }
 
     travel() {
-        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {range: 23});
+        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {
+            range: 23,
+            shortest: true
+        });
     }
 
     claim() {

@@ -62,16 +62,20 @@ function applyClaimRouting(creep, options, target) {
     const ticksRemaining = creep.ticksToLive;
     if (!ticksRemaining) return false;
 
-    // Sticky abort: one decision, no PathFinder thrash for the rest of the TTL.
-    if (creep.memory._claimAbort === missionDest) return true;
-
-    // claimRoute = full remaining rooms (hops pass a 2-room PathFinder slice in options.route).
+    // claimRoute is [current, next, ..., dest] from applyLongDistanceHop.
+    // Body gen / routeWithinClaimTTL count findRoute hops (dest included,
+    // origin not). Counting list length as rooms made a 15-hop spawn abort
+    // on the first shibMove (16*35+50 > 600) and recycle on the pad.
     const route = options.claimRoute || options.route || getShibMove(creep)?.route;
-    if (!route?.length) return false;
+    if (!route || !route.length) {
+        return creep.memory._claimAbort === missionDest;
+    }
 
     const roomIdx = route.indexOf(creep.room.name);
-    const remainingRooms = roomIdx >= 0 ? route.length - roomIdx : route.length;
-    if (ticksRemaining < estimateClaimRouteTicks(remainingRooms)) {
+    const remainingHops = roomIdx >= 0
+        ? Math.max(0, route.length - roomIdx - 1)
+        : route.length;
+    if (ticksRemaining < estimateClaimRouteTicks(remainingHops)) {
         creep.memory._claimAbort = missionDest;
         const moveState = getShibMove(creep);
         if (moveState) {
@@ -83,6 +87,7 @@ function applyClaimRouting(creep, options, target) {
         // Do not deleteRoute here — that poisoned the shared route cache every tick.
         return true;
     }
+    if (creep.memory._claimAbort === missionDest) delete creep.memory._claimAbort;
     return false;
 }
 

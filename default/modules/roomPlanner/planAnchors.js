@@ -1160,6 +1160,8 @@ function ensureLabHub(room) {
 // Greedy maximin of tower damage on every seal tile so firepower is even.
 // Bump TOWER_LAYOUT_VERSION to migrate; off-plan towers are destroyed once.
 // Do not re-pick when the seal later grows around those towers.
+// After a global reset ROOM_RAMPART_SPOTS is empty — never treat the stamp-ring
+// fallback as a new seal (that shifted hubs one tile).
 // ---------------------------------------------------------------------------
 
 function cheby(ax, ay, bx, by) {
@@ -1828,7 +1830,14 @@ function perimeterRevForTowers() {
     }
 }
 
+function hasCachedSealSpots(room) {
+    return !!(room && typeof ROOM_RAMPART_SPOTS !== 'undefined' && ROOM_RAMPART_SPOTS[room.name]);
+}
+
 function currentSealKey(room) {
+    // Stamp-ring fallback is not the min-cut seal. After a global reset
+    // ROOM_RAMPART_SPOTS is empty; hashing that ring looks like a 1-tile drift.
+    if (!hasCachedSealSpots(room)) return 'none';
     const hub = resolveHub(room);
     if (!hub) return 'none';
     const terrain = Game.map.getRoomTerrain(room.name);
@@ -1841,10 +1850,6 @@ function currentSealKey(room) {
         sy += walls[i].y;
     }
     return walls.length + ':' + Math.round(sx / walls.length) + ':' + Math.round(sy / walls.length);
-}
-
-function hasCachedSealSpots(room) {
-    return !!(room && typeof ROOM_RAMPART_SPOTS !== 'undefined' && ROOM_RAMPART_SPOTS[room.name]);
 }
 
 function parseSealKey(key) {
@@ -1861,6 +1866,7 @@ function parseSealKey(key) {
 function dynamicSealDrifted(room) {
     if (!room || !room.memory || !room.memory.dynamicLayout) return false;
     if (!room.memory.towerSealLocked) return false;
+    if (!hasCachedSealSpots(room)) return false;
     const now = parseSealKey(currentSealKey(room));
     const was = parseSealKey(room.memory.towerSealKey);
     if (!now || !was) return false;
@@ -1873,7 +1879,9 @@ function towerLayoutStale(room) {
     if (!room || !room.memory) return true;
     if (room.memory.towerLayoutVersion !== TOWER_LAYOUT_VERSION) return true;
     const rev = perimeterRevForTowers();
-    if (rev && room.memory.towerSealRev !== rev) return true;
+    // Missing rev is "never stamped", not a geometry bump. Filling it must not
+    // reseat hubs — that used to fire on the first planner turn after a reset.
+    if (rev && room.memory.towerSealRev != null && room.memory.towerSealRev !== rev) return true;
     if (dynamicSealDrifted(room)) {
         if (room.memory.towerReseatTick && room.memory.towerReseatTick > Game.time) return false;
         return true;
@@ -1881,7 +1889,10 @@ function towerLayoutStale(room) {
     // Bunker: freeze after the first seal pick. Dynamic rooms reseat when the
     // packed blob / seal centroid drifts (see dynamicSealDrifted).
     if (room.memory.towerSealLocked) return false;
-    return hasCachedSealSpots(room);
+    // First seal only: cache exists and we never recorded a real seal key.
+    // Rebuilt cache after a global reset is not a reason to move hubs.
+    if (!hasCachedSealSpots(room)) return false;
+    return !room.memory.towerSealKey || room.memory.towerSealKey === 'none';
 }
 
 function hubsMatch(a, b) {
@@ -1974,14 +1985,34 @@ function ensureTowerRamparts(room, hubs) {
     return placed;
 }
 
-function stampTowerLayout(room) {
+function stampTowerLayoutMeta(room) {
+    if (!room || !room.memory) return;
     room.memory.towerLayoutVersion = TOWER_LAYOUT_VERSION;
     room.memory.towerSealRev = perimeterRevForTowers();
-    room.memory.towerSealKey = currentSealKey(room);
-    if (hasCachedSealSpots(room)) room.memory.towerSealLocked = 1;
+}
+
+function stampTowerLayout(room) {
+    stampTowerLayoutMeta(room);
+    // Only freeze against a real min-cut cache. Writing the stamp-ring key
+    // after a global reset made the next cache rebuild look like drift.
+    if (hasCachedSealSpots(room)) {
+        room.memory.towerSealKey = currentSealKey(room);
+        room.memory.towerSealLocked = 1;
+    }
     if (room.memory.dynamicLayout) {
         room.memory.towerReseatTick = Game.time + TOWER_RESEAT_COOLDOWN;
     }
+}
+
+function keepExistingTowerHubs(room, hubs, reason) {
+    stampTowerLayoutMeta(room);
+    if (hasCachedSealSpots(room) && !room.memory.towerSealLocked) {
+        room.memory.towerSealKey = currentSealKey(room);
+        room.memory.towerSealLocked = 1;
+    }
+    if (getTowerDeficit(room) > 0) placeTowerSites(room, Math.min(2, getTowerDeficit(room)));
+    ensureTowerRamparts(room, hubs);
+    return {ok: true, hubs: hubs.slice(), reason: reason || 'existing'};
 }
 
 function ensureTowerHubs(room, options) {
@@ -2003,9 +2034,7 @@ function ensureTowerHubs(room, options) {
             if (!isPlannerShadow(room) && !unsafe) {
                 relocateOffPlanTowers(room, existing);
             }
-            if (getTowerDeficit(room) > 0) placeTowerSites(room, Math.min(2, getTowerDeficit(room)));
-            ensureTowerRamparts(room, existing);
-            return {ok: true, hubs: existing.slice(), reason: 'existing'};
+            return keepExistingTowerHubs(room, existing, 'existing');
         }
         const recovered = recoverTowerHubsFromWorld(room);
         if (recovered.length && !towerHubsOnBlockedTiles(room, recovered)) {
@@ -2027,14 +2056,46 @@ function ensureTowerHubs(room, options) {
         }
     }
 
+    const bunkerLevel = typeof BUNKER_LEVEL === 'number' ? BUNKER_LEVEL : 6;
+    const atBunker = !!(room.controller && room.controller.level >= bunkerLevel);
+    const hasRecordedSeal = !!(room.memory.towerSealLocked
+        || (room.memory.towerSealKey && room.memory.towerSealKey !== 'none'));
+    let postResetHold = false;
+    try {
+        postResetHold = !!(typeof global.isPostResetDangerWindow === 'function'
+            && global.isPostResetDangerWindow());
+    } catch (e) { /* optional */
+    }
+    // Cold-cache ticks after a global reset can rebuild a slightly different
+    // min-cut (structure lists still filling). Don't tear down a recorded layout.
+    if (!opts.forceSearch && !stampStuck && !reseatSpawn && existingNow.length
+        && hasRecordedSeal && postResetHold) {
+        if (!isPlannerShadow(room) && !unsafe) {
+            relocateOffPlanTowers(room, existingNow);
+        }
+        return keepExistingTowerHubs(room, existingNow, 'post_reset_hold');
+    }
     try {
         const geom = require('planGeomRamparts');
-        if (room.memory.perimeterPlanRev !== geom.PERIMETER_PLAN_REV
-            && room.controller && room.controller.level >= (typeof BUNKER_LEVEL === 'number' ? BUNKER_LEVEL : 6)) {
+        if (atBunker && room.memory.perimeterPlanRev !== geom.PERIMETER_PLAN_REV) {
             require('planRamparts').recalculateRampartsForRoom(room, undefined, {destroyOffPlan: true});
             room.memory.perimeterPlanRev = geom.PERIMETER_PLAN_REV;
+        } else if (atBunker && !hasCachedSealSpots(room) && !plannerShouldStop() && canAffordMinCut()) {
+            // Refill heap cache after a global reset. Never destroyOffPlan here —
+            // the old ring is still the live seal.
+            require('planRamparts').recalculateRampartsForRoom(room, undefined, {destroyOffPlan: false});
         }
     } catch (e) { /* optional */
+    }
+
+    // Don't re-pick against the stamp-ring fallback while the real seal cache
+    // is empty. That is what shifted hubs one tile after a global reset.
+    if (!opts.forceSearch && !stampStuck && !reseatSpawn && existingNow.length
+        && atBunker && !hasCachedSealSpots(room)) {
+        if (!isPlannerShadow(room) && !unsafe) {
+            relocateOffPlanTowers(room, existingNow);
+        }
+        return keepExistingTowerHubs(room, existingNow, 'wait_seal_cache');
     }
 
     const selected = selectTowerHubs(room);
@@ -2621,6 +2682,14 @@ function resetTowerLayoutForRoom(room) {
         planDoc.anchors.towers = [];
     }
 
+    // Force-search against the real seal, not the stamp-ring fallback.
+    try {
+        if (!hasCachedSealSpots(room)) {
+            require('planRamparts').recalculateRampartsForRoom(room, undefined, {destroyOffPlan: false});
+        }
+    } catch (e) { /* optional */
+    }
+
     ensureTowerHubs(room, {forceSearch: true});
     const newTowerHubs = resolveTowerHubs(room).length;
 
@@ -2762,6 +2831,10 @@ function inspectAnchors(room) {
             target: TOWER_LAYOUT_VERSION,
             stale: towerLayoutStale(room),
             locked: !!room.memory.towerSealLocked,
+            cachedSeal: hasCachedSealSpots(room),
+            sealKey: room.memory.towerSealKey || null,
+            sealRev: room.memory.towerSealRev != null ? room.memory.towerSealRev : null,
+            targetRev: perimeterRevForTowers(),
             resetQueue: typeof Memory !== 'undefined' ? (Memory.towerLayoutResetQueue || []) : [],
             pendingReset: typeof Memory !== 'undefined'
                 && Array.isArray(Memory.towerLayoutResetQueue)

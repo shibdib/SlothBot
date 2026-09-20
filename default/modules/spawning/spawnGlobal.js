@@ -227,6 +227,8 @@ function globalCreepQueue() {
                         role: 'reactorClaimer', priority, numberNeeded: 1, destination: key,
                         closestRoom: true, operation: 'reactor'
                     });
+                } else {
+                    clearOpQueueRole('reactorClaimer', key, 'reactor');
                 }
                 if (operation.haulers) {
                     queueCreepIfNeeded({

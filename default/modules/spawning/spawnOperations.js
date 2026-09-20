@@ -46,6 +46,7 @@ const ROLE_ASSIGN_WEIGHT = {
     attacker: 70,
     SKAttacker: 70,
     claimAttacker: 40,
+    reactorClaimer: 45,
     cleaner: 20,
     scout: 10
 };
@@ -650,6 +651,17 @@ function heaviestQueuedEntry(targetRoom, fallback) {
     const aux = Memory.auxiliaryTargets && Memory.auxiliaryTargets[targetRoom];
     // Combat bodies must not be the assignment probe for rebuild — a longbow
     // that fails generation used to leave the room with zero drones.
+    if (aux && aux.type === 'reactor' && aux.claim) {
+        const globalQueue = CREEP_QUEUES['global'];
+        if (globalQueue) {
+            for (const key in globalQueue) {
+                const e = globalQueue[key];
+                if (entryTarget(e) === targetRoom && e.role === 'reactorClaimer') return e;
+            }
+        }
+        if (fallback && fallback.role === 'reactorClaimer') return fallback;
+        return {role: 'reactorClaimer', destination: targetRoom, operation: 'reactor'};
+    }
     if (aux && aux.type === 'rebuild') {
         const globalQueue = CREEP_QUEUES['global'];
         if (globalQueue) {
