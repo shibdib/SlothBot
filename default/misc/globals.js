@@ -1330,32 +1330,13 @@ let globals = function () {
 
     global.collectRoomBarriers = function (room) {
         if (!room) return [];
-        const seen = new Set();
-        const walls = [];
-        const ramparts = [];
-        const add = (s) => {
-            if (!s || seen.has(s.id) || s.pos.roomName !== room.name) return;
-            if (s.structureType === STRUCTURE_WALL) {
-                seen.add(s.id);
-                walls.push(s);
-            } else if (s.structureType === STRUCTURE_RAMPART) {
-                seen.add(s.id);
-                ramparts.push(s);
-            }
-        };
-        global.roomStructuresFromGame(room).forEach(add);
-        global.forEachRoomStructureList(room.ramparts, add);
-        try {
-            global.forEachRoomStructureList(room.constructedWalls, add);
-        } catch (e) { /* native find unavailable */ }
-        try {
-            room.find(FIND_STRUCTURES, {filter: {structureType: STRUCTURE_WALL}}).forEach(add);
-            room.find(FIND_MY_STRUCTURES, {filter: {structureType: STRUCTURE_RAMPART}}).forEach(add);
-        } catch (e) { /* corrupt room */ }
-        if (Game.structures) {
-            for (const id in Game.structures) add(Game.structures[id]);
-        }
-        return walls.concat(ramparts);
+        const ramparts = room.ramparts || [];
+        const walls = room.walls || room.constructedWalls || [];
+        if (!walls.length) return ramparts;
+        if (!ramparts.length) return walls;
+        const out = ramparts.slice();
+        for (let i = 0; i < walls.length; i++) out.push(walls[i]);
+        return out;
     };
 
     global.roomConstructionSitesFromGame = function (room) {

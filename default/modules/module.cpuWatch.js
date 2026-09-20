@@ -62,6 +62,16 @@ function noteRoleCpu(role, spent) {
     roleCpu[key] = (roleCpu[key] || 0) + spent;
 }
 
+function notePathFinderSearch(result, cpuSpent) {
+    resetHookStats();
+    pfSearches++;
+    if (typeof cpuSpent === 'number' && cpuSpent > 0) pfCpu += cpuSpent;
+    if (result) {
+        pfOps += result.ops || 0;
+        if (result.incomplete) pfIncomplete++;
+    }
+}
+
 function installHooks() {
     if (global._cpuWatchHooks) return;
     global._cpuWatchHooks = true;
@@ -419,6 +429,7 @@ if (typeof global !== 'undefined') {
     global.cpuWatchStatus = status;
     global.cpuSpikeTest = testNotify;
     global.noteRoleCpu = noteRoleCpu;
+    global.notePathFinderSearch = notePathFinderSearch;
 }
 
 module.exports = {
@@ -429,4 +440,5 @@ module.exports = {
     testNotify,
     cpuHeadroom,
     noteRoleCpu,
+    notePathFinderSearch,
 };

@@ -320,6 +320,7 @@ function searchOnMatrix(from, to, matrix, options) {
             pos: (to instanceof RoomPosition ? to : to.pos),
             range: options && options.range != null ? options.range : 1
         };
+    const t0 = typeof Game !== 'undefined' && Game.cpu && Game.cpu.getUsed ? Game.cpu.getUsed() : 0;
     const result = PathFinder.search(begin, goals, {
         heuristicWeight: 1,
         maxRooms: 1,
@@ -328,6 +329,9 @@ function searchOnMatrix(from, to, matrix, options) {
         // exit and mark the search incomplete under maxRooms:1.
         roomCallback: (rn) => (rn === roomName ? matrix : false),
     });
+    if (typeof notePathFinderSearch === 'function') {
+        notePathFinderSearch(result, Game.cpu.getUsed() - t0);
+    }
     if (result.incomplete || !result.path.length) return null;
     return result.path;
 }
@@ -337,12 +341,16 @@ function searchRemoteRoadPath(from, to, matrix) {
     const begin = from instanceof RoomPosition ? from : from.pos;
     const target = to instanceof RoomPosition ? to : to.pos;
     const roomName = begin.roomName;
+    const t0 = typeof Game !== 'undefined' && Game.cpu && Game.cpu.getUsed ? Game.cpu.getUsed() : 0;
     const result = PathFinder.search(begin, {pos: target, range: 1}, {
         heuristicWeight: 1,
         maxRooms: 1,
         maxOps: 8000,
         roomCallback: (rn) => (rn === roomName ? matrix : false),
     });
+    if (typeof notePathFinderSearch === 'function') {
+        notePathFinderSearch(result, Game.cpu.getUsed() - t0);
+    }
     if (!result.path.length) return {path: null, incomplete: true};
     return {path: result.path, incomplete: !!result.incomplete};
 }

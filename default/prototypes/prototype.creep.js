@@ -659,14 +659,23 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     const myCreeps = room.myCreeps;
     let potentialEnergy = [];
 
-    let targetCounts = {};
-    for (let i = 0; i < myCreeps.length; i++) {
-        const c = myCreeps[i];
-        if (c.id !== this.id && c.memory.energyDestination) {
-            targetCounts[c.memory.energyDestination] = (targetCounts[c.memory.energyDestination] || 0) + 1;
+    if (!room._energyTargetCounts || room._energyTargetCountsTick !== Game.time) {
+        const counts = Object.create(null);
+        for (let i = 0; i < myCreeps.length; i++) {
+            const c = myCreeps[i];
+            const dest = c.memory && c.memory.energyDestination;
+            if (dest) counts[dest] = (counts[dest] || 0) + 1;
         }
+        room._energyTargetCounts = counts;
+        room._energyTargetCountsTick = Game.time;
     }
+    const targetCounts = room._energyTargetCounts;
     const myCreepsFilter = (destinationId) => targetCounts[destinationId] || 0;
+    const claimEnergy = (id) => {
+        this.memory.energyDestination = id;
+        if (id) targetCounts[id] = (targetCounts[id] || 0) + 1;
+        return true;
+    };
 
     const isAlliedRoom = room.controller && room.controller.owner && !room.controller.my;
 
@@ -680,10 +689,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
         if (room.terminal && !room.terminal.pos.checkForRampart(true) && room.terminal.store[RESOURCE_ENERGY] > TERMINAL_ENERGY_BUFFER) potentialEnergy.push(room.terminal);
 
         const closest = this.pos.findClosestByRange(potentialEnergy);
-        if (closest) {
-            this.memory.energyDestination = closest.id;
-            return true;
-        }
+        if (closest) return claimEnergy(closest.id);
         return false;
     }
 
@@ -716,10 +722,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
     }
 
     if (this.memory.role === 'hauler') {
-        if (factoryUnpackingEnergy(room)) {
-            this.memory.energyDestination = room.factory.id;
-            return true;
-        }
+        if (factoryUnpackingEnergy(room)) return claimEnergy(room.factory.id);
         const hubLink = Game.getObjectById(room.memory.hubLink);
         const hubManaged = room.myCreeps.some(c => c.memory && c.memory.role === 'hubManager');
         if (!hubManaged && hubLink && hubLink.store[RESOURCE_ENERGY] > 0) {
@@ -734,10 +737,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
                 const hubHasSurplus = hubEnergy >= LINK_CAPACITY * 0.85;
                 preferHub = hubHasSurplus || !controllerNeedsFeed;
             }
-            if (preferHub) {
-                this.memory.energyDestination = hubLink.id;
-                return true;
-            }
+            if (preferHub) return claimEnergy(hubLink.id);
         }
     }
 
@@ -793,10 +793,7 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 
     if (potentialEnergy.length) {
         const closest = this.pos.findClosestByRange(potentialEnergy);
-        if (closest) {
-            this.memory.energyDestination = closest.id;
-            return true;
-        }
+        if (closest) return claimEnergy(closest.id);
     }
     return false;
 };

@@ -88,17 +88,27 @@ class FactoryControl {
 
     static canExportEnergy(room) {
         if (!room.terminal) return false;
+        if (room._canExportEnergyTick === Game.time) return room._canExportEnergy;
         const terminal = room.terminal;
         const surplus = terminal.store[RESOURCE_ENERGY] - TERMINAL_ENERGY_BUFFER;
-        if (surplus < 5000) return false;
-        return MY_ROOMS.some(name => {
-            if (name === room.name) return false;
-            const dest = Game.rooms[name];
-            if (!dest?.terminal) return false;
-            if (!FactoryControl.needsBatteryUnpack(dest) && dest.energyState >= 2) return false;
+        let ok = false;
+        if (surplus >= 5000) {
             const amount = Math.min(surplus, 10000);
-            return Game.market.calcTransactionCost(amount, room.name, name) < amount * 0.25;
-        });
+            for (let i = 0; i < MY_ROOMS.length; i++) {
+                const name = MY_ROOMS[i];
+                if (name === room.name) continue;
+                const dest = Game.rooms[name];
+                if (!dest || !dest.terminal) continue;
+                if (!FactoryControl.needsBatteryUnpack(dest) && dest.energyState >= 2) continue;
+                if (Game.market.calcTransactionCost(amount, room.name, name) < amount * 0.25) {
+                    ok = true;
+                    break;
+                }
+            }
+        }
+        room._canExportEnergyTick = Game.time;
+        room._canExportEnergy = ok;
+        return ok;
     }
 
     static hasEnergyStoragePressure(room) {

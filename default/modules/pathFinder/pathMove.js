@@ -289,15 +289,22 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
         }
         allowedRooms = filterAvoidedRooms(allowedRooms, options, [origin.roomName, target.roomName]);
         const pathOnlyGoals = {pos: target, range: options.range || 1};
-        const pathOnlySearch = (rooms, maxOps, maxRooms) => PathFinder.search(origin, pathOnlyGoals, {
-            maxOps,
-            maxRooms,
-            heuristicWeight: options.heuristicWeight || 1,
-            roomCallback: (roomName) => {
-                if (rooms.length && !rooms.includes(roomName)) return false;
-                return getMatrix(roomName, creep, options);
-            },
-        });
+        const pathOnlySearch = (rooms, maxOps, maxRooms) => {
+            const t0 = Game.cpu.getUsed();
+            const result = PathFinder.search(origin, pathOnlyGoals, {
+                maxOps,
+                maxRooms,
+                heuristicWeight: options.heuristicWeight || 1,
+                roomCallback: (roomName) => {
+                    if (rooms.length && !rooms.includes(roomName)) return false;
+                    return getMatrix(roomName, creep, options);
+                },
+            });
+            if (typeof notePathFinderSearch === 'function') {
+                notePathFinderSearch(result, Game.cpu.getUsed() - t0);
+            }
+            return result;
+        };
         let result = pathOnlySearch(
             allowedRooms,
             options.maxOps || DEFAULT_MAXOPS,
@@ -594,15 +601,22 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     const goals = options.hopGoals && options.hopGoals.length
         ? options.hopGoals
         : {pos: target, range: options.range};
-    const runSearch = (rooms, maxOps, maxRooms) => PathFinder.search(origin, goals, {
-        maxOps,
-        maxRooms,
-        heuristicWeight: 1,
-        roomCallback: (roomName) => {
-            if (rooms.length && !rooms.includes(roomName)) return false;
-            return getMatrix(roomName, creep, options);
+    const runSearch = (rooms, maxOps, maxRooms) => {
+        const t0 = Game.cpu.getUsed();
+        const result = PathFinder.search(origin, goals, {
+            maxOps,
+            maxRooms,
+            heuristicWeight: 1,
+            roomCallback: (roomName) => {
+                if (rooms.length && !rooms.includes(roomName)) return false;
+                return getMatrix(roomName, creep, options);
+            }
+        });
+        if (typeof notePathFinderSearch === 'function') {
+            notePathFinderSearch(result, Game.cpu.getUsed() - t0);
         }
-    });
+        return result;
+    };
     // Same-room: stay in-room first. Neighbor corridors are a retry in
     // applySameRoomDetour (incomplete or far longer than Chebyshev).
     // Multi-room: never cap below the allowed list (Math.min with maxRooms=7

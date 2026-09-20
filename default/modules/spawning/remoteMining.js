@@ -1400,7 +1400,9 @@ function maybeRefreshRemoteIntel(rName) {
 }
 
 // Heap cache for visible-path remote scores — pathOnly shibMove never hits creep path cache.
-const SCORE_PATH_TTL = 500;
+// Must outlive remoteCreepQueue's CREEP_LIFE_TIME refresh. 500 meant every
+// refresh recached every source with a 4000-op pathOnly search (~80 CPU).
+const SCORE_PATH_TTL = 1600;
 let scorePathCacheTick = -1;
 /** @type {Object.<string, {tick: number, cost: number}>} */
 const scorePathCache = Object.create(null);

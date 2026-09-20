@@ -74,17 +74,23 @@ function tickRoom(room) {
     let upg = 0;
 
     if (events.length) {
-        // room.sources / room.towers / room.links are themselves cached on the Room object — cheap.
-        const sourceIds = new Set();
-        for (const src of room.sources) sourceIds.add(src.id);
-        const towerIds = new Set();
-        const towers = room.towers;
-        if (towers) for (const t of towers) towerIds.add(t.id);
-        // Link IDs are needed to attribute EVENT_TRANSFER loss correctly — a creep→link
-        // transfer doesn't lose anything, only a link→link transfer does.
-        const linkIds = new Set();
-        const links = room.links;
-        if (links) for (const l of links) linkIds.add(l.id);
+        if (room._flowIdsTick !== Game.time) {
+            room._flowIdsTick = Game.time;
+            const sourceIds = new Set();
+            for (const src of room.sources) sourceIds.add(src.id);
+            const towerIds = new Set();
+            const towers = room.towers;
+            if (towers) for (const t of towers) towerIds.add(t.id);
+            const linkIds = new Set();
+            const links = room.links;
+            if (links) for (const l of links) linkIds.add(l.id);
+            room._flowSourceIds = sourceIds;
+            room._flowTowerIds = towerIds;
+            room._flowLinkIds = linkIds;
+        }
+        const sourceIds = room._flowSourceIds;
+        const towerIds = room._flowTowerIds;
+        const linkIds = room._flowLinkIds;
         for (let i = 0; i < events.length; i++) {
             const e = events[i];
             const d = e.data;
