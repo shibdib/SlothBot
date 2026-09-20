@@ -394,6 +394,11 @@ function computeOpLevelTarget(target, opMemory, intel) {
         case 'power':
             // 20 HEAL + 20 MOVE is 6000 energy; RCL 7 caps at 5600.
             return 8;
+        case 'reactor':
+            // Claimer is 700 energy. MAX_LEVEL-1 blocked the RCL 6 feeder
+            // once any room hit 7/8, and incomplete RCL 6 bunkers sit at
+            // room.level 5 while the controller is already 6.
+            return 4;
         case 'roomDenial':
             return scoreOriginMinLevel('roomDenial', intel);
         case 'guard':
@@ -533,7 +538,8 @@ function resolveAssignment(target, opMemory, levelTarget, entry, intel) {
                     }
                     return handleAssignmentReadinessWait(target, opMemory, 'Room is not combat ready.', levelTarget, entry);
                 }
-            } else if (Memory.auxiliaryTargets[target] && opMemory.type !== 'power' && opMemory.type !== 'rebuild' && !isLiveAuxReady(assigned)) {
+            } else if (Memory.auxiliaryTargets[target] && opMemory.type !== 'power' && opMemory.type !== 'rebuild'
+                && opMemory.type !== 'reactor' && !isLiveAuxReady(assigned)) {
                 if (stealCheckDue(target, opMemory.assignedAt)) {
                     const stolen = tryStealAssignment(target, opMemory, levelTarget, entry, 'Room is not auxiliary ready.');
                     if (stolen) return stolen;
@@ -731,6 +737,7 @@ function assignmentFlags(targetRoom, creepInfo) {
         isAuxiliary: !!aux,
         isPower: !!(aux && aux.type === 'power'),
         isRebuild: !!(aux && aux.type === 'rebuild'),
+        isReactor: !!(aux && aux.type === 'reactor'),
         opType,
         isHelper: HELPER_ROLES.has(creepInfo.role),
         isScout: opType === 'scout' || creepInfo.role === 'scout',
@@ -748,19 +755,25 @@ function evaluateAssignmentCandidate(myRoom, targetRoom, level, creepInfo, loads
     // and used to reject every origin.
     if (flags.isPower) {
         if (!roomCanSpawnPowerTeam(myRoom)) return null;
+    } else if (flags.isRebuild || flags.isReactor) {
+        // Fresh RCL 6: controller is 6, room.level stays 5 until the extra
+        // extensions finish. Score feed cannot wait on a complete bunker.
+        if (myRoom.level < level && myRoom.controller.level < level) return null;
     } else {
         // Energy-capacity tier below controller RCL means missing/inactive
         // extensions. Inactive extras after an RCL dip (nuker, observer, 60th
         // extension) do not change room.level when the remaining cap still matches
         // — those rooms can still spawn and should still assign.
-        if (!flags.isRebuild && myRoom.controller.level !== myRoom.level) return null;
-        if (myRoom.level < level && !(flags.isRebuild && myRoom.controller.level >= level)) return null;
+        if (myRoom.controller.level !== myRoom.level) return null;
+        if (myRoom.level < level) return null;
     }
 
     // Power is RCL 8 + a 6k healer body. HARASS readiness also requires
     // energyState >= 1 (>250k at RCL 8), which left planned banks unassigned.
     // Rebuild must still assign from a plain RCL 4+ spawn.
-    if (!flags.isPower && !flags.isRebuild) {
+    // Reactor is the season score pipeline — same as those, do not wait on
+    // energyState 1 at RCL 6.
+    if (!flags.isPower && !flags.isRebuild && !flags.isReactor) {
         const tier = flags.isHelper || flags.isAuxiliary || flags.isScout
             ? OP_TIER.HARASS
             : getOpTier({type: flags.opType}, creepInfo);

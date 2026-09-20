@@ -218,24 +218,31 @@ function setOperations() {
     const store = rec.store != null ? rec.store : intel.reactorStore;
     const emergency = mine && store != null && store < REACTOR_STORE_EMERGENCY;
     const cap = reactorCapacity();
-    const hungry = !mine || store == null || store < REACTOR_STORE_TARGET;
+    const hungry = store == null || store < REACTOR_STORE_TARGET;
     // Extractors unlock at RCL 6. Haulers before that idle with empty stores.
     const canMine = (typeof MAX_LEVEL !== 'undefined' ? MAX_LEVEL : 0) >= 6;
     const armed = intel.armedHostile && (Game.time - intel.armedHostile < CREEP_LIFE_TIME);
     const hostile = !!(armed || (intel.threatLevel && intel.threatLevel > 0));
 
+    const prev = Memory.auxiliaryTargets[target];
     Memory.auxiliaryTargets[target] = {
         tick: Game.time,
         type: 'reactor',
-        priority: (emergency || hostile) ? PRIORITIES.urgent : PRIORITIES.high,
+        // PRIORITIES.high (6) sat behind remotes (4) and then *6 as siege.
+        // Feed needs to actually leave the spawn at RCL 6.
+        priority: PRIORITIES.priority,
         claim: !mine,
-        haulers: canMine ? (emergency ? 3 : (hungry ? 2 : 1)) : 0,
+        haulers: (mine && canMine) ? (emergency ? 3 : (hungry ? 2 : 1)) : 0,
         // Standing longbow on claim and feed; duo if the room is contested.
         guards: hostile ? 2 : 1,
         feeder: mem.feederRoom,
         store: store,
         capacity: cap
     };
+    if (prev && prev.type === 'reactor') {
+        if (prev.assignedRoom) Memory.auxiliaryTargets[target].assignedRoom = prev.assignedRoom;
+        if (prev.assignedAt) Memory.auxiliaryTargets[target].assignedAt = prev.assignedAt;
+    }
 
     // Old path wrote a targetRooms guard that spawnGlobal never queued
     // (aux reactor overwrites the same key). Drop leftover auto-guards so

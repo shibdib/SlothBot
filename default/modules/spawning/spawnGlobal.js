@@ -237,6 +237,8 @@ function globalCreepQueue() {
                         closestRoom: true,
                         operation: 'reactor'
                     });
+                } else {
+                    clearOpQueueRole('thoriumHauler', key, 'reactor');
                 }
                 if (operation.guards > 1) {
                     clearOpQueueRole('longbow', key, 'reactor');

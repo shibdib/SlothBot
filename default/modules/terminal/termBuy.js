@@ -24,7 +24,7 @@ const {
     isCompressedBar,
     maxBarBuyPrice
 } = require('termMarket');
-const {hasRoomOrder, recordCreatedOrder} = require('termCache');
+const {hasRoomOrder, recordCreatedOrder, ordersFor} = require('termCache');
 const {empireHasSpareBoostType} = require('termKeep');
 const FactoryControl = require('module.factoryController');
 
@@ -209,7 +209,7 @@ Object.assign(TerminalControl.prototype, {
             const activeBuyOrder = _.find(myOrders, (o) => o.roomName === terminal.room.name && o.resourceType === mineral && o.type === ORDER_BUY);
             const hist = latestMarketHistory(mineral);
             const histAvg = parseFloat(hist.median) || parseFloat(hist.avg) || 1;
-            const mineralBuyOrders = globalOrders.filter(o => o.resourceType === mineral && o.type === ORDER_BUY && o.remainingAmount >= 50 && !MY_ROOMS.includes(o.roomName));
+            const mineralBuyOrders = ordersFor(mineral, ORDER_BUY, true).filter(o => o.remainingAmount >= 50);
             const sortedMineralPrices = mineralBuyOrders.map(o => o.price).sort((a, b) => a - b);
             const p90mineral = sortedMineralPrices.length ? sortedMineralPrices[Math.floor(sortedMineralPrices.length * 0.9)] : null;
             const avgPrice = p90mineral ? Math.min(histAvg, p90mineral) : histAvg;
@@ -241,10 +241,18 @@ Object.assign(TerminalControl.prototype, {
             if (this.getCreditTrend() < 0 && !extreme) continue;
             const dealCap = extreme ? histAvg * 1.05 : histAvg;
 
-            let sellOrder = _.min(globalOrders.filter(order => order.resourceType === mineral &&
-                order.type === ORDER_SELL && !_.includes(MY_ROOMS, order.roomName)
-                && (!barCap || order.price < barCap)
-                && order.price <= dealCap), 'price');
+            const mineralSells = ordersFor(mineral, ORDER_SELL, true);
+            let sellOrder = null;
+            let sellPrice = Infinity;
+            for (let i = 0; i < mineralSells.length; i++) {
+                const order = mineralSells[i];
+                if (barCap && !(order.price < barCap)) continue;
+                if (order.price > dealCap) continue;
+                if (order.price < sellPrice) {
+                    sellPrice = order.price;
+                    sellOrder = order;
+                }
+            }
             if (sellOrder && sellOrder.id) {
                 if (sellOrder.remainingAmount < buyAmount) buyAmount = Math.min(buyAmount, sellOrder.remainingAmount);
                 if (sellOrder.price * buyAmount > Memory._banker.spendingAccount) buyAmount = _.floor(Memory._banker.spendingAccount / sellOrder.price);
@@ -271,7 +279,7 @@ Object.assign(TerminalControl.prototype, {
             && terminal.room.store(RESOURCE_BATTERY) < FactoryControl.batteryBatchCost()) {
             const energyHist = latestMarketHistory(RESOURCE_ENERGY);
             const histAvg = parseFloat(energyHist.median) || parseFloat(energyHist.avg) || 1;
-            const currentEnergyBuyOrders = globalOrders.filter(o => o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY && o.remainingAmount >= 500 && !MY_ROOMS.includes(o.roomName));
+            const currentEnergyBuyOrders = ordersFor(RESOURCE_ENERGY, ORDER_BUY, true).filter(o => o.remainingAmount >= 500);
             const sortedBuyPrices = currentEnergyBuyOrders.map(o => o.price).sort((a, b) => a - b);
             const p90 = sortedBuyPrices.length ? sortedBuyPrices[Math.floor(sortedBuyPrices.length * 0.9)] : null;
             const refPrice = p90 ? Math.min(histAvg, p90) : histAvg;

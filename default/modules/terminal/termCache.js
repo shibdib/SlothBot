@@ -13,7 +13,22 @@ const state = require('termState');
 const {buildEquivalenceMap} = require('termNetwork');
 
 
-const GLOBAL_ORDERS_TTL = 10;
+const GLOBAL_ORDERS_TTL = 25;
+
+function indexGlobalOrders(orders) {
+    const byResource = Object.create(null);
+    const myRooms = new Set(typeof MY_ROOMS !== 'undefined' && MY_ROOMS ? MY_ROOMS : []);
+    const list = orders || [];
+    for (let i = 0; i < list.length; i++) {
+        const o = list[i];
+        if (!o || !o.resourceType) continue;
+        let bucket = byResource[o.resourceType];
+        if (!bucket) bucket = byResource[o.resourceType] = {buy: [], sell: []};
+        if (o.type === ORDER_BUY) bucket.buy.push(o);
+        else if (o.type === ORDER_SELL) bucket.sell.push(o);
+    }
+    return {byResource: byResource, myRooms: myRooms};
+}
 
 function getCachedGlobalOrders() {
     if (state.globalOrdersCache.orders && state.globalOrdersCache.tick + GLOBAL_ORDERS_TTL > Game.time) {
@@ -21,7 +36,36 @@ function getCachedGlobalOrders() {
     }
     state.globalOrdersCache.tick = Game.time;
     state.globalOrdersCache.orders = Game.market.getAllOrders();
+    state.globalOrdersCache.index = indexGlobalOrders(state.globalOrdersCache.orders);
+    state.globalOrdersCache.indexTick = Game.time;
     return state.globalOrdersCache.orders;
+}
+
+function getOrdersIndex() {
+    const cache = state.globalOrdersCache;
+    if (!cache.orders) getCachedGlobalOrders();
+    if (!cache.index || cache.indexTick !== cache.tick) {
+        cache.index = indexGlobalOrders(cache.orders || []);
+        cache.indexTick = cache.tick;
+    }
+    return cache.index;
+}
+
+/** Orders for one resource/type. Foreign-only skips our own rooms. */
+function ordersFor(resource, type, foreignOnly) {
+    const idx = getOrdersIndex();
+    const bucket = idx.byResource[resource];
+    if (!bucket) return [];
+    const list = type === ORDER_BUY ? bucket.buy : bucket.sell;
+    if (!foreignOnly) return list;
+    const my = idx.myRooms;
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+        const o = list[i];
+        if (o.roomName && my.has(o.roomName)) continue;
+        out.push(o);
+    }
+    return out;
 }
 
 function getCachedMyOrders() {
@@ -119,6 +163,10 @@ module.exports = {
     getCachedGlobalOrders,
 
     getCachedMyOrders,
+
+    getOrdersIndex,
+
+    ordersFor,
 
     hasRoomOrder,
 

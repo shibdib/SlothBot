@@ -4,7 +4,7 @@
  * Market sell orders and quick liquidation.
  */
 
-const {hasRoomOrder, hasEmpireOrder, recordCreatedOrder} = require('termCache');
+const {hasRoomOrder, hasEmpireOrder, recordCreatedOrder, ordersFor} = require('termCache');
 const {recordMarketEnergyCost, canAffordSend} = require('termBudget');
 const {recordTransferEnergyCost, markTerminalsUsed} = require('termTransfers');
 const {getRoomKeepAmount} = require('termKeep');
@@ -159,13 +159,15 @@ Object.assign(TerminalControl.prototype, {
             let sellAmount = this.computeSellableAmount(terminal, resource);
             if (sellAmount < FIRE_SALE_MIN) continue;
 
-            const orders = globalOrders.filter(o => {
-                if (o.resourceType !== resource || o.type !== ORDER_BUY) return false;
-                if (o.roomName === from || MY_ROOMS.includes(o.roomName)) return false;
-                if (isHostile(o.roomName)) return false;
+            const candidates = ordersFor(resource, ORDER_BUY, true);
+            const orders = [];
+            for (let i = 0; i < candidates.length; i++) {
+                const o = candidates[i];
+                if (o.roomName === from) continue;
+                if (isHostile(o.roomName)) continue;
                 const affordable = Math.min(sellAmount, o.remainingAmount, maxAffordable(o.roomName));
-                return affordable >= FIRE_SALE_MIN;
-            });
+                if (affordable >= FIRE_SALE_MIN) orders.push(o);
+            }
             if (!orders.length) continue;
 
             let best = null;
@@ -391,13 +393,15 @@ Object.assign(TerminalControl.prototype, {
 
         const findBestBuyer = (resourceType, sellAmount) => {
             const energy = terminal.store[RESOURCE_ENERGY] || 0;
-            const orders = globalOrders.filter(o => {
-                if (o.resourceType !== resourceType || o.type !== ORDER_BUY) return false;
-                if (o.roomName === terminal.pos.roomName || _.includes(MY_ROOMS, o.roomName)) return false;
-                if (isHostile(o.roomName)) return false;
+            const candidates = ordersFor(resourceType, ORDER_BUY, true);
+            const orders = [];
+            for (let i = 0; i < candidates.length; i++) {
+                const o = candidates[i];
+                if (o.roomName === terminal.pos.roomName) continue;
+                if (isHostile(o.roomName)) continue;
                 const affordable = Math.min(sellAmount, o.remainingAmount, maxAffordable(energy, o.roomName));
-                return affordable >= FIRE_SALE_MIN;
-            });
+                if (affordable >= FIRE_SALE_MIN) orders.push(o);
+            }
             if (orders.length === 0) return null;
 
             const energyPrice = this.getEnergyValue(globalOrders);
@@ -410,13 +414,14 @@ Object.assign(TerminalControl.prototype, {
         };
 
         const findAnyBuyer = (resourceType) => {
-            const orders = globalOrders.filter(o =>
-                o.resourceType === resourceType && o.type === ORDER_BUY &&
-                o.roomName !== terminal.pos.roomName &&
-                !_.includes(MY_ROOMS, o.roomName) &&
-                !isHostile(o.roomName) &&
-                o.remainingAmount >= FIRE_SALE_MIN
-            );
+            const candidates = ordersFor(resourceType, ORDER_BUY, true);
+            const orders = [];
+            for (let i = 0; i < candidates.length; i++) {
+                const o = candidates[i];
+                if (o.roomName === terminal.pos.roomName) continue;
+                if (isHostile(o.roomName)) continue;
+                if (o.remainingAmount >= FIRE_SALE_MIN) orders.push(o);
+            }
             if (!orders.length) return null;
             return _.max(orders, 'price');
         };

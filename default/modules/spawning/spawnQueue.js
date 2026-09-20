@@ -300,7 +300,16 @@ function computeSortPriority(item, room) {
         const milTrend = (milInfo && milInfo.trend) || 0;
         const milSpare = (milInfo && milInfo.spareIncome) || 0;
         const flowReady = spawnEnergyState(room) >= 2 && milTrend >= 0 && milSpare >= 8;
-        if (flowReady && room.storage) {
+        const reactorFeed = destOp.type === 'reactor'
+            && (item.role === 'reactorClaimer' || item.role === 'thoriumHauler');
+        if (reactorFeed) {
+            // Score pipeline, not a siege. The *6 parked claimers/haulers
+            // behind remotes at RCL 6, which never hits energyState 2.
+            // Sit after local harvest/haul, ahead of drones and remotes.
+            const floor = PRIORITIES.hauler + 0.75;
+            const offset = Math.max(0, (item.priority || 0) - PRIORITIES.priority);
+            sortPriority = floor + offset * 0.5;
+        } else if (flowReady && room.storage) {
             sortPriority *= 0.5;
             // Waves already floor at hauler+0.5. Unboosted military *0.5
             // used to tie haulers (priority 4 → 2).

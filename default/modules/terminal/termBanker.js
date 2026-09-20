@@ -5,6 +5,7 @@
  */
 
 const {getSpendingAccount} = require('termBudget');
+const {ordersFor} = require('termCache');
 
 const TerminalControl = require('termClass');
 
@@ -40,9 +41,15 @@ Object.assign(TerminalControl.prototype, {
         if (this._energyValue) return this._energyValue;
         const history = latestMarketHistory(RESOURCE_ENERGY);
         const avg = parseFloat(history.median) || parseFloat(history.avg) || 0.05;
-        const buyOrders = globalOrders.filter(o => o.resourceType === RESOURCE_ENERGY && o.type === ORDER_BUY && (o.remainingAmount || o.amount) >= 1000);
-        if (buyOrders.length) {
-            this._energyValue = _.max(buyOrders, 'price').price;
+        const energyBuys = ordersFor(RESOURCE_ENERGY, ORDER_BUY);
+        let best = 0;
+        for (let i = 0; i < energyBuys.length; i++) {
+            const o = energyBuys[i];
+            if ((o.remainingAmount || o.amount || 0) < 1000) continue;
+            if (o.price > best) best = o.price;
+        }
+        if (best) {
+            this._energyValue = best;
         } else {
             this._energyValue = avg;
         }

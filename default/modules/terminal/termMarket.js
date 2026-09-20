@@ -134,13 +134,12 @@ function historyAvgPrice(resource) {
 }
 
 function cheapestSellPrice(resource, globalOrders, minAmount = 50) {
-    if (!globalOrders) return 0;
+    const {ordersFor} = require('termCache');
+    const sells = ordersFor(resource, ORDER_SELL, true);
     let best = 0;
-    for (let i = 0; i < globalOrders.length; i++) {
-        const order = globalOrders[i];
-        if (!order || order.resourceType !== resource || order.type !== ORDER_SELL) continue;
+    for (let i = 0; i < sells.length; i++) {
+        const order = sells[i];
         if ((order.remainingAmount || order.amount || 0) < minAmount) continue;
-        if (typeof MY_ROOMS !== 'undefined' && MY_ROOMS.includes(order.roomName)) continue;
         if (!best || order.price < best) best = order.price;
     }
     return best;

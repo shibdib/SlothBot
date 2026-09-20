@@ -18,6 +18,7 @@ const {
     recordCreditSpend
 } = require('termBudget');
 const {shouldProcureResource, isCompressedBar, barPriceBeatsRaw} = require('termMarket');
+const {ordersFor} = require('termCache');
 
 const TerminalControl = require('termClass');
 
@@ -32,8 +33,8 @@ Object.assign(TerminalControl.prototype, {
         for (let mineral of shuffle(_.union(BASE_MINERALS, ALL_BOOSTS, ALL_COMMODITIES))) {
             if (!(terminal.store[mineral] > 0) || !canEmpireSell(mineral)) continue;
 
-            let activeBuys = globalOrders.filter(o => o.resourceType === mineral && o.type === ORDER_BUY && !_.includes(MY_ROOMS, o.roomName)).sort((a, b) => b.price - a.price);
-            let activeSells = globalOrders.filter(o => o.resourceType === mineral && o.type === ORDER_SELL && !_.includes(MY_ROOMS, o.roomName)).sort((a, b) => a.price - b.price);
+            const activeBuys = ordersFor(mineral, ORDER_BUY, true).slice().sort((a, b) => b.price - a.price);
+            const activeSells = ordersFor(mineral, ORDER_SELL, true).slice().sort((a, b) => a.price - b.price);
 
             if (!activeBuys.length || !activeSells.length) continue;
 
@@ -80,12 +81,11 @@ Object.assign(TerminalControl.prototype, {
 
             let bargainPrice = refPrice * (this.getCreditTrend() > 0 ? 0.4 : 0.5);
 
-            let cheapSells = globalOrders.filter(order =>
-                order.resourceType === mineral &&
-                order.type === ORDER_SELL &&
-                order.price <= bargainPrice &&
-                !_.includes(MY_ROOMS, order.roomName)
-            );
+            const sells = ordersFor(mineral, ORDER_SELL, true);
+            const cheapSells = [];
+            for (let i = 0; i < sells.length; i++) {
+                if (sells[i].price <= bargainPrice) cheapSells.push(sells[i]);
+            }
 
             if (cheapSells.length > 0) {
                 let bestDeal = cheapSells.sort((a, b) => {

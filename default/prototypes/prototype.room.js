@@ -832,15 +832,22 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             if (newOwner !== roomIntel.owner) roomIntel.ownerChanged = true;
             roomIntel.owner = newOwner;
             if (roomIntel.owner && !isFriendlyOwner(roomIntel.owner)) {
-                const attack = pickAttackRoute(this);
-                if (attack) {
-                    roomIntel.attackDirection = attack.staging;
-                    roomIntel.attackDirectionOrigin = attackRouteOrigin(this.name);
-                    roomIntel.attackTowerDmg = attack.towerDmg;
-                } else {
-                    delete roomIntel.attackDirection;
-                    delete roomIntel.attackDirectionOrigin;
-                    delete roomIntel.attackTowerDmg;
+                const towerCount = (this.towers || []).length;
+                const attackFresh = roomIntel.attackAt && roomIntel.attackAt + 750 > currentTime
+                    && roomIntel.attackTowers === towerCount;
+                if (!attackFresh) {
+                    const attack = pickAttackRoute(this);
+                    roomIntel.attackAt = currentTime;
+                    roomIntel.attackTowers = towerCount;
+                    if (attack) {
+                        roomIntel.attackDirection = attack.staging;
+                        roomIntel.attackDirectionOrigin = attackRouteOrigin(this.name);
+                        roomIntel.attackTowerDmg = attack.towerDmg;
+                    } else {
+                        delete roomIntel.attackDirection;
+                        delete roomIntel.attackDirectionOrigin;
+                        delete roomIntel.attackTowerDmg;
+                    }
                 }
             } else {
                 delete roomIntel.attackDirection;
@@ -1077,7 +1084,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         // Attempt once (success or fail) and stamp hubCheckAt so a false
         // result cannot re-run findHub on every force/observe.
         if (!roomIntel.hubCheck && !roomIntel.hubCheckAt && !roomIntel.obstacles && roomIntel.sources === 2 && !this.hostileCreeps.length) {
-            roomIntel.hubCheck = getRoomPlanner().hubCheck(this);
+            // Owned rooms cannot be claimed. Scanning a hostile RCL8 stamp is 50–150 CPU.
+            if (!roomIntel.owner) {
+                roomIntel.hubCheck = getRoomPlanner().hubCheck(this);
+            }
             roomIntel.hubCheckAt = currentTime;
         }
 
@@ -1396,20 +1406,32 @@ function approachDamage(room, tile, dir, towers) {
     return worst;
 }
 
+function barrierHitsGrid(room) {
+    if (room._barrierHitsTick === Game.time) return room._barrierHitsGrid;
+    const grid = Object.create(null);
+    const structs = room.structures || [];
+    for (let i = 0; i < structs.length; i++) {
+        const s = structs[i];
+        if (!s || !s.pos) continue;
+        if (s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART) continue;
+        if (s.my || (s.structureType === STRUCTURE_RAMPART && s.isPublic)) continue;
+        const key = s.pos.x + ',' + s.pos.y;
+        grid[key] = (grid[key] || 0) + (s.hits || 0);
+    }
+    room._barrierHitsTick = Game.time;
+    room._barrierHitsGrid = grid;
+    return grid;
+}
+
 function inwardBarrierHits(room, x, y, dir) {
     const {dx, dy} = inwardDelta(dir);
+    const grid = barrierHitsGrid(room);
     let hits = 0;
     for (let step = 1; step <= 2; step++) {
         const tx = x + dx * step;
         const ty = y + dy * step;
         if (tx < 1 || tx > 48 || ty < 1 || ty > 48) continue;
-        const structs = new RoomPosition(tx, ty, room.name).lookFor(LOOK_STRUCTURES);
-        for (let i = 0; i < structs.length; i++) {
-            const s = structs[i];
-            if (s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART) continue;
-            if (s.my || (s.structureType === STRUCTURE_RAMPART && s.isPublic)) continue;
-            hits += s.hits || 0;
-        }
+        hits += grid[tx + ',' + ty] || 0;
     }
     return hits;
 }

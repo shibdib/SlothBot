@@ -16,6 +16,11 @@ class RoleThoriumHauler {
 
     performRoleActions() {
         if (this.housekeeping()) return;
+        if (!this.weOwnReactor()) {
+            if (this.carrying()) this.storeAtHome();
+            else this.creep.recycleCreep();
+            return;
+        }
         if (this.carrying()) {
             this.deliver();
         } else {
@@ -67,6 +72,47 @@ class RoleThoriumHauler {
         this.creep.idleFor(5);
     }
 
+    weOwnReactor() {
+        const dest = this.creep.memory.destination;
+        if (!dest) return false;
+        const vis = Game.rooms[dest];
+        if (vis) {
+            const reactor = findReactors(vis)[0];
+            if (reactor) return !!reactor.my;
+        }
+        const rec = Memory.season && Memory.season.reactors && Memory.season.reactors[dest];
+        if (rec && rec.my) return true;
+        const intel = typeof INTEL !== 'undefined' && INTEL[dest];
+        return !!(intel && intel.reactorMy);
+    }
+
+    homeRoom() {
+        return (Memory.season && Memory.season.feederRoom) || this.creep.memory.colony;
+    }
+
+    storeAtHome() {
+        const home = this.homeRoom();
+        if (home && this.room.name !== home) {
+            return this.creep.shibMove(new RoomPosition(25, 25, home), {range: 23, offRoad: true});
+        }
+        const t = thoriumType();
+        const terminal = this.room.terminal;
+        const storage = this.room.storage;
+        const dest = (terminal && terminal.store.getFreeCapacity(t) > 0) ? terminal
+            : (storage && storage.store.getFreeCapacity(t) > 0) ? storage
+                : terminal || storage;
+        if (!dest) {
+            this.creep.recycleCreep();
+            return;
+        }
+        const result = this.creep.transfer(dest, t);
+        if (result === ERR_NOT_IN_RANGE) {
+            this.creep.shibMove(dest, {range: 1, offRoad: true});
+        } else if (result === ERR_FULL) {
+            this.creep.recycleCreep();
+        }
+    }
+
     findPickup() {
         const t = thoriumType();
         const drops = this.room.droppedResources || [];
@@ -96,12 +142,7 @@ class RoleThoriumHauler {
             return;
         }
         if (!reactor.my) {
-            if (this.creep.pos.getRangeTo(reactor) > 3) {
-                this.creep.shibMove(reactor, {range: 3, offRoad: true});
-            } else {
-                this.stepOffDecayTiles();
-            }
-            return;
+            return this.storeAtHome();
         }
         const t = thoriumType();
         const free = reactor.store && reactor.store.getFreeCapacity(t);
