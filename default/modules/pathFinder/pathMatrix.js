@@ -83,7 +83,10 @@ function getBaseMatrix(roomName, creep, options) {
         : 'no-room';
     const skSelf = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'SKAttacker');
     const skHarvestCover = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'remoteHarvester');
-    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}_${skHarvestCover}_${!!options.ignoreSk}`;
+    const intelSk = INTEL[roomName];
+    const skPts = (intelSk && intelSk.skDangerPoints && intelSk.skDangerPoints.length) || 0;
+    const nameSk = !!(intelSk && intelSk.sk) || !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
+    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}_${skHarvestCover}_${!!options.ignoreSk}_${nameSk ? 1 : 0}_${skPts}`;
     const baseKey = `${roomName}_base_${cacheStamp}_${structuresHash}`;
 
     // Per-tick reuse (biggest CPU win). Stamp includes type/wrecker so a
@@ -111,64 +114,80 @@ function getBaseMatrix(roomName, creep, options) {
     const matrix = cloneTerrainMatrix(roomName, plainCost, swampCost, !!options.flee);
 
     if (room) {
-        for (const structure of room.structures) {
+        const structs = room.structures || [];
+        const blocked = Object.create(null);
+        const walkRampart = Object.create(null);
+        const roads = [];
+        const containers = [];
+        const hostiles = !!(room.hostileCreeps && room.hostileCreeps.length);
+
+        for (let i = 0; i < structs.length; i++) {
+            const structure = structs[i];
             const pos = structure.pos;
+            const type = structure.structureType;
+            const key = pos.x + ',' + pos.y;
 
-            if (OBSTACLE_OBJECT_TYPES.includes(structure.structureType)) {
-                // Combat wreckers: constructed walls are last-resort (254),
-                // never terrain-blocked. Open tunnels stay cost 1 and win.
-                if (structure.structureType === STRUCTURE_WALL && !noWallWrecker) {
-                    matrix.set(pos.x, pos.y, 254);
-                } else {
-                    matrix.set(pos.x, pos.y, 256);
-                }
+            if (OBSTACLE_OBJECT_TYPES.includes(type)) {
+                if (type === STRUCTURE_WALL && !noWallWrecker) matrix.set(pos.x, pos.y, 254);
+                else matrix.set(pos.x, pos.y, 256);
+                blocked[key] = 1;
                 continue;
             }
-
-            if (structure instanceof StructureRoad) {
-                if (!pos.checkForObstacleStructure()) {
-                    let cost = roadCost;
-                    if (room.hostileCreeps.length && pos.checkForRampart()) {
-                        cost = Math.max(1, Math.round(roadCost * 0.5));
-                    }
-                    matrix.set(pos.x, pos.y, cost);
-                }
-                continue;
-            }
-
-            if (structure instanceof StructurePortal) {
-                matrix.set(pos.x, pos.y, 200);
-                continue;
-            }
-
-            if (structure instanceof StructureRampart) {
+            if (type === STRUCTURE_RAMPART) {
                 let myRampart = false;
                 let friendlyRampart = false;
                 try {
                     myRampart = structure.my || structure.isPublic;
                     friendlyRampart = structure.owner && FRIENDLIES.includes(structure.owner.username);
-                } catch (e) {
+                } catch (e) { /* treat as blocked */
                 }
-                if (myRampart && !pos.checkForObstacleStructure()) {
-                    matrix.set(pos.x, pos.y, room.hostileCreeps.length ? roadCost : 1);
-                } else if (friendlyRampart && !pos.checkForObstacleStructure()) {
-                    matrix.set(pos.x, pos.y, 150);
-                } else if (noWallWrecker) {
-                    matrix.set(pos.x, pos.y, 256);
-                } else {
-                    // Enemy private ramparts are obstacles. Cost 150 made a
-                    // 2-tile smash look cheaper than walking the open tunnel.
-                    matrix.set(pos.x, pos.y, 254);
+                if (myRampart) walkRampart[key] = hostiles ? roadCost : 1;
+                else if (friendlyRampart) walkRampart[key] = 150;
+                else {
+                    matrix.set(pos.x, pos.y, noWallWrecker ? 256 : 254);
+                    blocked[key] = 1;
                 }
                 continue;
             }
-
-            if (structure instanceof StructureContainer) {
-                if (!pos.checkForRoad()) matrix.set(pos.x, pos.y, 75);
+            if (type === STRUCTURE_ROAD) {
+                roads.push(pos);
                 continue;
             }
-
+            if (type === STRUCTURE_PORTAL) {
+                matrix.set(pos.x, pos.y, 200);
+                continue;
+            }
+            if (type === STRUCTURE_CONTAINER) {
+                containers.push(pos);
+                continue;
+            }
             matrix.set(pos.x, pos.y, 255);
+            blocked[key] = 1;
+        }
+
+        for (let i = 0; i < roads.length; i++) {
+            const pos = roads[i];
+            const key = pos.x + ',' + pos.y;
+            if (blocked[key]) continue;
+            let cost = roadCost;
+            if (hostiles && walkRampart[key] != null) cost = Math.max(1, Math.round(roadCost * 0.5));
+            matrix.set(pos.x, pos.y, cost);
+        }
+        for (const key in walkRampart) {
+            if (blocked[key]) continue;
+            const parts = key.split(',');
+            const x = parts[0] | 0;
+            const y = parts[1] | 0;
+            const current = matrix.get(x, y);
+            if (current >= 254) continue;
+            if (current === roadCost) continue;
+            matrix.set(x, y, walkRampart[key]);
+        }
+        for (let i = 0; i < containers.length; i++) {
+            const pos = containers[i];
+            if (blocked[pos.x + ',' + pos.y]) continue;
+            if (matrix.get(pos.x, pos.y) === roadCost) continue;
+            matrix.set(pos.x, pos.y, 75);
         }
 
         for (const site of room.constructionSites) {
@@ -280,7 +299,8 @@ function addHostilesToMatrix(room, matrix) {
 function addSksToMatrix(roomName, matrix, options, creep) {
     if (options && options.ignoreSk) return matrix;
     const intel = INTEL[roomName];
-    if (!intel?.sk) return matrix;
+    const nameIsSk = !!(intel && intel.sk)
+        || !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
 
     const room = Game.rooms[roomName];
     const isSkAttacker = !!(creep && creep.memory && creep.memory.role === 'SKAttacker');
@@ -306,6 +326,8 @@ function addSksToMatrix(roomName, matrix, options, creep) {
     // Live SK creep positions take priority when we have vision — they're the actual
     // current threat and may have wandered off their lair/source.
     // hostileCreeps excludes Source Keepers, so use the same creeps scan as skSafety.
+    // Do this even when intel.sk is missing: structure caches can omit lairs, and
+    // name-based SK used to match only the (4,4) corner of the ring.
     let sks = [];
     if (room) {
         if (room._skCreepsTick !== Game.time) {
@@ -338,10 +360,12 @@ function addSksToMatrix(roomName, matrix, options, creep) {
         return matrix;
     }
 
+    if (!nameIsSk) return matrix;
+
     // SK attacker walks to lairs. Source/mineral blankets at range 5 forced
     // swamp corridors around the only plains/road into the pocket.
     if (isSkAttacker) {
-        const anchors = (!room && intel.skDangerPoints) ? intel.skDangerPoints : [];
+        const anchors = (!room && intel && intel.skDangerPoints) ? intel.skDangerPoints : [];
         for (let i = 0; i < anchors.length; i++) {
             const pt = anchors[i];
             const top = Math.max(0, pt.y - 2);
@@ -368,20 +392,33 @@ function addSksToMatrix(roomName, matrix, options, creep) {
         dangerPoints = _.union(lairs, room.sources, room.mineral ? [room.mineral] : [])
             .map(o => ({x: o.pos.x, y: o.pos.y}));
     } else {
-        dangerPoints = intel.skDangerPoints;
+        dangerPoints = intel && intel.skDangerPoints;
     }
-    if (!dangerPoints || !dangerPoints.length) return matrix;
-
-    for (const pt of dangerPoints) {
-        const top = Math.max(0, pt.y - 5);
-        const left = Math.max(0, pt.x - 5);
-        const bottom = Math.min(49, pt.y + 5);
-        const right = Math.min(49, pt.x + 5);
-        for (let y = top; y <= bottom; y++) {
-            for (let x = left; x <= right; x++) {
-                if (terrain.get(x, y) !== TERRAIN_MASK_WALL && matrix.get(x, y) < 250) {
-                    matrix.set(x, y, 250);
+    if (dangerPoints && dangerPoints.length) {
+        for (const pt of dangerPoints) {
+            const top = Math.max(0, pt.y - 5);
+            const left = Math.max(0, pt.x - 5);
+            const bottom = Math.min(49, pt.y + 5);
+            const right = Math.min(49, pt.x + 5);
+            for (let y = top; y <= bottom; y++) {
+                for (let x = left; x <= right; x++) {
+                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL && matrix.get(x, y) < 250) {
+                        matrix.set(x, y, 250);
+                    }
                 }
+            }
+        }
+        return matrix;
+    }
+
+    // Unscouted SK, no vision: prefer the rim so a midline hop into the
+    // sector center does not walk through keeper pockets at the sources.
+    if (!room) {
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+                const edge = Math.min(x, y, 49 - x, 49 - y);
+                if (edge >= 4 && matrix.get(x, y) < 40) matrix.set(x, y, 40);
             }
         }
     }

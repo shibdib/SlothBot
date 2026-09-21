@@ -154,21 +154,33 @@ function applySameRoomDetour(origin, target, result, options, searchFn) {
     return best;
 }
 
+function roomIsSk(roomName, intel) {
+    if (intel && intel.sk) return true;
+    return !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
+}
+
 function roomCost(roomName, origin, destination, options) {
     if (roomName === origin || roomName === destination) return 1;
     if (isRoomBlocked(roomName, origin, destination, options)) return Infinity;
 
     const intel = INTEL[roomName];
+    const sk = roomIsSk(roomName, intel);
 
     if (options.shortest) {
         if (intel?.user === MY_USERNAME) return 0.9;
         if (intel?.isHighway) return 0.95;
+        // Claim routing forces shortest. A mild SK penalty still lets a
+        // 600-TTL body take the one ring hop into a sector center.
+        if (sk) return 8;
         return 1;
     }
 
     if (Memory.avoidRooms?.includes(roomName)) return 220;
     // Unknown used to be 100 vs highway 2 — a 50-room detour to skip one fog room.
-    if (!intel || intel.cached + 10000 < Game.time) return options.offRoad ? 4 : 6;
+    if (!intel || intel.cached + 10000 < Game.time) {
+        if (sk) return 25;
+        return options.offRoad ? 4 : 6;
+    }
     if (intel.user && intel.user === MY_USERNAME) return 1;
     if (intel.owner && FRIENDLIES.includes(intel.owner)) return !NO_RAMPART_CODE.includes(intel.owner) ? 25 : 1;
     if (intel.user && FRIENDLIES.includes(intel.user)) return 1;
@@ -176,9 +188,11 @@ function roomCost(roomName, origin, destination, options) {
     if (intel.user && !FRIENDLIES.includes(intel.user)) return 5;
     if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
     if (intel.obstacles) return 100;
-    // SK rooms: tower-defended OR no cached danger points (we've never scouted the
-    // lair/source positions, so the in-room matrix can't carve a safe path).
-    if (intel.sk && (intel.towers || !intel.skDangerPoints)) return 250;
+    // Tower-defended SK is a hard skip. Unscouted SK stays cheap enough that
+    // a 600-TTL claimer can still take the one ring hop into a sector center.
+    if (sk && intel.towers) return 250;
+    if (sk && !intel.skDangerPoints) return 25;
+    if (sk) return 12;
     if (intel.threatLevel) return 10 * intel.threatLevel;
     if (intel.swampRoom && !options.offRoad) return 15;
     return intel.isHighway ? 2 : 3;
@@ -507,7 +521,10 @@ function findRoute(origin, destination, options = {}) {
             const intel = INTEL[roomName];
             if (intel && !intel.isHighway && rStatus !== roomStatus(origin)) return Infinity;
             if (intel?.owner && !FRIENDLIES.includes(intel.owner) && intel.towers) return Infinity;
-            if (intel?.sk && (intel.towers || !intel.skDangerPoints)) return 4;
+            const sk = (intel && intel.sk)
+                || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
+            if (sk && intel && intel.towers) return 4;
+            if (sk) return 2.5;
             return intel?.isHighway ? 1 : 1.2;
         },
     });

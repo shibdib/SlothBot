@@ -763,9 +763,9 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
     }
 
-    // SK rooms — lairs in vision, or sector layout (x/y % 10 === 4). Name-based detection must
-    // stick: structure caches on some servers omit keeper lairs and were clearing sk, which let
-    // remote harvesters spawn into SK rooms without an SKAttacker.
+    // SK rooms — lairs in vision, or the 8-room ring around the sector center.
+    // Name-based detection must stick: structure caches on some servers omit
+    // keeper lairs and were clearing sk, which let civilians walk in unguarded.
     // Owned rooms cannot be SK; skip the structure walk.
     const nameIsSk = !owned && global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.name);
     const hasKeeperLairs = !owned && this.structures.some(s => s.structureType === STRUCTURE_KEEPER_LAIR);
@@ -1260,9 +1260,10 @@ function updateRemoteSourceData(room, roomName, source, distance) {
 
     const colonyRoom = Game.rooms[roomName];
     if (colonyRoom) {
-        const mining = getRemoteMining();
-        mining.claimRemoteForColony(roomName, room.name);
-        mining.pruneRoomRemoteTargets(roomName, colonyRoom);
+        getRemoteMining().claimRemoteForColony(roomName, room.name);
+        // Do not prune here. cacheRoomIntel runs from creeps/observers; a full
+        // prune walks every target × every colony (isExitNeighbor timeout).
+        // remoteCreepQueue already prunes on its cadence.
     }
 }
 

@@ -13,6 +13,36 @@ const UPGRADE_BOOST_WORKING_STOCK = 3000;
 const CORE_BAR_KEEP = 10000;
 const COMBAT_BOOST_TYPES = ['attack', 'ranged_attack', 'heal', 'tough', 'dismantle', 'move'];
 
+let ALL_BOOSTS_SET = null;
+let ALL_COMMODITIES_SET = null;
+let COMPRESSED_SET = null;
+let BASE_MINERALS_SET = null;
+
+function asSet(list, cached) {
+    if (cached) return cached;
+    return list && list.length ? new Set(list) : null;
+}
+
+function boostSet() {
+    if (!ALL_BOOSTS_SET && typeof ALL_BOOSTS !== 'undefined') ALL_BOOSTS_SET = asSet(ALL_BOOSTS);
+    return ALL_BOOSTS_SET;
+}
+
+function commoditySet() {
+    if (!ALL_COMMODITIES_SET && typeof ALL_COMMODITIES !== 'undefined') ALL_COMMODITIES_SET = asSet(ALL_COMMODITIES);
+    return ALL_COMMODITIES_SET;
+}
+
+function compressedSet() {
+    if (!COMPRESSED_SET && typeof COMPRESSED_COMMODITIES !== 'undefined') COMPRESSED_SET = asSet(COMPRESSED_COMMODITIES);
+    return COMPRESSED_SET;
+}
+
+function mineralSet() {
+    if (!BASE_MINERALS_SET && typeof BASE_MINERALS !== 'undefined') BASE_MINERALS_SET = asSet(BASE_MINERALS);
+    return BASE_MINERALS_SET;
+}
+
 let upgradePrefTick = -1;
 let upgradePref = null;
 
@@ -144,6 +174,19 @@ function roomUsesResource(room, resource) {
 }
 
 function getRoomKeepAmount(room, resource) {
+    if (room && resource) {
+        if (!room._keepAmt || room._keepAmtTick !== Game.time) {
+            room._keepAmt = Object.create(null);
+            room._keepAmtTick = Game.time;
+        }
+        if (room._keepAmt[resource] !== undefined) return room._keepAmt[resource];
+    }
+    const amount = computeRoomKeepAmount(room, resource);
+    if (room && resource) room._keepAmt[resource] = amount;
+    return amount;
+}
+
+function computeRoomKeepAmount(room, resource) {
     if (typeof IS_SEASON !== 'undefined' && IS_SEASON
         && typeof RESOURCE_THORIUM !== 'undefined' && resource === RESOURCE_THORIUM) {
         const {getFeederKeep} = require('module.season');
@@ -152,7 +195,9 @@ function getRoomKeepAmount(room, resource) {
     if (resource === RESOURCE_POWER) return roomShouldKeepPower(room) ? POWER_PROCESS_KEEP : 0;
     if (resource === RESOURCE_OPS) return 0;
     if (resource === RESOURCE_ENERGY) return 0;
-    if (ALL_COMMODITIES.includes(resource) && !COMPRESSED_COMMODITIES.includes(resource)) {
+    const commodities = commoditySet();
+    const compressed = compressedSet();
+    if (commodities && commodities.has(resource) && !(compressed && compressed.has(resource))) {
         if (room.memory.neededCommodity === resource) return REACTION_AMOUNT;
         if (room.memory.commodityProduction) {
             const comm = COMMODITIES[room.memory.commodityProduction];
@@ -160,7 +205,8 @@ function getRoomKeepAmount(room, resource) {
         }
         return 0;
     }
-    if (ALL_BOOSTS.includes(resource)) {
+    const boosts = boostSet();
+    if (boosts && boosts.has(resource)) {
         // Combat T3 lives on launch rooms so waves spawn where the minerals are.
         // Core rooms (and the market hub if there is no core) warehouse the rest.
         if (isCombatT3Boost(resource) && isLaunchRoom(room)) return BOOST_AMOUNT(room, resource);
@@ -171,12 +217,13 @@ function getRoomKeepAmount(room, resource) {
     }
     if (resource === RESOURCE_BATTERY) return 1000;
     if (room.memory.commodityProduction && room.mineral && room.mineral.mineralType === resource) return REACTION_AMOUNT * 2;
-    if (BASE_MINERALS.includes(resource)) {
+    const minerals = mineralSet();
+    if (minerals && minerals.has(resource)) {
         if (!room.terminal) return 0;
         if (isHubRoom(room) || isCoreRoom(room) || roomUsesResource(room, resource)) return REACTION_AMOUNT;
         return 0;
     }
-    if (COMPRESSED_COMMODITIES.includes(resource)) {
+    if (compressed && compressed.has(resource)) {
         if (!room.factory) return 0;
         if (isCoreRoom(room) || isHubRoom(room)) return CORE_BAR_KEEP;
         return 1000;

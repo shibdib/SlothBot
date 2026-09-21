@@ -601,15 +601,27 @@ function getColonySkGuardRooms(colonyName) {
     return out;
 }
 
+const EXIT_NEIGHBOR_CACHE = Object.create(null);
+
 /** True when the two rooms share a cardinal exit (not a Chebyshev diagonal). */
 function isExitNeighbor(fromName, toName) {
     if (!fromName || !toName) return false;
+    const key = fromName + '|' + toName;
+    const cached = EXIT_NEIGHBOR_CACHE[key];
+    if (cached !== undefined) return cached;
     const exits = Game.map.describeExits(fromName);
-    if (!exits) return false;
-    for (const neighbor of Object.values(exits)) {
-        if (neighbor === toName) return true;
+    let ok = false;
+    if (exits) {
+        for (const dir in exits) {
+            if (exits[dir] === toName) {
+                ok = true;
+                break;
+            }
+        }
     }
-    return false;
+    EXIT_NEIGHBOR_CACHE[key] = ok;
+    EXIT_NEIGHBOR_CACHE[toName + '|' + fromName] = ok;
+    return ok;
 }
 
 function isAllyName(name) {
@@ -647,10 +659,13 @@ function countColonyRemoteSources(colonyName, exceptRoom) {
 
 function borderingOwnedColonies(remoteName) {
     const out = [];
-    if (!MY_ROOMS) return out;
-    for (let i = 0; i < MY_ROOMS.length; i++) {
-        const colony = MY_ROOMS[i];
-        if (!isExitNeighbor(colony, remoteName)) continue;
+    if (!remoteName || !MY_ROOMS) return out;
+    const exits = Game.map.describeExits(remoteName);
+    if (!exits) return out;
+    const ownedSet = new Set(MY_ROOMS);
+    for (const dir in exits) {
+        const colony = exits[dir];
+        if (!colony || !ownedSet.has(colony)) continue;
         const room = Game.rooms[colony];
         if (!room || (room.memory && room.memory.noRemote)) continue;
         out.push(colony);

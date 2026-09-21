@@ -157,14 +157,19 @@ let helpers = function () {
     }
 
     /**
-     * Source Keeper rooms sit at the center of each 10x10 sector (x%10===4 && y%10===4).
+     * Source Keeper rooms are the 8-room ring around each sector center
+     * (x%10 and y%10 in 4..6, excluding the 5,5 center itself).
      * @param {string} roomName
      * @returns {boolean}
      */
     global.isSourceKeeperRoomName = function (roomName) {
         if (!roomName || roomName.length < 4) return false;
         const parsed = parseRoomXY(roomName);
-        return parsed && parsed.x % 10 === 4 && parsed.y % 10 === 4;
+        if (!parsed) return false;
+        const xm = parsed.x % 10;
+        const ym = parsed.y % 10;
+        if (xm < 4 || xm > 6 || ym < 4 || ym > 6) return false;
+        return !(xm === 5 && ym === 5);
     };
 
     /**

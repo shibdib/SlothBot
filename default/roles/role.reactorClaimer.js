@@ -41,6 +41,9 @@ class RoleReactorClaimer {
             return true;
         }
         this.creep.say('Rx', true);
+        // Sector center is behind the SK ring. Keep moving after a kite so
+        // 600-TTL CLAIM bodies do not idle away the trip.
+        if (this.creep.skSafety({keepMoving: true})) return true;
         let dest = this.creep.memory.destination;
         if (!dest) {
             dest = Memory.season && Memory.season.targetReactor;

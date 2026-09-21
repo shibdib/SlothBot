@@ -256,7 +256,7 @@ class ModuleBodyGenerator {
         }
 
         let generatedBody;
-        if (['SKAttacker', 'powerAttacker', 'claimer', 'claimAttacker'].includes(this.role)) {
+        if (['SKAttacker', 'powerAttacker', 'claimer', 'claimAttacker', 'reactorClaimer'].includes(this.role)) {
             generatedBody = [...toughArray, ...moveArray, ..._.shuffle(bodyArray), ...healArray];
         } else {
             generatedBody = [...toughArray, ..._.shuffle(bodyArray), ...moveArray, ...healArray];
