@@ -46,7 +46,80 @@ function getSquadMatrix(roomName, orientation = 0, squadSize = 4) {
     const footprint = squadSize >= 4 ? `q${orientation}` : squadSize === 3 ? `l${orientation}` : 'd';
     const neighborHash = squadSize >= 3 ? neighborPortalHash(roomName) : '';
     const cacheType = `squad_${footprint}_${structuresHash}_${neighborHash}`;
-    return getCachedMatrix(roomName, cacheType, 200, () => buildSquadMatrix(roomName, orientation, squadSize));
+    const matrix = getCachedMatrix(roomName, cacheType, 200, () => buildSquadMatrix(roomName, orientation, squadSize));
+    paintSquadKeepers(matrix, roomName, orientation, squadSize);
+    return matrix;
+}
+
+/** Live keepers and lair blankets on the cloned squad matrix each tick. */
+function paintSquadKeepers(matrix, roomName, orientation, squadSize) {
+    const intel = (typeof INTEL !== 'undefined') ? INTEL[roomName] : undefined;
+    const nameIsSk = !!(intel && intel.sk)
+        || !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
+    const room = Game.rooms[roomName];
+    const vectors = getFormationVectors(orientation, squadSize);
+    const raise = (x, y, cost) => {
+        if (x < 0 || x > 49 || y < 0 || y > 49) return;
+        if (matrix.get(x, y) < cost) matrix.set(x, y, cost);
+    };
+    const inflate = (cx, cy, cost) => {
+        for (let i = 0; i < vectors.length; i++) raise(cx + vectors[i].x, cy + vectors[i].y, cost);
+    };
+    const blanket = (px, py, range, cost) => {
+        const top = Math.max(0, py - range);
+        const left = Math.max(0, px - range);
+        const bottom = Math.min(49, py + range);
+        const right = Math.min(49, px + range);
+        for (let y = top; y <= bottom; y++) {
+            for (let x = left; x <= right; x++) inflate(x, y, cost);
+        }
+    };
+
+    let sks = [];
+    if (room) {
+        if (room._skCreepsTick !== Game.time) {
+            room._skCreeps = room.creeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
+            room._skCreepsTick = Game.time;
+        }
+        sks = room._skCreeps;
+    }
+    if (sks.length) {
+        for (let i = 0; i < sks.length; i++) {
+            const p = sks[i].pos;
+            matrix.set(p.x, p.y, 255);
+            blanket(p.x, p.y, 1, 255);
+            blanket(p.x, p.y, 2, 200);
+            blanket(p.x, p.y, 3, 150);
+        }
+        return;
+    }
+    if (!nameIsSk) return;
+
+    let dangerPoints;
+    if (room) {
+        const lairs = room.keeperLairs.filter(s => s.ticksToSpawn && s.ticksToSpawn < 25);
+        dangerPoints = _.union(lairs, room.sources, room.mineral ? [room.mineral] : [])
+            .map(o => ({x: o.pos.x, y: o.pos.y}));
+    } else if (intel && intel.skDangerPoints) {
+        dangerPoints = intel.skDangerPoints;
+    }
+    if (dangerPoints && dangerPoints.length) {
+        for (let i = 0; i < dangerPoints.length; i++) {
+            const pt = dangerPoints[i];
+            blanket(pt.x, pt.y, 5, 250);
+        }
+        return;
+    }
+    if (!room) {
+        const terrain = Game.map.getRoomTerrain(roomName);
+        for (let y = 0; y < 50; y++) {
+            for (let x = 0; x < 50; x++) {
+                if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+                const edge = Math.min(x, y, 49 - x, 49 - y);
+                if (edge >= 4) inflate(x, y, 40);
+            }
+        }
+    }
 }
 
 function getCachedMatrix(roomName, type, tickTTL, computeFn) {

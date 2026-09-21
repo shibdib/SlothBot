@@ -188,6 +188,13 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 
     if (this.hasActiveBodyparts(HEAL)) this.healInRange();
 
+    // Keepers are not combat targets. SKAttacker is the only role that walks in.
+    if (this.memory.role !== 'SKAttacker' && this.memory.role !== 'test'
+        && this.skThreatNear(this.pos, 7)) {
+        this.shibKite(9);
+        return true;
+    }
+
     if (!canEngageCombat(this) && this.memory.role !== 'test') return this.fleeHome(true);
 
     let hostile = this.findClosestEnemy(barrier, ignoreBorder, guardLocation, guardRange);

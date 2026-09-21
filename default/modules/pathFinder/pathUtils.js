@@ -388,6 +388,18 @@ function gatherThreats(creep, fleeRange) {
         (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)) &&
         creep.pos.getRangeTo(c) <= fleeRange + 2
     );
+    // hostileCreeps drops Source Keepers. Everyone except SKAttacker kites them.
+    if (!(creep.memory && creep.memory.role === 'SKAttacker')) {
+        const room = creep.room;
+        if (room._skCreepsTick !== Game.time) {
+            room._skCreeps = room.creeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
+            room._skCreepsTick = Game.time;
+        }
+        const sks = room._skCreeps || [];
+        for (let i = 0; i < sks.length; i++) {
+            if (creep.pos.getRangeTo(sks[i]) <= fleeRange + 2) threats.push(sks[i]);
+        }
+    }
     const lairs = creep.room.structures.filter(s =>
         s.structureType === STRUCTURE_KEEPER_LAIR &&
         s.ticksToSpawn && s.ticksToSpawn <= fleeRange + 2 &&
