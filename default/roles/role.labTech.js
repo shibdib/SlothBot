@@ -6,8 +6,8 @@ const profiler = require("tools.profiler");
 const FactoryControl = require('module.factoryController');
 const {getRoomKeepAmount, getOperationalProtectAmount, getRoomOperationalNeed} = require('termKeep');
 const {isCoreRoom} = require('module.colonyProfile');
-const {roomCanBurnSurplus, roomCanProcessPower, noteNukerEnergyDeposit} = require('spawnFlow');
-const {hasLiveHubManager} = require('spawnHub');
+const {roomCanFillNuker, roomCanProcessPower, noteNukerEnergyDeposit} = require('spawnFlow');
+const {hasLiveHubManager, hubManagerAdjacentTo} = require('spawnHub');
 
 const BALANCE_MIN_TRANSFER = 100;
 const STORAGE_ENERGY_RESERVE = 25000;
@@ -128,6 +128,38 @@ class RoleLabTech {
         return true;
     }
 
+    // Hub manager fills a power spawn only when it is standing next to it.
+    // Off-hub spawns (common in dynamic rooms) are this creep's job.
+    findPowerSpawnFeed(powerSpawn) {
+        if (!powerSpawn || !roomCanProcessPower(this.room)) return null;
+        if (hubManagerAdjacentTo(this.room, powerSpawn)) return null;
+        const energyFree = powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) || 0;
+        if (energyFree > 1000) {
+            const energySupplier = this.pickBestSupplier(RESOURCE_ENERGY);
+            if (energySupplier && (energySupplier.store[RESOURCE_ENERGY] || 0) > 10000) {
+                return {
+                    withdrawTarget: energySupplier.id,
+                    deliveryTarget: powerSpawn.id,
+                    resource: RESOURCE_ENERGY,
+                    amount: energyFree,
+                };
+            }
+        }
+        const powerFree = powerSpawn.store.getFreeCapacity(RESOURCE_POWER) || 0;
+        if (powerFree > 50) {
+            const powerSupplier = this.pickBestSupplier(RESOURCE_POWER);
+            if (powerSupplier) {
+                return {
+                    withdrawTarget: powerSupplier.id,
+                    deliveryTarget: powerSpawn.id,
+                    resource: RESOURCE_POWER,
+                    amount: powerFree,
+                };
+            }
+        }
+        return null;
+    }
+
     // Task prioritizer - Returns {withdrawTarget, deliveryTarget, resource, amount}
     findTask() {
         const labs = this.room.labs;
@@ -180,6 +212,13 @@ class RoleLabTech {
         if (fillBoost) return fillBoost;
         const energyBoost = this.findBoostLabEnergyTask(labs, labStructMem, storage, terminal);
         if (energyBoost) return energyBoost;
+
+        // Power spawn burns 50 energy and 1 power per tick from the stockpile.
+        // The hub manager only reaches a spawn it is standing on; otherwise this
+        // haul is the feed. Placed above production labs so a busy lab room
+        // still keeps the spawn topped up (one trip per ~20 ticks).
+        const powerFeed = this.findPowerSpawnFeed(powerSpawn);
+        if (powerFeed) return powerFeed;
 
         // 3b. Energy overflow packing. Production labs otherwise occupy labTech
         // forever and the factory never gets the 600 energy it needs to pack.
@@ -306,10 +345,10 @@ class RoleLabTech {
             }
         }
 
-        // 11. Nuker energy from overflow only. Filling at energyState 1–2 dumps
-        // stockpile into a sink that rawEnergy does not count, so rooms never accrue.
-        // Hub manager sits next to the nuker and owns this when present.
-        if (nuker && !hasLiveHubManager(this.room) && roomCanBurnSurplus(this.room)) {
+        // 11. Nuker energy from the stockpile (energyState 3). Nuker energy is
+        // not counted in rawEnergy, so a room below surplus must not fill it.
+        // Hub manager fills a nuker it is standing next to and never walks.
+        if (nuker && !hubManagerAdjacentTo(this.room, nuker) && roomCanFillNuker(this.room)) {
             const nukerEnergyNeed = nuker.store.getFreeCapacity(RESOURCE_ENERGY);
             if (nukerEnergyNeed > 0 && this.room.rawEnergy >= nukerEnergyNeed + 10000) {
                 const energySupplier = [storage, terminal].find(s => s && (s.store[RESOURCE_ENERGY] || 0) > 10000);
@@ -362,34 +401,6 @@ class RoleLabTech {
             if (resourceContainer) {
                 const res = Object.keys(resourceContainer.store).find(r => r !== RESOURCE_ENERGY && resourceContainer.store[r] > 0);
                 if (res) return {withdrawTarget: resourceContainer.id, deliveryTarget: storeTarget.id, resource: res};
-            }
-        }
-
-        // 15. Power spawn energy / power — 50 e/tick. State 2 (~500k at RCL 8)
-        // can afford it; surplus (state 3) is only for nuker/factory.
-        // Hub manager owns energy feed when present; labTech still hauls POWER.
-        if (powerSpawn && roomCanProcessPower(this.room)) {
-            if (!hasLiveHubManager(this.room) && powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000) {
-                const energySupplier = this.pickBestSupplier(RESOURCE_ENERGY);
-                if (energySupplier && energySupplier.store[RESOURCE_ENERGY] > 10000) {
-                    return {
-                        withdrawTarget: energySupplier.id,
-                        deliveryTarget: powerSpawn.id,
-                        resource: RESOURCE_ENERGY,
-                        amount: powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY)
-                    };
-                }
-            }
-            if (powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 50) {
-                const powerSupplier = this.pickBestSupplier(RESOURCE_POWER);
-                if (powerSupplier) {
-                    return {
-                        withdrawTarget: powerSupplier.id,
-                        deliveryTarget: powerSpawn.id,
-                        resource: RESOURCE_POWER,
-                        amount: powerSpawn.store.getFreeCapacity(RESOURCE_POWER)
-                    };
-                }
             }
         }
 
@@ -955,7 +966,11 @@ class RoleLabTech {
         if (!resource || resource === RESOURCE_ENERGY) return 0;
         const keep = this.getKeepAmount(resource);
         if (resource === RESOURCE_BATTERY) return Math.max(keep, BATTERY_TERMINAL_SOFT_CAP);
-        if (resource === RESOURCE_POWER) return Math.max(keep, TERMINAL_EXPORT_CEILING);
+        // Bulk power keep stays in storage. The terminal only stages a send/feed slice.
+        if (resource === RESOURCE_POWER) {
+            if (keep) return Math.min(keep, TERMINAL_EXPORT_CEILING);
+            return TERMINAL_EXPORT_CEILING;
+        }
         const warehouse = isCoreRoom(this.room);
         if (COMPRESSED_COMMODITIES.includes(resource) && !warehouse) return TERMINAL_EXPORT_CEILING;
         if (keep) return Math.min(keep, TERMINAL_EXPORT_CEILING);

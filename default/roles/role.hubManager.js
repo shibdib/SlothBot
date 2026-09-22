@@ -13,7 +13,7 @@
 
 const profiler = require('tools.profiler');
 const {
-    roomCanBurnSurplus, roomCanProcessPower, roomHasPositiveFlow, noteNukerEnergyDeposit,
+    roomCanFillNuker, roomCanProcessPower, roomHasPositiveFlow, noteNukerEnergyDeposit,
     RCL8_CONTROLLER_LINK_MIN,
 } = require('spawnFlow');
 const RoleLabTech = require('role.labTech');
@@ -127,7 +127,7 @@ class RoleHubManager {
             && powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
             return powerSpawn;
         }
-        if (!roomCanBurnSurplus(this.room)) return null;
+        if (!roomCanFillNuker(this.room)) return null;
         const nuker = this.room.nuker;
         if (nuker && this.creep.pos.isNearTo(nuker)) {
             const need = nuker.store.getFreeCapacity(RESOURCE_ENERGY);
@@ -188,7 +188,7 @@ class RoleHubManager {
 
         if ((this.creep.store[RESOURCE_POWER] || 0) > 0) {
             const powerSpawn = this.room.powerSpawn;
-            if (powerSpawn && adjacentTo(this.creep, powerSpawn)
+            if (roomCanProcessPower(this.room) && powerSpawn && adjacentTo(this.creep, powerSpawn)
                 && powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 0) {
                 this.creep.transfer(powerSpawn, RESOURCE_POWER);
                 return;
@@ -315,7 +315,7 @@ class RoleHubManager {
         };
 
         const powerSpawn = this.room.powerSpawn;
-        if (powerSpawn && adjacentTo(this.creep, powerSpawn)
+        if (roomCanProcessPower(this.room) && powerSpawn && adjacentTo(this.creep, powerSpawn)
             && powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 0) {
             if (storage && (storage.store[RESOURCE_POWER] || 0) > 0 && adjacentTo(this.creep, storage)) {
                 this.creep.withdraw(storage, RESOURCE_POWER);

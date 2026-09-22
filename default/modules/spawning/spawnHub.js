@@ -87,6 +87,19 @@ function hasLiveHubManager(room) {
     return false;
 }
 
+/** Hub manager never walks, so it can only fill a structure it is standing next to. */
+function hubManagerAdjacentTo(room, target) {
+    if (!room || !target || !target.pos) return false;
+    const creeps = room.myCreeps;
+    if (!creeps) return false;
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        if (!c || c.spawning || !c.memory || c.memory.role !== 'hubManager') continue;
+        if (c.pos.isNearTo(target)) return true;
+    }
+    return false;
+}
+
 function recycleHubSlotIntruder(room) {
     if (!room || !room.hub) return false;
     const pos = new RoomPosition(room.hub.x, room.hub.y, room.name);
@@ -117,4 +130,5 @@ module.exports = {
     spawnDirectionsForRole,
     recycleHubSlotIntruder,
     hasLiveHubManager,
+    hubManagerAdjacentTo,
 };

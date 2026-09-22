@@ -31,7 +31,7 @@ const {
 } = require('pathUtils');
 const {stepInlandOffExit, isSquadCreep} = require('pathFormation');
 const {
-    roomCanBurnSurplus, ENERGY_ACCRUAL_FLOOR, noteNukerEnergyDeposit, roomHasPositiveFlow,
+    roomCanBurnSurplus, roomCanFillNuker, ENERGY_ACCRUAL_FLOOR, noteNukerEnergyDeposit, roomHasPositiveFlow,
     RCL8_CONTROLLER_LINK_MIN,
 } = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
@@ -493,7 +493,7 @@ Creep.prototype.skSafety = function (opts) {
         (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.room.name)));
     if (!isSkRoom && (this.room.controller || intel)) return false;
 
-    const range = 7;
+    const range = opts.range || 7;
     const room = this.room;
     const sk = this.skThreatNear(this.pos, range, true);
     const lair = !sk && this.skImminentLair(this.pos, range);
@@ -511,7 +511,9 @@ Creep.prototype.skSafety = function (opts) {
         }
     }
 
-    if (this.room.invaderCore) return this.suicide() === OK;
+    // Civilian SK miners suicide on a core. Claimers/haulers transiting the
+    // ring must not — SK rooms and sector centers often have invader cores.
+    if (this.room.invaderCore && !opts.noSuicide) return this.suicide() === OK;
     return false;
 };
 
@@ -930,8 +932,8 @@ Creep.prototype.haulerDelivery = function () {
         return true;
     }
 
-    // Fill nuker from overflow only — nuker energy is not counted in rawEnergy.
-    if (this.room.nuker && roomCanBurnSurplus(this.room) &&
+    // Fill nuker from the stockpile. Nuker energy is not counted in rawEnergy.
+    if (this.room.nuker && roomCanFillNuker(this.room) &&
         this.room.nuker.store.getFreeCapacity(RESOURCE_ENERGY)) {
         this.memory.storageDestination = this.room.nuker.id;
         return true;

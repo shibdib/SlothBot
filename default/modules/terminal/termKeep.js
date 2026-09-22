@@ -6,7 +6,14 @@
 
 const {isLaunchRoom, isCoreRoom} = require('module.colonyProfile');
 
-const POWER_PROCESS_KEEP = 5000;
+function powerKeepAmount(room) {
+    if (!room || !room.terminal) return 0;
+    try {
+        return require('spawnFlow').powerSinkKeepAmount(room) || 0;
+    } catch (e) {
+        return 0;
+    }
+}
 
 // One lab load. Enough to pre-reserve upgrader WORK boosts so spawn/claim can start.
 const UPGRADE_BOOST_WORKING_STOCK = 3000;
@@ -106,21 +113,6 @@ function getRoomUpgradeBoostNeed(room, resource) {
  * What this room actually needs on hand: lab reaction inputs, reserved
  * boost labs, and a small upgrader working stock. Not the empire stockpile.
  */
-function roomHasPowerSpawn(room) {
-    const spawn = room && room.powerSpawn;
-    if (!spawn) return false;
-    try {
-        if (spawn.isActive && !spawn.isActive()) return false;
-    } catch (e) { /* gone */
-    }
-    return true;
-}
-
-/** Park working stock on any room that has a live power spawn and is not energy-critical. */
-function roomShouldKeepPower(room) {
-    return !!(room && room.terminal && roomHasPowerSpawn(room) && (room.energyState || 0) >= 1);
-}
-
 function getRoomOperationalNeed(room, resource) {
     if (!room || !resource) return 0;
     let need = 0;
@@ -140,7 +132,7 @@ function getRoomOperationalNeed(room, resource) {
  * boost/lab need. Does not include hub BOOST_AMOUNT stockpile keep.
  */
 function getOperationalProtectAmount(room, resource) {
-    if (resource === RESOURCE_POWER) return roomShouldKeepPower(room) ? POWER_PROCESS_KEEP : 0;
+    if (resource === RESOURCE_POWER) return powerKeepAmount(room);
     if (!room || resource === RESOURCE_OPS || resource === RESOURCE_ENERGY) {
         return 0;
     }
@@ -192,7 +184,7 @@ function computeRoomKeepAmount(room, resource) {
         const {getFeederKeep} = require('module.season');
         return getFeederKeep(room && room.name);
     }
-    if (resource === RESOURCE_POWER) return roomShouldKeepPower(room) ? POWER_PROCESS_KEEP : 0;
+    if (resource === RESOURCE_POWER) return powerKeepAmount(room);
     if (resource === RESOURCE_OPS) return 0;
     if (resource === RESOURCE_ENERGY) return 0;
     const commodities = commoditySet();
@@ -242,7 +234,7 @@ function isStorageCapacityCritical(room) {
  * and a send-energy buffer. Infinity = do not dump this resource.
  */
 function getPressureProtectAmount(room, resource) {
-    if (resource === RESOURCE_POWER) return roomShouldKeepPower(room) ? POWER_PROCESS_KEEP : 0;
+    if (resource === RESOURCE_POWER) return powerKeepAmount(room);
     if (!room || resource === RESOURCE_OPS) return Infinity;
 
     const storageCritical = isStorageCapacityCritical(room);

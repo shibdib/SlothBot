@@ -249,7 +249,8 @@ class Colony {
         }
 
         const parked = minion.memory.onContainer || minion.memory.inPlace;
-        if (!parked && minion.towTruck()) return;
+        // Paired trucks run even when parked, so a bad pair is released.
+        if ((!parked || minion.memory.trailer) && minion.towTruck()) return;
 
         if (shouldRecycleUnguardedSkCreep(minion)) return minion.recycleCreep();
 

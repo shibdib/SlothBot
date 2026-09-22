@@ -176,16 +176,21 @@ function roomHasStableWorkingSet(room) {
     return creepRoleInRoom(room, 'drone') || creepRoleInRoom(room, 'stationaryHarvester');
 }
 
-/** Live (not spawning) drone/shuttle/hauler that can pull a 0-MOVE harvester. */
+// 5 WORK + 1 CARRY. 0-MOVE harvesters wait until some truck body can pull that.
+const MIN_HARVESTER_TOW_WEIGHT = 6;
+
+/** Live drone/shuttle/hauler whose MOVE can pull a 5W harvester on plains. */
 function roomHasLiveTowTruck(room) {
     const creeps = room && room.myCreeps;
     if (!creeps || !creeps.length) return false;
+    const {canHaulEmptyWeight} = require('pathUtils');
     for (let i = 0; i < creeps.length; i++) {
         const c = creeps[i];
         if (!c || c.spawning || !c.memory) continue;
         const role = c.memory.role;
         if (role !== 'drone' && role !== 'shuttle' && role !== 'hauler') continue;
-        if (c.hasActiveBodyparts && c.hasActiveBodyparts(MOVE)) return true;
+        if (c.memory.onContainer || c.memory.inPlace) continue;
+        if (canHaulEmptyWeight(c, MIN_HARVESTER_TOW_WEIGHT)) return true;
     }
     return false;
 }

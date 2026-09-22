@@ -8,6 +8,11 @@ const {
     getCreepMoveWeight,
     needsTow,
     canActAsTowTruck,
+    towTruckEligible,
+    towPullStats,
+    towRuntime,
+    sweepTowRuntime,
+    MAX_TOW_PLAINS_GAP,
     endTow,
     releaseTruckRef,
     clearTrailerTowState,
@@ -16,7 +21,7 @@ const {
 } = require('pathUtils');
 
 const STALL_LIMIT = 30;
-const PULL_FAIL_LIMIT = 3;
+const EXIT_DIR_CACHE = Object.create(null);
 
 function getTowDestination(trailer) {
     const td = trailer.memory.towDestination;
@@ -42,8 +47,40 @@ function trailerAtTowRange(trailer, towDestination) {
     return trailer.pos.getRangeTo(towDestination) <= opts.range;
 }
 
+function edgeStepsToward(pos, destRoom) {
+    const key = pos.roomName + '>' + destRoom;
+    let dir = EXIT_DIR_CACHE[key];
+    if (dir === undefined) {
+        dir = -1;
+        try {
+            const found = Game.map.findExit(pos.roomName, destRoom);
+            if (typeof found === 'number' && found > 0) dir = found;
+        } catch (e) { /* unmapped */
+        }
+        if (Object.keys(EXIT_DIR_CACHE).length > 400) {
+            for (const k in EXIT_DIR_CACHE) delete EXIT_DIR_CACHE[k];
+        }
+        EXIT_DIR_CACHE[key] = dir;
+    }
+    if (dir === FIND_EXIT_TOP) return pos.y;
+    if (dir === FIND_EXIT_BOTTOM) return 49 - pos.y;
+    if (dir === FIND_EXIT_LEFT) return pos.x;
+    if (dir === FIND_EXIT_RIGHT) return 49 - pos.x;
+    return Math.min(pos.x, pos.y, 49 - pos.x, 49 - pos.y);
+}
+
+// Same-room Chebyshev. Across rooms, linear room distance plus steps to the
+// exit — getRangeTo is Infinity off-room and never counted as progress.
+function towSeparation(from, to) {
+    if (!from || !to) return Infinity;
+    if (from.roomName === to.roomName) return from.getRangeTo(to);
+    const rooms = Game.map.getRoomLinearDistance(from.roomName, to.roomName, false);
+    return rooms * 50 + edgeStepsToward(from, to.roomName);
+}
+
 function shouldEndTow(truck, trailer, towDestination) {
-    const lastProgress = truck.memory.lastTowProgress || truck.memory.towStart || Game.time;
+    const rt = towRuntime(truck);
+    const lastProgress = rt.lastTowProgress || rt.towStart || Game.time;
     if (lastProgress + STALL_LIMIT < Game.time) return true;
     if (!towDestination || !trailer.memory.towOptions) return true;
     return trailerAtTowRange(trailer, towDestination);
@@ -86,7 +123,7 @@ function requestTow(trailer, heading, options) {
 
     if (trailer.memory.towCreep) {
         const truck = Game.getObjectById(trailer.memory.towCreep);
-        if (!isPairedTow(truck, trailer)) {
+        if (!pairStillGood(truck, trailer)) {
             if (truck && truck.memory.trailer === trailer.id) releaseTruckRef(truck);
             trailer.memory.towCreep = undefined;
         }
@@ -99,6 +136,10 @@ function requestTow(trailer, heading, options) {
     }
 
     refreshTowDestination(trailer, heading, options);
+    if (rangeZeroPadBlocked(trailer, getTowDestination(trailer))) {
+        releasePadWait(trailer);
+        return true;
+    }
     assignTowForTrailer(trailer);
     return true;
 }
@@ -110,20 +151,52 @@ function isPairedTow(truck, trailer) {
         && truck.pos.roomName === trailer.pos.roomName;
 }
 
+function truckOnHandoffTile(truck, trailer) {
+    const opts = trailer.memory && trailer.memory.towOptions;
+    if (!truck || !opts || opts.range !== 0) return false;
+    const dest = getTowDestination(trailer);
+    return !!(dest && truck.pos.isEqualTo(dest) && truck.pos.isNearTo(trailer));
+}
+
+// MOVE creep on a range-0 pad is the swap partner, including when it is carrying.
+function padOccupantTruck(trailer) {
+    const opts = trailer.memory && trailer.memory.towOptions;
+    if (!opts || opts.range !== 0) return null;
+    const dest = getTowDestination(trailer);
+    if (!dest || dest.roomName !== trailer.pos.roomName || !trailer.pos.isNearTo(dest)) return null;
+    const occ = dest.checkForCreep && dest.checkForCreep();
+    if (!occ || occ.id === trailer.id || !occ.my || occ.spawning) return null;
+    if (!occ.hasActiveBodyparts || !occ.hasActiveBodyparts(MOVE)) return null;
+    if (occ.hasActiveBodyparts(ATTACK) || occ.hasActiveBodyparts(RANGED_ATTACK)
+        || occ.hasActiveBodyparts(HEAL) || occ.hasActiveBodyparts(CLAIM)) return null;
+    if (occ.memory && occ.memory.trailer && occ.memory.trailer !== trailer.id) return null;
+    return occ;
+}
+
+function pairStillGood(truck, trailer) {
+    if (!isPairedTow(truck, trailer)) return false;
+    if (truckOnHandoffTile(truck, trailer)) return true;
+    if (!towTruckEligible(truck, trailer)) return false;
+    return towPullStats(truck, getCreepMoveWeight(trailer)).gap <= MAX_TOW_PLAINS_GAP;
+}
+
 function gatherTowTruckCandidates(room, trailer, busyTrucks) {
     if (!room) return [];
-    const candidates = room.myCreeps.filter(c =>
-        canActAsTowTruck(c, trailer) && !busyTrucks.has(c.id)
-    );
-    candidates.sort((a, b) => {
-        const aTow = a.memory.canTow ? 0 : 1;
-        const bTow = b.memory.canTow ? 0 : 1;
-        if (aTow !== bTow) return aTow - bTow;
-        const aLoad = a.store.getUsedCapacity() ? 1 : 0;
-        const bLoad = b.store.getUsedCapacity() ? 1 : 0;
-        if (aLoad !== bLoad) return aLoad - bLoad;
-        return trailer.pos.getRangeTo(a) - trailer.pos.getRangeTo(b);
-    });
+    const creeps = room.myCreeps;
+    const candidates = [];
+    const seen = new Set();
+    const pinned = padOccupantTruck(trailer);
+    if (pinned) {
+        seen.add(pinned.id);
+        candidates.push(pinned);
+    }
+    for (let i = 0; i < creeps.length; i++) {
+        const creep = creeps[i];
+        if (seen.has(creep.id) || busyTrucks.has(creep.id)) continue;
+        if (!canActAsTowTruck(creep, trailer)) continue;
+        seen.add(creep.id);
+        candidates.push(creep);
+    }
     return candidates;
 }
 
@@ -131,18 +204,32 @@ function pickTowTruck(trailer, candidates) {
     if (!candidates.length) return null;
 
     const trailerWeight = getCreepMoveWeight(trailer);
+    const pinned = padOccupantTruck(trailer);
     let best = null;
-    let bestScore = -Infinity;
+    let bestScore = Infinity;
+    let bestCapable = false;
 
-    for (const truck of candidates) {
-        const move = truck.getActiveBodyparts(MOVE);
-        const margin = move - getCreepMoveWeight(truck) - trailerWeight;
-        const capable = margin >= 0;
-        // Prefer trucks that can pull at full speed; otherwise take the least underpowered nearby mover.
-        const score = (capable ? 10000 : 0) + margin * 100 - trailer.pos.getRangeTo(truck);
-        if (score > bestScore) {
-            bestScore = score;
+    for (let i = 0; i < candidates.length; i++) {
+        const truck = candidates[i];
+        if (pinned && truck.id === pinned.id) {
             best = truck;
+            bestScore = -1;
+            bestCapable = true;
+            continue;
+        }
+        const stats = towPullStats(truck, trailerWeight);
+        // A 1-MOVE creep on a 50-part trailer crawls for the whole haul.
+        if (stats.gap > MAX_TOW_PLAINS_GAP) continue;
+        const capable = stats.gap === 0;
+        if (!capable && bestCapable) continue;
+        const range = trailer.pos.getRangeTo(truck);
+        // One tile of distance beats any spare-MOVE advantage. Margin only
+        // breaks a tie so a far hauler is not pulled off its route.
+        const score = range * 100 - Math.max(-20, Math.min(stats.margin, 20));
+        if ((capable && !bestCapable) || score < bestScore) {
+            best = truck;
+            bestScore = score;
+            bestCapable = capable;
         }
     }
     return best;
@@ -150,22 +237,33 @@ function pickTowTruck(trailer, candidates) {
 
 function adjustMovement(truck, trailer) {
     const range = trailer.pos.getRangeTo(truck);
-    if (truck.memory.lastRangeToTrailer
-        && truck.memory.lastRangeToTrailer < 5
-        && truck.memory.lastRangeToTrailer < range) {
+    const rt = towRuntime(truck);
+    if (rt.lastRangeToTrailer && rt.lastRangeToTrailer < 5 && rt.lastRangeToTrailer < range) {
         clearShibMove(truck);
     }
-    truck.memory.lastRangeToTrailer = range;
+    rt.lastRangeToTrailer = range;
 }
 
-function relaxRangeZeroOccupant(trailer, towDestination) {
-    if (trailer.memory.towOptions?.range !== 0) return;
-    if (!trailer.pos.isNearTo(towDestination)) return;
-    const occupant = towDestination.checkForCreep();
-    if (!occupant || occupant.id === trailer.id) return;
-    // The tow truck must stand on the tile during a range-0 handoff — not a blocker.
-    if (trailer.memory.towCreep && occupant.id === trailer.memory.towCreep) return;
-    trailer.memory.towOptions.range = 1;
+// Range 0 needs the truck on the tile, then a swap. A 0-MOVE creep already
+// standing there is the blocker. A MOVE creep on the tile is the swap partner.
+function rangeZeroPadBlocked(trailer, towDestination) {
+    const opts = trailer.memory.towOptions;
+    if (!opts || opts.range !== 0 || !towDestination) return false;
+    if (towDestination.roomName !== trailer.pos.roomName) return false;
+    if (!trailer.pos.isNearTo(towDestination)) return false;
+    const occupant = towDestination.checkForCreep && towDestination.checkForCreep();
+    if (!occupant || occupant.id === trailer.id) return false;
+    if (trailer.memory.towCreep && occupant.id === trailer.memory.towCreep) return false;
+    if (padOccupantTruck(trailer)) return false;
+    return true;
+}
+
+function releasePadWait(trailer) {
+    const truckId = trailer.memory.towCreep;
+    if (!truckId) return;
+    const truck = Game.getObjectById(truckId);
+    if (truck && truck.memory.trailer === trailer.id) releaseTruckRef(truck);
+    trailer.memory.towCreep = undefined;
 }
 
 function tryTowHandoff(truck, trailer, towDestination, targetRange) {
@@ -181,13 +279,9 @@ function tryTowHandoff(truck, trailer, towDestination, targetRange) {
 
     if (!onHandoffTile) return false;
 
-    if (!truck.memory.towAtRing) {
-        truck.memory.towAtRing = true;
-        truck.memory.lastTowProgress = Game.time;
-        return true;
-    }
-
-    truck.memory.towAtRing = undefined;
+    // Swap this tick. A pause left the truck sitting on the pad while the
+    // harvester, running later, cancelled the tow and blocked the exit.
+    towRuntime(truck).towAtRing = undefined;
     const dir = truck.pos.getDirectionTo(trailer);
     if (dir) truck.move(dir);
     return true;
@@ -196,20 +290,10 @@ function tryTowHandoff(truck, trailer, towDestination, targetRange) {
 function moveToTowDestination(truck, trailer, towDestination) {
     const opts = trailer.memory.towOptions || {range: 1};
     const targetRange = opts.range ?? 1;
-    const trailerDist = trailer.pos.getRangeTo(towDestination);
-
-    if (trailerDist <= targetRange) {
-        truck.memory.towAtRing = undefined;
-        if (truck.pos.isNearTo(trailer)) {
-            const dir = truck.pos.getDirectionTo(trailer);
-            if (dir) truck.move(dir);
-        }
-        return;
-    }
 
     if (tryTowHandoff(truck, trailer, towDestination, targetRange)) return;
 
-    truck.memory.towAtRing = undefined;
+    towRuntime(truck).towAtRing = undefined;
     clearShibMove(trailer);
     truck.shibMove(towDestination, {...opts, range: targetRange});
 }
@@ -227,7 +311,7 @@ function towPairKey(a, b) {
 
 function towLinkVisualState(truck, trailer) {
     if (!isPairedTow(truck, trailer)) return 'pending';
-    if (truck.memory.towAtRing) return 'handoff';
+    if (towRuntime(truck).towAtRing) return 'handoff';
     return 'active';
 }
 
@@ -293,6 +377,11 @@ function assignTowForTrailer(trailer, busyTrucks) {
     const room = trailer.room;
     if (!room || !needsTow(trailer) || !trailer.memory.towDestination) return false;
 
+    if (rangeZeroPadBlocked(trailer, getTowDestination(trailer))) {
+        releasePadWait(trailer);
+        return false;
+    }
+
     if (!busyTrucks) {
         busyTrucks = new Set();
         for (const creep of room.myCreeps) {
@@ -302,7 +391,7 @@ function assignTowForTrailer(trailer, busyTrucks) {
 
     const existingId = trailer.memory.towCreep;
     const existing = existingId ? Game.getObjectById(existingId) : null;
-    if (isPairedTow(existing, trailer)) return true;
+    if (pairStillGood(existing, trailer)) return true;
 
     if (existing) {
         if (existing.memory.trailer === trailer.id) releaseTruckRef(existing);
@@ -319,6 +408,7 @@ function assignTowForTrailer(trailer, busyTrucks) {
 }
 
 function assignTowsForRoom(room) {
+    sweepTowRuntime();
     if (!room?.myCreeps?.length) return;
 
     let needsAny = false;
@@ -339,7 +429,7 @@ function assignTowsForRoom(room) {
         assignTowForTrailer(trailer, busyTrucks);
     }
 
-    drawTowLinksForRoom(room);
+    if (typeof PATHING_DEBUG !== 'undefined' && PATHING_DEBUG) drawTowLinksForRoom(room);
 }
 
 function boosterWaitingOffLab(trailer) {
@@ -352,6 +442,11 @@ function boosterWaitingOffLab(trailer) {
     return false;
 }
 
+function dropTruck(truck, trailer) {
+    releaseTruckRef(truck);
+    if (trailer && trailer.memory.towCreep === truck.id) trailer.memory.towCreep = undefined;
+}
+
 function runTowTruck(truck) {
     if (!truck.memory.trailer) return false;
     const trailer = Game.getObjectById(truck.memory.trailer);
@@ -361,19 +456,12 @@ function runTowTruck(truck) {
     }
 
     if (trailer.pos.roomName !== truck.pos.roomName) {
-        releaseTruckRef(truck);
+        dropTruck(truck, trailer);
         return false;
     }
 
-    if (!isPairedTow(truck, trailer)) {
-        releaseTruckRef(truck);
-        if (trailer.memory.towCreep === truck.id) trailer.memory.towCreep = undefined;
-        return false;
-    }
-
-    if (truck.store.getUsedCapacity()) {
-        releaseTruckRef(truck);
-        if (trailer.memory.towCreep === truck.id) trailer.memory.towCreep = undefined;
+    if (!pairStillGood(truck, trailer)) {
+        dropTruck(truck, trailer);
         return false;
     }
 
@@ -383,26 +471,41 @@ function runTowTruck(truck) {
         return false;
     }
 
-    if (!truck.memory.towStart) {
-        truck.memory.towStart = Game.time;
-        truck.memory.lastTowProgress = Game.time;
-        truck.memory.lastTowDist = undefined;
-    }
-    if (truck.fatigue) return true;
-
     const towDestination = getTowDestination(trailer);
     if (!towDestination) {
         endTow(truck, trailer);
         return false;
     }
 
-    const currentDist = trailer.pos.getRangeTo(towDestination);
-    if (truck.memory.lastTowDist === undefined || currentDist < truck.memory.lastTowDist) {
-        truck.memory.lastTowDist = currentDist;
-        truck.memory.lastTowProgress = Game.time;
+    if (rangeZeroPadBlocked(trailer, towDestination)) {
+        dropTruck(truck, trailer);
+        return false;
     }
 
-    relaxRangeZeroOccupant(trailer, towDestination);
+    const rt = towRuntime(truck);
+    if (!rt.towStart) {
+        rt.towStart = Game.time;
+        rt.lastTowProgress = Game.time;
+    }
+
+    // Fatigue is the wait between steps. Counting it as a stall ended the
+    // haul on the tick the truck could move again.
+    if (truck.fatigue) {
+        rt.lastTowProgress = Game.time;
+        return true;
+    }
+
+    const currentDist = towSeparation(trailer.pos, towDestination);
+    const posKey = trailer.pos.x + ',' + trailer.pos.y + ',' + trailer.pos.roomName;
+    if (rt.lastTowDist === undefined || currentDist < rt.lastTowDist) {
+        rt.lastTowDist = currentDist;
+        rt.lastTowProgress = Game.time;
+    } else if (towDestination.roomName !== trailer.pos.roomName
+        && rt.lastPosKey && rt.lastPosKey !== posKey) {
+        // A detour can walk away from the exit without being stuck.
+        rt.lastTowProgress = Game.time;
+    }
+    rt.lastPosKey = posKey;
 
     if (shouldEndTow(truck, trailer, towDestination)) {
         endTow(truck, trailer);
@@ -411,14 +514,12 @@ function runTowTruck(truck) {
 
     const pullResult = truck.pull(trailer);
     if (pullResult === ERR_NOT_IN_RANGE) {
-        truck.memory.pullFailStreak = 0;
         adjustMovement(truck, trailer);
         truck.shibMove(trailer, {range: 1});
         return true;
     }
 
     if (pullResult === OK) {
-        truck.memory.pullFailStreak = 0;
         trailer.move(truck);
         moveToTowDestination(truck, trailer, towDestination);
         return true;

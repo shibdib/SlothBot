@@ -124,7 +124,15 @@ class RoleUpgrader {
             } else if (this.link && (!this.container || hasSharedSourceControllerLink(this.room))) {
                 const targetPos = this.findLinkUpgradePosition();
                 if (targetPos && this.creep.pos.isEqualTo(targetPos)) this.creep.memory.inPosition = true;
-                else if (targetPos) return this.creep.shibMove(targetPos, {range: 0});
+                else if (targetPos) {
+                    const occ = targetPos.checkForCreep && targetPos.checkForCreep();
+                    const handoff = occ && (occ.id === this.creep.memory.towCreep
+                        || (occ.memory && occ.memory.trailer === this.creep.id));
+                    if (occ && !handoff && occ.id !== this.creep.id && this.creep.pos.isNearTo(targetPos)
+                        && this.creep.pos.getRangeTo(this.room.controller) <= 3) {
+                        this.creep.memory.inPosition = true;
+                    } else return this.creep.shibMove(targetPos, {range: 0});
+                }
                 else if (this.creep.pos.isNearTo(this.link) && this.creep.pos.getRangeTo(this.room.controller) <= 3
                     && !blockingStand) this.creep.memory.inPosition = true;
                 else return this.creep.shibMove(this.link, {range: 1});

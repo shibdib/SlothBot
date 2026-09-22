@@ -58,7 +58,7 @@ function getFlowContext(room) {
     };
 }
 
-/** Discretionary sinks (nuker, factory recipes, optional tower repair). */
+/** Discretionary sinks that spend income every tick (factory recipes, optional tower repair). */
 function roomCanBurnSurplus(room) {
     const energyState = spawnEnergyState(room) || 0;
     if (energyState < 3) return false;
@@ -66,13 +66,103 @@ function roomCanBurnSurplus(room) {
     return !flowStressed && spareIncome >= ENERGY_ACCRUAL_FLOOR && trend >= 0;
 }
 
-/** Power processing is 50 energy/tick and is counted in spareIncome. */
+/**
+ * Nuker energy is a one-time fill from the stockpile (up to 300k) and is not
+ * counted in rawEnergy. Only a core that is already processing power fills
+ * one. A launch room's surplus is shipped to that core instead.
+ */
+function roomCanFillNuker(room) {
+    return roomCanProcessPower(room);
+}
+
+/** Minimum a sink requests once the empire has at least this much power. */
+const POWER_SINK_FLOOR = 5000;
+/** Per-core cap. Terminal-sized so a launch room can empty into a core that still has energy in storage. */
+const POWER_SINK_CAP = 300000;
+
+function roomHasActivePowerSpawn(room) {
+    const spawn = room && room.powerSpawn;
+    if (!spawn) return false;
+    try {
+        if (spawn.isActive && !spawn.isActive()) return false;
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
+
+let powerSinkTick = -1;
+let powerHoldNames = null;
+let powerProcessNames = null;
+let powerSinkKeep = 0;
+
+/**
+ * Cores hold the empire power and, once they are above 1.5× their energy
+ * target, burn it. Launch and frontier rooms keep none, so their stock is
+ * shipped in. If no core has a power spawn, a surplus room burns it so the
+ * pile is not stranded.
+ *
+ * Spare income is the wrong signal. processPower spends 50 energy/tick and
+ * that cost is booked into spareIncome, so a flow check shuts the spawn off
+ * as soon as it starts. The stockpile is the fuel.
+ */
+function refreshPowerSinks() {
+    if (powerSinkTick === Game.time && powerHoldNames) return;
+    powerSinkTick = Game.time;
+    const holders = [];
+    const ready = [];
+    const fallback = [];
+    const names = (typeof MY_ROOMS !== 'undefined' && MY_ROOMS) || [];
+    let isCore = function () {
+        return false;
+    };
+    try {
+        isCore = require('module.colonyProfile').isCoreRoom;
+    } catch (e) { /* profile unavailable */
+    }
+    for (let i = 0; i < names.length; i++) {
+        const room = Game.rooms[names[i]];
+        if (!room || !room.terminal || !roomHasActivePowerSpawn(room)) continue;
+        const surplus = (spawnEnergyState(room) || 0) >= 3;
+        if (isCore(room)) {
+            holders.push(room.name);
+            if (surplus) ready.push(room.name);
+        } else if (surplus) {
+            fallback.push(room.name);
+        }
+    }
+    const chosen = holders.length ? holders : fallback;
+    powerHoldNames = new Set(chosen);
+    powerProcessNames = new Set(holders.length ? ready : fallback);
+    let total = 0;
+    if (chosen.length && typeof getResourceTotal === 'function') {
+        total = getResourceTotal(RESOURCE_POWER) || 0;
+    }
+    if (!chosen.length || !(total > 0)) {
+        powerSinkKeep = 0;
+        return;
+    }
+    let share = Math.ceil(total / chosen.length);
+    if (total >= POWER_SINK_FLOOR) share = Math.max(share, POWER_SINK_FLOOR);
+    powerSinkKeep = Math.min(POWER_SINK_CAP, share);
+}
+
+function roomIsPowerSink(room) {
+    if (!room || !room.name) return false;
+    refreshPowerSinks();
+    return powerHoldNames.has(room.name);
+}
+
+/** Terminal keep for a core that warehouses power. Zero on launch and frontier rooms. */
+function powerSinkKeepAmount(room) {
+    if (!roomIsPowerSink(room)) return 0;
+    return powerSinkKeep;
+}
+
 function roomCanProcessPower(room) {
-    const energyState = spawnEnergyState(room) || 0;
-    if (energyState < 2) return false;
-    const {flowStressed, spareIncome} = getFlowContext(room);
-    if (flowStressed) return false;
-    return spareIncome >= ENERGY_ACCRUAL_FLOOR;
+    if (!room || !room.name) return false;
+    refreshPowerSinks();
+    return powerProcessNames.has(room.name);
 }
 
 function roomHasPositiveFlow(room) {
@@ -97,7 +187,10 @@ module.exports = {
     spawnEnergyState,
     getFlowContext,
     roomCanBurnSurplus,
+    roomCanFillNuker,
     roomCanProcessPower,
+    roomIsPowerSink,
+    powerSinkKeepAmount,
     roomHasPositiveFlow,
     noteNukerEnergyDeposit,
 };

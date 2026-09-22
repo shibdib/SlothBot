@@ -48,15 +48,53 @@ function stripLegacyShibMemory() {
     }
 }
 
+// Stall and handoff state. Kept off Memory — those writes were paid every tow tick.
+const TOW_RUNTIME = Object.create(null);
+const MAX_TOW_PLAINS_GAP = 15;
+
+function forgetMem(mem, key) {
+    if (mem && mem[key] !== undefined) mem[key] = undefined;
+}
+
+function towRuntime(truck) {
+    if (!truck) return null;
+    let state = TOW_RUNTIME[truck.id];
+    if (state) return state;
+    state = TOW_RUNTIME[truck.id] = {};
+    const mem = truck.memory;
+    if (!mem) return state;
+    // Counters used to live on the creep. Drop them once so Memory shrinks.
+    forgetMem(mem, 'towStart');
+    forgetMem(mem, 'lastRangeToTrailer');
+    forgetMem(mem, 'lastTowDist');
+    forgetMem(mem, 'lastTowProgress');
+    forgetMem(mem, 'pullFailStreak');
+    forgetMem(mem, 'towAtRing');
+    return state;
+}
+
+function clearTowRuntime(truck) {
+    if (truck) delete TOW_RUNTIME[truck.id];
+}
+
+function sweepTowRuntime() {
+    if ((Game.time % 50) !== 0) return;
+    for (const id in TOW_RUNTIME) {
+        if (!Game.getObjectById(id)) delete TOW_RUNTIME[id];
+    }
+}
+
 function releaseTruckRef(truck) {
     if (!truck) return;
-    truck.memory.towStart = undefined;
-    truck.memory.lastRangeToTrailer = undefined;
-    truck.memory.lastTowDist = undefined;
-    truck.memory.lastTowProgress = undefined;
-    truck.memory.pullFailStreak = undefined;
-    truck.memory.towAtRing = undefined;
-    truck.memory.trailer = undefined;
+    clearTowRuntime(truck);
+    const mem = truck.memory;
+    forgetMem(mem, 'towStart');
+    forgetMem(mem, 'lastRangeToTrailer');
+    forgetMem(mem, 'lastTowDist');
+    forgetMem(mem, 'lastTowProgress');
+    forgetMem(mem, 'pullFailStreak');
+    forgetMem(mem, 'towAtRing');
+    forgetMem(mem, 'trailer');
 }
 
 function resetTrailerTowState(trailer) {
@@ -83,8 +121,45 @@ function clearTrailerTowState(trailer) {
     if (truck && truck.memory.trailer === trailer.id) releaseTruckRef(truck);
 }
 
+function bodyMoveWeight(creep) {
+    const body = creep && creep.body;
+    if (!body) return 0;
+    let weight = 0;
+    for (let i = 0; i < body.length; i++) {
+        const type = body[i].type;
+        if (type !== MOVE && type !== CARRY) weight++;
+    }
+    return weight;
+}
+
+function carriedMoveWeight(creep) {
+    const used = creep && creep.store ? creep.store.getUsedCapacity() : 0;
+    return used ? Math.ceil(used / 50) : 0;
+}
+
 function getCreepMoveWeight(creep) {
-    return creep.body.filter(p => p.type !== MOVE && p.type !== CARRY).length + (_.ceil(_.sum(creep.store) / 50) || 0);
+    return bodyMoveWeight(creep) + carriedMoveWeight(creep);
+}
+
+// Plains ticks between steps. 0 means full speed. Dead parts still weigh.
+function towPlainsGap(move, weight) {
+    if (!move) return Infinity;
+    if (move >= weight) return 0;
+    return Math.ceil((weight - move) / move);
+}
+
+function towPullStats(truck, trailerWeight) {
+    const move = truck.getActiveBodyparts(MOVE);
+    const weight = getCreepMoveWeight(truck) + (trailerWeight || 0);
+    const margin = move - weight;
+    return {move, margin, gap: towPlainsGap(move, weight)};
+}
+
+function canHaulEmptyWeight(creep, trailerWeight) {
+    if (!creep || creep.spawning || !creep.hasActiveBodyparts || !creep.hasActiveBodyparts(MOVE)) return false;
+    if (isCombatTowExempt(creep)) return false;
+    const move = creep.getActiveBodyparts(MOVE);
+    return towPlainsGap(move, bodyMoveWeight(creep) + (trailerWeight || 0)) <= MAX_TOW_PLAINS_GAP;
 }
 
 function needsTow(creep) {
@@ -115,15 +190,27 @@ function isCombatTowExempt(creep) {
         creep.hasActiveBodyparts(HEAL) || creep.hasActiveBodyparts(CLAIM);
 }
 
-function canActAsTowTruck(creep, trailer) {
-    if (!creep || !creep.my || creep.className) return false;
+// Eligible to pull, including a truck already paired with `trailer`.
+// A spawning creep still has its full body, and pull returns ERR_BUSY.
+// Parked creeps do not reach runTowTruck unless the pair is cleared here.
+function towTruckEligible(creep, trailer) {
+    if (!creep || !creep.my || creep.className || creep.spawning) return false;
     if (trailer && creep.id === trailer.id) return false;
-    if (creep.memory.trailer) return false;
-    if (needsTow(creep) && creep.memory.towDestination) return false;
+    const mem = creep.memory;
+    if (!mem) return false;
+    if (mem.onContainer || mem.inPlace) return false;
+    if (mem.trailer && (!trailer || mem.trailer !== trailer.id)) return false;
+    if (needsTow(creep) && mem.towDestination) return false;
     if (!creep.hasActiveBodyparts(MOVE)) return false;
     if (isCombatTowExempt(creep)) return false;
     // runTowTruck refuses loaded trucks, so assigning them never results in a pull.
     if (creep.store.getUsedCapacity()) return false;
+    return true;
+}
+
+function canActAsTowTruck(creep, trailer) {
+    if (!towTruckEligible(creep, trailer)) return false;
+    if (creep.memory.trailer) return false;
     return true;
 }
 
@@ -477,6 +564,13 @@ module.exports = {
     releaseTruckRef,
     resetTrailerTowState,
     getCreepMoveWeight,
+    towRuntime,
+    clearTowRuntime,
+    sweepTowRuntime,
+    towPullStats,
+    canHaulEmptyWeight,
+    MAX_TOW_PLAINS_GAP,
+    towTruckEligible,
     needsTow,
     isPullSwapBlocker,
     isImmobileBlocker,

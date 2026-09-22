@@ -5,7 +5,7 @@
  */
 
 const profiler = require('tools.profiler');
-const {findReactors} = require('module.season');
+const {findReactors, reactorPos} = require('module.season');
 
 class RoleReactorClaimer {
     constructor(creep) {
@@ -41,9 +41,9 @@ class RoleReactorClaimer {
             return true;
         }
         this.creep.say('Rx', true);
-        // Sector center is behind the SK ring. Keep moving after a kite so
-        // 600-TTL CLAIM bodies do not idle away the trip.
-        if (this.creep.skSafety({keepMoving: true})) return true;
+        // Lethal range only. Range 7 kited them off the SK-ring corridor until
+        // TTL died. Invader cores in those rooms must not suicide a claimer.
+        if (this.creep.skSafety({keepMoving: true, noSuicide: true, range: 3})) return true;
         let dest = this.creep.memory.destination;
         if (!dest) {
             dest = Memory.season && Memory.season.targetReactor;
@@ -56,36 +56,36 @@ class RoleReactorClaimer {
     }
 
     travel() {
-        this.creep.shibMove(new RoomPosition(25, 25, this.creep.memory.destination), {
-            range: 23,
-            shortest: true
-        });
+        const dest = this.creep.memory.destination;
+        this.creep.shibMove(reactorPos(dest), {range: 23, shortest: true});
     }
 
     claim() {
         const reactors = findReactors(this.room);
         const reactor = reactors[0];
         if (!reactor) {
-            this.creep.idleFor(5);
+            const pos = reactorPos(this.room.name);
+            if (this.creep.pos.getRangeTo(pos) > 1) this.creep.shibMove(pos, {range: 1});
+            else this.creep.say('?Rx');
             return;
         }
         if (reactor.my) {
             if (this.creep.pos.getRangeTo(reactor) > 2) this.creep.shibMove(reactor, {range: 2});
             return;
         }
-        const claimFn = this.creep.claimReactor;
-        if (typeof claimFn !== 'function') {
+        if (typeof this.creep.claimReactor !== 'function') {
             this.creep.say('?Rx');
+            if (this.creep.pos.getRangeTo(reactor) > 1) this.creep.shibMove(reactor, {range: 1});
             return;
         }
         switch (this.creep.claimReactor(reactor)) {
             case ERR_NOT_IN_RANGE:
-                this.creep.shibMove(reactor);
+                this.creep.shibMove(reactor, {range: 1});
                 break;
             case OK:
                 break;
             default:
-                if (this.creep.pos.getRangeTo(reactor) > 1) this.creep.shibMove(reactor);
+                if (this.creep.pos.getRangeTo(reactor) > 1) this.creep.shibMove(reactor, {range: 1});
         }
     }
 }

@@ -37,12 +37,43 @@ function getSeasonMemory() {
 
 function findReactors(room) {
     if (!room) return [];
-    const findConst = typeof FIND_REACTORS !== 'undefined' ? FIND_REACTORS : 10051;
-    try {
-        return room.find(findConst) || [];
-    } catch (e) {
-        return [];
+    const tryFind = (fn) => {
+        try {
+            const found = fn();
+            return found && found.length ? found : null;
+        } catch (e) {
+            return null;
+        }
+    };
+    const byConst = tryFind(() => {
+        const c = typeof FIND_REACTORS !== 'undefined' ? FIND_REACTORS : 10051;
+        return room.find(c);
+    });
+    if (byConst) return byConst;
+    const look = typeof LOOK_REACTORS !== 'undefined' ? LOOK_REACTORS : 'reactor';
+    const byLook = tryFind(() => {
+        const hits = room.lookForAtArea(look, 0, 0, 49, 49, true) || [];
+        const out = [];
+        for (let i = 0; i < hits.length; i++) {
+            const obj = hits[i][look] || hits[i].reactor;
+            if (obj) out.push(obj);
+        }
+        return out;
+    });
+    if (byLook) return byLook;
+    const type = reactorType();
+    if (room.structures) {
+        const fromStruct = room.structures.filter(s => s.structureType === type);
+        if (fromStruct.length) return fromStruct;
     }
+    if (room.reactor) return [room.reactor];
+    return [];
+}
+
+function reactorPos(roomName) {
+    const rec = Memory.season && Memory.season.reactors && Memory.season.reactors[roomName];
+    if (rec && rec.x != null && rec.y != null) return new RoomPosition(rec.x, rec.y, roomName);
+    return new RoomPosition(25, 25, roomName);
 }
 
 function parseRoomXY(roomName) {
@@ -343,6 +374,7 @@ module.exports = {
     run,
     isSeason,
     findReactors,
+    reactorPos,
     planThoriumTransfers,
     getFeederKeep,
     stampThoriumIntel,

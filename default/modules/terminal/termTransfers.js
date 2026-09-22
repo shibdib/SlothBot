@@ -14,7 +14,7 @@ const {
 } = require('termKeep');
 const {getDerivedCommodityAmount} = require('termCache');
 const FactoryControl = require('module.factoryController');
-const {getColonyRole, isCoreRoom} = require('module.colonyProfile');
+const {getColonyRole, isCoreRoom, energyTarget} = require('module.colonyProfile');
 const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
 const profiler = require('tools.profiler');
 
@@ -448,6 +448,14 @@ function canDonateEnergy(room) {
     return roomSpareIncome(room) >= ENERGY_ACCRUAL_FLOOR;
 }
 
+/** A stockpile above 1.5× target can feed a short room even when income is flat. */
+function canDonateStockpile(room) {
+    if (!room || room.memory.dangerousAttack) return false;
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    if (rcl < 8) return false;
+    return (room.energyState || 0) >= 3;
+}
+
 function empireEnergyHungry(profiles) {
     for (let i = 0; i < profiles.length; i++) {
         const room = Game.rooms[profiles[i].name];
@@ -463,6 +471,72 @@ function energyInboundFloor(destRoom) {
 
 function energyFeeCap(destRoom) {
     return (destRoom.energyState || 0) < 1 ? ALLY_FEE_MAX : 0.25;
+}
+
+function stockEnergy(room) {
+    const batteries = room.store(RESOURCE_BATTERY) || 0;
+    const batteryEquiv = Math.floor((batteries / 50) * 600 * 0.9);
+    return (room.rawEnergy || 0) + batteryEquiv;
+}
+
+/**
+ * Launch and frontier rooms keep 1.5× their energy target (the combat reserve).
+ * Anything above that ships to a core, even when the core is already comfortable
+ * and the donor's live income is flat. Cores are where power is processed.
+ */
+function planSurplusEnergyToCores(transfers, profiles) {
+    // A room below its target gets the spare first. Cores get the rest.
+    if (empireEnergyHungry(profiles)) return;
+    const dests = [];
+    for (let i = 0; i < profiles.length; i++) {
+        const room = Game.rooms[profiles[i].name];
+        if (!room?.terminal || !isCoreRoom(room) || !canUseTerminal(profiles[i].name)) continue;
+        if (room.memory.dangerousAttack || isRoomCapacityPressured(room)) continue;
+        const free = room.terminal.store.getFreeCapacity(RESOURCE_ENERGY);
+        if (free < ENERGY_SEND_MIN) continue;
+        dests.push({name: profiles[i].name, free, stock: stockEnergy(room), spawn: !!room.powerSpawn});
+    }
+    if (!dests.length) return;
+
+    for (let i = 0; i < profiles.length; i++) {
+        const srcRoom = Game.rooms[profiles[i].name];
+        if (!srcRoom?.terminal || !canUseTerminal(profiles[i].name)) continue;
+        if (isCoreRoom(srcRoom) || srcRoom.memory.dangerousAttack) continue;
+        const rcl = (srcRoom.controller && srcRoom.controller.level) || srcRoom.level || 0;
+        if (rcl < 8) continue;
+
+        const ceiling = Math.floor(energyTarget(srcRoom) * 1.5);
+        const stock = stockEnergy(srcRoom);
+        if (stock <= ceiling + ENERGY_SEND_MIN) continue;
+        const roomExcess = stock - ceiling;
+
+        dests.sort((a, b) => (b.spawn - a.spawn) || (a.stock - b.stock));
+        let dest = null;
+        for (let d = 0; d < dests.length; d++) {
+            if (dests[d].name === profiles[i].name) continue;
+            if (dests[d].free < ENERGY_SEND_MIN) continue;
+            dest = dests[d];
+            break;
+        }
+        if (!dest) continue;
+
+        const desired = Math.min(roomExcess, dest.free, RESOURCE_SEND_MAX * 2);
+        const amount = terminalExportableEnergy(srcRoom.terminal, dest.name, desired);
+        if (amount < ENERGY_SEND_MIN) continue;
+        const cost = txCost(profiles[i].name, dest.name, amount);
+        if (cost > amount * EMPIRE_FEE_MAX) continue;
+
+        addTransfer(transfers, {
+            from: profiles[i].name,
+            to: dest.name,
+            resource: RESOURCE_ENERGY,
+            amount,
+            kind: 'energy',
+            score: roomExcess / (1 + cost),
+        });
+        dest.free -= amount;
+        dest.stock += amount;
+    }
 }
 
 function planEnergyTransfers(transfers, profiles) {
@@ -490,7 +564,7 @@ function planEnergyTransfers(transfers, profiles) {
             const srcRoom = Game.rooms[srcProfile.name];
             if (!srcRoom?.terminal || !canUseTerminal(srcProfile.name)) continue;
             if (srcRoom.memory.dangerousAttack) continue;
-            if (!canDonateEnergy(srcRoom)) continue;
+            if (!canDonateEnergy(srcRoom) && !canDonateStockpile(srcRoom)) continue;
 
             if ((destRoom.energyState || 0) >= 1 && destRoom.factory
                 && FactoryControl.roomNeedsBatteryInbound(destRoom) && srcRoom.terminal.store[RESOURCE_BATTERY]) {
@@ -964,6 +1038,7 @@ function planTransfers(ledger) {
     planEnergyRescue(transfers, profiles);
     planBatteryTransfers(transfers, profiles);
     planEnergyTransfers(transfers, profiles);
+    planSurplusEnergyToCores(transfers, profiles);
 
     for (const resource of resources) {
         if (resource === RESOURCE_ENERGY || resource === RESOURCE_BATTERY) continue;

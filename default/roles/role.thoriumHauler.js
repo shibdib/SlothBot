@@ -36,7 +36,7 @@ class RoleThoriumHauler {
     housekeeping() {
         if (!this.creep.memory.destination) return this.creep.recycleCreep();
         this.creep.say('Th', true);
-        if (this.creep.skSafety({keepMoving: true})) return true;
+        if (this.creep.skSafety({keepMoving: true, noSuicide: true, range: 3})) return true;
         if (this.carrying()) this.stepOffDecayTiles();
         const hops = Game.map.getRoomLinearDistance(this.room.name, this.creep.memory.destination) || 0;
         if (!this.carrying() && this.creep.ticksToLive < hops * 50 + 80) {
