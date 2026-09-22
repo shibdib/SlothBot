@@ -22,6 +22,21 @@ const AUTO_PROFILE_TICKS = 15;
 const MAX_PHASES = 40;
 const EMAIL_LIMIT = 950;
 
+const ROLE_ABBR = {
+    remoteHauler: 'rh', remoteHarvester: 'rm', stationaryHarvester: 'sh',
+    drone: 'dr', hauler: 'ha', upgrader: 'up', waller: 'wa', hubManager: 'hm',
+    labTech: 'lt', remoteBuilder: 'rb', longbowSquad: 'lq', longbow: 'lb',
+    SKAttacker: 'sk', commodityMiner: 'cm', reserver: 'rs', shuttle: 'st',
+    roadBuilder: 'rd', explorer: 'ex', scout: 'sc',
+};
+
+const PHASE_ABBR = {
+    colony: '', colonies: 'cols', military: 'mil', planner: 'pln',
+    state: 'st', house: 'hs', start: 'st0', roles: 'rl', et: 'et',
+    prof: 'pr', power: 'pw', save: 'sv', end: 'end', world: 'wd',
+    tools: 'tl', hc: 'hc', expand: 'ex',
+};
+
 const samples = [];
 
 function notifyEnabled() {
@@ -42,6 +57,8 @@ let pfCpu = 0;
 let marketCalls = 0;
 let marketCpu = 0;
 let roleCpu = null;
+let obsNotes = null;
+let intelNotes = null;
 
 function resetHookStats() {
     if (hookTick === Game.time) return;
@@ -53,6 +70,8 @@ function resetHookStats() {
     marketCalls = 0;
     marketCpu = 0;
     roleCpu = Object.create(null);
+    obsNotes = [];
+    intelNotes = [];
 }
 
 function noteRoleCpu(role, spent) {
@@ -60,6 +79,21 @@ function noteRoleCpu(role, spent) {
     resetHookStats();
     const key = role || '?';
     roleCpu[key] = (roleCpu[key] || 0) + spent;
+}
+
+function noteObsCpu(home, target, intelCpu, totalCpu) {
+    resetHookStats();
+    obsNotes.push({
+        h: home,
+        t: target,
+        i: Math.round(intelCpu),
+        tot: Math.round(totalCpu),
+    });
+}
+
+function noteIntelCpu(room, spent) {
+    resetHookStats();
+    intelNotes.push({r: room, c: Math.round(spent)});
 }
 
 function notePathFinderSearch(result, cpuSpent) {
@@ -103,30 +137,57 @@ function installHooks() {
     }
 }
 
+function abbrRole(role) {
+    return ROLE_ABBR[role] || (role ? role.slice(0, 3) : '?');
+}
+
 function hookBits() {
     resetHookStats();
     const parts = [];
     if (pfSearches) {
-        let text = `pf ${pfSearches}/${Math.round(pfOps / 1000)}kops`;
-        if (pfCpu >= 3) text += ` ${pfCpu.toFixed(0)}cpu`;
-        if (pfIncomplete) text += ` ${pfIncomplete}inc`;
+        let text = `pf${pfSearches}/${Math.round(pfOps / 1000)}k`;
+        if (pfCpu >= 3) text += ` ${pfCpu.toFixed(0)}c`;
+        if (pfIncomplete) text += ` ${pfIncomplete}i`;
         parts.push(text);
     }
-    if (marketCalls) {
-        parts.push(`market ${marketCalls}x ${marketCpu.toFixed(0)}cpu`);
+    if (marketCalls && marketCpu >= 3) {
+        parts.push(`mkt${marketCpu.toFixed(0)}`);
     }
     if (roleCpu) {
         const rows = [];
         for (const role in roleCpu) rows.push({role: role, cpu: roleCpu[role]});
         rows.sort((a, b) => b.cpu - a.cpu);
         const hot = [];
-        for (let i = 0; i < rows.length && hot.length < 5; i++) {
-            if (rows[i].cpu < 8) break;
-            hot.push(`${rows[i].role}:${rows[i].cpu.toFixed(0)}`);
+        for (let i = 0; i < rows.length && hot.length < 4; i++) {
+            if (rows[i].cpu < 10) break;
+            hot.push(`${abbrRole(rows[i].role)}${rows[i].cpu.toFixed(0)}`);
         }
-        if (hot.length) parts.push(`roles ${hot.join(',')}`);
+        if (hot.length) parts.push(hot.join(','));
     }
-    return parts.join('. ');
+    if (obsNotes && obsNotes.length) {
+        obsNotes.sort((a, b) => b.tot - a.tot);
+        const n = Math.min(2, obsNotes.length);
+        const bits = [];
+        for (let i = 0; i < n; i++) {
+            if (obsNotes[i].tot < 12) break;
+            const o = obsNotes[i];
+            bits.push(`${o.h}>${o.t} ${o.i}/${o.tot}`);
+        }
+        if (bits.length) parts.push(`ob ${bits.join(',')}`);
+    }
+    if (intelNotes && intelNotes.length) {
+        intelNotes.sort((a, b) => b.c - a.c);
+        if (intelNotes[0].c >= 20) {
+            const n = Math.min(2, intelNotes.length);
+            const bits = [];
+            for (let i = 0; i < n; i++) {
+                if (intelNotes[i].c < 20) break;
+                bits.push(`${intelNotes[i].r}:${intelNotes[i].c}`);
+            }
+            if (bits.length) parts.push(`in ${bits.join(',')}`);
+        }
+    }
+    return parts.join(' ');
 }
 
 function watchMem() {
@@ -174,6 +235,14 @@ function classify(used, limit, tickLimit) {
     return null;
 }
 
+function phaseLabel(p) {
+    if (p.name === 'colony' && p.detail) return p.detail;
+    const abbr = PHASE_ABBR[p.name];
+    const name = abbr !== undefined ? abbr : p.name;
+    if (p.detail) return name ? `${name}:${p.detail}` : p.detail;
+    return name || p.name;
+}
+
 function formatPhases(phases) {
     if (!phases || !phases.length) return '';
     const rows = [];
@@ -181,27 +250,15 @@ function formatPhases(phases) {
     for (let i = 0; i < phases.length; i++) {
         const p = phases[i];
         const delta = p.spent != null ? p.spent : p.cpu - prev;
-        const label = p.detail ? `${p.name}:${p.detail}` : p.name;
-        rows.push({label: label, cpu: p.cpu, delta: delta, i: i});
+        if (delta >= 10) rows.push({label: phaseLabel(p), delta: delta});
         prev = p.cpu;
     }
-    // Last-N with prev=0 used to attribute the whole tick to the first shown
-    // label (e.g. "planner 443(+443)" when planner spent 0.1).
-    const keep = new Set();
-    keep.add(0);
-    for (let i = Math.max(0, rows.length - 4); i < rows.length; i++) keep.add(i);
-    const hot = rows.slice().sort((a, b) => b.delta - a.delta);
-    for (let i = 0; i < hot.length && keep.size < 12; i++) {
-        if (hot[i].delta >= 8) keep.add(hot[i].i);
-    }
-    const idxs = [...keep].sort((a, b) => a - b);
+    rows.sort((a, b) => b.delta - a.delta);
     const parts = [];
-    for (let k = 0; k < idxs.length; k++) {
-        const r = rows[idxs[k]];
-        if (k && idxs[k] !== idxs[k - 1] + 1) parts.push('…');
-        parts.push(`${r.label} ${r.cpu.toFixed(1)}(+${r.delta.toFixed(1)})`);
+    for (let i = 0; i < rows.length && i < 6; i++) {
+        parts.push(`${rows[i].label}+${rows[i].delta.toFixed(0)}`);
     }
-    return parts.join(' > ');
+    return parts.join(' ');
 }
 
 function topRooms(n) {
@@ -217,7 +274,7 @@ function topRooms(n) {
     const limit = Math.min(n, rows.length);
     for (let i = 0; i < limit; i++) {
         if (rows[i].last < 8) break;
-        out.push(`${rows[i].name} ${rows[i].last.toFixed(1)}`);
+        out.push(`${rows[i].name}:${rows[i].last.toFixed(0)}`);
     }
     return out.join(', ');
 }
@@ -226,17 +283,16 @@ function plannerBits() {
     try {
         const report = require('planOrchestrator').getLastTickReport();
         if (!report || report.tick !== Game.time || report.cpu == null || report.cpu < 5) return '';
-        let text = `planner ${report.cpu.toFixed(1)}`;
+        let text = `pln${report.cpu.toFixed(0)}`;
         if (report.room) text += ` ${report.room}`;
-        if (report.skipReason) text += ` skip:${report.skipReason}`;
         const phases = report.phases;
         if (phases && phases.length) {
             const heavy = [];
             for (let i = 0; i < phases.length; i++) {
                 const p = phases[i];
-                if (p && p.cpu >= 3) heavy.push(`${p.phase}:${p.cpu.toFixed(1)}`);
+                if (p && p.cpu >= 5) heavy.push(`${p.phase}:${p.cpu.toFixed(0)}`);
             }
-            if (heavy.length) text += ` [${heavy.join(',')}]`;
+            if (heavy.length) text += `[${heavy.join(',')}]`;
         }
         return text;
     } catch (e) {
@@ -252,8 +308,7 @@ function creepCount() {
 
 function contextBits() {
     const rooms = (typeof MY_ROOMS !== 'undefined' && MY_ROOMS && MY_ROOMS.length) ? MY_ROOMS.length : 0;
-    const bits = [`${rooms} rooms`, `${creepCount()} creeps`, `bucket ${Game.cpu.bucket}`];
-    return bits.join(', ');
+    return `r${rooms} c${creepCount()} b${Game.cpu.bucket}`;
 }
 
 function profilerDump(maxLen) {
@@ -280,13 +335,26 @@ function armProfiler(ticks) {
     return true;
 }
 
+function pack(parts) {
+    let msg = '';
+    for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (!part) continue;
+        const add = msg ? `. ${part}` : part;
+        if (msg.length + add.length > EMAIL_LIMIT) break;
+        msg += add;
+    }
+    return msg;
+}
+
 function send(message) {
     const extra = watchMem().suppressed || 0;
     if (extra) {
-        message += ` (+${extra} more during cooldown)`;
+        const tag = ` +${extra}`;
+        if (message.length + tag.length <= EMAIL_LIMIT) message += tag;
         watchMem().suppressed = 0;
     }
-    if (message.length > EMAIL_LIMIT) message = message.slice(0, EMAIL_LIMIT - 3) + '...';
+    if (message.length > EMAIL_LIMIT) message = message.slice(0, EMAIL_LIMIT);
     Game.notify(message, 0);
     if (typeof log !== 'undefined' && log.a) log.a(message, 'CPU: ');
     else console.log(message);
@@ -309,23 +377,14 @@ function reportTimeout(missed, prevPhases, prevTick) {
     const lastCpu = watch.lastCpu != null ? watch.lastCpu.toFixed(1) : '?';
     const lastBucket = watch.lastBucket != null ? watch.lastBucket : '?';
     const limit = Game.cpu.limit || 20;
-    let msg = `[CPU TIMEOUT] ${missed} tick${missed === 1 ? '' : 's'} killed before ${Game.time}`;
-    msg += `. last ok ${lastCpu}/${limit}, bucket then ${lastBucket}, now ${Game.cpu.bucket}`;
-    msg += `. ${contextBits()}`;
-    if (prevTick === Game.time - missed && prevPhases && prevPhases.length) {
-        const last = prevPhases[prevPhases.length - 1];
-        const label = last.detail ? `${last.name}:${last.detail}` : last.name;
-        msg += `. died after ${label} @ ${last.cpu.toFixed(1)}`;
-        const phases = formatPhases(prevPhases);
-        if (phases) msg += `. ${phases}`;
-    } else {
-        msg += '. no phase data (global reset with the timeout)';
-    }
-    const dump = profilerDump(400);
-    if (dump) msg += `\n${dump}`;
-    const armed = armProfiler(AUTO_PROFILE_TICKS);
-    if (armed) msg += `. armed profiler ${AUTO_PROFILE_TICKS} ticks`;
-    send(msg);
+    const died = (prevTick === Game.time - missed && prevPhases && prevPhases.length)
+        ? `${phaseLabel(prevPhases[prevPhases.length - 1])}@${prevPhases[prevPhases.length - 1].cpu.toFixed(0)}`
+        : 'noPhase';
+    send(pack([
+        `[TO] -${missed} before ${Game.time} last ${lastCpu}/${limit} b${lastBucket}->${Game.cpu.bucket} ${contextBits()} died ${died}`,
+        formatPhases(prevPhases),
+        armProfiler(AUTO_PROFILE_TICKS) ? 'arm15' : '',
+    ]));
 }
 
 function reportSpike(kind, used, limit, tickLimit, phases) {
@@ -333,23 +392,16 @@ function reportSpike(kind, used, limit, tickLimit, phases) {
     // Cold-cache ticks after a global reset are expected to spike.
     if (sinceReset <= 15) return;
     if (!canNotify()) return;
-    let msg = `[CPU ${kind.toUpperCase()}] tick ${Game.time} used ${used.toFixed(1)}/${limit} (tickLimit ${tickLimit})`;
     const avg = sampleAvg();
-    if (avg) msg += ` avg ${avg.toFixed(1)}`;
-    msg += `. ${contextBits()}`;
-    const rooms = topRooms(6);
-    if (rooms) msg += `. rooms ${rooms}`;
-    const planText = plannerBits();
-    if (planText) msg += `. ${planText}`;
-    const hooks = hookBits();
-    if (hooks) msg += `. ${hooks}`;
-    const phaseText = formatPhases(phases);
-    if (phaseText) msg += `. ${phaseText}`;
-    const dump = profilerDump(350);
-    if (dump) msg += `\n${dump}`;
-    const armed = armProfiler(AUTO_PROFILE_TICKS);
-    if (armed) msg += `. armed profiler ${AUTO_PROFILE_TICKS} ticks`;
-    send(msg);
+    const tag = kind === 'near-timeout' ? 'NT' : 'SP';
+    send(pack([
+        `[${tag}] t${Game.time} ${used.toFixed(0)}/${limit} a${avg ? avg.toFixed(0) : '?'} ${contextBits()}`,
+        hookBits(),
+        formatPhases(phases),
+        plannerBits(),
+        topRooms(3),
+        armProfiler(AUTO_PROFILE_TICKS) ? 'arm15' : '',
+    ]));
 }
 
 function startTick() {
@@ -430,6 +482,8 @@ if (typeof global !== 'undefined') {
     global.cpuSpikeTest = testNotify;
     global.noteRoleCpu = noteRoleCpu;
     global.notePathFinderSearch = notePathFinderSearch;
+    global.noteObsCpu = noteObsCpu;
+    global.noteIntelCpu = noteIntelCpu;
 }
 
 module.exports = {
@@ -441,4 +495,6 @@ module.exports = {
     cpuHeadroom,
     noteRoleCpu,
     notePathFinderSearch,
+    noteObsCpu,
+    noteIntelCpu,
 };

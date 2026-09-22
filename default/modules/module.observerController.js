@@ -96,8 +96,13 @@ class ObserverControl {
             // Never force=true here. cacheRoomIntel already does heavy work when
             // `cached` is stale; force re-runs areExitsReachable (multi-PathFinder)
             // on every ancient-room observe even when obstacles is already known.
+            const t0 = Game.cpu.getUsed();
             observed.cacheRoomIntel();
+            const intelCpu = Game.cpu.getUsed() - t0;
             observer.operationPlanner(observed);
+            if (typeof noteObsCpu === 'function') {
+                noteObsCpu(roomName, previous, intelCpu, Game.cpu.getUsed() - t0);
+            }
             markRecentlyObserved(state, previous, currentTime);
             delete state.observedRooms[roomName];
             delete state.observeAttempts[roomName];

@@ -311,6 +311,7 @@ function runAll() {
                 seen.add(rName);
                 const room = Game.rooms[rName];
                 if (!room) continue;
+                if ((Game.time + (rName.charCodeAt(0) || 0)) % 3 !== 0) continue;
                 try {
                     const flow = tickRoom(room);
                     colonyInc[home] = (colonyInc[home] || 0) + flow.inc;

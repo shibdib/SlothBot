@@ -67,6 +67,7 @@ class World {
         // Accumulate per-tick energy events (owned rooms + visible remotes).
         // Must run before stateManager, which snapshots the rolling averages.
         energyTracker.runAll();
+        cpuWatch.mark('et');
 
         // Terminal/renewal/nuke/factory energy sinks live on the heap. Snapshot last
         // tick's bag for this tick's spare calc, then start a fresh bag.
@@ -80,6 +81,7 @@ class World {
 
         // Owned-room roles (core / frontier / launch) before energy and terminals.
         refreshColonyProfiles();
+        cpuWatch.mark('prof');
 
         // Manage room states
         this.stateManager();
@@ -268,19 +270,19 @@ class World {
                 if (spent >= 12) {
                     const bits = [];
                     const add = (label, value) => {
-                        if (value >= 8) bits.push(`${label} ${value.toFixed(0)}`);
+                        if (value >= 8) bits.push(label + value.toFixed(0));
                     };
-                    add('creeps', room._colonyCreepsCpu || 0);
-                    add('spawn', room._colonySpawnCpu || 0);
-                    add('ess', room._colonySpawnEssCpu || 0);
-                    add('miscQ', room._colonySpawnMiscCpu || 0);
-                    add('remoteQ', room._colonySpawnRemoteCpu || 0);
-                    add('def', room._colonyDefenseCpu || 0);
-                    add('obs', room._colonyObsCpu || 0);
-                    add('term', room._colonyTermCpu || 0);
-                    add('lab', room._colonyLabCpu || 0);
-                    add('fac', room._colonyFacCpu || 0);
-                    add('link', room._colonyLinkCpu || 0);
+                    add('c', room._colonyCreepsCpu || 0);
+                    add('sp', room._colonySpawnCpu || 0);
+                    add('es', room._colonySpawnEssCpu || 0);
+                    add('mq', room._colonySpawnMiscCpu || 0);
+                    add('rq', room._colonySpawnRemoteCpu || 0);
+                    add('df', room._colonyDefenseCpu || 0);
+                    add('ob', room._colonyObsCpu || 0);
+                    add('tm', room._colonyTermCpu || 0);
+                    add('lb', room._colonyLabCpu || 0);
+                    add('fc', room._colonyFacCpu || 0);
+                    add('lk', room._colonyLinkCpu || 0);
                     const detail = bits.length ? `${roomName} ${bits.join(' ')}` : roomName;
                     cpuWatch.mark('colony', detail, spent);
                 }

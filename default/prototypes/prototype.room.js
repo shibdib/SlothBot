@@ -729,6 +729,8 @@ function collectPowerBankIntel(room, roomIntel) {
 }
 
 Room.prototype.cacheRoomIntel = function (force = false) {
+    const t0 = Game.cpu.getUsed();
+    try {
     const currentTime = Game.time;
     if (!INTEL[this.name]) INTEL[this.name] = {name: this.name, shardName: Game.shard.name};
     const roomIntel = INTEL[this.name];
@@ -1081,15 +1083,8 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
         roomIntel.safemode = controller.safeMode ? currentTime + controller.safeMode : undefined;
 
-        // Attempt once (success or fail) and stamp hubCheckAt so a false
-        // result cannot re-run findHub on every force/observe.
-        if (!roomIntel.hubCheck && !roomIntel.hubCheckAt && !roomIntel.obstacles && roomIntel.sources === 2 && !this.hostileCreeps.length) {
-            // Owned rooms cannot be claimed. Scanning a hostile RCL8 stamp is 50–150 CPU.
-            if (!roomIntel.owner) {
-                roomIntel.hubCheck = getRoomPlanner().hubCheck(this);
-            }
-            roomIntel.hubCheckAt = currentTime;
-        }
+        // Explorers stamp hubCheck. Observer/creep intel must not findHub
+        // (50–150 CPU when the bunker scan fails on a 2-source room).
 
         // NCP signage
         if (controller.sign?.text) {
@@ -1173,6 +1168,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     const oldHeavy = INTEL[this.name];
     INTEL[this.name] = roomIntel;
     if (global.updateIntelIndex) global.updateIntelIndex(this.name, oldHeavy, roomIntel);
+    } finally {
+        const spent = Game.cpu.getUsed() - t0;
+        if (spent >= 15 && typeof noteIntelCpu === 'function') noteIntelCpu(this.name, spent);
+    }
 };
 
 const NUKE_IMPACT_WEIGHT = {
@@ -1437,15 +1436,44 @@ function inwardBarrierHits(room, x, y, dir) {
     return hits;
 }
 
+function obstacleGrid(room) {
+    if (room._obstacleGridTick === Game.time) return room._obstacleGrid;
+    const grid = Object.create(null);
+    const structs = room.structures || [];
+    for (let i = 0; i < structs.length; i++) {
+        const s = structs[i];
+        if (!s || !s.pos) continue;
+        const type = s.structureType;
+        if (OBSTACLE_OBJECT_TYPES.includes(type)) {
+            grid[s.pos.x + ',' + s.pos.y] = 1;
+            continue;
+        }
+        if (type === STRUCTURE_RAMPART) {
+            try {
+                if (!s.my && !s.isPublic && s.owner && !FRIENDLIES.includes(s.owner.username)) {
+                    grid[s.pos.x + ',' + s.pos.y] = 1;
+                }
+            } catch (e) {
+                grid[s.pos.x + ',' + s.pos.y] = 1;
+            }
+        }
+    }
+    room._obstacleGridTick = Game.time;
+    room._obstacleGrid = grid;
+    return grid;
+}
+
 function scoreExitEdge(room, dir, towers) {
     const tiles = room.find(dir);
     if (!tiles.length) return null;
     const along = (dir === TOP || dir === BOTTOM) ? (t) => t.x : (t) => t.y;
+    const terrain = room.getTerrain();
+    const blocked = obstacleGrid(room);
     const open = [];
     for (let i = 0; i < tiles.length; i++) {
         const t = tiles[i];
-        if (t.checkForObstacleStructure && t.checkForObstacleStructure()) continue;
-        if (room.getTerrain().get(t.x, t.y) === TERRAIN_MASK_WALL) continue;
+        if (terrain.get(t.x, t.y) === TERRAIN_MASK_WALL) continue;
+        if (blocked[t.x + ',' + t.y]) continue;
         open.push(t);
     }
     if (!open.length) return null;
