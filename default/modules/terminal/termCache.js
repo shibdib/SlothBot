@@ -13,7 +13,7 @@ const state = require('termState');
 const {buildEquivalenceMap} = require('termNetwork');
 
 
-const GLOBAL_ORDERS_TTL = 25;
+const GLOBAL_ORDERS_TTL = 50;
 
 function indexGlobalOrders(orders) {
     const byResource = Object.create(null);
@@ -34,8 +34,10 @@ function getCachedGlobalOrders() {
     if (state.globalOrdersCache.orders && state.globalOrdersCache.tick + GLOBAL_ORDERS_TTL > Game.time) {
         return state.globalOrdersCache.orders;
     }
+    const t0 = Game.cpu.getUsed();
     state.globalOrdersCache.tick = Game.time;
     state.globalOrdersCache.orders = Game.market.getAllOrders();
+    if (typeof noteMarketCpu === 'function') noteMarketCpu(Game.cpu.getUsed() - t0);
     state.globalOrdersCache.index = indexGlobalOrders(state.globalOrdersCache.orders);
     state.globalOrdersCache.indexTick = Game.time;
     return state.globalOrdersCache.orders;

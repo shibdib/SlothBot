@@ -4,7 +4,7 @@
  * 0-MOVE bunker/dynamic-center balancer. Spawns onto hub (0,0) once the
  * hub link is built and never walks. Slot requires adjacent storage, hub
  * link, and spawn (terminal too if one exists). Renews in place unless the
- * body is under the 16-CARRY target. Owns hub-link drain, adjacent spawns,
+ * body is under the 16-CARRY target. Owns hub-link drain, RCL8 controller maintenance, adjacent spawns,
  * storage↔terminal warehouse (energy, minerals, batteries) when a terminal
  * exists, and surplus nuker / power-spawn energy when those structures are
  * in range. Dynamic rooms often place nuker and power spawn off the hub;
@@ -12,7 +12,10 @@
  */
 
 const profiler = require('tools.profiler');
-const {roomCanBurnSurplus, roomCanProcessPower, roomHasPositiveFlow, noteNukerEnergyDeposit} = require('spawnFlow');
+const {
+    roomCanBurnSurplus, roomCanProcessPower, roomHasPositiveFlow, noteNukerEnergyDeposit,
+    RCL8_CONTROLLER_LINK_MIN,
+} = require('spawnFlow');
 const RoleLabTech = require('role.labTech');
 const {hubManagerNeedsBiggerBody} = require('bodyEconomic');
 
@@ -53,7 +56,12 @@ class RoleHubManager {
             this.deliverCargo();
             return;
         }
-        if (this.maybeRenew()) return;
+        // Renew spends the tick. A dry controller link has to be staged first:
+        // link transfers run after creeps, and they can only forward what is
+        // still sitting in the hub link.
+        const hubLink = Game.getObjectById(this.room.memory.hubLink);
+        const feedNow = this.shouldFeedControllerFromHub(hubLink) && this.controllerFeedStockOk();
+        if (!feedNow && this.maybeRenew()) return;
         this.pickup();
     }
 
@@ -206,14 +214,17 @@ class RoleHubManager {
 
     shouldFeedControllerFromHub(hubLink) {
         if (!hubLink) return false;
-        const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
-        if (rcl >= 8) return false;
-        if ((this.room.energyState || 0) < 2) return false;
-        if (!roomHasPositiveFlow(this.room)) return false;
         if (this.spawnNeed().length) return false;
         const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
         if (!controllerLink || !controllerLink.store) return false;
         const cEnergy = controllerLink.store[RESOURCE_ENERGY] || 0;
+        const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
+        // 1 WORK at RCL8 cannot drain the bank. Leaving the hub link empty here
+        // used to starve the controller on a full storage, because this creep
+        // runs before link transfers and used to withdraw the hub every tick.
+        if (rcl >= 8) return cEnergy < RCL8_CONTROLLER_LINK_MIN;
+        if ((this.room.energyState || 0) < 2) return false;
+        if (!roomHasPositiveFlow(this.room)) return false;
         return cEnergy < LINK_CAPACITY * 0.5;
     }
 
@@ -227,7 +238,13 @@ class RoleHubManager {
         const buffer = typeof TERMINAL_ENERGY_BUFFER === 'number' ? TERMINAL_ENERGY_BUFFER : 0;
         const available = storageE + Math.max(0, termE - buffer);
         const floor = Math.max(CONTROLLER_FEED_FLOOR, this.room.energyCapacityAvailable || 0);
-        return available > floor;
+        if (available > floor) return true;
+        if (!(available > 0)) return false;
+        const controller = this.room.controller;
+        if (!controller || controller.level < 8) return false;
+        const ticks = controller.ticksToDowngrade;
+        const max = typeof CONTROLLER_DOWNGRADE !== 'undefined' ? CONTROLLER_DOWNGRADE[8] : 0;
+        return !!(max && typeof ticks === 'number' && ticks < max * 0.25);
     }
 
     deliverEnergy() {
@@ -270,8 +287,9 @@ class RoleHubManager {
     pickup() {
         const hubLink = Game.getObjectById(this.room.memory.hubLink);
         const feedController = this.shouldFeedControllerFromHub(hubLink);
-        // Keep hub stocked for controller drip while leveling. Drain it only
-        // when spawn needs energy or the controller link is already full.
+        // Keep hub stocked while the controller link needs a refill, including
+        // the RCL8 maintenance buffer. Drain it only when spawn needs energy
+        // or that buffer is already full.
         if (hubLink && adjacentTo(this.creep, hubLink)
             && (hubLink.store[RESOURCE_ENERGY] || 0) > 0 && !feedController) {
             const task = this.creep.memory.warehouse;

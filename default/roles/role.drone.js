@@ -207,7 +207,7 @@ class RoleDrone {
 
     continueUpgrade() {
         const controller = this.room.controller;
-        if (!controller || !controller.my || controller.upgradeBlocked || controller.level === 8) {
+        if (!controller || !controller.my || controller.upgradeBlocked || !droneMayUpgrade(controller)) {
             delete this.creep.memory.task;
             return false;
         }
@@ -367,7 +367,7 @@ class RoleDrone {
         if (!force && this.creep.memory.task && this.creep.memory.task !== 'upgrade') return false;
 
         const controller = this.room.controller;
-        if (!controller || !controller.my || controller.upgradeBlocked || controller.level === 8) return false;
+        if (!controller || !controller.my || controller.upgradeBlocked || !droneMayUpgrade(controller)) return false;
 
         if (!force) {
             if (!controllerDowngradeUrgent(this.room) && !this.creep.memory.task) return false;
@@ -652,6 +652,16 @@ function controllerDowngradeUrgent(room) {
     const ticks = controller.ticksToDowngrade;
     if (typeof ticks !== 'number') return false;
     return ticks < CONTROLLER_DOWNGRADE[controller.level] * 0.9;
+}
+
+// RCL8 is not a drone GCL dump. Drones only praise there when the downgrade
+// timer is already in the same danger band the link policy treats as risk.
+function droneMayUpgrade(controller) {
+    if (!controller || controller.level !== 8) return true;
+    const ticks = controller.ticksToDowngrade;
+    if (typeof ticks !== 'number') return false;
+    const max = typeof CONTROLLER_DOWNGRADE !== 'undefined' ? CONTROLLER_DOWNGRADE[8] : 200000;
+    return ticks < max * 0.25;
 }
 
 function clearDroneTaskForUpgrade(creep) {

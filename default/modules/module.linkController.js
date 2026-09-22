@@ -1,6 +1,9 @@
 const profiler = require("tools.profiler");
 const {isControllerAreaLink} = require('planUtils');
-const {ENERGY_ACCRUAL_FLOOR, upgraderFeedWorkCap} = require('spawnFlow');
+const {
+    ENERGY_ACCRUAL_FLOOR, upgraderFeedWorkCap,
+    RCL8_CONTROLLER_LINK_TARGET, RCL8_CONTROLLER_LINK_MIN,
+} = require('spawnFlow');
 
 const CONTROLLER_LINK_RANGE = 3;
 const UPGRADER_STARVE_THRESHOLD = 0.65;
@@ -33,7 +36,9 @@ function linkCapacity() {
 }
 
 /**
- * How much energy the controller link should hold. RCL8 uses live WORK.
+ * How much energy the controller link should hold.
+ * RCL8 is a 1-WORK body. Scale-by-WORK lands under the link send minimum, so
+ * the standing buffer is a fixed batch large enough to actually be delivered.
  * Below RCL8 a leftover dump-sized upgrader must not keep the link full while
  * the room is below its stockpile target.
  */
@@ -41,7 +46,7 @@ function scaledControllerTarget(room, upgradeWork) {
     const cap = linkCapacity();
     const full = Math.min(cap, Math.max(1, upgradeWork) * CONTROLLER_FEED_TICKS);
     const rcl = (room.controller && room.controller.level) || room.level || 0;
-    if (rcl >= 8) return full;
+    if (rcl >= 8) return Math.min(cap, RCL8_CONTROLLER_LINK_TARGET);
     const feedCap = upgraderFeedWorkCap(room);
     const feedWork = feedCap ? Math.min(upgradeWork, feedCap) : upgradeWork;
     return Math.min(full, Math.max(CONTROLLER_DRIP_MIN, feedWork * CONTROLLER_FEED_TICKS));
@@ -51,16 +56,17 @@ function buildLinkPolicy(room, hubLink, controllerLink) {
     const energyInfo = room.energyInfo;
     const upgraderDuty = (energyInfo && typeof energyInfo.upgraderDuty === 'number') ? energyInfo.upgraderDuty : 1;
     const upgradeWork = getUpgradeWork(room);
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
     const controllerTarget = scaledControllerTarget(room, upgradeWork);
-    const controllerMin = Math.max(CONTROLLER_DRIP_MIN, Math.floor(controllerTarget * 0.25));
+    const controllerMin = rcl >= 8
+        ? Math.min(controllerTarget, RCL8_CONTROLLER_LINK_MIN)
+        : Math.max(CONTROLLER_DRIP_MIN, Math.floor(controllerTarget * 0.25));
     const hubEnergy = hubLink ? hubLink.store.getUsedCapacity(RESOURCE_ENERGY) : 0;
     const hubFill = hubLink ? hubEnergy / linkCapacity() : 0;
     const controllerEnergy = controllerLink ? controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) : 0;
     const upgraderStarved = upgraderDuty < UPGRADER_STARVE_THRESHOLD;
     const energyState = room.energyState || 0;
-    const rcl = (room.controller && room.controller.level) || room.level || 0;
     const isStockpiling = rcl >= 8 && energyState >= 3;
-    const buildingStock = rcl >= 8 && energyState === 2;
     const needsControllerDrip = !!controllerLink && controllerEnergy < controllerMin;
     const downgradeTicks = room.controller && room.controller.ticksToDowngrade;
     const downgradeRisk = rcl === 8 && downgradeTicks
@@ -77,18 +83,20 @@ function buildLinkPolicy(room, hubLink, controllerLink) {
         controllerEnergy,
         upgraderStarved,
         isStockpiling,
-        buildingStock,
         energyState,
         hubSaturated: hubFill >= HUB_OVERFLOW_RATIO,
         needsControllerDrip,
-        allowHubToController: downgradeRisk ||
+        // RCL8 upgrader is 1 WORK. Keeping that link fed is downgrade prevention,
+        // not surplus burning, so spare income and duty do not gate it.
+        maintainController: rcl >= 8,
+        allowHubToController: (rcl >= 8 && needsControllerDrip) ||
+            downgradeRisk ||
             (rcl < 8 && energyState >= 2 && spareOk) ||
-            (rcl < 8 && energyState === 1 && needsControllerDrip && spareOk) ||
-            (buildingStock && needsControllerDrip && spareOk) ||
-            (isStockpiling && upgraderDuty < 0.75 && needsControllerDrip && spareOk),
+            (rcl < 8 && energyState === 1 && needsControllerDrip && spareOk),
         allowControllerOverflow: isStockpiling && hubFill >= HUB_OVERFLOW_RATIO && upgraderStarved,
-        recycleControllerSurplus: (isStockpiling && controllerEnergy > controllerTarget)
-            || (rcl < 8 && energyState < 2 && controllerEnergy > controllerTarget),
+        recycleControllerSurplus: controllerEnergy > controllerTarget && (
+            rcl >= 8 || energyState < 2
+        ),
     };
 }
 
@@ -132,14 +140,20 @@ class LinkControl {
             }
         }
 
+        const hubHeld = hubLink ? hubLink.store.getUsedCapacity(RESOURCE_ENERGY) : 0;
+        // Maintenance refills are often one batch under a full link. The stockpile
+        // drip minimum would drop those on the floor and the upgrader would idle.
+        const hubMin = policy.maintainController && policy.needsControllerDrip
+            ? RCL8_CONTROLLER_LINK_MIN
+            : HUB_DRIP_MIN;
         if (!hubBusy && controllerLink && hubLink && !hubLink.cooldown &&
             policy.allowHubToController &&
             policy.needsControllerDrip &&
-            hubLink.store.getUsedCapacity(RESOURCE_ENERGY) >= HUB_DRIP_MIN &&
+            hubHeld >= hubMin &&
             controllerLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
             const remaining = Math.max(0, policy.controllerTarget - policy.controllerEnergy);
             const send = Math.min(
-                hubLink.store.getUsedCapacity(RESOURCE_ENERGY),
+                hubHeld,
                 controllerLink.store.getFreeCapacity(RESOURCE_ENERGY),
                 remaining
             );
@@ -189,17 +203,6 @@ class LinkControl {
                 controllerFreeRemaining = Math.max(0, controllerFreeRemaining - sendAmount);
             }
         }
-
-        const rcl = (room.controller && room.controller.level) || room.level || 0;
-        if (controllerLink && !controllerLink.cooldown && hubLink &&
-            rcl >= 8 &&
-            (!room.energyState || (room.energyState < 2 && !policy.allowHubToController))) {
-            const drain = Math.min(
-                controllerLink.store.getUsedCapacity(RESOURCE_ENERGY) || 0,
-                hubLink.store.getFreeCapacity(RESOURCE_ENERGY) || 0
-            );
-            if (linkSendWorth(drain, false)) controllerLink.transferEnergy(hubLink, drain);
-        }
     }
 
     pickSourceDestination(link, controllerLink, hubLink, room, policy, options = {}) {
@@ -219,6 +222,11 @@ class LinkControl {
 
         const rcl = (room.controller && room.controller.level) || room.level || 0;
         const energyState = policy.energyState != null ? policy.energyState : (room.energyState || 0);
+        // Harvested energy goes straight to the controller while the standing
+        // buffer is low. A hop through the hub arrives a tick later, and once
+        // the buffer is full that hop is warehouse stock.
+        if (rcl >= 8 && policy.needsControllerDrip && canSendToController) return controllerLink;
+
         if (!energyState && rcl >= 8) {
             if (canSendToHub) return hubLink;
             return canSendToController ? controllerLink : null;
@@ -245,7 +253,6 @@ class LinkControl {
 
         if (policy.allowControllerOverflow && canSendToController) return controllerLink;
         if (policy.upgraderStarved && canSendToController) return controllerLink;
-        if (policy.buildingStock && policy.needsControllerDrip && canSendToController) return controllerLink;
 
         if (canSendToHub) return hubLink;
         if (policy.isStockpiling) return null;

@@ -30,7 +30,10 @@ const {
     clearTrailerTowState
 } = require('pathUtils');
 const {stepInlandOffExit, isSquadCreep} = require('pathFormation');
-const {roomCanBurnSurplus, ENERGY_ACCRUAL_FLOOR, noteNukerEnergyDeposit, roomHasPositiveFlow} = require('spawnFlow');
+const {
+    roomCanBurnSurplus, ENERGY_ACCRUAL_FLOOR, noteNukerEnergyDeposit, roomHasPositiveFlow,
+    RCL8_CONTROLLER_LINK_MIN,
+} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 
 const exitTileCache = {};
@@ -886,9 +889,17 @@ Creep.prototype.haulerDelivery = function () {
     const hubLink = Game.getObjectById(this.room.memory.hubLink);
     const controllerLink = Game.getObjectById(this.room.memory.controllerLink);
     const rcl = (this.room.controller && this.room.controller.level) || this.room.level || 0;
-    if (rcl < 8 && (this.room.energyState || 0) >= 2 && hubLink && controllerLink
-        && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0
-        && roomHasPositiveFlow(this.room)) {
+    const hubManagerLive = (this.room.myCreeps || []).some(c =>
+        c.memory && c.memory.role === 'hubManager' && !c.spawning);
+    const controllerEnergy = controllerLink ? (controllerLink.store[RESOURCE_ENERGY] || 0) : 0;
+    const hubOpen = hubLink && controllerLink && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0;
+    // Hub manager stages RCL8 maintenance. With no manager, a hauler has to put
+    // storage energy on the hub link or the controller link never refills.
+    if (hubOpen && (
+        (rcl < 8 && (this.room.energyState || 0) >= 2 && roomHasPositiveFlow(this.room))
+        || (rcl >= 8 && !hubManagerLive && controllerEnergy < RCL8_CONTROLLER_LINK_MIN
+            && (this.room.rawEnergy || 0) > 10000)
+    )) {
         targets.push(hubLink);
     }
 

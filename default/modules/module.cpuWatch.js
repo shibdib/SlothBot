@@ -81,6 +81,13 @@ function noteRoleCpu(role, spent) {
     roleCpu[key] = (roleCpu[key] || 0) + spent;
 }
 
+function noteMarketCpu(spent) {
+    if (!(spent > 0)) return;
+    resetHookStats();
+    marketCalls++;
+    marketCpu += spent;
+}
+
 function noteObsCpu(home, target, intelCpu, totalCpu) {
     resetHookStats();
     obsNotes.push({
@@ -484,6 +491,7 @@ if (typeof global !== 'undefined') {
     global.notePathFinderSearch = notePathFinderSearch;
     global.noteObsCpu = noteObsCpu;
     global.noteIntelCpu = noteIntelCpu;
+    global.noteMarketCpu = noteMarketCpu;
 }
 
 module.exports = {
@@ -497,4 +505,5 @@ module.exports = {
     notePathFinderSearch,
     noteObsCpu,
     noteIntelCpu,
+    noteMarketCpu,
 };

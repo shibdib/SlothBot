@@ -1032,9 +1032,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     roomIntel.cached = currentTime;
     roomIntel.sources = this.sources.length;
 
-    // Expensive check — only on ownership change or force
+        // Exit PathFinder is for claim candidates. Foreign-owned rooms are not claims;
+        // up to 12 searches here was billed as observer intel with no pf counter.
     if (force || roomIntel.obstacles === undefined || roomIntel.ownerChanged) {
-        roomIntel.obstacles = !areExitsReachable(this);
+        const foreign = roomIntel.owner && roomIntel.owner !== MY_USERNAME;
+        if (foreign) roomIntel.obstacles = true;
+        else roomIntel.obstacles = !areExitsReachable(this);
         roomIntel.ownerChanged = undefined;
     }
 
@@ -1312,6 +1315,7 @@ function areExitsReachable(room) {
         }
         let pathsFound = false;
         for (let i = 0; i < samples.length; i++) {
+            const pf0 = Game.cpu.getUsed();
             const path = PathFinder.search(origin, {pos: samples[i], range: 0}, {
                 maxOps: 2000,
                 maxRooms: 1,
@@ -1319,6 +1323,9 @@ function areExitsReachable(room) {
                 swampCost: 1,
                 roomCallback
             });
+            if (typeof notePathFinderSearch === 'function') {
+                notePathFinderSearch(path, Game.cpu.getUsed() - pf0);
+            }
             if (!path.incomplete) {
                 pathsFound = true;
                 break;

@@ -1262,27 +1262,48 @@ let globals = function () {
         };
     };
 
-    global.ensureStructureRoomCaches = function () {
+    function resetStructureCachesIfNewTick() {
         if (structureRoomCacheTick === Game.time) return;
         structureRoomCacheTick = Game.time;
         structureRoomCache = Object.create(null);
         constructionSiteRoomCache = Object.create(null);
-        for (const roomName in Game.rooms) {
-            const room = Game.rooms[roomName];
-            const roomStructures = room.find(FIND_STRUCTURES);
-            for (const structure of roomStructures) {
-                if (!structureRoomCache[roomName]) structureRoomCache[roomName] = [];
-                structureRoomCache[roomName].push(structure);
-            }
+    }
+
+    // Per room, not every visible room. The old pass FIND_STRUCTURES'd the whole
+    // empire on the first .structures touch and billed 100–170 CPU to whichever
+    // observer/creep happened to ask first.
+    global.ensureRoomStructureCache = function (room) {
+        if (!room) return [];
+        resetStructureCachesIfNewTick();
+        const cached = structureRoomCache[room.name];
+        if (cached) return cached;
+        const list = [];
+        try {
+            const found = room.find(FIND_STRUCTURES) || [];
+            for (let i = 0; i < found.length; i++) list.push(found[i]);
+        } catch (e) { /* corrupt room */
         }
-        for (const roomName in Game.rooms) {
-            const room = Game.rooms[roomName];
-            const roomSites = room.find(FIND_CONSTRUCTION_SITES);
-            for (const site of roomSites) {
-                if (!constructionSiteRoomCache[roomName]) constructionSiteRoomCache[roomName] = [];
-                constructionSiteRoomCache[roomName].push(site);
-            }
+        structureRoomCache[room.name] = list;
+        return list;
+    };
+
+    global.ensureRoomConstructionSiteCache = function (room) {
+        if (!room) return [];
+        resetStructureCachesIfNewTick();
+        const cached = constructionSiteRoomCache[room.name];
+        if (cached) return cached;
+        const list = [];
+        try {
+            const found = room.find(FIND_CONSTRUCTION_SITES) || [];
+            for (let i = 0; i < found.length; i++) list.push(found[i]);
+        } catch (e) { /* corrupt room */
         }
+        constructionSiteRoomCache[room.name] = list;
+        return list;
+    };
+
+    global.ensureStructureRoomCaches = function () {
+        resetStructureCachesIfNewTick();
     };
 
     global.forceRefreshRoomConstructionSiteCache = function (room) {
@@ -1309,8 +1330,7 @@ let globals = function () {
     // Safe substitute for room.find(FIND_STRUCTURES) on corrupt rooms � one empire scan per tick.
     global.roomStructuresFromGame = function (room) {
         if (!room) return [];
-        global.ensureStructureRoomCaches();
-        return structureRoomCache[room.name] || [];
+        return global.ensureRoomStructureCache(room);
     };
 
     // Walls + ramparts from Game.structures cache. Room.constructedWalls uses native find and
@@ -1341,7 +1361,7 @@ let globals = function () {
 
     global.roomConstructionSitesFromGame = function (room) {
         if (!room) return [];
-        global.ensureStructureRoomCaches();
+        global.ensureRoomConstructionSiteCache(room);
         return constructionSiteRoomCache[room.name] || [];
     };
 

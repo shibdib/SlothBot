@@ -7,6 +7,14 @@
 /** Energy/tick we try to keep as net surplus even at energyState 3. */
 const ENERGY_ACCRUAL_FLOOR = 10;
 
+/**
+ * Standing energy in the RCL8 controller link. A 1-WORK upgrader spends 1/tick;
+ * the buffer has to clear the 200-energy link send minimum or the refill never
+ * qualifies and the controller downgrades on a full storage.
+ */
+const RCL8_CONTROLLER_LINK_TARGET = 400;
+const RCL8_CONTROLLER_LINK_MIN = 100;
+
 /** Controller-link WORK feed while RCL < 8 and the room is below target. */
 const UPGRADER_FEED_WORK_POOR = 5;
 const UPGRADER_FEED_WORK_RECOVERING = 12;
@@ -81,6 +89,8 @@ function noteNukerEnergyDeposit(dest, resource, amount) {
 
 module.exports = {
     ENERGY_ACCRUAL_FLOOR,
+    RCL8_CONTROLLER_LINK_TARGET,
+    RCL8_CONTROLLER_LINK_MIN,
     UPGRADER_FEED_WORK_POOR,
     UPGRADER_FEED_WORK_RECOVERING,
     upgraderFeedWorkCap,
