@@ -23,6 +23,8 @@ const {requestTow, needsTow} = require('pathTow');
 
 const {
     findRoute,
+    findSectorCenterRoute,
+    greedyExitRooms,
     deleteRoute,
     estimateClaimRouteTicks,
     exitHopTarget,
@@ -119,12 +121,16 @@ function applyLongDistanceHop(creep, origin, target, options) {
     const destRoom = target.roomName;
     let route = options.fullRoute || options.claimRoute || stored?.fullRoute || options.route || stored?.route;
     if (!route || !route.length || !route.includes(destRoom)) {
-        route = findRoute(origin.roomName, destRoom, options);
+        route = (global.isSectorCenterRoomName && isSectorCenterRoomName(destRoom))
+            ? findSectorCenterRoute(origin.roomName, destRoom, options)
+            : findRoute(origin.roomName, destRoom, options);
     }
     if (!route || !route.length) return null;
 
     if (!route.includes(origin.roomName)) {
-        const fresh = findRoute(origin.roomName, destRoom, options);
+        const fresh = (global.isSectorCenterRoomName && isSectorCenterRoomName(destRoom))
+            ? findSectorCenterRoute(origin.roomName, destRoom, options)
+            : findRoute(origin.roomName, destRoom, options);
         if (fresh && fresh.length) {
             route = fresh.includes(origin.roomName) ? fresh : [origin.roomName].concat(fresh);
         } else {
@@ -587,7 +593,9 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
             }
             pathInfo.route = allowedRooms;
         } else {
-            let route = findRoute(origin.roomName, target.roomName, options);
+            let route = (global.isSectorCenterRoomName && isSectorCenterRoomName(target.roomName))
+                ? findSectorCenterRoute(origin.roomName, target.roomName, options)
+                : findRoute(origin.roomName, target.roomName, options);
             if (route && route.length) {
                 if (!route.includes(creep.room.name)) route = [creep.room.name].concat(route);
                 allowedRooms = route;
@@ -598,7 +606,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
     if (options.fullRoute && options.fullRoute.length) pathInfo.fullRoute = options.fullRoute;
     if (!allowedRooms || !allowedRooms.length) {
         allowedRooms = roomDistance
-            ? [origin.roomName].concat(Object.values(Game.map.describeExits(origin.roomName)))
+            ? greedyExitRooms(origin.roomName, target.roomName)
             : [origin.roomName];
     }
     allowedRooms = filterAvoidedRooms(allowedRooms, options, [origin.roomName, target.roomName]);

@@ -99,7 +99,9 @@ class ObserverControl {
             const t0 = Game.cpu.getUsed();
             observed.cacheRoomIntel();
             const intelCpu = Game.cpu.getUsed() - t0;
-            observer.operationPlanner(observed);
+            const used = Game.cpu.getUsed();
+            const limit = (Game.cpu && Game.cpu.limit) || 20;
+            if (used < limit) observer.operationPlanner(observed);
             if (typeof noteObsCpu === 'function') {
                 noteObsCpu(roomName, previous, intelCpu, Game.cpu.getUsed() - t0);
             }

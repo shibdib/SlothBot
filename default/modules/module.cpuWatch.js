@@ -7,7 +7,10 @@
  *   - emails on completed ticks that spike vs rolling average or near tickLimit
  *   - on the next tick, detects a missing completedTick (timeout) and emails
  *     whatever heap phases survived (global reset wipes phases; Memory gap remains)
+ *   - snapshots hookBits / last search on Memory at endTick so a reset still
+ *     has the previous completed tick's pattern
  *   - arms Game.profiler.email() for a short window so a repeat yields function data
+ *   - PathFinder.search wrap also clamps maxOps / skips when the tick is already hot
  */
 
 const profiler = require('tools.profiler');
@@ -21,6 +24,10 @@ const NOTIFY_COOLDOWN = 150;
 const AUTO_PROFILE_TICKS = 15;
 const MAX_PHASES = 40;
 const EMAIL_LIMIT = 950;
+const PF_RESERVE = 40;
+const PF_CPU_CAP = 50;
+const PF_INCOMPLETE_CAP = 35;
+const PF_INCOMPLETE_CLAMP = 20;
 
 const ROLE_ABBR = {
     remoteHauler: 'rh', remoteHarvester: 'rm', stationaryHarvester: 'sh',
@@ -50,15 +57,20 @@ function cpuHeadroom() {
 }
 
 let hookTick = -1;
+let pfHooked = false;
 let pfSearches = 0;
 let pfOps = 0;
 let pfIncomplete = 0;
 let pfCpu = 0;
+let pfSkipped = 0;
+let pfByRoom = null;
 let marketCalls = 0;
 let marketCpu = 0;
 let roleCpu = null;
+let roleRooms = null;
 let obsNotes = null;
 let intelNotes = null;
+let hotNotes = null;
 
 function resetHookStats() {
     if (hookTick === Game.time) return;
@@ -67,18 +79,32 @@ function resetHookStats() {
     pfOps = 0;
     pfIncomplete = 0;
     pfCpu = 0;
+    pfSkipped = 0;
+    pfByRoom = Object.create(null);
     marketCalls = 0;
     marketCpu = 0;
     roleCpu = Object.create(null);
+    roleRooms = Object.create(null);
     obsNotes = [];
     intelNotes = [];
+    hotNotes = [];
 }
 
-function noteRoleCpu(role, spent) {
+function noteRoleCpu(role, spent, room) {
     if (!(spent > 0)) return;
     resetHookStats();
     const key = role || '?';
     roleCpu[key] = (roleCpu[key] || 0) + spent;
+    if (room && spent >= 6) {
+        const rk = key + '@' + room;
+        roleRooms[rk] = (roleRooms[rk] || 0) + spent;
+    }
+}
+
+function noteHot(tag, room, spent) {
+    if (!(spent >= 8)) return;
+    resetHookStats();
+    hotNotes.push({t: tag || 'hot', r: room || '?', c: Math.round(spent)});
 }
 
 function noteMarketCpu(spent) {
@@ -98,12 +124,14 @@ function noteObsCpu(home, target, intelCpu, totalCpu) {
     });
 }
 
-function noteIntelCpu(room, spent) {
+function noteIntelCpu(room, spent, tag) {
     resetHookStats();
-    intelNotes.push({r: room, c: Math.round(spent)});
+    intelNotes.push({r: room, c: Math.round(spent), t: tag});
 }
 
 function notePathFinderSearch(result, cpuSpent) {
+    // PathFinder.search wrap already counted this search.
+    if (pfHooked) return;
     resetHookStats();
     pfSearches++;
     if (typeof cpuSpent === 'number' && cpuSpent > 0) pfCpu += cpuSpent;
@@ -113,20 +141,72 @@ function notePathFinderSearch(result, cpuSpent) {
     }
 }
 
+function pfRoomName(origin) {
+    if (!origin) return '?';
+    if (origin.roomName) return origin.roomName;
+    if (origin.pos && origin.pos.roomName) return origin.pos.roomName;
+    return '?';
+}
+
+function stampLastPf(origin, maxOps, used) {
+    const h = global._cpuWatchHeap;
+    if (!h || h.tick !== Game.time) return;
+    h.lastPf = {
+        r: pfRoomName(origin),
+        ops: maxOps || 0,
+        u: Math.round(used),
+        t: Game.time,
+        tag: global._pfTag || '',
+    };
+}
+
 function installHooks() {
     if (global._cpuWatchHooks) return;
     global._cpuWatchHooks = true;
     if (typeof PathFinder !== 'undefined' && PathFinder.search) {
         const origPf = PathFinder.search.bind(PathFinder);
+        pfHooked = true;
         PathFinder.search = function (origin, goal, opts) {
             resetHookStats();
-            const t0 = Game.cpu.getUsed();
-            const result = origPf(origin, goal, opts);
-            pfCpu += Game.cpu.getUsed() - t0;
+            const used = Game.cpu.getUsed();
+            const tickLimit = (Game.cpu && Game.cpu.tickLimit) || 500;
+            const remain = tickLimit - used;
+            const wantOps = (opts && opts.maxOps) || 2000;
+            stampLastPf(origin, wantOps, used);
+
+            if (remain < PF_RESERVE || pfCpu >= PF_CPU_CAP || pfIncomplete >= PF_INCOMPLETE_CAP) {
+                pfSkipped++;
+                return {path: [], ops: 0, cost: 0, incomplete: true};
+            }
+
+            let maxOps = wantOps;
+            if (remain < 80 && maxOps > 2000) maxOps = 2000;
+            if (remain < 50 && maxOps > 800) maxOps = 800;
+            if (pfIncomplete >= PF_INCOMPLETE_CLAMP && maxOps > 1000) maxOps = 1000;
+            const opsCap = Math.max(400, Math.floor(remain * 400));
+            if (maxOps > opsCap) maxOps = opsCap;
+            const searchOpts = (!opts || opts.maxOps !== maxOps)
+                ? Object.assign({}, opts || {}, {maxOps: maxOps})
+                : opts;
+
+            const t0 = used;
+            const result = origPf(origin, goal, searchOpts);
+            const spent = Game.cpu.getUsed() - t0;
+            pfCpu += spent;
             pfSearches++;
             if (result) {
                 pfOps += result.ops || 0;
                 if (result.incomplete) pfIncomplete++;
+            }
+            const roomName = pfRoomName(origin);
+            if (roomName && pfByRoom) {
+                const row = pfByRoom[roomName] || (pfByRoom[roomName] = {n: 0, c: 0, i: 0});
+                row.n++;
+                row.c += spent;
+                if (result && result.incomplete) row.i++;
+            }
+            if (spent >= 8 && hotNotes) {
+                hotNotes.push({t: 'pf', r: roomName, c: Math.round(spent)});
             }
             return result;
         };
@@ -151,11 +231,21 @@ function abbrRole(role) {
 function hookBits() {
     resetHookStats();
     const parts = [];
-    if (pfSearches) {
+    if (pfSearches || pfSkipped) {
         let text = `pf${pfSearches}/${Math.round(pfOps / 1000)}k`;
         if (pfCpu >= 3) text += ` ${pfCpu.toFixed(0)}c`;
         if (pfIncomplete) text += ` ${pfIncomplete}i`;
+        if (pfSkipped) text += ` skip${pfSkipped}`;
         parts.push(text);
+        if (pfByRoom) {
+            const rooms = [];
+            for (const name in pfByRoom) rooms.push({name: name, row: pfByRoom[name]});
+            rooms.sort((a, b) => (b.row.i - a.row.i) || (b.row.c - a.row.c));
+            if (rooms.length && (rooms[0].row.i >= 8 || rooms[0].row.c >= 12)) {
+                const r = rooms[0];
+                parts.push(`pf@${r.name} ${r.row.n}n ${r.row.i}i ${r.row.c.toFixed(0)}c`);
+            }
+        }
     }
     if (marketCalls && marketCpu >= 3) {
         parts.push(`mkt${marketCpu.toFixed(0)}`);
@@ -170,6 +260,20 @@ function hookBits() {
             hot.push(`${abbrRole(rows[i].role)}${rows[i].cpu.toFixed(0)}`);
         }
         if (hot.length) parts.push(hot.join(','));
+    }
+    if (roleRooms) {
+        const rows = [];
+        for (const key in roleRooms) rows.push({key: key, cpu: roleRooms[key]});
+        rows.sort((a, b) => b.cpu - a.cpu);
+        const bits = [];
+        for (let i = 0; i < rows.length && bits.length < 2; i++) {
+            if (rows[i].cpu < 8) break;
+            const at = rows[i].key.indexOf('@');
+            const role = at > 0 ? rows[i].key.slice(0, at) : rows[i].key;
+            const room = at > 0 ? rows[i].key.slice(at + 1) : '?';
+            bits.push(`${abbrRole(role)}@${room}:${rows[i].cpu.toFixed(0)}`);
+        }
+        if (bits.length) parts.push(bits.join(','));
     }
     if (obsNotes && obsNotes.length) {
         obsNotes.sort((a, b) => b.tot - a.tot);
@@ -189,10 +293,19 @@ function hookBits() {
             const bits = [];
             for (let i = 0; i < n; i++) {
                 if (intelNotes[i].c < 20) break;
-                bits.push(`${intelNotes[i].r}:${intelNotes[i].c}`);
+                const tag = intelNotes[i].t ? intelNotes[i].t : '';
+                bits.push(`${intelNotes[i].r}:${intelNotes[i].c}${tag}`);
             }
             if (bits.length) parts.push(`in ${bits.join(',')}`);
         }
+    }
+    if (hotNotes && hotNotes.length) {
+        hotNotes.sort((a, b) => b.c - a.c);
+        const bits = [];
+        for (let i = 0; i < hotNotes.length && bits.length < 3; i++) {
+            bits.push(`${hotNotes[i].t}:${hotNotes[i].r}:${hotNotes[i].c}`);
+        }
+        if (bits.length) parts.push(bits.join(','));
     }
     return parts.join(' ');
 }
@@ -378,18 +491,32 @@ function canNotify() {
     return true;
 }
 
-function reportTimeout(missed, prevPhases, prevTick) {
+function diedLabel(prevPhases, prevTick, missed, lastPf) {
+    if (prevTick === Game.time - missed && prevPhases && prevPhases.length) {
+        const last = prevPhases[prevPhases.length - 1];
+        return `${phaseLabel(last)}@${last.cpu.toFixed(0)}`;
+    }
+    if (lastPf && lastPf.r) {
+        return `pf:${lastPf.r}@${lastPf.u || 0}`;
+    }
+    return 'noPhase';
+}
+
+function reportTimeout(missed, prevPhases, prevTick, lastPf) {
     if (!canNotify()) return;
     const watch = watchMem();
     const lastCpu = watch.lastCpu != null ? watch.lastCpu.toFixed(1) : '?';
     const lastBucket = watch.lastBucket != null ? watch.lastBucket : '?';
     const limit = Game.cpu.limit || 20;
-    const died = (prevTick === Game.time - missed && prevPhases && prevPhases.length)
-        ? `${phaseLabel(prevPhases[prevPhases.length - 1])}@${prevPhases[prevPhases.length - 1].cpu.toFixed(0)}`
-        : 'noPhase';
+    const died = diedLabel(prevPhases, prevTick, missed, lastPf);
     send(pack([
         `[TO] -${missed} before ${Game.time} last ${lastCpu}/${limit} b${lastBucket}->${Game.cpu.bucket} ${contextBits()} died ${died}`,
+        lastPf && lastPf.r ? `lastPf ${lastPf.r} ops${lastPf.ops || 0} u${lastPf.u || 0}` : '',
         formatPhases(prevPhases),
+        watch.prevHooks ? `prev ${watch.prevHooks}` : '',
+        watch.prevPf ? `prevPf ${watch.prevPf}` : '',
+        watch.prevPhases || '',
+        watch.prevRooms || '',
         armProfiler(AUTO_PROFILE_TICKS) ? 'arm15' : '',
     ]));
 }
@@ -417,6 +544,7 @@ function startTick() {
     const prevTick = h.tick;
     const prevPhases = h.phases;
     const prevEnded = h.ended;
+    const prevLastPf = h.lastPf;
 
     const sinceReset = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
 
@@ -428,19 +556,20 @@ function startTick() {
         // the boot ticks have completed, otherwise we overwrite completedTick
         // and lose the signal.
         if (sinceReset > 3) {
-            reportTimeout(missed, phases, prevTick);
+            reportTimeout(missed, phases, prevTick, prevLastPf);
             delete watch.pendingTimeout;
         } else if (!watch.pendingTimeout) {
             watch.pendingTimeout = missed;
         }
     } else if (watch.pendingTimeout && sinceReset > 3) {
-        reportTimeout(watch.pendingTimeout, null, 0);
+        reportTimeout(watch.pendingTimeout, null, 0, null);
         delete watch.pendingTimeout;
     }
 
     h.tick = Game.time;
     h.phases = [{name: 'start', cpu: Game.cpu.getUsed()}];
     h.ended = 0;
+    h.lastPf = null;
     watch.startedTick = Game.time;
     installHooks();
     resetHookStats();
@@ -459,6 +588,14 @@ function endTick() {
     watch.completedTick = Game.time;
     watch.lastCpu = used;
     watch.lastBucket = Game.cpu.bucket;
+    watch.prevHooks = hookBits();
+    watch.prevPhases = formatPhases(h.phases);
+    watch.prevRooms = topRooms(3);
+    if (h.lastPf && h.lastPf.r) {
+        watch.prevPf = `${h.lastPf.r} ops${h.lastPf.ops || 0} u${h.lastPf.u || 0}`;
+    } else {
+        watch.prevPf = undefined;
+    }
 
     const kind = classify(used, limit, tickLimit);
     noteSample(used);
@@ -492,6 +629,7 @@ if (typeof global !== 'undefined') {
     global.noteObsCpu = noteObsCpu;
     global.noteIntelCpu = noteIntelCpu;
     global.noteMarketCpu = noteMarketCpu;
+    global.noteHot = noteHot;
 }
 
 module.exports = {
@@ -506,4 +644,5 @@ module.exports = {
     noteObsCpu,
     noteIntelCpu,
     noteMarketCpu,
+    noteHot,
 };

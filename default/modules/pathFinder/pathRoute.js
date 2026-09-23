@@ -79,13 +79,36 @@ function routeCacheKey(from, to, options = {}) {
     return `${from}_${to}${shortest ? '_short' : ''}${offRoad ? '_off' : ''}${avoidKey}`;
 }
 
+function isOrthogonalNeighbor(a, b) {
+    if (!a || !b) return false;
+    const exits = Game.map.describeExits(a);
+    if (!exits) return false;
+    const dirs = Object.keys(exits);
+    for (let i = 0; i < dirs.length; i++) {
+        if (exits[dirs[i]] === b) return true;
+    }
+    return false;
+}
+
+function isSkEntryToCenter(roomName, destination) {
+    if (!roomName || !destination) return false;
+    if (!(global.isSectorCenterRoomName && isSectorCenterRoomName(destination))) return false;
+    return isOrthogonalNeighbor(destination, roomName);
+}
+
 function isRoomBlocked(roomName, origin, destination, options) {
     const intel = INTEL[roomName];
     const rStatus = roomStatus(roomName);
     if (rStatus === 'closed' || (intel && !intel.isHighway && rStatus !== roomStatus(origin))) return true;
     if (isAvoided(roomName, options)) return true;
     if (Memory.avoidRooms?.includes(roomName)) return true;
-    if (intel?.owner && !FRIENDLIES.includes(intel.owner) && intel.towers) return true;
+    if (intel?.owner && !FRIENDLIES.includes(intel.owner) && intel.towers) {
+        // Invader towers in the SK ring used to make the sector center
+        // unreachable, so claimers fell back to "any neighbor" and walked
+        // the highway until CLAIM TTL died.
+        if (intel.owner === 'Invader' && isSkEntryToCenter(roomName, destination)) return false;
+        return true;
+    }
     if (options.blockHostileOwned && intel?.owner && !FRIENDLIES.includes(intel.owner)) return true;
     return false;
 }
@@ -169,9 +192,9 @@ function roomCost(roomName, origin, destination, options) {
     if (options.shortest) {
         if (intel?.user === MY_USERNAME) return 0.9;
         if (intel?.isHighway) return 0.95;
-        // Claim routing forces shortest. A mild SK penalty still lets a
-        // 600-TTL body take the one ring hop into a sector center.
-        if (sk) return 8;
+        // Cost 8 made a 7-room highway loop equal to the one SK hop into
+        // a sector center. Claimers then expired on the loop.
+        if (sk) return 2;
         return 1;
     }
 
@@ -184,13 +207,14 @@ function roomCost(roomName, origin, destination, options) {
     if (intel.user && intel.user === MY_USERNAME) return 1;
     if (intel.owner && FRIENDLIES.includes(intel.owner)) return !NO_RAMPART_CODE.includes(intel.owner) ? 25 : 1;
     if (intel.user && FRIENDLIES.includes(intel.user)) return 1;
-    if (intel.owner && !FRIENDLIES.includes(intel.owner)) return intel.towers ? Infinity : 150;
+    if (intel.owner && !FRIENDLIES.includes(intel.owner)
+        && !(intel.owner === 'Invader' && isSkEntryToCenter(roomName, destination))) {
+        return intel.towers ? Infinity : 150;
+    }
     if (intel.user && !FRIENDLIES.includes(intel.user)) return 5;
     if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
     if (intel.obstacles) return 100;
-    // Tower-defended SK is a hard skip. Unscouted SK stays cheap enough that
-    // a 600-TTL claimer can still take the one ring hop into a sector center.
-    if (sk && intel.towers) return 250;
+    if (sk && intel.towers) return isSkEntryToCenter(roomName, destination) ? 15 : 250;
     if (sk && !intel.skDangerPoints) return 25;
     if (sk) return 12;
     if (intel.threatLevel) return 10 * intel.threatLevel;
@@ -494,6 +518,65 @@ function routeWithinClaimTTL(origin, destination, ticksRemaining, options = {}) 
     return route;
 }
 
+function greedyExitRooms(from, dest) {
+    const rooms = [from];
+    if (!from || !dest || from === dest) return rooms;
+    const exits = Game.map.describeExits(from);
+    if (!exits) return rooms;
+    let best = null;
+    let bestD = Game.map.getRoomLinearDistance(from, dest);
+    const dirs = Object.keys(exits);
+    for (let i = 0; i < dirs.length; i++) {
+        const n = exits[dirs[i]];
+        if (!n) continue;
+        const d = Game.map.getRoomLinearDistance(n, dest);
+        if (d < bestD) {
+            bestD = d;
+            best = n;
+        }
+    }
+    if (best) rooms.push(best);
+    return rooms;
+}
+
+function findSectorCenterRoute(from, center, options = {}) {
+    if (!from || !center) return [];
+    const opts = Object.assign({}, options, {shortest: true});
+    if (from === center) return [center];
+    if (!(global.isSectorCenterRoomName && isSectorCenterRoomName(center))) {
+        return findRoute(from, center, opts);
+    }
+    const exits = Game.map.describeExits(center);
+    if (!exits) return findRoute(from, center, opts);
+    let best = null;
+    let bestScore = Infinity;
+    const dirs = Object.keys(exits);
+    for (let i = 0; i < dirs.length; i++) {
+        const approach = exits[dirs[i]];
+        if (!approach) continue;
+        if (typeof roomStatus === 'function' && roomStatus(approach) === 'closed') continue;
+        const intel = (typeof INTEL !== 'undefined' && INTEL[approach]) || {};
+        if (intel.owner && intel.owner !== 'Invader' && intel.towers
+            && !(typeof FRIENDLIES !== 'undefined' && FRIENDLIES.includes(intel.owner))) {
+            continue;
+        }
+        const dist = Game.map.getRoomLinearDistance(from, approach);
+        const score = dist + (intel.towers ? 4 : 0);
+        if (score < bestScore) {
+            bestScore = score;
+            best = approach;
+        }
+    }
+    if (!best) return findRoute(from, center, opts);
+    if (from === best) return [from, center];
+    const head = findRoute(from, best, opts);
+    if (!head || !head.length) return [from, best, center];
+    const out = head[0] === from ? head.slice() : [from].concat(head);
+    if (out[out.length - 1] !== best) out.push(best);
+    if (out[out.length - 1] !== center) out.push(center);
+    return out;
+}
+
 function findRoute(origin, destination, options = {}) {
     if (origin === destination) return [origin];
     _.defaults(options, {useCache: true, shortest: false});
@@ -600,6 +683,10 @@ function deleteRoute(from, to) {
 module.exports = {
 
     findRoute,
+
+    findSectorCenterRoute,
+
+    greedyExitRooms,
 
     attachStagingAvoid,
 

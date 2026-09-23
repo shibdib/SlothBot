@@ -1032,6 +1032,13 @@ function ensurePerimeterSites(room, options = {}) {
     migrateRampartVersion();
     // Geometry tweaks replan and strip off-plan tiles. Full wipe is RAMPART_VERSION only.
     if (room.memory.perimeterPlanRev !== PERIMETER_PLAN_REV) {
+        if (plannerShouldStop() || !canAffordMinCut()) {
+            if (options.report) {
+                options.report.placed = 0;
+                options.report.reason = 'cpu';
+            }
+            return 0;
+        }
         let replanOk = false;
         try {
             recalculateRampartsForRoom(room, undefined, {destroyOffPlan: true});
@@ -1389,6 +1396,7 @@ function ensureAllIncompletePerimetersDirect() {
     let initedThisCall = false;
 
     for (let offset = 0; offset < rooms.length; offset++) {
+        if (plannerShouldStop()) return placed;
         const name = rooms[(start + offset) % rooms.length];
         const room = Game.rooms[name];
         if (!room || !bunkerLevelAllowsPerimeter(room) || !room.hub) continue;
@@ -1396,6 +1404,7 @@ function ensureAllIncompletePerimetersDirect() {
         // Re-init missing cache (at most one floodfill per ensure call).
         if (!hasPerimeterSpots(room.name)) {
             if (initedThisCall) continue;
+            if (plannerShouldStop() || !canAffordMinCut()) continue;
             try {
                 const tmpl = room.memory.dynamicLayout ? coreTemplate : bunkerTemplate;
                 initializeRampartSpots(room, tmpl, false);
@@ -1418,6 +1427,7 @@ function ensureAllIncompletePerimetersDirect() {
         // Stale rev must not be skipped: a finished old ring looks complete and
         // would never reach ensurePerimeterSites (the only place that replans).
         if (!perimeterRevStale(room) && !perimeterHasPlaceableMissing(room)) continue;
+        if (plannerShouldStop()) return placed;
 
         try {
             // maxPlace 3, no bridge on the hot path (bridge runs at init/recalc).
@@ -1794,6 +1804,7 @@ function ensureAllIncompletePerimeters() {
     let initedThisCall = false;
 
     for (let offset = 0; offset < rooms.length; offset++) {
+        if (plannerShouldStop()) return 0;
         const name = rooms[(start + offset) % rooms.length];
         const room = Game.rooms[name];
         if (!room || !bunkerLevelAllowsPerimeter(room) || !room.hub) continue;
@@ -1801,6 +1812,7 @@ function ensureAllIncompletePerimeters() {
         // Re-init missing cache (at most one floodfill per ensure call).
         if (!hasPerimeterSpots(room.name)) {
             if (initedThisCall) continue;
+            if (plannerShouldStop() || !canAffordMinCut()) continue;
             try {
                 // allowInit runs initializeRampartSpots; maxPlace 0 avoids placing during init.
                 ensurePerimeterSites(room, {
@@ -1830,6 +1842,7 @@ function ensureAllIncompletePerimeters() {
 
         // Finished old rings look complete and would starve a geometry rev bump.
         if (!perimeterRevStale(room) && !perimeterHasPlaceableMissing(room)) continue;
+        if (plannerShouldStop()) return 0;
 
         let placed = 0;
         try {

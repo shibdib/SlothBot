@@ -373,5 +373,7 @@ function minionController(minion) {
 
     const tRole = Game.cpu.getUsed();
     new Role(minion);
-    if (typeof noteRoleCpu === 'function') noteRoleCpu(roleName, Game.cpu.getUsed() - tRole);
+    if (typeof noteRoleCpu === 'function') {
+        noteRoleCpu(roleName, Game.cpu.getUsed() - tRole, minion.room && minion.room.name);
+    }
 }

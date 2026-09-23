@@ -964,6 +964,10 @@ function computeFloodfillPerimeter(room, layout) {
     const hub = room.hub;
     const empty = {spots: [], interior: new Set(), radius: 0, seeds: 0, validSeeds: 0, bounds: null};
     if (!hub) return empty;
+    if (plannerShouldStop() || !canAffordMinCut()) {
+        empty.aborted = true;
+        return empty;
+    }
 
     const terrain = Game.map.getRoomTerrain(room.name);
     const flood = getHubWalkableFlood(room, PERIMETER_MAX_PATH + PERIMETER_PAD + 2);
@@ -1015,6 +1019,10 @@ function computeFloodfillPerimeter(room, layout) {
         spots = null;
     }
     if (!spots) {
+        if (plannerShouldStop()) {
+            empty.aborted = true;
+            return empty;
+        }
         const fb = contourFallbackPerimeter(room, hub, valid, flood, terrain);
         spots = fb.spots;
         interior = fb.interior;
@@ -1576,26 +1584,29 @@ function shouldComputeBunkerRampartSpots(room) {
     return !!(room.controller && room.controller.level >= BUNKER_LEVEL && room.hub);
 }
 
-function hasPerimeterSpots(roomName) {
+const parsedSpotsCache = {};
+
+function parsedPerimeterSpots(roomName) {
     const raw = ROOM_RAMPART_SPOTS && ROOM_RAMPART_SPOTS[roomName];
-    if (raw == null || raw === '') return false;
+    if (raw == null || raw === '') return null;
+    const cached = parsedSpotsCache[roomName];
+    if (cached && cached.raw === raw) return cached.spots;
     try {
         const spots = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        // Empty array is a computed plan (terrain-sealed pocket). Undefined means not computed.
-        return Array.isArray(spots);
+        if (!Array.isArray(spots)) return null;
+        parsedSpotsCache[roomName] = {raw: raw, spots: spots};
+        return spots;
     } catch (e) {
-        return false;
+        return null;
     }
 }
 
+function hasPerimeterSpots(roomName) {
+    return parsedPerimeterSpots(roomName) != null;
+}
+
 function getPerimeterSpots(roomName) {
-    if (!hasPerimeterSpots(roomName)) return [];
-    try {
-        const raw = ROOM_RAMPART_SPOTS[roomName];
-        return typeof raw === 'string' ? JSON.parse(raw) : (raw || []);
-    } catch (e) {
-        return [];
-    }
+    return parsedPerimeterSpots(roomName) || [];
 }
 
 function auditRampartRecalc(room, layout) {
@@ -1644,6 +1655,10 @@ function initializeRampartSpots(room, layout, count) {
     const tmpl = layout || (room.memory.dynamicLayout ? coreTemplate : bunkerTemplate);
     try {
         const result = computeFloodfillPerimeter(room, tmpl);
+        if (result && result.aborted) {
+            room._perimeterComputeOk = false;
+            return count ? 0 : undefined;
+        }
         const spots = result.spots || [];
         room._perimeterComputeOk = true;
         room._perimeterInteriorSize = result.interior ? result.interior.size : 0;

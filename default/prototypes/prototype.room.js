@@ -9,6 +9,7 @@
  * - Expensive areExitsReachable now runs only on ownership change or force (biggest win)
  * - Single-pass resource counting in getRoomResource
  * - Smarter caching for towerData, swampRoom, attack routes
+ * - towerData is n×600 + operateMult (no 50×50 open-tile grid)
  * - Reduced find/filter calls in invaderCheck and cacheRoomIntel
  * - Combined structure scans where possible
  *
@@ -923,7 +924,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         } else if (roomIntel.owner && !isFriendlyOwner(roomIntel.owner)) {
             // Spawn and siege vs occupy key off INTEL.towers. Leaving this on
             // the heavy cadence left the count stale for a full creep life
-            // after we knocked towers down. towerData grids stay heavy.
+            // after we knocked towers down. operateMult still lives on heavy.
             const towers = armedTowers(this);
             if (towers.length) {
                 purgeBadRoute(this.name);
@@ -1009,12 +1010,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     if (!force && INTEL[this.name] && INTEL[this.name].cached + heavyTTL > currentTime) return;
 
     // On global reset the .cached values are old, so *every* owned room would do heavy work
-    // (including expensive towerData 50x50 grids per tower + rampart sorts + hubChecks) on early ticks.
+        // (including rampart sorts + hubChecks) on early ticks.
     // For first 2 ticks after reset do ONLY light updates (no heavy). Then spread remaining heavy over next ticks.
     if (!force) {
         const since = global.ticksSinceLastGlobalReset ? global.ticksSinceLastGlobalReset() : 99;
         if (since < 3 && this.controller && this.controller.my) {
-            return;  // absolutely no heavy intel (towerData 50x50 grids, areExitsReachable PathFinders, rampart sorts, hubChecks) on first 2 ticks after reset -- light only is enough
+            return;  // no heavy intel (areExitsReachable PathFinders, rampart sorts, hubChecks) on first 2 ticks after reset -- light only is enough
         }
         const spreadTicks = global.POST_RESET_HEAVY_INTEL_SPREAD || 150;
         if (since < spreadTicks && this.controller && this.controller.my) {
@@ -1026,6 +1027,11 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
         // Cap PathFinder / hubCheck / towerData bursts. Observer + colony can otherwise
         // stack several first-visit heavies on one tick (~10 CPU each).
+        const usedNow = Game.cpu.getUsed();
+        const limitNow = Game.cpu.limit || 20;
+        const remainNow = ((Game.cpu && Game.cpu.tickLimit) || 500) - usedNow;
+        // Do not stamp `cached` — the next observe retries heavy work.
+        if (usedNow > limitNow || remainNow < 80) return;
         if (!consumeHeavyIntelSlot()) return;
     }
 
@@ -1715,57 +1721,37 @@ Room.prototype.towerData = function (towers) {
     }
     if (this._towerDataFp === fp && this._towerDataCache) return this._towerDataCache;
 
-    const terrain = Game.map.getRoomTerrain(this.name);
+    // Siege bodies use n × 600 plus operateMult. The old 50×50 open-tile grid
+    // was 130–180 CPU on an observed enemy room and was never read as a grid.
     const n = towers.length;
-    const tx = new Array(n);
-    const ty = new Array(n);
-    const tm = new Array(n);
     let operated = false;
     let maxOperate = 1;
+    let sx = 0;
+    let sy = 0;
     for (let i = 0; i < n; i++) {
-        tx[i] = towers[i].pos.x;
-        ty[i] = towers[i].pos.y;
-        let mult = 1;
+        sx += towers[i].pos.x;
+        sy += towers[i].pos.y;
         const effects = towers[i].effects;
         if (effects && effects.length) {
             for (let e = 0; e < effects.length; e++) {
                 if (effects[e].effect === PWR_OPERATE_TOWER && effects[e].level) {
-                    mult = 1 + (POWER_INFO[PWR_OPERATE_TOWER].effect[effects[e].level - 1] / 100);
+                    const mult = 1 + (POWER_INFO[PWR_OPERATE_TOWER].effect[effects[e].level - 1] / 100);
+                    if (mult > 1) operated = true;
+                    if (mult > maxOperate) maxOperate = mult;
                     break;
                 }
             }
         }
-        tm[i] = mult;
-        if (mult > 1) operated = true;
-        if (mult > maxOperate) maxOperate = mult;
     }
-
-    let maxDamage = 0;
-    let maxX = 0;
-    let maxY = 0;
-    const damageTracker = [];
-    for (let y = 0; y < 50; y++) {
-        for (let x = 0; x < 50; x++) {
-            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
-            let damage = 0;
-            for (let i = 0; i < n; i++) {
-                const range = Math.max(Math.abs(x - tx[i]), Math.abs(y - ty[i]));
-                damage += TOWER_POWER_FROM_RANGE(range, TOWER_POWER_ATTACK) * tm[i];
-            }
-            damageTracker.push(damage);
-            if (damage > maxDamage) {
-                maxDamage = damage;
-                maxX = x;
-                maxY = y;
-            }
-        }
-    }
-
-    damageTracker.sort((a, b) => a - b);
+    const rangeFn = typeof TOWER_POWER_FROM_RANGE === 'function' ? TOWER_POWER_FROM_RANGE : null;
+    const atRange = (range) => {
+        const base = rangeFn ? rangeFn(range, TOWER_POWER_ATTACK) : TOWER_POWER_ATTACK;
+        return n * base * maxOperate;
+    };
     const result = {
-        maxDamage,
-        position: {x: maxX, y: maxY, roomName: this.name},
-        average: damageTracker[Math.floor(damageTracker.length * 0.85)] || 0,
+        maxDamage: atRange(TOWER_OPTIMAL_RANGE || 5),
+        position: {x: Math.round(sx / n), y: Math.round(sy / n), roomName: this.name},
+        average: atRange(10),
         operated: operated,
         operateMult: maxOperate > 1 ? maxOperate : undefined
     };

@@ -2131,6 +2131,12 @@ RoleLabTech.planWarehouseTask = function (room, carry) {
         }
         heap.warehousePlanTick = 0;
     }
+    const used = (typeof Game !== 'undefined' && Game.cpu && Game.cpu.getUsed) ? Game.cpu.getUsed() : 0;
+    const limit = (typeof Game !== 'undefined' && Game.cpu && Game.cpu.limit) || 20;
+    if (used > limit) return heap && heap.warehousePlan || null;
+    // After a global reset every hub recomputes. Spread first plans across 20 ticks.
+    const phase = ((room.name.charCodeAt(1) || 0) + (room.name.charCodeAt(3) || 0)) % WAREHOUSE_PLAN_TTL;
+    if (!(heap && heap.warehousePlanTick) && Game.time % WAREHOUSE_PLAN_TTL !== phase) return null;
     const planner = Object.create(RoleLabTech.prototype);
     planner.room = room;
     planner.creep = {
@@ -2141,7 +2147,10 @@ RoleLabTech.planWarehouseTask = function (room, carry) {
             getUsedCapacity: () => 0,
         },
     };
+    const t0 = used;
     const task = planner.findBalancingTask(room.storage, room.terminal);
+    const spent = ((typeof Game !== 'undefined' && Game.cpu && Game.cpu.getUsed) ? Game.cpu.getUsed() : t0) - t0;
+    if (spent >= 8 && typeof noteHot === 'function') noteHot('wh', room.name, spent);
     if (heap) {
         heap.warehousePlanTick = Game.time;
         heap.warehousePlan = task || null;

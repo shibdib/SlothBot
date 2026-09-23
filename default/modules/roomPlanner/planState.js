@@ -47,7 +47,10 @@ function plannerShouldStop() {
     const limit = Game.cpu.limit || 20;
     if (used > tickLimit - PLANNER_HARD_RESERVE) return true;
     if (plannerCpuTick === Game.time && plannerCpuSpent() > PLANNER_SOFT_BUDGET) return true;
-    if (used > limit && plannerCpuTick === Game.time && plannerCpuSpent() > 12) return true;
+    // Colonies already spent the GCL limit — skip non-critical planner (safeRun
+    // still runs HUB/SPAWN/TOWERS). The old 12 CPU grace let global_perimeter
+    // start a flood fill that ran to 40+ on a 400 CPU tick.
+    if (used > limit) return true;
     return false;
 }
 

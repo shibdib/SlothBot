@@ -13,6 +13,12 @@ const FEEDER_KEEP = 2000;
 const THORIUM_SEND_MIN = 100;
 const SCAN_INTERVAL = 10;
 const REACTOR_INTEL_TTL = CREEP_LIFE_TIME;
+const CLAIMER_LOG_MAX = 80;
+const CLAIMER_STUCK_TICKS = 40;
+const CLAIMER_EMAIL_EVENTS = {
+    gone: 1, suicide: 1, abort: 1, recycle: 1, stuck: 1,
+    claim: 1, noReactor: 1, noFn: 1
+};
 
 function isSeason() {
     return !!(typeof IS_SEASON !== 'undefined' ? IS_SEASON : (Game.shard && Game.shard.name === 'shardSeason'));
@@ -74,6 +80,157 @@ function reactorPos(roomName) {
     const rec = Memory.season && Memory.season.reactors && Memory.season.reactors[roomName];
     if (rec && rec.x != null && rec.y != null) return new RoomPosition(rec.x, rec.y, roomName);
     return new RoomPosition(25, 25, roomName);
+}
+
+function errName(code) {
+    if (code === OK) return 'OK';
+    if (code === ERR_NOT_OWNER) return 'ERR_NOT_OWNER';
+    if (code === ERR_BUSY) return 'ERR_BUSY';
+    if (code === ERR_INVALID_TARGET) return 'ERR_INVALID_TARGET';
+    if (code === ERR_NOT_IN_RANGE) return 'ERR_NOT_IN_RANGE';
+    if (code === ERR_NO_BODYPART) return 'ERR_NO_BODYPART';
+    if (code === ERR_TIRED) return 'ERR_TIRED';
+    return String(code);
+}
+
+function nearbyThreatNote(room, x, y) {
+    if (!room || x == null) return '';
+    const bits = [];
+    if (room.invaderCore) bits.push('core');
+    const creeps = room.creeps || [];
+    for (let i = 0; i < creeps.length; i++) {
+        const c = creeps[i];
+        const owner = c.owner && c.owner.username;
+        if (!owner || owner === MY_USERNAME) continue;
+        if (Math.max(Math.abs(c.pos.x - x), Math.abs(c.pos.y - y)) > 5) continue;
+        bits.push(owner + '@' + c.pos.x + ',' + c.pos.y);
+    }
+    return bits.join(',');
+}
+
+function claimerNote(creep, event, extra) {
+    extra = extra || {};
+    const mem = getSeasonMemory();
+    if (!mem.claimerLog) mem.claimerLog = [];
+    const rec = {
+        t: Game.time,
+        e: event,
+        n: (creep && creep.name) || extra.n,
+        r: (creep && creep.room && creep.room.name) || extra.r,
+        x: creep && creep.pos ? creep.pos.x : extra.x,
+        y: creep && creep.pos ? creep.pos.y : extra.y,
+        ttl: creep ? creep.ticksToLive : extra.ttl,
+        hp: creep ? creep.hits : extra.hp,
+        dest: (creep && creep.memory && creep.memory.destination) || extra.dest
+    };
+    for (const k in extra) {
+        if (rec[k] === undefined) rec[k] = extra[k];
+    }
+    mem.claimerLog.push(rec);
+    if (mem.claimerLog.length > CLAIMER_LOG_MAX) {
+        mem.claimerLog.splice(0, mem.claimerLog.length - CLAIMER_LOG_MAX);
+    }
+    const loc = (typeof roomLink === 'function' && rec.r) ? roomLink(rec.r) : (rec.r || '?');
+    const bits = [
+        rec.n || '?',
+        event,
+        loc,
+        rec.x != null ? (rec.x + ',' + rec.y) : '',
+        rec.ttl != null ? ('ttl=' + rec.ttl) : '',
+        rec.hp != null ? ('hp=' + rec.hp) : '',
+        rec.dest ? ('dest=' + rec.dest) : '',
+        extra.msg || extra.how || extra.code || extra.threat || ''
+    ].filter(Boolean);
+    const line = bits.join(' ');
+    if (typeof log !== 'undefined' && log.a) log.a(line, 'RX:');
+    if (CLAIMER_EMAIL_EVENTS[event] && typeof Game !== 'undefined' && Game.notify) {
+        Game.notify('RX ' + line, 30);
+    }
+    return rec;
+}
+
+function trackClaimers() {
+    const mem = getSeasonMemory();
+    if (!mem.claimerWatch) mem.claimerWatch = {};
+    const live = {};
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.memory || c.memory.role !== 'reactorClaimer') continue;
+        live[name] = true;
+        const prev = mem.claimerWatch[name];
+        const roomChanged = !!(prev && prev.room && prev.room !== c.room.name);
+        if (!prev) {
+            const parts = [];
+            if (c.body) {
+                for (let i = 0; i < c.body.length; i++) parts.push(c.body[i].type[0]);
+            }
+            claimerNote(c, 'spawn', {
+                colony: c.memory.colony,
+                body: parts.join(''),
+                spawning: !!c.spawning
+            });
+        } else if (roomChanged) {
+            const intel = typeof INTEL !== 'undefined' ? INTEL[c.room.name] : undefined;
+            claimerNote(c, 'room', {
+                from: prev.room,
+                sk: !!(intel && intel.sk),
+                threat: nearbyThreatNote(c.room, c.pos.x, c.pos.y)
+            });
+        } else if (c.memory.destination && c.room.name !== c.memory.destination) {
+            const stuck = (prev.stuck || 0) + 1;
+            if (stuck === CLAIMER_STUCK_TICKS) {
+                claimerNote(c, 'stuck', {
+                    threat: nearbyThreatNote(c.room, c.pos.x, c.pos.y),
+                    msg: 'same room ' + CLAIMER_STUCK_TICKS + 't'
+                });
+            }
+            if (prev) prev.stuck = stuck;
+        }
+        mem.claimerWatch[name] = {
+            room: c.room.name,
+            x: c.pos.x,
+            y: c.pos.y,
+            ttl: c.ticksToLive,
+            hp: c.hits,
+            dest: c.memory.destination,
+            tick: Game.time,
+            stuck: (!prev || roomChanged) ? 0 : (prev.stuck || 0)
+        };
+    }
+    for (const name in mem.claimerWatch) {
+        if (live[name]) continue;
+        const last = mem.claimerWatch[name];
+        let how = 'missing';
+        if (last && last.ttl != null && last.ttl <= 2) how = 'aged';
+        const vis = last && last.room && Game.rooms[last.room];
+        if (vis) {
+            try {
+                const tombs = vis.find(FIND_TOMBSTONES) || [];
+                for (let i = 0; i < tombs.length; i++) {
+                    const creep = tombs[i].creep;
+                    if (creep && creep.name === name) {
+                        how = last && last.ttl <= 2 ? 'aged-tomb' : 'tomb';
+                        last.hp = creep.hits;
+                        break;
+                    }
+                }
+            } catch (e) { /* find can throw off-vision */
+            }
+        }
+        claimerNote(null, 'gone', {
+            n: name,
+            r: last && last.room,
+            x: last && last.x,
+            y: last && last.y,
+            ttl: last && last.ttl,
+            hp: last && last.hp,
+            dest: last && last.dest,
+            how,
+            threat: vis ? nearbyThreatNote(vis, last.x, last.y) : '',
+            msg: how
+        });
+        delete mem.claimerWatch[name];
+    }
 }
 
 function parseRoomXY(roomName) {
@@ -289,6 +446,7 @@ function run() {
 
     const mem = getSeasonMemory();
     scanVisibleRooms();
+    trackClaimers();
 
     if (!mem.scanTick || mem.scanTick + SCAN_INTERVAL <= Game.time) {
         if (Game.cpu.bucket >= 50) pickTargetReactor();
@@ -375,6 +533,8 @@ module.exports = {
     isSeason,
     findReactors,
     reactorPos,
+    claimerNote,
+    errName,
     planThoriumTransfers,
     getFeederKeep,
     stampThoriumIntel,
