@@ -76,24 +76,170 @@ function routeCacheKey(from, to, options = {}) {
     const roomsAvoid = typeof options === 'object' ? avoidList(options) : null;
     const avoidKey = roomsAvoid && roomsAvoid.length
         ? `_av${roomsAvoid.slice().sort().join(',')}` : '';
-    return `${from}_${to}${shortest ? '_short' : ''}${offRoad ? '_off' : ''}${avoidKey}`;
+    const nx = typeof options === 'object' && options.noSkCrossing ? '_nx' : '';
+    return `${from}_${to}${shortest ? '_short' : ''}${offRoad ? '_off' : ''}${avoidKey}_c6${nx}`;
 }
 
-function isOrthogonalNeighbor(a, b) {
-    if (!a || !b) return false;
-    const exits = Game.map.describeExits(a);
-    if (!exits) return false;
-    const dirs = Object.keys(exits);
-    for (let i = 0; i < dirs.length; i++) {
-        if (exits[dirs[i]] === b) return true;
+function roomIsSk(roomName, intel) {
+    if (intel && intel.sk) return true;
+    return !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
+}
+
+function hostileTowersInRoom(intel) {
+    if (!intel || !intel.towers || !intel.owner) return false;
+    if (typeof FRIENDLIES !== 'undefined' && FRIENDLIES.includes(intel.owner)) return false;
+    return true;
+}
+
+// In-room matrix already hugs the rim / live keepers. Route cost should skip
+// an SK room when an equal-length plains path exists, not when a highway lap
+// of 8–12 rooms exists. Unscouted SK used to be 25 vs highway 2.
+// Invader towers mean a stronghold — blocked, same as player towers.
+function skTransitCost(roomName, intel, shortest) {
+    if (!roomIsSk(roomName, intel)) return null;
+    if (hostileTowersInRoom(intel)) return Infinity;
+    return shortest ? 1.2 : 4;
+}
+
+const SK_CROSSING_CACHE = Object.create(null);
+const SK_GRID_CACHE = Object.create(null);
+const SK_DANGER_RANGE = 5;
+const SK_BFS_DX = [0, 1, 1, 1, 0, -1, -1, -1];
+const SK_BFS_DY = [-1, -1, 0, 1, 1, 1, 0, -1];
+const SK_EXIT_DIRS = [TOP, RIGHT, BOTTOM, LEFT];
+
+function dangerPointHash(points) {
+    let s = '';
+    for (let i = 0; i < points.length; i++) s += points[i].x + ',' + points[i].y + ';';
+    return s;
+}
+
+function inSkDanger(x, y, points) {
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        if (Math.max(Math.abs(x - p.x), Math.abs(y - p.y)) <= SK_DANGER_RANGE) return true;
     }
     return false;
 }
 
-function isSkEntryToCenter(roomName, destination) {
-    if (!roomName || !destination) return false;
-    if (!(global.isSectorCenterRoomName && isSectorCenterRoomName(destination))) return false;
-    return isOrthogonalNeighbor(destination, roomName);
+function exitDirToNeighbor(from, to) {
+    const exits = Game.map.describeExits(from);
+    if (!exits) return 0;
+    for (let i = 0; i < SK_EXIT_DIRS.length; i++) {
+        const dir = SK_EXIT_DIRS[i];
+        if (exits[dir] === to) return dir;
+    }
+    return 0;
+}
+
+function greedyExitDir(from, to) {
+    const adj = exitDirToNeighbor(from, to);
+    if (adj) return adj;
+    const exits = Game.map.describeExits(from);
+    if (!exits) return 0;
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < SK_EXIT_DIRS.length; i++) {
+        const dir = SK_EXIT_DIRS[i];
+        const n = exits[dir];
+        if (!n) continue;
+        const d = Game.map.getRoomLinearDistance(n, to);
+        if (d < bestD) {
+            bestD = d;
+            best = dir;
+        }
+    }
+    return best;
+}
+
+function skBlockedGrid(roomName, points) {
+    const key = roomName + '|' + dangerPointHash(points);
+    const hit = SK_GRID_CACHE[key];
+    if (hit) return hit;
+    const grid = new Uint8Array(2500);
+    const terrain = Game.map.getRoomTerrain(roomName);
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL || inSkDanger(x, y, points)) {
+                grid[y * 50 + x] = 1;
+            }
+        }
+    }
+    SK_GRID_CACHE[key] = grid;
+    return grid;
+}
+
+function skExitConnected(roomName, enterDir, leaveDir, points) {
+    const grid = skBlockedGrid(roomName, points);
+    const starts = scanTerrainExits(roomName, enterDir);
+    const goals = scanTerrainExits(roomName, leaveDir);
+    if (!starts.length || !goals.length) return false;
+    const goalSet = new Uint8Array(2500);
+    let goalCount = 0;
+    for (let i = 0; i < goals.length; i++) {
+        const t = goals[i];
+        const idx = t.y * 50 + t.x;
+        if (grid[idx]) continue;
+        goalSet[idx] = 1;
+        goalCount++;
+    }
+    if (!goalCount) return false;
+    const visited = new Uint8Array(2500);
+    const qx = [];
+    const qy = [];
+    for (let i = 0; i < starts.length; i++) {
+        const t = starts[i];
+        const idx = t.y * 50 + t.x;
+        if (grid[idx] || visited[idx]) continue;
+        visited[idx] = 1;
+        if (goalSet[idx]) return true;
+        qx.push(t.x);
+        qy.push(t.y);
+    }
+    let qh = 0;
+    while (qh < qx.length) {
+        const x = qx[qh];
+        const y = qy[qh++];
+        for (let d = 0; d < 8; d++) {
+            const nx = x + SK_BFS_DX[d];
+            const ny = y + SK_BFS_DY[d];
+            if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
+            const idx = ny * 50 + nx;
+            if (visited[idx] || grid[idx]) continue;
+            visited[idx] = 1;
+            if (goalSet[idx]) return true;
+            qx.push(nx);
+            qy.push(ny);
+        }
+    }
+    return false;
+}
+
+// Lair/source blankets can seal one crossing (N-S) while another (E-W) is open.
+// Never call Game.map.findExit here — it uses findRoute and re-enters this callback.
+function skCrossingBlocked(roomName, fromRoom, towardRoom) {
+    if (!fromRoom || !towardRoom || fromRoom === towardRoom) return false;
+    const intel = typeof INTEL !== 'undefined' ? INTEL[roomName] : undefined;
+    const points = intel && intel.skDangerPoints;
+    if (!points || !points.length) return false;
+    const enterDir = exitDirToNeighbor(roomName, fromRoom);
+    const leaveDir = greedyExitDir(roomName, towardRoom);
+    if (!enterDir || !leaveDir || enterDir === leaveDir) return false;
+    const cacheKey = roomName + '|' + enterDir + '|' + leaveDir + '|' + dangerPointHash(points);
+    if (Object.prototype.hasOwnProperty.call(SK_CROSSING_CACHE, cacheKey)) {
+        return SK_CROSSING_CACHE[cacheKey];
+    }
+    const blocked = !skExitConnected(roomName, enterDir, leaveDir, points);
+    SK_CROSSING_CACHE[cacheKey] = blocked;
+    return blocked;
+}
+
+function skRouteCost(roomName, intel, shortest, fromRoom, destination, noCrossing) {
+    const base = skTransitCost(roomName, intel, shortest);
+    if (base == null || base === Infinity) return base;
+    if (noCrossing) return base;
+    if (fromRoom && destination && skCrossingBlocked(roomName, fromRoom, destination)) return Infinity;
+    return base;
 }
 
 function isRoomBlocked(roomName, origin, destination, options) {
@@ -102,13 +248,7 @@ function isRoomBlocked(roomName, origin, destination, options) {
     if (rStatus === 'closed' || (intel && !intel.isHighway && rStatus !== roomStatus(origin))) return true;
     if (isAvoided(roomName, options)) return true;
     if (Memory.avoidRooms?.includes(roomName)) return true;
-    if (intel?.owner && !FRIENDLIES.includes(intel.owner) && intel.towers) {
-        // Invader towers in the SK ring used to make the sector center
-        // unreachable, so claimers fell back to "any neighbor" and walked
-        // the highway until CLAIM TTL died.
-        if (intel.owner === 'Invader' && isSkEntryToCenter(roomName, destination)) return false;
-        return true;
-    }
+    if (intel?.owner && !FRIENDLIES.includes(intel.owner) && intel.towers) return true;
     if (options.blockHostileOwned && intel?.owner && !FRIENDLIES.includes(intel.owner)) return true;
     return false;
 }
@@ -177,46 +317,37 @@ function applySameRoomDetour(origin, target, result, options, searchFn) {
     return best;
 }
 
-function roomIsSk(roomName, intel) {
-    if (intel && intel.sk) return true;
-    return !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
-}
-
-function roomCost(roomName, origin, destination, options) {
+function roomCost(roomName, origin, destination, options, fromRoomName) {
     if (roomName === origin || roomName === destination) return 1;
     if (isRoomBlocked(roomName, origin, destination, options)) return Infinity;
 
     const intel = INTEL[roomName];
-    const sk = roomIsSk(roomName, intel);
+    const skCost = skRouteCost(roomName, intel, !!options.shortest, fromRoomName, destination,
+        !!(options && options.noSkCrossing));
 
     if (options.shortest) {
         if (intel?.user === MY_USERNAME) return 0.9;
         if (intel?.isHighway) return 0.95;
-        // Cost 8 made a 7-room highway loop equal to the one SK hop into
-        // a sector center. Claimers then expired on the loop.
-        if (sk) return 2;
+        if (skCost != null) return skCost;
         return 1;
     }
 
     if (Memory.avoidRooms?.includes(roomName)) return 220;
     // Unknown used to be 100 vs highway 2 — a 50-room detour to skip one fog room.
     if (!intel || intel.cached + 10000 < Game.time) {
-        if (sk) return 25;
+        if (skCost != null) return skCost;
         return options.offRoad ? 4 : 6;
     }
     if (intel.user && intel.user === MY_USERNAME) return 1;
     if (intel.owner && FRIENDLIES.includes(intel.owner)) return !NO_RAMPART_CODE.includes(intel.owner) ? 25 : 1;
     if (intel.user && FRIENDLIES.includes(intel.user)) return 1;
-    if (intel.owner && !FRIENDLIES.includes(intel.owner)
-        && !(intel.owner === 'Invader' && isSkEntryToCenter(roomName, destination))) {
-        return intel.towers ? Infinity : 150;
-    }
+    if (intel.owner && !FRIENDLIES.includes(intel.owner)) return intel.towers ? Infinity : 150;
     if (intel.user && !FRIENDLIES.includes(intel.user)) return 5;
-    if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) return 50;
+    if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) {
+        return Math.max(50, skCost || 0);
+    }
     if (intel.obstacles) return 100;
-    if (sk && intel.towers) return isSkEntryToCenter(roomName, destination) ? 15 : 250;
-    if (sk && !intel.skDangerPoints) return 25;
-    if (sk) return 12;
+    if (skCost != null) return skCost;
     if (intel.threatLevel) return 10 * intel.threatLevel;
     if (intel.swampRoom && !options.offRoad) return 15;
     return intel.isHighway ? 2 : 3;
@@ -556,12 +687,9 @@ function findSectorCenterRoute(from, center, options = {}) {
         if (!approach) continue;
         if (typeof roomStatus === 'function' && roomStatus(approach) === 'closed') continue;
         const intel = (typeof INTEL !== 'undefined' && INTEL[approach]) || {};
-        if (intel.owner && intel.owner !== 'Invader' && intel.towers
-            && !(typeof FRIENDLIES !== 'undefined' && FRIENDLIES.includes(intel.owner))) {
-            continue;
-        }
+        if (hostileTowersInRoom(intel)) continue;
         const dist = Game.map.getRoomLinearDistance(from, approach);
-        const score = dist + (intel.towers ? 4 : 0);
+        const score = dist;
         if (score < bestScore) {
             bestScore = score;
             best = approach;
@@ -594,21 +722,30 @@ function findRoute(origin, destination, options = {}) {
     const linear = Game.map.getRoomLinearDistance(origin, destination);
     const useIntelCosts = linear <= 20 || options.shortest;
     const route = Game.map.findRoute(origin, destination, {
-        routeCallback: (roomName) => {
+        routeCallback: (roomName, fromRoomName) => {
             if (roomName === origin || roomName === destination) return 1;
             if (isAvoided(roomName, options)) return Infinity;
-            if (useIntelCosts) return roomCost(roomName, origin, destination, options);
-            const rStatus = roomStatus(roomName);
-            if (rStatus === 'closed') return Infinity;
-            if (Memory.avoidRooms?.includes(roomName)) return Infinity;
-            const intel = INTEL[roomName];
-            if (intel && !intel.isHighway && rStatus !== roomStatus(origin)) return Infinity;
-            if (intel?.owner && !FRIENDLIES.includes(intel.owner) && intel.towers) return Infinity;
-            const sk = (intel && intel.sk)
-                || (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
-            if (sk && intel && intel.towers) return 4;
-            if (sk) return 2.5;
-            return intel?.isHighway ? 1 : 1.2;
+            // Nested engine findRoute (findExit used to do this) must not BFS.
+            const nested = findRoute._cbDepth > 0;
+            findRoute._cbDepth = (findRoute._cbDepth || 0) + 1;
+            try {
+                if (useIntelCosts) {
+                    return roomCost(roomName, origin, destination,
+                        nested ? Object.assign({}, options, {noSkCrossing: true}) : options,
+                        fromRoomName);
+                }
+                const rStatus = roomStatus(roomName);
+                if (rStatus === 'closed') return Infinity;
+                if (Memory.avoidRooms?.includes(roomName)) return Infinity;
+                const intel = INTEL[roomName];
+                if (intel && !intel.isHighway && rStatus !== roomStatus(origin)) return Infinity;
+                if (intel?.owner && !FRIENDLIES.includes(intel.owner) && intel.towers) return Infinity;
+                const skCost = skRouteCost(roomName, intel, true, fromRoomName, destination, true);
+                if (skCost != null) return skCost;
+                return intel?.isHighway ? 1 : 1.2;
+            } finally {
+                findRoute._cbDepth--;
+            }
         },
     });
 
@@ -657,7 +794,7 @@ function routeDistance(from, to, options = {}) {
     const hit = table[key];
     if (hit && hit.tick + ROUTE_DISTANCE_TTL > Game.time) return hit.distance;
 
-    const route = findRoute(from, to, options);
+    const route = findRoute(from, to, Object.assign({}, options, {noSkCrossing: true}));
     const distance = Array.isArray(route) && route.length ? route.length : Infinity;
     table[key] = {distance, tick: Game.time};
     return distance;
