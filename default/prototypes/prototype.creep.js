@@ -32,7 +32,7 @@ const {
 const {stepInlandOffExit, isSquadCreep} = require('pathFormation');
 const {
     roomCanBurnSurplus, roomCanFillNuker, ENERGY_ACCRUAL_FLOOR, noteNukerEnergyDeposit, roomHasPositiveFlow,
-    RCL8_CONTROLLER_LINK_MIN,
+    RCL8_CONTROLLER_LINK_MIN, towerFillFloor, closestTowerUnder,
 } = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 
@@ -804,6 +804,30 @@ Creep.prototype.locateEnergy = function (room = this.room) {
 };
 
 Creep.prototype.haulerDelivery = function () {
+    // A tower under the fill line beats a destination we already started
+    // walking toward. Otherwise a storage dump keeps the load while towers drain.
+    const carriedEnergy = this.store[RESOURCE_ENERGY] || 0;
+    const carriedOther = this.store.getUsedCapacity() > carriedEnergy;
+    if (carriedOther) {
+        const current = this.memory.storageDestination && Game.getObjectById(this.memory.storageDestination);
+        if (current && current.structureType === STRUCTURE_TOWER) {
+            delete this.memory.storageDestination;
+            clearShibMove(this);
+        }
+    } else if (carriedEnergy > 0 && this.room.controller && this.room.controller.my && this.room.controller.level >= 3) {
+        const floor = towerFillFloor(this.room);
+        const tower = closestTowerUnder(this.pos, this.room, floor);
+        if (tower && this.memory.storageDestination !== tower.id) {
+            const current = this.memory.storageDestination && Game.getObjectById(this.memory.storageDestination);
+            const stickTower = current && current.structureType === STRUCTURE_TOWER
+                && (current.store[RESOURCE_ENERGY] || 0) < floor;
+            if (!stickTower) {
+                this.memory.storageDestination = tower.id;
+                if (current) clearShibMove(this);
+            }
+        }
+    }
+
     if (this.memory.storageDestination) {
         let storageItem = Game.getObjectById(this.memory.storageDestination);
         if (storageItem && storageItem.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
@@ -838,18 +862,7 @@ Creep.prototype.haulerDelivery = function () {
 
     let targets = [];
     const allSpawnExtensions = (this.room.spawns || []).concat(this.room.extensions || []);
-    const allTowers = this.room.towers || [];
     const allLabs = this.room.labs || [];
-
-    if (this.room.controller && this.room.controller.level >= 3) {
-        const threatLevel = (INTEL[this.room.name] && INTEL[this.room.name].threatLevel) || 0;
-        const targetAmount = threatLevel ? 1 : 0.75;
-        targets = allTowers.filter(s => s.store[RESOURCE_ENERGY] < TOWER_CAPACITY * targetAmount);
-        if (targets.length) {
-            this.memory.storageDestination = this.pos.findClosestByRange(targets).id;
-            return true;
-        }
-    }
 
     targets = allSpawnExtensions.filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
     if (targets.length) {

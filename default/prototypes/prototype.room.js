@@ -8,8 +8,8 @@
  * CPU Wins:
  * - Expensive areExitsReachable now runs only on ownership change or force (biggest win)
  * - Single-pass resource counting in getRoomResource
- * - Smarter caching for towerData, swampRoom, attack routes
  * - towerData is n×600 + operateMult (no 50×50 open-tile grid)
+ * - Attack-route damage is chebyshev on tower coordinates (no RoomPosition)
  * - Reduced find/filter calls in invaderCheck and cacheRoomIntel
  * - Combined structure scans where possible
  *
@@ -21,12 +21,6 @@
  */
 
 'use strict';
-
-// Lazy: require.js used to pull the entire planner (~400KB) on every global reset
-// via this file, which is a large part of the tickLimit timeout on parse ticks.
-function getRoomPlanner() {
-    return require('module.roomPlanner');
-}
 
 function getRemoteMining() {
     return require('remoteMining');
@@ -90,25 +84,15 @@ function armedTowers(room) {
 let hubCache = {};
 Object.defineProperty(Room.prototype, 'hub', {
     get: function () {
-        // C4: plan.anchors.hub first, then legacy bunkerHub (getHub), else search.
+        // Stored plan/bunker hub only. Searching here re-ran findHub on every
+        // link tick in a room that had no hub yet (~50 CPU, billed as lk).
         let xy = null;
         try {
             xy = require('planDoc').getHub(this);
         } catch (e) {
-            xy = this.memory.bunkerHub;
+            xy = this.memory && this.memory.bunkerHub;
         }
-        if (!xy || typeof xy.x !== 'number' || typeof xy.y !== 'number') {
-            try {
-                getRoomPlanner().findHub(this);
-            } catch (e) { /* planner optional during prototype init */
-            }
-            try {
-                xy = require('planDoc').getHub(this);
-            } catch (e) {
-                xy = this.memory && this.memory.bunkerHub;
-            }
-            if (!xy || typeof xy.x !== 'number' || typeof xy.y !== 'number') return undefined;
-        }
+        if (!xy || typeof xy.x !== 'number' || typeof xy.y !== 'number') return undefined;
         if (!this._hub) {
             const key = xy.x + ',' + xy.y;
             if (!hubCache[this.name] || hubCache[this.name] !== key) {
@@ -731,6 +715,16 @@ function collectPowerBankIntel(room, roomIntel) {
 
 Room.prototype.cacheRoomIntel = function (force = false) {
     const t0 = Game.cpu.getUsed();
+    let intelHot = '';
+    let intelHotCpu = 0;
+    let tHvy = 0;
+    const watchPart = (tag, start) => {
+        const part = Game.cpu.getUsed() - start;
+        if (part > intelHotCpu) {
+            intelHotCpu = part;
+            intelHot = tag;
+        }
+    };
     try {
     const currentTime = Game.time;
     if (!INTEL[this.name]) INTEL[this.name] = {name: this.name, shardName: Game.shard.name};
@@ -839,12 +833,14 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 const attackFresh = roomIntel.attackAt && roomIntel.attackAt + 750 > currentTime
                     && roomIntel.attackTowers === towerCount;
                 if (!attackFresh) {
+                    const tAtk = Game.cpu.getUsed();
                     const attack = pickAttackRoute(this);
+                    watchPart('atk', tAtk);
                     roomIntel.attackAt = currentTime;
                     roomIntel.attackTowers = towerCount;
                     if (attack) {
                         roomIntel.attackDirection = attack.staging;
-                        roomIntel.attackDirectionOrigin = attackRouteOrigin(this.name);
+                        delete roomIntel.attackDirectionOrigin;
                         roomIntel.attackTowerDmg = attack.towerDmg;
                     } else {
                         delete roomIntel.attackDirection;
@@ -883,7 +879,15 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             }
 
             if (roomIntel.ownerChanged) {
-                roomIntel.obstacles = !areExitsReachable(this);
+                // Same rule as heavy intel: foreign rooms are not claim candidates.
+                // areExitsReachable here was a dozen PathFinder searches on first vision.
+                const foreign = roomIntel.owner && roomIntel.owner !== MY_USERNAME;
+                if (foreign) roomIntel.obstacles = true;
+                else {
+                    const tEx = Game.cpu.getUsed();
+                    roomIntel.obstacles = !areExitsReachable(this);
+                    watchPart('ex', tEx);
+                }
                 roomIntel.ownerChanged = undefined;
             }
         }
@@ -953,6 +957,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
             const missingSourceData = haveSourceData < this.sources.length;
             const needsUpdate = staleScores || missingSourceData;
             if (needsUpdate) {
+                const tSrc = Game.cpu.getUsed();
                 let lowestScore = Infinity;
                 let lowestRoom = roomIntel.remoteRoom[0];
                 if (!roomIntel.remoteSourceData) roomIntel.remoteSourceData = [];
@@ -992,6 +997,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                     }
                     roomIntel.activeRemote = Game.time;
                 }
+                watchPart('src', tSrc);
             }
         }
 
@@ -1035,6 +1041,7 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         if (!consumeHeavyIntelSlot()) return;
     }
 
+    tHvy = Game.cpu.getUsed();
     roomIntel.cached = currentTime;
     roomIntel.sources = this.sources.length;
 
@@ -1178,8 +1185,12 @@ Room.prototype.cacheRoomIntel = function (force = false) {
     INTEL[this.name] = roomIntel;
     if (global.updateIntelIndex) global.updateIntelIndex(this.name, oldHeavy, roomIntel);
     } finally {
+        if (tHvy) watchPart('hvy', tHvy);
         const spent = Game.cpu.getUsed() - t0;
-        if (spent >= 15 && typeof noteIntelCpu === 'function') noteIntelCpu(this.name, spent);
+        if (spent >= 15 && typeof noteIntelCpu === 'function') {
+            const tag = intelHotCpu >= 8 ? ' ' + intelHot + Math.round(intelHotCpu) : '';
+            noteIntelCpu(this.name, spent, tag);
+        }
     }
 };
 
@@ -1395,25 +1406,42 @@ function inwardDelta(dir) {
     return {dx: -1, dy: 0};
 }
 
-function exitTileDamage(pos, towers) {
-    let dmg = 0;
+function rangeChebyshev(x1, y1, x2, y2) {
+    const dx = x1 > x2 ? x1 - x2 : x2 - x1;
+    const dy = y1 > y2 ? y1 - y2 : y2 - y1;
+    return dx > dy ? dx : dy;
+}
+
+function towerCoordPairs(towers) {
+    const coords = [];
     for (let i = 0; i < towers.length; i++) {
-        dmg += TOWER_POWER_FROM_RANGE(pos.getRangeTo(towers[i]), TOWER_POWER_ATTACK);
+        const p = towers[i] && towers[i].pos;
+        if (!p) continue;
+        coords.push(p.x, p.y);
     }
+    return coords;
+}
+
+// Same-room getRangeTo is chebyshev. new RoomPosition per inland step was ~200 CPU
+// on an open enemy perimeter (four edges × every exit tile × 3 steps × each tower).
+function damageAt(x, y, coords, memo) {
+    if (x < 0 || x > 49 || y < 0 || y > 49) return 0;
+    const key = x + y * 50;
+    const prev = memo[key];
+    if (prev !== undefined) return prev;
+    let dmg = 0;
+    for (let i = 0; i < coords.length; i += 2) {
+        dmg += TOWER_POWER_FROM_RANGE(rangeChebyshev(x, y, coords[i], coords[i + 1]), TOWER_POWER_ATTACK);
+    }
+    memo[key] = dmg;
     return dmg;
 }
 
-function tileDamage(roomName, x, y, towers) {
-    if (x < 0 || x > 49 || y < 0 || y > 49) return 0;
-    return exitTileDamage(new RoomPosition(x, y, roomName), towers);
-}
-
 // Exit plus 3 tiles inland — that's the breach strip, not the portal line.
-function approachDamage(room, tile, dir, towers) {
-    const {dx, dy} = inwardDelta(dir);
-    let worst = exitTileDamage(tile, towers);
+function approachDamageXY(x, y, dx, dy, coords, memo) {
+    let worst = damageAt(x, y, coords, memo);
     for (let step = 1; step <= 3; step++) {
-        const d = tileDamage(room.name, tile.x + dx * step, tile.y + dy * step, towers);
+        const d = damageAt(x + dx * step, y + dy * step, coords, memo);
         if (d > worst) worst = d;
     }
     return worst;
@@ -1476,7 +1504,7 @@ function obstacleGrid(room) {
     return grid;
 }
 
-function scoreExitEdge(room, dir, towers) {
+function scoreExitEdge(room, dir, coords, memo) {
     const tiles = room.find(dir);
     if (!tiles.length) return null;
     const along = (dir === TOP || dir === BOTTOM) ? (t) => t.x : (t) => t.y;
@@ -1492,14 +1520,18 @@ function scoreExitEdge(room, dir, towers) {
     if (!open.length) return null;
     open.sort((a, b) => along(a) - along(b));
 
-    const scorePair = (a, b) => {
-        const towerDmg = Math.max(
-            approachDamage(room, a, dir, towers),
-            b ? approachDamage(room, b, dir, towers) : 0
-        );
+    const {dx, dy} = inwardDelta(dir);
+    const approach = new Array(open.length);
+    for (let i = 0; i < open.length; i++) {
+        approach[i] = approachDamageXY(open[i].x, open[i].y, dx, dy, coords, memo);
+    }
+
+    const scorePair = (i, j) => {
+        const a = open[i];
+        const towerDmg = j == null ? approach[i] : Math.max(approach[i], approach[j]);
         let barrierHits = inwardBarrierHits(room, a.x, a.y, dir);
-        if (b) barrierHits += inwardBarrierHits(room, b.x, b.y, dir);
-        return {towerDmg, barrierHits, quadWidth: b ? 2 : 1};
+        if (j != null) barrierHits += inwardBarrierHits(room, open[j].x, open[j].y, dir);
+        return {towerDmg, barrierHits, quadWidth: j != null ? 2 : 1};
     };
 
     let best = null;
@@ -1522,9 +1554,9 @@ function scoreExitEdge(room, dir, towers) {
     };
     for (let i = 0; i < open.length - 1; i++) {
         if (along(open[i + 1]) - along(open[i]) !== 1) continue;
-        consider(scorePair(open[i], open[i + 1]));
+        consider(scorePair(i, i + 1));
     }
-    for (let i = 0; i < open.length; i++) consider(scorePair(open[i], null));
+    for (let i = 0; i < open.length; i++) consider(scorePair(i, null));
     return best;
 }
 
@@ -1541,13 +1573,15 @@ function pickAttackRoute(room, origin) {
         }
     });
 
+    const coords = towerCoordPairs(towers);
+    const memo = Object.create(null);
     const candidates = [];
     const dirs = [TOP, RIGHT, BOTTOM, LEFT];
     for (let i = 0; i < dirs.length; i++) {
         const dir = dirs[i];
         const staging = exits[dir];
         if (!staging || !isViableStagingRoom(staging)) continue;
-        const geom = scoreExitEdge(room, dir, towers);
+        const geom = scoreExitEdge(room, dir, coords, memo);
         if (!geom) continue;
         candidates.push({
             staging,

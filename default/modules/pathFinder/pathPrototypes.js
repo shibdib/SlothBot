@@ -73,10 +73,16 @@ Creep.prototype.showMatrix = function (destination, tunnel) {
 };
 
 Room.prototype.routeSafe = function (destination = this.name, maxThreat = 2, maxHeat = 1000, range = 20) {
-    const cacheKey = `${this.name}.${destination}`;
+    const dest = destination && destination.name ? destination.name : destination;
+    if (!dest) return false;
+    // A real route is at least the linear distance. Far rooms used to pay
+    // Game.map.findRoute inside the misc spawn scan and still come back unsafe.
+    if (Game.map.getRoomLinearDistance(this.name, dest) > range) return false;
+
+    const cacheKey = `${this.name}.${dest}.${maxThreat}.${maxHeat}.${range}`;
     if (routeSafetyCache[cacheKey]?.expire > Game.time) return routeSafetyCache[cacheKey].status;
 
-    const route = findRoute(this.name, destination);
+    const route = findRoute(this.name, dest);
     let safe = true;
     if (route?.length > range) safe = false;
     else if (route?.length) {

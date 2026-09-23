@@ -63,17 +63,30 @@ class FactoryControl {
         return (ei && ei.spareIncome) || 0;
     }
 
+    // Storage energy only. energyState folds batteries in at a recovery estimate,
+    // so a room sitting on batteries stays "OK" while the energy it can spend shrinks
+    // and the factory never starts the conversion.
+    static usableEnergyState(room) {
+        const target = FactoryControl.energyTarget(room);
+        const energy = (room && room.rawEnergy) || 0;
+        if (!(target > 0)) return 2;
+        if (energy > target * 1.5) return 3;
+        if (energy >= target) return 2;
+        if (energy > target * 0.5) return 1;
+        return 0;
+    }
+
     static needsBatteryUnpack(room) {
         const batteryCost = FactoryControl.batteryBatchCost();
         if (room.store(RESOURCE_BATTERY) < batteryCost) return false;
-        const energyState = room.energyState || 0;
+        const energyState = FactoryControl.usableEnergyState(room);
         if (energyState >= 2) return false;
         if (energyState === 0) return true;
         return FactoryControl.roomSpareIncome(room) < 0;
     }
 
     static batteryUnpackRecovered(room) {
-        const energyState = room.energyState || 0;
+        const energyState = FactoryControl.usableEnergyState(room);
         if (energyState >= 2) return true;
         if (energyState === 0) return false;
         const ei = room.energyInfo;
@@ -365,6 +378,10 @@ class FactoryControl {
             }
             return false;
         }
+        if (FactoryControl.shouldContinueBatteryUnpack(room)) {
+            log.i(`${roomLink(room.name)} stopping ${producing} — usable energy low.`, 'FACTORY CONTROL:');
+            return true;
+        }
 
         if (room.store(producing) >= productionCap(producing)) {
             log.i(`${roomLink(room.name)} stopping ${producing} — cap reached.`, 'FACTORY CONTROL:');
@@ -395,7 +412,8 @@ class FactoryControl {
     decideProduction(room, factory, factoryLevel) {
         const opsPaused = empireOpsPaused();
 
-        // Unpack while CRIT, or LOW with negative spare. Stop once OK or LOW+positive flow.
+        // Unpack while usable energy is CRIT, or LOW with negative spare.
+        // Stop once raw energy is back to target, or LOW with positive flow.
         if (FactoryControl.shouldContinueBatteryUnpack(room)) {
             this.setProduction(factory, RESOURCE_ENERGY, 'low usable energy');
             return;

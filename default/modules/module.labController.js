@@ -372,10 +372,30 @@ class LabManager {
             const structMem = lab.room.memory._structureMemory;
             const mem = structMem && structMem[lab.id];
             if (!mem || !mem.neededBoost) return;
-            const hasLiveRequestor = mem.requestors && mem.requestors.some(id => Game.getObjectById(id));
-            if (hasLiveRequestor) return;
-            const hasPreReserve = mem.preReservedFor && mem.preReservedFor.some(n => Game.creeps[n]);
-            if (hasPreReserve) {
+            // Drop dead claimants every pass. A busy lab used to return while any
+            // one creep was alive, so requestors and preReservedFor grew forever.
+            // Spawn writes Memory.creeps a tick before Game.creeps exists, so a
+            // name still in Memory.creeps is an egg, not a corpse.
+            if (mem.requestors) {
+                const live = [];
+                for (let i = 0; i < mem.requestors.length; i++) {
+                    const id = mem.requestors[i];
+                    if (id && Game.getObjectById(id)) live.push(id);
+                }
+                if (live.length) mem.requestors = live;
+                else delete mem.requestors;
+            }
+            if (mem.preReservedFor) {
+                const live = [];
+                for (let i = 0; i < mem.preReservedFor.length; i++) {
+                    const name = mem.preReservedFor[i];
+                    if (name && (Game.creeps[name] || (Memory.creeps && Memory.creeps[name]))) live.push(name);
+                }
+                if (live.length) mem.preReservedFor = live;
+                else delete mem.preReservedFor;
+            }
+            if (mem.requestors) return;
+            if (mem.preReservedFor) {
                 mem.requested = Game.time;
                 return;
             }

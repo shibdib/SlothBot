@@ -4,6 +4,7 @@
 
 const profiler = require("tools.profiler");
 const {isCriticalBuildStructureType, roomHasCriticalBuildSites, roomMissingUpgradePad} = require('bodyHelpers');
+const {towerFillFloor, closestTowerUnder, lowestTowerUnder, TOWER_FILL_URGENT} = require('spawnFlow');
 
 class RoleDrone {
     constructor(creep) {
@@ -108,7 +109,7 @@ class RoleDrone {
             }
         }
 
-        if (!flags.hasHauler && energy > 0 && flags.spawnNeedsFill) {
+        if (!flags.hasHauler && energy > 0 && (flags.spawnNeedsFill || flags.towerUrgent)) {
             const task = this.creep.memory.task;
             if (task === 'build' || task === 'repair' || task === 'upgrade' || task === 'waller') {
                 delete this.creep.memory.task;
@@ -332,7 +333,7 @@ class RoleDrone {
             return false;
         }
         if (!this.creep.store.getUsedCapacity(RESOURCE_ENERGY)) return false;
-        if (!spawnEnergyNeedsFill(this.room)) {
+        if (!spawnEnergyNeedsFill(this.room) && !closestTowerUnder(this.creep.pos, this.room, towerFillFloor(this.room))) {
             if (this.creep.memory.task === 'haul') {
                 delete this.creep.memory.task;
                 delete this.creep.memory.storageDestination;
@@ -496,6 +497,7 @@ function droneRoomFlags(room) {
         spawnTowerSites,
         hasHauler: hasLiveHauler(room),
         spawnNeedsFill: spawnEnergyNeedsFill(room),
+        towerUrgent: !!lowestTowerUnder(room, TOWER_FILL_URGENT),
         threatLevel: (INTEL[room.name] && INTEL[room.name].threatLevel) || 0,
         leftoverUpgrade: shouldLeftoverUpgrade(room),
         hasBuilderWork,
@@ -588,7 +590,21 @@ function spawnEnergyNeedsFill(room) {
 }
 
 function pickSpawnFillTarget(creep) {
+    const floor = towerFillFloor(creep.room);
     const destId = creep.memory.storageDestination;
+    if (destId) {
+        const dest = Game.getObjectById(destId);
+        if (dest && dest.structureType === STRUCTURE_TOWER && dest.store
+            && (dest.store[RESOURCE_ENERGY] || 0) < floor
+            && dest.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
+            return dest;
+        }
+    }
+    const tower = closestTowerUnder(creep.pos, creep.room, floor);
+    if (tower) {
+        creep.memory.storageDestination = tower.id;
+        return tower;
+    }
     if (destId) {
         const dest = Game.getObjectById(destId);
         if (dest && dest.store && dest.store.getFreeCapacity(RESOURCE_ENERGY) > 0

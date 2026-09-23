@@ -6,7 +6,7 @@ const profiler = require("tools.profiler");
 const FactoryControl = require('module.factoryController');
 const {getRoomKeepAmount, getOperationalProtectAmount, getRoomOperationalNeed} = require('termKeep');
 const {isCoreRoom} = require('module.colonyProfile');
-const {roomCanFillNuker, roomCanProcessPower, noteNukerEnergyDeposit} = require('spawnFlow');
+const {roomCanFillNuker, roomCanProcessPower, noteNukerEnergyDeposit, towerFillFloor, lowestTowerUnder, TOWER_FILL_URGENT} = require('spawnFlow');
 const {hasLiveHubManager, hubManagerAdjacentTo} = require('spawnHub');
 
 const BALANCE_MIN_TRANSFER = 100;
@@ -128,6 +128,24 @@ class RoleLabTech {
         return true;
     }
 
+    roomUnderTowerThreat() {
+        if (this.room.memory && this.room.memory.dangerousAttack) return true;
+        return !!(typeof INTEL !== 'undefined' && INTEL[this.room.name] && INTEL[this.room.name].threatLevel);
+    }
+
+    findTowerFillTask(floor) {
+        const tower = lowestTowerUnder(this.room, floor);
+        if (!tower) return null;
+        const supplier = this.pickBestSupplier(RESOURCE_ENERGY);
+        if (!supplier || !(supplier.store[RESOURCE_ENERGY] > 0)) return null;
+        return {
+            withdrawTarget: supplier.id,
+            deliveryTarget: tower.id,
+            resource: RESOURCE_ENERGY,
+            amount: tower.store.getFreeCapacity(RESOURCE_ENERGY)
+        };
+    }
+
     // Hub manager fills a power spawn only when it is standing next to it.
     // Off-hub spawns (common in dynamic rooms) are this creep's job.
     findPowerSpawnFeed(powerSpawn) {
@@ -173,21 +191,10 @@ class RoleLabTech {
         // packed. Every branch that uses storeTarget.id must guard for null.
         const storeTarget = this.pickStoreTarget(storage, terminal);
 
-        // 1. Combat — fill towers during attacks
-        if (this.room.memory.dangerousAttack) {
-            const supplier = storage || terminal;
-            if (supplier && supplier.store[RESOURCE_ENERGY] > 0) {
-                // Threshold of 500 (half a tower's worth of shots) avoids trivial
-                // top-ups burning a whole haul on the last few units of energy.
-                const lowTower = this.room.towers.find(s => s.store.getFreeCapacity(RESOURCE_ENERGY) >= 500);
-                if (lowTower) return {
-                    withdrawTarget: supplier.id,
-                    deliveryTarget: lowTower.id,
-                    resource: RESOURCE_ENERGY,
-                    amount: lowTower.store.getFreeCapacity(RESOURCE_ENERGY)
-                };
-            }
-        }
+        // 1. Dry towers, and any tower that can still take a load while under attack.
+        // Half-empty is ahead of decaying thorium. The maintain line is below.
+        const urgentTower = this.findTowerFillTask(this.roomUnderTowerThreat() ? towerFillFloor(this.room) : TOWER_FILL_URGENT);
+        if (urgentTower) return urgentTower;
 
         // 2. Season Thorium — dropped piles decay and Thorium in a container
         // ages the pad. Drain to terminal (feeder send) before lab busywork.
@@ -202,6 +209,13 @@ class RoleLabTech {
             && terminal.store.getFreeCapacity() < BALANCE_MIN_TRANSFER) {
             const stuck = this.findOverflowRelief(storage, terminal);
             if (stuck) return stuck;
+        }
+
+        // Keep towers near full before labs, factory, and the nuker. The hauler
+        // does the same job; this covers a room whose hauler is across the base.
+        if (!this.roomUnderTowerThreat()) {
+            const towerTask = this.findTowerFillTask(towerFillFloor(this.room));
+            if (towerTask) return towerTask;
         }
 
         // 3. Boost labs beat production, nuker, and cleanup. Pre-stage first,

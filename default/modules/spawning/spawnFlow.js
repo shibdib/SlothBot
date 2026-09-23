@@ -177,6 +177,66 @@ function noteNukerEnergyDeposit(dest, resource, amount) {
     if (global.bumpEnergyExpense) global.bumpEnergyExpense('nuke', dest.room.name, amount);
 }
 
+// Peace keeps a 100-energy gap so one repair shot does not yank every hauler.
+// Threat closes that gap: a tower that can still take a load gets it.
+const TOWER_FILL_PEACE_GAP = 100;
+const TOWER_FILL_THREAT_GAP = 50;
+const TOWER_FILL_URGENT = 500;
+
+function towerEnergyCap() {
+    return typeof TOWER_CAPACITY === 'number' ? TOWER_CAPACITY : 1000;
+}
+
+function roomTowerThreat(room) {
+    if (!room) return false;
+    if (room.memory && room.memory.dangerousAttack) return true;
+    return !!(typeof INTEL !== 'undefined' && INTEL[room.name] && INTEL[room.name].threatLevel);
+}
+
+/** Energy level haulers should bring a tower back up to. */
+function towerFillFloor(room) {
+    const gap = roomTowerThreat(room) ? TOWER_FILL_THREAT_GAP : TOWER_FILL_PEACE_GAP;
+    return towerEnergyCap() - gap;
+}
+
+function towerUnderFloor(tower, floor) {
+    if (!tower || !tower.store || !tower.my) return false;
+    if ((tower.store.getFreeCapacity(RESOURCE_ENERGY) || 0) <= 0) return false;
+    return (tower.store[RESOURCE_ENERGY] || 0) < floor;
+}
+
+function closestTowerUnder(pos, room, floor) {
+    const towers = (room && room.towers) || [];
+    let best = null;
+    let bestRange = 999;
+    for (let i = 0; i < towers.length; i++) {
+        const tower = towers[i];
+        if (!towerUnderFloor(tower, floor)) continue;
+        const range = pos.getRangeTo(tower);
+        if (range < bestRange) {
+            best = tower;
+            bestRange = range;
+        }
+    }
+    return best;
+}
+
+function lowestTowerUnder(room, floor) {
+    const towers = (room && room.towers) || [];
+    let best = null;
+    let bestEnergy = Infinity;
+    for (let i = 0; i < towers.length; i++) {
+        const tower = towers[i];
+        if (!towerUnderFloor(tower, floor)) continue;
+        const energy = tower.store[RESOURCE_ENERGY] || 0;
+        if (energy < bestEnergy) {
+            best = tower;
+            bestEnergy = energy;
+        }
+    }
+    return best;
+}
+
 module.exports = {
     ENERGY_ACCRUAL_FLOOR,
     RCL8_CONTROLLER_LINK_TARGET,
@@ -193,4 +253,8 @@ module.exports = {
     powerSinkKeepAmount,
     roomHasPositiveFlow,
     noteNukerEnergyDeposit,
+    TOWER_FILL_URGENT,
+    towerFillFloor,
+    closestTowerUnder,
+    lowestTowerUnder,
 };

@@ -11,6 +11,7 @@ const {
     civilianShouldFlee
 } = require('remoteMining');
 const {travelRouteHops} = require('pathRoute');
+const {towerFillFloor, closestTowerUnder} = require('spawnFlow');
 
 class RoleRemoteHauler {
     constructor(creep) {
@@ -109,7 +110,9 @@ class RoleRemoteHauler {
         const colonyRoom = Game.rooms[this.memory.colony] || this.room;
         if (this.memory.storageDestination) {
             const cached = Game.getObjectById(this.memory.storageDestination);
-            if (!isRemoteDumpTarget(colonyRoom, cached, this.memory.exitLink)) {
+            const towerHasMinerals = cached && cached.structureType === STRUCTURE_TOWER
+                && this.store.getUsedCapacity() > (this.store[RESOURCE_ENERGY] || 0);
+            if (towerHasMinerals || !isRemoteDumpTarget(colonyRoom, cached, this.memory.exitLink)) {
                 this.memory.storageDestination = undefined;
             }
         }
@@ -452,6 +455,8 @@ function isRemoteDumpTarget(colony, dest, exitLinkId) {
     if (colony.storage && dest.id === colony.storage.id) return true;
     if (colony.terminal && dest.id === colony.terminal.id) return true;
     if (colony.protoStorage && dest.id === colony.protoStorage.id) return true;
+    if (dest.structureType === STRUCTURE_TOWER && dest.my
+        && (dest.store[RESOURCE_ENERGY] || 0) < towerFillFloor(colony)) return true;
     return false;
 }
 
@@ -530,6 +535,15 @@ function dropOff(creep) {
         else if (colony.storage) memory.storageDestination = colony.storage.id;
         else memory.resourceDelivery = findClosestOwnedRoom(creep.room.name, false, 4);
         return;
+    }
+
+    // No exit link (or it is full). Fill a low tower before the warehouse.
+    if (creep.room.name === colony.name && creep.store[RESOURCE_ENERGY] > 0) {
+        const tower = closestTowerUnder(creep.pos, colony, towerFillFloor(colony));
+        if (tower) {
+            memory.storageDestination = tower.id;
+            return;
+        }
     }
 
     if (memory.storageDestination) {

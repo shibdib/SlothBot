@@ -41,7 +41,7 @@ const PHASE_ABBR = {
     colony: '', colonies: 'cols', military: 'mil', planner: 'pln',
     state: 'st', house: 'hs', start: 'st0', roles: 'rl', et: 'et',
     prof: 'pr', power: 'pw', save: 'sv', end: 'end', world: 'wd',
-    tools: 'tl', hc: 'hc', expand: 'ex',
+    tools: 'tl', hc: 'hc', expand: 'ex', seg: 'sg',
 };
 
 const samples = [];

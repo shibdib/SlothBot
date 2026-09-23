@@ -65,6 +65,7 @@ const HUB_EXTENSION_VALIDATE_COOLDOWN = 500;
 const HUB_COLLAR_SNAP_COOLDOWN = 50;
 const HUB_SEARCH_MIN = 7;
 const HUB_SEARCH_MAX = 42;
+const HUB_SEARCH_FAIL_COOLDOWN = 500;
 const HUB_SEAL_WEIGHT = 4;
 const HUB_SECTOR_WEIGHT = 10;
 // Fallback ring around the hub when no seal exists yet (RCL < bunker).
@@ -561,6 +562,26 @@ function findCoreHub(room, options) {
     return true;
 }
 
+function hubSearchCoolingDown(room) {
+    return !!(room && room.memory && room.memory.hubSearchFailTick > Game.time);
+}
+
+function stampHubSearchFail(room) {
+    if (room && room.memory) room.memory.hubSearchFailTick = Game.time + HUB_SEARCH_FAIL_COOLDOWN;
+}
+
+function clearHubSearchFail(room) {
+    if (room && room.memory && room.memory.hubSearchFailTick) delete room.memory.hubSearchFailTick;
+}
+
+function finishHubSearch(room, t0, ok, stampFail) {
+    const spent = Game.cpu.getUsed() - t0;
+    if (spent >= 8 && typeof noteHot === 'function') noteHot('hub', room && room.name, spent);
+    if (ok) clearHubSearchFail(room);
+    else if (stampFail) stampHubSearchFail(room);
+    return ok;
+}
+
 function findHub(room, isHubCheck) {
     // Plan-first hub (C5: no legacy hydrate).
     const resolved = resolveHub(room);
@@ -570,8 +591,15 @@ function findHub(room, isHubCheck) {
             maybeSnapHubToLiveCollar(room);
             validateHubExtensionCapacity(room);
         }
+        clearHubSearchFail(room);
         return true;
     }
+
+    // Bootstrap runs the planner every tick while no hub is stored. A room
+    // that cannot fit one used to pay the 7..42 grid on all of those ticks.
+    if (!isHubCheck && hubSearchCoolingDown(room)) return false;
+
+    const t0 = Game.cpu.getUsed();
 
     if (!isHubCheck) {
         // Shadow canary: never mass-destroy foreign structures; hub recovery memory is OK.
@@ -597,7 +625,7 @@ function findHub(room, isHubCheck) {
                     + (dynamic ? ' (dynamic)' : '') + '.');
             }
             validateHubExtensionCapacity(room);
-            return true;
+            return finishHubSearch(room, t0, true, false);
         }
     }
 
@@ -610,7 +638,7 @@ function findHub(room, isHubCheck) {
         for (let x = HUB_SEARCH_MIN; x <= HUB_SEARCH_MAX; x++) {
             if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
             if (!isValidHubPosition({x, y}, room, sources, anchors)) continue;
-            if (isHubCheck) return true;
+            if (isHubCheck) return finishHubSearch(room, t0, true, false);
             possiblePos.push({x, y});
         }
     }
@@ -637,15 +665,15 @@ function findHub(room, isHubCheck) {
                 + ' ring=' + (choice._ring != null ? choice._ring : '?')
                 + ' sectors=' + (choice._sectors != null ? choice._sectors : '?'));
         }
-        return true;
+        return finishHubSearch(room, t0, true, false);
     }
 
-    if (isHubCheck) return coreLayoutCanFit(room);
-    if (findCoreHub(room)) return true;
+    if (isHubCheck) return finishHubSearch(room, t0, coreLayoutCanFit(room), false);
+    if (findCoreHub(room)) return finishHubSearch(room, t0, true, false);
     if (typeof log !== 'undefined' && log.a) {
         log.a(room.name + ' has been abandoned due to being unable to find a suitable layout.');
     }
-    return false;
+    return finishHubSearch(room, t0, false, true);
 }
 
 function hubCheck(room) {

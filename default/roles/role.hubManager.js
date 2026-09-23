@@ -14,7 +14,7 @@
 const profiler = require('tools.profiler');
 const {
     roomCanFillNuker, roomCanProcessPower, roomHasPositiveFlow, noteNukerEnergyDeposit,
-    RCL8_CONTROLLER_LINK_MIN,
+    RCL8_CONTROLLER_LINK_MIN, towerFillFloor,
 } = require('spawnFlow');
 const RoleLabTech = require('role.labTech');
 const {hubManagerNeedsBiggerBody} = require('bodyEconomic');
@@ -247,10 +247,29 @@ class RoleHubManager {
         return !!(max && typeof ticks === 'number' && ticks < max * 0.25);
     }
 
+    adjacentLowTower() {
+        const floor = towerFillFloor(this.room);
+        const towers = this.room.towers || [];
+        for (let i = 0; i < towers.length; i++) {
+            const tower = towers[i];
+            if (!tower || !tower.store || !adjacentTo(this.creep, tower)) continue;
+            if ((tower.store[RESOURCE_ENERGY] || 0) >= floor) continue;
+            if (tower.store.getFreeCapacity(RESOURCE_ENERGY) <= 0) continue;
+            return tower;
+        }
+        return null;
+    }
+
     deliverEnergy() {
         const spawnNeed = this.spawnNeed();
         if (spawnNeed.length) {
             this.creep.transfer(spawnNeed[0], RESOURCE_ENERGY);
+            return;
+        }
+
+        const tower = this.adjacentLowTower();
+        if (tower) {
+            this.creep.transfer(tower, RESOURCE_ENERGY);
             return;
         }
 
@@ -328,6 +347,7 @@ class RoleHubManager {
         }
 
         if (this.spawnNeed().length && pullEnergy()) return;
+        if (this.adjacentLowTower() && pullEnergy()) return;
         if (feedController && this.controllerFeedStockOk()
             && hubLink.store.getFreeCapacity(RESOURCE_ENERGY) > 0 && pullEnergy()) return;
 

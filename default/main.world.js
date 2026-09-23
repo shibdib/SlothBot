@@ -61,8 +61,10 @@ class World {
         this.houseKeeping();
         cpuWatch.mark('house');
 
-        // Manage segments
+        // Manage segments. Marked on its own so an energy-tracker spike is not
+        // the segment load that runs just before it.
         this.segmentManager();
+        cpuWatch.mark('seg');
 
         // Accumulate per-tick energy events (owned rooms + visible remotes).
         // Must run before stateManager, which snapshots the rolling averages.
@@ -89,7 +91,7 @@ class World {
 
         // Manage rooms
         this.colonyManager();
-        cpuWatch.mark('colonies');
+        cpuWatch.mark('colonies', null, this._unmarkedColonyCpu || 0);
 
         // Manage military creeps
         this.militaryCreepManager();
@@ -248,6 +250,9 @@ class World {
     colonyManager() {
         const rooms = shuffle([...MY_ROOMS]); // Cache rooms to avoid global lookups
         spawning.resolvePendingAssignments();
+        // Rooms under the per-room mark threshold. Reported as cols so the
+        // phase is their sum, not whatever cheap rooms happened to run last.
+        let unmarked = 0;
 
         for (const roomName of rooms) {
             const room = Game.rooms[roomName];
@@ -285,6 +290,8 @@ class World {
                     add('lk', room._colonyLinkCpu || 0);
                     const detail = bits.length ? `${roomName} ${bits.join(' ')}` : roomName;
                     cpuWatch.mark('colony', detail, spent);
+                } else {
+                    unmarked += spent;
                 }
             } catch (e) {
                 log.e(`Colony Module experienced an error in room ${roomLink(roomName)}`);
@@ -292,6 +299,7 @@ class World {
                 Game.notify(e.stack);
             }
         }
+        this._unmarkedColonyCpu = unmarked;
     }
 
     handleCreepError(creep, error) {
