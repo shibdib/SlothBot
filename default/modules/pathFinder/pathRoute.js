@@ -10,6 +10,7 @@
 
 
 const {NO_RAMPART_CODE} = require('pathState');
+const {skRoutePoints, SK_BLOCK_RANGE} = require('pathMatrix');
 
 const CLAIM_TICKS_PER_ROOM = 35;
 const CLAIM_ACTION_RESERVE = 50;
@@ -77,7 +78,7 @@ function routeCacheKey(from, to, options = {}) {
     const avoidKey = roomsAvoid && roomsAvoid.length
         ? `_av${roomsAvoid.slice().sort().join(',')}` : '';
     const nx = typeof options === 'object' && options.noSkCrossing ? '_nx' : '';
-    return `${from}_${to}${shortest ? '_short' : ''}${offRoad ? '_off' : ''}${avoidKey}_c6${nx}`;
+    return `${from}_${to}${shortest ? '_short' : ''}${offRoad ? '_off' : ''}${avoidKey}_c7${nx}`;
 }
 
 function roomIsSk(roomName, intel) {
@@ -103,7 +104,7 @@ function skTransitCost(roomName, intel, shortest) {
 
 const SK_CROSSING_CACHE = Object.create(null);
 const SK_GRID_CACHE = Object.create(null);
-const SK_DANGER_RANGE = 5;
+const SK_DANGER_RANGE = SK_BLOCK_RANGE;
 const SK_BFS_DX = [0, 1, 1, 1, 0, -1, -1, -1];
 const SK_BFS_DY = [-1, -1, 0, 1, 1, 1, 0, -1];
 const SK_EXIT_DIRS = [TOP, RIGHT, BOTTOM, LEFT];
@@ -219,8 +220,8 @@ function skExitConnected(roomName, enterDir, leaveDir, points) {
 // Never call Game.map.findExit here — it uses findRoute and re-enters this callback.
 function skCrossingBlocked(roomName, fromRoom, towardRoom) {
     if (!fromRoom || !towardRoom || fromRoom === towardRoom) return false;
-    const intel = typeof INTEL !== 'undefined' ? INTEL[roomName] : undefined;
-    const points = intel && intel.skDangerPoints;
+    // Live keepers and lairs that spawn during a crossing. A dead pocket is open.
+    const points = skRoutePoints(roomName);
     if (!points || !points.length) return false;
     const enterDir = exitDirToNeighbor(roomName, fromRoom);
     const leaveDir = greedyExitDir(roomName, towardRoom);

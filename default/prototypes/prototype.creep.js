@@ -30,6 +30,7 @@ const {
     clearTrailerTowState
 } = require('pathUtils');
 const {stepInlandOffExit, isSquadCreep} = require('pathFormation');
+const {skInShot, skStepOut} = require('pathMatrix');
 const {
     roomCanBurnSurplus, roomCanFillNuker, ENERGY_ACCRUAL_FLOOR, noteNukerEnergyDeposit, roomHasPositiveFlow,
     RCL8_CONTROLLER_LINK_MIN, towerFillFloor, closestTowerUnder,
@@ -504,22 +505,19 @@ Creep.prototype.skSafety = function (opts) {
         (global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(this.room.name)));
     if (!isSkRoom && (this.room.controller || intel)) return false;
 
-    const range = opts.range || 7;
-    const room = this.room;
-    const sk = this.skThreatNear(this.pos, range, true);
-    const lair = !sk && this.skImminentLair(this.pos, range);
-
-    if (sk || lair) {
-        this.shibKite(range + 2, sk || lair);
-        this.memory.fledSK = Game.time;
-        return true;
-    } else if (this.memory.fledSK) {
-        if (this.memory.fledSK + 5 <= Game.time) {
-            delete this.memory.fledSK;
-        } else if (!(opts && opts.keepMoving)) {
-            this.idleFor(10);
-            return true;
+    // Shot range only. A kite at range 7 stepped one tile out, then the path
+    // stepped back — a two-tile pingpong. The matrix keeps the path outside.
+    if (this.memory.fledSK) delete this.memory.fledSK;
+    const shotRange = Math.min(3, opts.range || 3);
+    if (this.memory.role !== 'SKAttacker' && skInShot(this, shotRange)) {
+        skStepOut(this);
+        const move = getShibMove(this);
+        if (move) {
+            delete move.path;
+            delete move.pathPos;
+            move.pathPosTime = 0;
         }
+        return true;
     }
 
     // Civilian SK miners suicide on a core. Claimers/haulers transiting the

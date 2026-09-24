@@ -29,6 +29,7 @@ const {
 } = require('pathRoute');
 
 const {serializePath} = require('pathPathCache');
+const {skAdviseStep, skEscapeDirection, skInShot} = require('pathMatrix');
 
 const {
     getSquadMatrix,
@@ -157,6 +158,43 @@ function dropSquadPath(creep) {
     cache.endpoint = undefined;
 }
 
+function skSquadInShot(leader) {
+    if (skInShot(leader)) return true;
+    const ids = leader.memory.squadMembers || [];
+    for (let i = 0; i < ids.length; i++) {
+        const member = Game.getObjectById(ids[i]);
+        if (member && skInShot(member)) return true;
+    }
+    return false;
+}
+
+// One search when a cached step would walk into a keeper, then hold so the
+// squad does not bounce off the disk edge.
+function squadStepHitsKeeper(movers, move, leader) {
+    let hits = false;
+    for (let i = 0; i < movers.length; i++) {
+        const next = posAfterMove(movers[i].pos, move);
+        if (!next || next.roomName !== movers[i].pos.roomName) continue;
+        const advice = skAdviseStep(movers[i], next, {skStepOnly: true});
+        if (advice === 'repath' || advice === 'hold') {
+            hits = true;
+            break;
+        }
+    }
+    if (!hits) return false;
+    const cache = leader.memory._shibSquadMove;
+    if (cache && cache.skHoldDir === move && cache.skHoldTick >= Game.time - 1) {
+        cache.skHoldTick = Game.time;
+        return true;
+    }
+    dropSquadPath(leader);
+    if (cache) {
+        cache.skHoldDir = move;
+        cache.skHoldTick = Game.time;
+    }
+    return true;
+}
+
 function squadMove(creep, path) {
     if (!creep.memory.squadMembers || !path?.length) return false;
 
@@ -195,6 +233,8 @@ function squadMove(creep, path) {
         dropSquadPath(creep);
         return false;
     }
+
+    if (squadStepHitsKeeper(movers, move, creep)) return false;
 
     const newLeaderPos = posAfterMove(creep.pos, move);
     const leaderEnteringDest = !!(dest && newLeaderPos && newLeaderPos.roomName === dest
@@ -323,6 +363,13 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     const squadSize = (this.memory.squadMembers || []).length + 1;
     const targetKey = getPosKey(target);
 
+    if (skSquadInShot(this)) {
+        dropSquadPath(this);
+        const dir = skEscapeDirection(this);
+        if (!dir) return false;
+        return squadMove(this, String(dir));
+    }
+
     if (cache.path?.length && cache.orientation === orientation && cache.squadSize === squadSize && cache.endpoint) {
         if (cache.target === targetKey || endpointInRange(cache.endpoint, target, options.range)) {
             return squadMove(this, cache.path);
@@ -340,7 +387,7 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
     const searchOpts = {
         maxRooms: options.maxRooms || Math.max(1, Math.ceil(allowedRooms.length * 1.5)),
         heuristicWeight: 1,
-        roomCallback: roomName => allowedRooms.includes(roomName) ? getSquadMatrix(roomName, orientation, squadSize) : false,
+        roomCallback: roomName => allowedRooms.includes(roomName) ? getSquadMatrix(roomName, orientation, squadSize, this) : false,
     };
     const goals = options.hopGoals && options.hopGoals.length
         ? options.hopGoals
@@ -351,7 +398,7 @@ Creep.prototype.shibSquadMovement = function (target, options = {}) {
         maxRooms: rooms.length,
         heuristicWeight: 1,
         roomCallback: roomName => rooms.includes(roomName)
-            ? getSquadMatrix(roomName, orientation, squadSize) : false,
+            ? getSquadMatrix(roomName, orientation, squadSize, this) : false,
     });
     options.maxOps = Math.max(options.maxOps || 0, maxOps);
     result = applySameRoomDetour(origin, searchTarget, result, options, detourSearch);
@@ -409,7 +456,7 @@ Creep.prototype.shibSquadKite = function (fleeRange = FLEE_RANGE, options = {}) 
         roomCallback: roomName => {
             if (!allowedRooms.includes(roomName)) return false;
             if (roomName !== currentRoom && INTEL[roomName]?.owner && !FRIENDLIES.includes(INTEL[roomName].owner)) return false;
-            return getSquadMatrix(roomName, orientation, squadSize);
+            return getSquadMatrix(roomName, orientation, squadSize, this);
         },
     });
 

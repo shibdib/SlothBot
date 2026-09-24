@@ -1868,7 +1868,15 @@ let globals = function () {
         santa: "\ud83c\udf85"
     };
 
-    global.UNIT_COST = (body) => _.sum(body, p => BODYPART_COST[p.type || p]);
+    global.UNIT_COST = (body) => {
+        if (!body || !body.length) return 0;
+        let cost = 0;
+        for (let i = 0; i < body.length; i++) {
+            const p = body[i];
+            cost += BODYPART_COST[p.type || p] || 0;
+        }
+        return cost;
+    };
 
     global.CUMULATIVE_CONTROLLER_DOWNGRADE = _.map(CONTROLLER_DOWNGRADE, (v1, k1, c1) => (_.reduce(c1, (a, v2, k2, c2) => (a + ((k2 <= k1) ? v2 : 0)), 0)));
 

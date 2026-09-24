@@ -188,7 +188,7 @@ function applyLongDistanceHop(creep, origin, target, options) {
 
 const {getPath, cachePath, serializePath} = require('pathPathCache');
 
-const {getMatrix} = require('pathMatrix');
+const {getMatrix, skAdviseStep, skStepOut} = require('pathMatrix');
 
 const {
     creepWinsTraffic,
@@ -407,7 +407,7 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
 
     // Execute existing path
     if (pathState.path && pathState.path.length && !options.getPath) {
-        return executePath(creep, pathState, options, origin, heading);
+        return executePath(creep, pathState, options, origin, heading, target);
     }
 
     if (options.tunnel) options.maxOps = 15000;
@@ -432,12 +432,32 @@ function shibMove(creep, heading, options = {}, pathOnly = false) {
     pathInfo.targetRoom = target.roomName;
 
     if (pathInfo.path && pathInfo.path.length && !options.getPath) {
-        return executePath(creep, pathInfo, options, origin, heading);
+        return executePath(creep, pathInfo, options, origin, heading, target);
     }
     return shibPath(creep, heading, pathInfo, origin, target, options);
 }
 
-function executePath(creep, pathInfo, options, origin, heading) {
+function applySkAdvice(creep, pathInfo, advice) {
+    if (advice === 'out') {
+        skStepOut(creep);
+        delete pathInfo.path;
+        delete pathInfo.pathPos;
+        pathInfo.pathPosTime = 0;
+        return 'done';
+    }
+    pathInfo.pathPosTime = 0;
+    if (advice === 'hold') return 'done';
+    if (creep._skRepath === Game.time || (pathInfo.skHoldTick && pathInfo.skHoldTick >= Game.time - 1)) {
+        pathInfo.skHoldTick = Game.time;
+        return 'done';
+    }
+    creep._skRepath = Game.time;
+    delete pathInfo.path;
+    delete pathInfo.pathPos;
+    return 'repath';
+}
+
+function executePath(creep, pathInfo, options, origin, heading, target) {
     if (!options.flee && heading && inRangeSameRoom(creep.pos, heading, options.range ?? 1)) {
         clearShibMove(creep);
         clearTrailerTowState(creep);
@@ -446,6 +466,17 @@ function executePath(creep, pathInfo, options, origin, heading) {
 
     if (!pathInfo.path?.length) {
         return false;
+    }
+
+    const skDir = parseInt(pathInfo.path[0], 10);
+    if (skDir) {
+        const skNext = creep.pos.positionAtDirection(skDir);
+        const advice = skAdviseStep(creep, skNext, options);
+        if (advice) {
+            const acted = applySkAdvice(creep, pathInfo, advice);
+            if (acted === 'repath') return shibPath(creep, heading, pathInfo, origin, target || heading, options);
+            return true;
+        }
     }
 
     const posKey = `${creep.pos.x}.${creep.pos.y}.${creep.pos.roomName}`;
@@ -546,6 +577,13 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
 
     // Early exit for adjacent same-room targets
     if (origin.roomName === target.roomName && creep.pos.isNearTo(heading)) {
+        const advice = skAdviseStep(creep, target, options);
+        if (advice === 'out') {
+            skStepOut(creep);
+            clearShibMove(creep);
+            return true;
+        }
+        if (advice === 'hold' || advice === 'repath') return true;
         clearShibMove(creep);
         return creep.move(creep.pos.getDirectionTo(heading));
     }
@@ -566,7 +604,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         setShibMove(creep, pathInfo);
         delete creep.memory.repathAttempt;
         delete creep.memory.badPathing;
-        return executePath(creep, pathInfo, options, origin, heading);
+        return executePath(creep, pathInfo, options, origin, heading, target);
     }
 
     let roomDistance = origin.roomName !== target.roomName
@@ -684,7 +722,7 @@ function shibPath(creep, heading, pathInfo, origin, target, options) {
         delete creep.memory._mazeOpsRetry;
         delete creep.memory._pathRangeBump;
 
-        return executePath(creep, pathInfo, options, origin, heading);
+        return executePath(creep, pathInfo, options, origin, heading, target);
     }
 
     // Stamp the dest so next tick is not treated as a target change (that

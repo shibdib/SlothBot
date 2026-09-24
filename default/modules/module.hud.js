@@ -14,7 +14,7 @@ const {
     isLiveCombatReady,
     getCombatReadyFailReason,
 } = require('hcReadiness');
-const {getColonyRole} = require('module.colonyProfile');
+const {getColonyRole, rawEnergyTarget} = require('module.colonyProfile');
 
 const VALID_ROOM_NAME = /^[WE]\d+[NS]\d+$/;
 const ROOM_NAME_PARSE = /^([WE])(\d+)([NS])(\d+)$/;
@@ -392,14 +392,18 @@ class HUD {
         const crFlag = liveCr ? 'CR ✓' : (crFail ? `CR ✗ ${crFail}` : 'CR ✗');
         const crColor = liveCr ? '#7dcea0' : '#ef6b6b';
         const stockPct = Math.min(100, diag.stockpilePct || 0);
-        const stockColor = stockPct >= 100 ? '#5dade2' : stockPct >= 50 ? '#7dcea0' : '#ffb347';
+        const rawEnergy = diag.rawEnergy != null ? diag.rawEnergy : (room.rawEnergy || 0);
+        const rawTarget = diag.rawTarget || rawEnergyTarget(room);
+        const rawPct = Math.min(100, diag.rawPct || (rawTarget > 0 ? Math.round((rawEnergy / rawTarget) * 100) : 0));
+        const barPct = room.level >= 8 ? rawPct : stockPct;
+        const stockColor = barPct >= 100 ? '#5dade2' : barPct >= 50 ? '#7dcea0' : '#ffb347';
         const barW = width * 0.46;
         const barX = x + pad;
 
-        this.drawMiniBar(room, barX, y, barW, stockPct, stockColor);
+        this.drawMiniBar(room, barX, y, barW, barPct, stockColor);
 
         const stockLabel = room.level >= 8
-            ? `${this.formatCompactEnergy(diag.stockEnergy)} / ${this.formatCompactEnergy(diag.stockTarget)}`
+            ? `${this.formatCompactEnergy(rawEnergy)}/${this.formatCompactEnergy(rawTarget)}  ${this.formatCompactEnergy(diag.stockEnergy)}/${this.formatCompactEnergy(diag.stockTarget)}`
             : `${stockPct}%`;
         const role = (diag && diag.colonyRole) || getColonyRole(room);
         const roleTag = {launch: 'LNCH', frontier: 'FRNT', core: 'CORE', outpost: 'OUTP'}[role] || '';
@@ -717,7 +721,8 @@ class HUD {
             if (room.storage || room.terminal) {
                 const energy = (room.storage ? room.storage.store[RESOURCE_ENERGY] : 0) +
                     (room.terminal ? room.terminal.store[RESOURCE_ENERGY] : 0);
-                const pct = Math.min(1, energy / 500000);
+                const target = rawEnergyTarget(room) || 180000;
+                const pct = Math.min(1, energy / Math.max(1, target));
                 mapRect(roomName, 1, 45, 48, 3.5, BAR_BG);
                 mapRect(roomName, 1, 45, 48 * pct, 3.5, BAR_ENERGY);
             }

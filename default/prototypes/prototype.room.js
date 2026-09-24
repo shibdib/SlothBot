@@ -288,12 +288,12 @@ Object.defineProperty(Room.prototype, 'energyState', {
         let energy = this.rawEnergy + batteryEquiv;
         let target;
         try {
-            target = require('module.colonyProfile').energyTarget(this);
+            target = require('module.colonyProfile').stockpileTarget(this);
         } catch (e) {
-            const upgradeCost = this.level === 8 ? 500000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
+            const upgradeCost = this.level === 8 ? 400000 : constructionCost(this.controller.level + 1) - constructionCost(this.controller.level);
             const progressFraction = this.controller.progressTotal
                 ? this.controller.progress / this.controller.progressTotal : 0;
-            target = this.level === 8 ? 500000
+            target = this.level === 8 ? 400000
                 : Math.max(this.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));
         }
 
@@ -948,7 +948,13 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         }
 
         if (this.sources.length && !roomIntel.owner) {
-            getRemoteMining().bootstrapRemoteRoomOnVision(this);
+            const usedBoot = Game.cpu.getUsed();
+            const limitBoot = Game.cpu.limit || 20;
+            if (usedBoot <= limitBoot) {
+                const tBoot = usedBoot;
+                getRemoteMining().bootstrapRemoteRoomOnVision(this);
+                watchPart('boot', tBoot);
+            }
         }
 
         // Remote source data — register new sources or refresh stale distance scores.

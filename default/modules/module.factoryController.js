@@ -3,7 +3,7 @@
  */
 const profiler = require("tools.profiler");
 const {empireOpsPaused} = require('hcReadiness');
-const {energyTarget: colonyEnergyTarget} = require('module.colonyProfile');
+const {energyTarget: colonyEnergyTarget, rawEnergyTarget: colonyRawEnergyTarget} = require('module.colonyProfile');
 const {roomCanBurnSurplus, usableEnergyState: roomUsableEnergyState} = require('spawnFlow');
 let tickTracker = {};
 let cooldownTracker = {};
@@ -12,6 +12,8 @@ const FACTORY_MIN_FREE_SPACE = 50000;
 const BATTERY_FEED_STOCK = 300;
 const FACTORY_BATTERY_MAX = 2500;
 const TERMINAL_BATTERY_SEND_MAX = 2000;
+const PACK_START_MULT = 1.10;
+const PACK_ALWAYS_MULT = 1.20;
 
 function isUnpackMineral(resource) {
     return resource === RESOURCE_GHODIUM || BASE_MINERALS.includes(resource);
@@ -48,6 +50,10 @@ class FactoryControl {
 
     static energyTarget(room) {
         return colonyEnergyTarget(room);
+    }
+
+    static rawEnergyTarget(room) {
+        return colonyRawEnergyTarget(room);
     }
 
     static batteryBatchCost() {
@@ -115,22 +121,12 @@ class FactoryControl {
         return ok;
     }
 
-    static hasEnergyStoragePressure(room) {
-        if (room.storage && room.storage.store.getFreeCapacity(RESOURCE_ENERGY) < STORAGE_CAPACITY * 0.15) return true;
-        const storageFull = room.storage && room.storage.store.getFreeCapacity() < STORAGE_CAPACITY * 0.1;
-        const terminalFull = room.terminal && room.terminal.store.getFreeCapacity() < 10000;
-        if (!room.storage) return terminalFull;
-        if (!room.terminal) return storageFull;
-        return storageFull && terminalFull;
-    }
-
     static rawEnergyMeetsPackThreshold(room) {
-        return room.rawEnergy >= FactoryControl.energyTarget(room) * 1.2;
+        return room.rawEnergy >= FactoryControl.rawEnergyTarget(room) * PACK_START_MULT;
     }
 
     static hasEnergyPackSurplus(room) {
-        const target = FactoryControl.energyTarget(room);
-        return room.rawEnergy >= target * 1.25;
+        return room.rawEnergy >= FactoryControl.rawEnergyTarget(room) * PACK_ALWAYS_MULT;
     }
 
     static terminalHasExportableEnergy(room) {
@@ -145,9 +141,8 @@ class FactoryControl {
 
         if (FactoryControl.hasEnergyPackSurplus(room)) return true;
 
-        if (!FactoryControl.hasEnergyStoragePressure(room)) return false;
-
-        // Near-full storage: try terminal first only when it already holds exportable energy.
+        // Above the operating buffer: send to a hungry room if the terminal
+        // already holds exportable energy, otherwise pack into batteries.
         if (FactoryControl.canExportEnergy(room) && FactoryControl.terminalHasExportableEnergy(room)) {
             return false;
         }

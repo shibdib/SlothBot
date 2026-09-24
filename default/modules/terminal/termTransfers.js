@@ -14,7 +14,7 @@ const {
 } = require('termKeep');
 const {getDerivedCommodityAmount} = require('termCache');
 const FactoryControl = require('module.factoryController');
-const {getColonyRole, isCoreRoom, energyTarget} = require('module.colonyProfile');
+const {getColonyRole, isCoreRoom, stockpileTarget} = require('module.colonyProfile');
 const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
 const profiler = require('tools.profiler');
 
@@ -402,7 +402,7 @@ function planBatteryTransfers(transfers, profiles) {
 
             const factoryBats = destRoom.factory?.store[RESOURCE_BATTERY] || 0;
             const terminalBats = destRoom.terminal.store[RESOURCE_BATTERY] || 0;
-            const score = (destRoom.rawEnergy / FactoryControl.energyTarget(destRoom))
+            const score = (destRoom.rawEnergy / FactoryControl.rawEnergyTarget(destRoom))
                 + (need / FactoryControl.FACTORY_BATTERY_MAX)
                 - (factoryBats / FactoryControl.FACTORY_BATTERY_MAX)
                 - (keep ? terminalBats / keep : 0);
@@ -480,7 +480,7 @@ function stockEnergy(room) {
 }
 
 /**
- * Launch and frontier rooms keep 1.5× their energy target (the combat reserve).
+ * Launch and frontier rooms keep 1.5× their stockpile target (the combat reserve).
  * Anything above that ships to a core, even when the core is already comfortable
  * and the donor's live income is flat. Cores are where power is processed.
  */
@@ -505,7 +505,7 @@ function planSurplusEnergyToCores(transfers, profiles) {
         const rcl = (srcRoom.controller && srcRoom.controller.level) || srcRoom.level || 0;
         if (rcl < 8) continue;
 
-        const ceiling = Math.floor(energyTarget(srcRoom) * 1.5);
+        const ceiling = Math.floor(stockpileTarget(srcRoom) * 1.5);
         const stock = stockEnergy(srcRoom);
         if (stock <= ceiling + ENERGY_SEND_MIN) continue;
         const roomExcess = stock - ceiling;
@@ -553,7 +553,7 @@ function planEnergyTransfers(transfers, profiles) {
         const inboundFloor = energyInboundFloor(destRoom);
         if (destFree < inboundFloor) continue;
 
-        const energyGap = Math.max(0, FactoryControl.energyTarget(destRoom) - destRoom.rawEnergy);
+        const energyGap = Math.max(0, FactoryControl.rawEnergyTarget(destRoom) - destRoom.rawEnergy);
         const minSend = destFree >= ENERGY_SEND_MIN ? ENERGY_SEND_MIN : inboundFloor;
         const desired = Math.min(RESOURCE_SEND_MAX * 2, destFree, Math.max(minSend, Math.floor(energyGap)));
         const feeCap = energyFeeCap(destRoom);

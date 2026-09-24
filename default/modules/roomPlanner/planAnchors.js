@@ -697,9 +697,8 @@ function ensureCoreHub(room, options) {
     const existed = !!before;
 
     if (existed) {
-        // Existing hub: collar snap + capacity validate (cooldowns inside).
-        // A wall hub-link is ring-fallback, not a relocate. Only a wall hub tile moves.
-        findHub(room);
+        // Existing hub: do not findHub. That scan is 50–150 CPU and was the
+        // planner hub:72 spike on rooms that already had a bunker.
         let after = resolveHub(room);
         if (after && !isOpenHubTile(room, after.x, after.y)) {
             if (typeof log !== 'undefined' && log.a) {

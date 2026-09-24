@@ -14,7 +14,10 @@ class RoleScout {
 
     performRoleActions() {
         const dest = this.creep.memory.destination;
-        if (dest && dest === this.creep.room.name) this.room.cacheRoomIntel(true);
+        if (dest && dest === this.creep.room.name) {
+            const intel = INTEL[this.room.name];
+            this.room.cacheRoomIntel(!(intel && intel.cached));
+        }
         if (this.abandonUnsafeDest(dest)) return;
         this.housekeeping();
         this.scoutRoom();

@@ -39,8 +39,8 @@ function spawnEnergyState(room) {
 
 /**
  * Energy the room can spend. Storage rooms score raw energy against the
- * stockpile target — energyState counts batteries, so bodies stay full while
- * the spawn cannot pay for them. Pre-storage rooms still use spawn fill.
+ * liquid operating target — energyState counts batteries, so bodies stay full
+ * while the spawn cannot pay for them. Pre-storage rooms still use spawn fill.
  */
 function usableEnergyState(room) {
     if (!room) return 0;
@@ -51,7 +51,7 @@ function usableEnergyState(room) {
     } else {
         let target = 0;
         try {
-            target = require('module.colonyProfile').energyTarget(room);
+            target = require('module.colonyProfile').rawEnergyTarget(room);
         } catch (e) {
             target = 0;
         }
@@ -127,7 +127,7 @@ let powerProcessNames = null;
 let powerSinkKeep = 0;
 
 /**
- * Cores hold the empire power and, once they are above 1.5× their energy
+ * Cores hold the empire power and, once they are above 1.5× their stockpile
  * target, burn it. Launch and frontier rooms keep none, so their stock is
  * shipped in. If no core has a power spawn, a surplus room burns it so the
  * pile is not stranded.

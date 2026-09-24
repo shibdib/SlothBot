@@ -329,7 +329,6 @@ function shouldRunAuxiliary(lastRun) {
 }
 
 const CRITICAL_PHASES = {
-    [PHASE.HUB]: true,
     [PHASE.SPAWN]: true,
     [PHASE.TOWERS]: true,
 };
@@ -351,8 +350,8 @@ function markPlannerPhase(label) {
     }
 }
 
-function safeRun(label, fn, report) {
-    if (plannerShouldStop() && !CRITICAL_PHASES[label]) {
+function safeRun(label, fn, report, always) {
+    if (plannerShouldStop() && !always && !CRITICAL_PHASES[label]) {
         if (report && report.phases) {
             report.phases.push({phase: label, ok: true, skipped: 'cpu'});
         }
@@ -514,7 +513,7 @@ function runRoomPhases(room, lastRun, ctx, report) {
     if (!hasBunkerHub(room)) {
         safeRun(PHASE.HUB, () => {
             anchors.ensureCoreHub(room);
-        }, report);
+        }, report, true);
         if (!hasBunkerHub(room)) {
             report.stopped = 'no_hub';
             if (room.controller.level >= 2 && actors.hasSpawnOrSpawnSite(room)) {

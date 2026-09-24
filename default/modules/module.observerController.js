@@ -40,6 +40,20 @@ let cachedDirections = null;
 let strategicCache = {tick: 0, targets: [], priorityByRoom: {}};
 let creepVisionCache = {tick: 0, rooms: null};
 
+function stampCheapObservation(room) {
+    if (!room) return;
+    if (!INTEL[room.name]) INTEL[room.name] = {name: room.name};
+    const intel = INTEL[room.name];
+    intel.lastObservation = Game.time;
+    if (room.controller) {
+        intel.owner = room.controller.owner && room.controller.owner.username;
+        intel.level = room.controller.level;
+        intel.safemode = room.controller.safeMode
+            ? Game.time + room.controller.safeMode : undefined;
+    }
+    intel.sources = room.sources ? room.sources.length : 0;
+}
+
 class ObserverControl {
     constructor() {
     }
@@ -55,6 +69,11 @@ class ObserverControl {
         if (currentTime - (state.lastPrune | 0) > TUNING.PRUNE_INTERVAL_TICKS) {
             this.pruneState(state);
             state.lastPrune = currentTime;
+        }
+
+        if (global._obsIntelTick !== currentTime) {
+            global._obsIntelTick = currentTime;
+            global._obsIntelSpent = 0;
         }
 
         if (!this.processPreviousObservation(roomName, observer, state, currentTime)) return;
@@ -96,12 +115,20 @@ class ObserverControl {
             // Never force=true here. cacheRoomIntel already does heavy work when
             // `cached` is stale; force re-runs areExitsReachable (multi-PathFinder)
             // on every ancient-room observe even when obstacles is already known.
-            const t0 = Game.cpu.getUsed();
-            observed.cacheRoomIntel();
-            const intelCpu = Game.cpu.getUsed() - t0;
             const used = Game.cpu.getUsed();
             const limit = (Game.cpu && Game.cpu.limit) || 20;
-            if (used < limit) observer.operationPlanner(observed);
+            const spentAlready = global._obsIntelSpent || 0;
+            if (spentAlready >= 35 || used > limit) {
+                stampCheapObservation(observed);
+                delete state.observedRooms[roomName];
+                delete state.observeAttempts[roomName];
+                return true;
+            }
+            const t0 = used;
+            observed.cacheRoomIntel();
+            const intelCpu = Game.cpu.getUsed() - t0;
+            global._obsIntelSpent = spentAlready + intelCpu;
+            if (Game.cpu.getUsed() < limit) observer.operationPlanner(observed);
             if (typeof noteObsCpu === 'function') {
                 noteObsCpu(roomName, previous, intelCpu, Game.cpu.getUsed() - t0);
             }

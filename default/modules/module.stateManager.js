@@ -5,7 +5,7 @@
 const profiler = require("tools.profiler");
 const energyTracker = require("module.energyTracker");
 const {isLiveCombatReady, isLiveAuxReady, isRoomStruggling} = require('hcReadiness');
-const {energyTarget, getColonyRole} = require('module.colonyProfile');
+const {stockpileTarget, rawEnergyTarget, getColonyRole} = require('module.colonyProfile');
 const {ENERGY_ACCRUAL_FLOOR} = require('spawnFlow');
 const LAST_UPDATE = {};
 const ENERGY_TRACKER = {};
@@ -65,7 +65,10 @@ class StateManager {
             let bucket = byColony[colony];
             if (!bucket) bucket = byColony[colony] = this.emptyCensus();
             const role = c.memory.role;
-            const bodyCost = global.UNIT_COST(c.body);
+            let bodyCost = c._bodyCost;
+            if (bodyCost == null) {
+                bodyCost = c._bodyCost = global.UNIT_COST(c.body);
+            }
             if (isMilitaryCreep(c)) bucket.militaryBodyCost += bodyCost;
             else bucket.economicBodyCost += bodyCost;
             if (role === 'upgrader') {
@@ -212,13 +215,18 @@ class StateManager {
         }
 
         const batteryEquiv = Math.floor((room.store(RESOURCE_BATTERY) / 50) * 600 * 0.9);
-        const stockEnergy = room.rawEnergy + batteryEquiv;
-        const stockTarget = energyTarget(room);
+        const rawEnergy = room.rawEnergy || 0;
+        const stockEnergy = rawEnergy + batteryEquiv;
+        const stockTarget = stockpileTarget(room);
+        const rawTarget = rawEnergyTarget(room);
 
         Object.assign(room.energyDiag, {
             stockEnergy,
             stockTarget,
             stockpilePct: stockTarget > 0 ? Math.min(150, Math.round((stockEnergy / stockTarget) * 100)) : 0,
+            rawEnergy,
+            rawTarget,
+            rawPct: rawTarget > 0 ? Math.min(150, Math.round((rawEnergy / rawTarget) * 100)) : 0,
             liveCombatReady: combatReady,
             auxReady,
             struggling: isRoomStruggling(room),

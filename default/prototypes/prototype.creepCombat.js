@@ -1,4 +1,6 @@
 const {stepInlandOffExit} = require('pathFormation');
+const {skInShot, skStepOut} = require('pathMatrix');
+const {getShibMove} = require('pathUtils');
 
 function structOwner(s) {
     if (s && typeof s.safeOwnerName === 'function') return s.safeOwnerName();
@@ -188,10 +190,16 @@ Creep.prototype.handleMilitaryCreep = function (barrier = false, rampart = true,
 
     if (this.hasActiveBodyparts(HEAL)) this.healInRange();
 
-    // Keepers are not combat targets. SKAttacker is the only role that walks in.
-    if (this.memory.role !== 'SKAttacker' && this.memory.role !== 'test'
-        && this.skThreatNear(this.pos, 7)) {
-        this.shibKite(9);
+    // Keepers are not combat targets. Step out of the shot only — kiting at
+    // range 7 fought the path and pingponged one tile each way.
+    if (this.memory.role !== 'SKAttacker' && this.memory.role !== 'test' && skInShot(this)) {
+        skStepOut(this);
+        const move = getShibMove(this);
+        if (move) {
+            delete move.path;
+            delete move.pathPos;
+            move.pathPosTime = 0;
+        }
         return true;
     }
 

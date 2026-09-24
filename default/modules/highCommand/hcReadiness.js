@@ -36,11 +36,19 @@ function harassRoomLevel() {
 
 function roomStockpileRatio(room) {
     const diag = room.energyDiag;
-    if (!diag || !diag.stockTarget) return 0;
-    // Spendable stock. diag.stockEnergy counts batteries, and a room whose
-    // storage is empty cannot spawn the operation that stockpile would allow.
-    const energy = (room.storage || room.terminal) ? (room.rawEnergy || 0) : (diag.stockEnergy || 0);
-    return energy / diag.stockTarget;
+    // Spendable stock vs the liquid operating target. Batteries cannot pay
+    // a spawn queue, so combat-ready ignores compressed energy.
+    const energy = (room.storage || room.terminal) ? (room.rawEnergy || 0) : ((diag && diag.stockEnergy) || 0);
+    let target = diag && diag.rawTarget;
+    if (!(target > 0)) {
+        try {
+            target = require('module.colonyProfile').rawEnergyTarget(room);
+        } catch (e) {
+            target = (diag && diag.stockTarget) || 0;
+        }
+    }
+    if (!(target > 0)) return 0;
+    return energy / target;
 }
 
 function roomHasCombatStockpile(room) {
@@ -143,8 +151,7 @@ function isRoomReadyForTier(room, tier) {
 function getCombatReadyFailReason(room) {
     if (isLiveCombatReady(room)) return null;
     if (room.level < matureRoomLevel()) return 'rcl';
-    const energyState = room.energyState || 0;
-    if (energyState < 1) return 'stock';
+    if (usableEnergyState(room) < 1) return 'stock';
     if (!roomHasCombatStockpile(room) && roomFlowStressed(room)) return 'flow';
     return 'stock';
 }

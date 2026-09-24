@@ -21,6 +21,21 @@ const SIGHTING_WINDOW = 2000;
 const LAUNCH_ENERGY_MULT = 1.25;
 const FRONTIER_ENERGY_MULT = 1.15;
 
+// RCL 8 splits liquid operating energy from total wealth (raw + battery equiv).
+// Pre-8 keeps a single pile: upgrade savings have to stay spendable.
+const RCL8_RAW_TARGET = {
+    core: 180000,
+    frontier: 250000,
+    launch: 320000,
+    outpost: 150000,
+};
+const RCL8_STOCKPILE_TARGET = {
+    core: 400000,
+    frontier: 525000,
+    launch: 600000,
+    outpost: 400000,
+};
+
 const ROLES = {
     core: 'core',
     frontier: 'frontier',
@@ -497,21 +512,40 @@ function isCoreRoom(roomOrName) {
     return getColonyRole(roomOrName) === ROLES.core;
 }
 
+function roleEnergyMult(role) {
+    if (role === ROLES.launch) return LAUNCH_ENERGY_MULT;
+    if (role === ROLES.frontier) return FRONTIER_ENERGY_MULT;
+    return 1;
+}
+
+function rcl8TableValue(table, room) {
+    const role = getColonyRole(room);
+    return table[role] || table[ROLES.core];
+}
+
 function baseEnergyTarget(room) {
     if (!room || !room.controller) return 50000;
-    if (room.level === 8) return 500000;
+    if (room.level === 8) return RCL8_STOCKPILE_TARGET[ROLES.core];
     const upgradeCost = constructionCost(room.controller.level + 1) - constructionCost(room.controller.level);
     const total = room.controller.progressTotal;
     const progressFraction = total ? room.controller.progress / total : 0;
     return Math.max(room.level * 31250, Math.min(Math.round(upgradeCost * progressFraction) * 0.7, STORAGE_CAPACITY * 0.5));
 }
 
+function stockpileTarget(room) {
+    if (room && room.controller && room.level === 8) return rcl8TableValue(RCL8_STOCKPILE_TARGET, room);
+    return Math.floor(baseEnergyTarget(room) * roleEnergyMult(getColonyRole(room)));
+}
+
+/** Liquid energy to keep on hand for spawn, packing, and combat. */
+function rawEnergyTarget(room) {
+    if (room && room.controller && room.level === 8) return rcl8TableValue(RCL8_RAW_TARGET, room);
+    return stockpileTarget(room);
+}
+
+/** Total wealth target (raw + batteries). Alias of stockpileTarget. */
 function energyTarget(room) {
-    const base = baseEnergyTarget(room);
-    const role = getColonyRole(room);
-    if (role === ROLES.launch) return Math.floor(base * LAUNCH_ENERGY_MULT);
-    if (role === ROLES.frontier) return Math.floor(base * FRONTIER_ENERGY_MULT);
-    return base;
+    return stockpileTarget(room);
 }
 
 function setForceRole(roomName, role) {
@@ -548,7 +582,7 @@ if (typeof global !== 'undefined') {
             console.log('colonyRoles: no owned rooms');
             return profiles;
         }
-        console.log(`  ${'room'.padEnd(10)} ${'role'.padEnd(10)} ${'hull'.padEnd(5)} ${'hops'.padStart(4)} ${'prs'.padStart(4)} ${'eligible'.padEnd(8)} sticky`);
+        console.log(`  ${'room'.padEnd(10)} ${'role'.padEnd(10)} ${'hull'.padEnd(5)} ${'hops'.padStart(4)} ${'prs'.padStart(4)} ${'raw'.padStart(5)} ${'stock'.padStart(6)} ${'eligible'.padEnd(8)} sticky`);
         for (let i = 0; i < names.length; i++) {
             const name = names[i];
             const p = profiles[name];
@@ -556,7 +590,10 @@ if (typeof global !== 'undefined') {
             const forced = p.forced ? ' forced' : '';
             const hull = p.hull ? 'yes' : 'no';
             const eligible = p.launchEligible ? 'yes' : 'no';
-            console.log(`  ${name.padEnd(10)} ${String(p.role).padEnd(10)} ${hull.padEnd(5)} ${hopsLabel(p.hostileHops).padStart(4)} ${String(p.pressure || 0).padStart(4)} ${eligible.padEnd(8)} ${sticky}${forced}`);
+            const room = Game.rooms[name];
+            const raw = room ? `${Math.round(rawEnergyTarget(room) / 1000)}k` : '';
+            const stock = room ? `${Math.round(stockpileTarget(room) / 1000)}k` : '';
+            console.log(`  ${name.padEnd(10)} ${String(p.role).padEnd(10)} ${hull.padEnd(5)} ${hopsLabel(p.hostileHops).padStart(4)} ${String(p.pressure || 0).padStart(4)} ${raw.padStart(5)} ${stock.padStart(6)} ${eligible.padEnd(8)} ${sticky}${forced}`);
         }
         return profiles;
     };
@@ -577,6 +614,8 @@ module.exports = {
     isFrontierRoom,
     isCoreRoom,
     energyTarget,
+    stockpileTarget,
+    rawEnergyTarget,
     baseEnergyTarget,
     setForceRole,
 };

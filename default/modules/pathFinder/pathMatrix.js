@@ -70,7 +70,6 @@ function getBaseMatrix(roomName, creep, options) {
     // Terrain type follows move weight. Wall wrecking only changes wall/rampart
     // costs so fatigued combat still prefers roads.
     const type = options.offRoad || options.tunnel ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
-    const ignoreKeeper = !!options.ignoreKeeper;
 
     let plainCost, swampCost, roadCost;
     switch (type) {
@@ -90,14 +89,9 @@ function getBaseMatrix(roomName, creep, options) {
             roadCost = 1;
     }
 
-    const skSelf = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'SKAttacker');
-    const skHarvestCover = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'remoteHarvester');
-    const intelSk = INTEL[roomName];
-    const skPts = (intelSk && intelSk.skDangerPoints && intelSk.skDangerPoints.length) || 0;
-    const nameSk = !!(intelSk && intelSk.sk) || !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
-    const destAdj = (creep instanceof Creep && creep.memory && creep.memory.destination
-        && creep.memory.destination !== roomName) ? creep.memory.destination : '';
-    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}_${skHarvestCover}_${!!options.ignoreSk}_${nameSk ? 1 : 0}_${skPts}_${destAdj}`;
+    // Keeper disks are painted per search (they move). Keep them out of this stamp
+    // so the structure matrix stays shared.
+    const cacheStamp = `${type}_${noWallWrecker}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}`;
 
     // Same-tick reuse before hashing structures. Structures do not change mid-tick
     // enough to justify concat+sort on every PathFinder roomCallback.
@@ -243,11 +237,10 @@ function getBaseMatrix(roomName, creep, options) {
         applyLookObstaclesToMatrix(matrix, room);
     }
 
-    const finalMatrix = addSksToMatrix(roomName, matrix, options, creep);
-    MATRIX_CACHE[baseKey] = {matrix: finalMatrix, tick: Game.time};
-    ROOM_BASE_MATRIX_CACHE[roomName] = {matrix: finalMatrix, tick: Game.time, hash: structuresHash, stamp: cacheStamp};
+    MATRIX_CACHE[baseKey] = {matrix, tick: Game.time};
+    ROOM_BASE_MATRIX_CACHE[roomName] = {matrix, tick: Game.time, hash: structuresHash, stamp: cacheStamp};
 
-    return finalMatrix;
+    return matrix;
 }
 
 function getMatrix(roomName, creep, options) {
@@ -265,7 +258,7 @@ function getMatrix(roomName, creep, options) {
             }
         }
     }
-    return matrix;
+    return addSksToMatrix(roomName, matrix, options, creep);
 }
 
 function addCreepsToMatrix(room, matrix, creep, options) {
@@ -320,143 +313,273 @@ function addHostilesToMatrix(room, matrix) {
     return matrix;
 }
 
+// Keepers shoot ranged at 3 and sit within 1 of their source. They do not chase.
+// Block 4 around a latched tile: the 1-tile fidget stays inside the same wall,
+// so a path along the rim does not flip when the keeper wiggles.
+const SK_SHOT_RANGE = 3;
+const SK_BLOCK_RANGE = 4;
+const SK_BLOCK_COST = 255;
+const SK_EXIT_COST = 30;
+const SK_LAIR_LINK = 5;
+const SK_ROUTE_LEAD = 40;
+const SK_DIRS = [
+    [TOP, 0, -1], [TOP_RIGHT, 1, -1], [RIGHT, 1, 0], [BOTTOM_RIGHT, 1, 1],
+    [BOTTOM, 0, 1], [BOTTOM_LEFT, -1, 1], [LEFT, -1, 0], [TOP_LEFT, -1, -1],
+];
+
+function cheb(x1, y1, x2, y2) {
+    return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
+}
+
+function roomIsSkName(roomName, intel) {
+    return !!(intel && intel.sk)
+        || !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
+}
+
+function sourceKeepers(room) {
+    if (room._skCreepsTick !== Game.time) {
+        const found = [];
+        const creeps = room.creeps || [];
+        for (let i = 0; i < creeps.length; i++) {
+            const c = creeps[i];
+            if (c.owner && c.owner.username === 'Source Keeper') found.push(c);
+        }
+        room._skCreeps = found;
+        room._skCreepsTick = Game.time;
+    }
+    return room._skCreeps;
+}
+
+function latchedXY(room, sk) {
+    let latch = room._skLatch;
+    if (!latch) latch = room._skLatch = Object.create(null);
+    const prev = latch[sk.id];
+    const x = sk.pos.x;
+    const y = sk.pos.y;
+    if (!prev || cheb(prev.x, prev.y, x, y) > 1) {
+        latch[sk.id] = {x, y};
+        return latch[sk.id];
+    }
+    return prev;
+}
+
+function plainTicks(creep) {
+    if (!(creep instanceof Creep) || !creep.body) return 1;
+    if (creep._skTptTick === Game.time) return creep._skTpt;
+    let move = 0;
+    let parts = 0;
+    const body = creep.body;
+    for (let i = 0; i < body.length; i++) {
+        const part = body[i];
+        if (!part.hits) continue;
+        parts++;
+        if (part.type === MOVE) move++;
+    }
+    let tpt = 1;
+    if (!move) tpt = 8;
+    else if (move * 2 < parts) tpt = Math.ceil(parts / (move * 2));
+    creep._skTptTick = Game.time;
+    creep._skTpt = tpt;
+    return tpt;
+}
+
+// Ticks this creep still needs inside the room. Lairs that spawn later stay open.
+function leadTicks(creep, roomName) {
+    if (!(creep instanceof Creep) || creep.pos.roomName !== roomName) return SK_ROUTE_LEAD;
+    const tpt = plainTicks(creep);
+    const dest = creep.memory && creep.memory.destination;
+    const x = creep.pos.x;
+    const y = creep.pos.y;
+    let tiles;
+    const exits = Game.map.describeExits(roomName);
+    if (dest && dest !== roomName && exits) {
+        if (exits[TOP] === dest) tiles = y;
+        else if (exits[BOTTOM] === dest) tiles = 49 - y;
+        else if (exits[LEFT] === dest) tiles = x;
+        else if (exits[RIGHT] === dest) tiles = 49 - x;
+        else tiles = Math.min(x, y, 49 - x, 49 - y);
+    } else {
+        tiles = Math.max(x, y, 49 - x, 49 - y);
+    }
+    if (tiles < 6) tiles = 6;
+    return tiles * tpt + 8;
+}
+
+function exitDirToward(roomName, dest) {
+    if (!dest || dest === roomName) return 0;
+    const exits = Game.map.describeExits(roomName);
+    if (!exits) return 0;
+    if (exits[TOP] === dest) return TOP;
+    if (exits[RIGHT] === dest) return RIGHT;
+    if (exits[BOTTOM] === dest) return BOTTOM;
+    if (exits[LEFT] === dest) return LEFT;
+    return 0;
+}
+
+function onExitEdge(dir, x, y) {
+    if (dir === TOP) return y === 0;
+    if (dir === BOTTOM) return y === 49;
+    if (dir === LEFT) return x === 0;
+    if (dir === RIGHT) return x === 49;
+    return false;
+}
+
+function harvestHole(creep, room) {
+    if (!(creep instanceof Creep) || !creep.memory || !room) return null;
+    if (creep.memory.role !== 'remoteHarvester' || creep.memory.destination !== room.name) return null;
+    const id = creep.memory.other && creep.memory.other.source;
+    if (!id) return null;
+    const src = Game.getObjectById(id);
+    if (!src || !src.pos || src.pos.roomName !== room.name) return null;
+    return {x: src.pos.x, y: src.pos.y};
+}
+
+function nearestGuarded(room, x, y) {
+    let best = null;
+    let bestR = SK_LAIR_LINK + 1;
+    const sources = room.sources || [];
+    for (let i = 0; i < sources.length; i++) {
+        const p = sources[i].pos;
+        const r = cheb(x, y, p.x, p.y);
+        if (r < bestR) {
+            bestR = r;
+            best = p;
+        }
+    }
+    if (room.mineral) {
+        const p = room.mineral.pos;
+        const r = cheb(x, y, p.x, p.y);
+        if (r < bestR) {
+            bestR = r;
+            best = p;
+        }
+    }
+    if (!best || bestR > SK_LAIR_LINK) return null;
+    return {x: best.x, y: best.y};
+}
+
+function pushCenter(out, seen, x, y, id, lairId, liveX, liveY) {
+    const key = x + ',' + y;
+    if (seen[key]) return;
+    seen[key] = 1;
+    const center = {x: x, y: y, id: id || '', lairId: lairId || ''};
+    if (liveX != null) {
+        center.lx = liveX;
+        center.ly = liveY;
+    }
+    out.push(center);
+}
+
+// Latch for the wall, live tile for the shot. A 1-tile fidget must still count.
+function centerRange(x, y, center) {
+    let range = cheb(x, y, center.x, center.y);
+    if (center.lx != null) {
+        const live = cheb(x, y, center.lx, center.ly);
+        if (live < range) range = live;
+    }
+    return range;
+}
+
+function computeSkAvoid(roomName, creep, options) {
+    const intel = typeof INTEL !== 'undefined' ? INTEL[roomName] : undefined;
+    const room = Game.rooms[roomName];
+    const nameIsSk = roomIsSkName(roomName, intel);
+    const mem = creep && creep.memory;
+    let sks = [];
+    if (room) sks = sourceKeepers(room);
+    const hasLairs = !!(room && room.keeperLairs && room.keeperLairs.length);
+    if (!nameIsSk && !hasLairs && !sks.length) return null;
+
+    const onSiteAttacker = !!(mem && mem.role === 'SKAttacker' && mem.destination === roomName);
+    const ignoreKeeper = (options && options.ignoreKeeper)
+        || (mem && mem.role === 'SKAttacker' && mem.keeper)
+        || '';
+    const ignoreLair = (mem && mem.role === 'SKAttacker' && mem.lair) || '';
+    const exitDir = exitDirToward(roomName, mem && mem.destination);
+    const hole = room ? harvestHole(creep, room) : null;
+
+    if (!room) {
+        const points = intel && intel.skDangerPoints;
+        if (points && points.length) return {centers: points, exitDir: exitDir, hole: null, rim: false};
+        return {centers: [], exitDir: exitDir, hole: null, rim: true};
+    }
+
+    const centers = [];
+    const seen = Object.create(null);
+    for (let i = 0; i < sks.length; i++) {
+        const sk = sks[i];
+        if (ignoreKeeper && sk.id === ignoreKeeper) continue;
+        const at = latchedXY(room, sk);
+        pushCenter(centers, seen, at.x, at.y, sk.id, '', sk.pos.x, sk.pos.y);
+    }
+    // On-site SKAttacker walks into spawns. Everyone else treats a lair as a
+    // keeper once it will pop before they are out of the room, and blocks the
+    // source that keeper will stand on.
+    // Route checks stay on live keepers. A lair 40 ticks out must not seal the
+    // cached route for its whole TTL; the in-room matrix handles the spawn.
+    if (!onSiteAttacker && !(options && options.skKeepersOnly)) {
+        const lead = leadTicks(creep, roomName);
+        const lairs = room.keeperLairs || [];
+        for (let i = 0; i < lairs.length; i++) {
+            const lair = lairs[i];
+            if (lair.ticksToSpawn == null || lair.ticksToSpawn > lead) continue;
+            if (ignoreLair && lair.id === ignoreLair) continue;
+            const lx = lair.pos.x;
+            const ly = lair.pos.y;
+            pushCenter(centers, seen, lx, ly, '', lair.id);
+            const guarded = nearestGuarded(room, lx, ly);
+            if (guarded) pushCenter(centers, seen, guarded.x, guarded.y, '', lair.id);
+        }
+    }
+    return {centers: centers, exitDir: exitDir, hole: hole, rim: false};
+}
+
+function skAvoidCenters(roomName, creep, options) {
+    const ignore = ((options && options.ignoreKeeper) || '') + '|'
+        + ((creep && creep.memory && creep.memory.role === 'SKAttacker' && creep.memory.keeper) || '');
+    if (creep && creep._skAvoidTick === Game.time && creep._skAvoidRoom === roomName && creep._skAvoidIgn === ignore) {
+        return creep._skAvoid;
+    }
+    const result = computeSkAvoid(roomName, creep, options);
+    if (creep) {
+        creep._skAvoidTick = Game.time;
+        creep._skAvoidRoom = roomName;
+        creep._skAvoidIgn = ignore;
+        creep._skAvoid = result;
+    }
+    return result;
+}
+
+function skRoutePoints(roomName) {
+    const avoid = computeSkAvoid(roomName, null, {skKeepersOnly: true});
+    if (!avoid || avoid.rim) return avoid ? [] : null;
+    return avoid.centers;
+}
+
+function paintDisk(matrix, terrain, cx, cy, exitDir, origin) {
+    const top = Math.max(0, cy - SK_BLOCK_RANGE);
+    const left = Math.max(0, cx - SK_BLOCK_RANGE);
+    const bottom = Math.min(49, cy + SK_BLOCK_RANGE);
+    const right = Math.min(49, cx + SK_BLOCK_RANGE);
+    for (let y = top; y <= bottom; y++) {
+        for (let x = left; x <= right; x++) {
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+            if (origin && x === origin.x && y === origin.y) continue;
+            if (exitDir && onExitEdge(exitDir, x, y)) {
+                if (matrix.get(x, y) < SK_EXIT_COST) matrix.set(x, y, SK_EXIT_COST);
+                continue;
+            }
+            if (matrix.get(x, y) < SK_BLOCK_COST) matrix.set(x, y, SK_BLOCK_COST);
+        }
+    }
+}
+
 function addSksToMatrix(roomName, matrix, options, creep) {
     if (options && options.ignoreSk) return matrix;
-    const intel = INTEL[roomName];
-    const nameIsSk = !!(intel && intel.sk)
-        || !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
-
-    const room = Game.rooms[roomName];
-    const isSkAttacker = !!(creep && creep.memory && creep.memory.role === 'SKAttacker');
-    const skOnSite = isSkAttacker && creep.memory.destination === roomName;
-
-    // Miners path to the source once a covering attacker is on site. Haulers
-    // and builders keep keeper costs so they route around a spawn instead of
-    // walking up and parking at kite range.
-    if (room && !skOnSite) {
-        const covering = room.myCreeps.find(c =>
-            c.memory.role === 'SKAttacker'
-            && !c.spawning
-            && !c.memory.recycling
-            && c.memory.destination === roomName
-            && c.memory.arrived
-        );
-        const role = creep && creep.memory && creep.memory.role;
-        if (covering && role === 'remoteHarvester') return matrix;
-    }
-
+    const avoid = skAvoidCenters(roomName, creep, options);
+    if (!avoid) return matrix;
     const terrain = Game.map.getRoomTerrain(roomName);
-    const dest = creep && creep.memory && creep.memory.destination;
-    let destExit = 0;
-    if (dest && dest !== roomName) {
-        const exits = Game.map.describeExits(roomName);
-        if (exits) {
-            if (exits[TOP] === dest) destExit = TOP;
-            else if (exits[RIGHT] === dest) destExit = RIGHT;
-            else if (exits[BOTTOM] === dest) destExit = BOTTOM;
-            else if (exits[LEFT] === dest) destExit = LEFT;
-        }
-    }
-    const onDestExit = (x, y) => {
-        if (!destExit) return false;
-        if (destExit === TOP) return y === 0;
-        if (destExit === BOTTOM) return y === 49;
-        if (destExit === LEFT) return x === 0;
-        if (destExit === RIGHT) return x === 49;
-        return false;
-    };
-
-    // Live SK creep positions take priority when we have vision — they're the actual
-    // current threat and may have wandered off their lair/source.
-    // hostileCreeps excludes Source Keepers, so use the same creeps scan as skSafety.
-    // Do this even when intel.sk is missing: structure caches can omit lairs, and
-    // name-based SK used to match only the (4,4) corner of the ring.
-    let sks = [];
-    if (room) {
-        if (room._skCreepsTick !== Game.time) {
-            room._skCreeps = room.creeps.filter(c => c.owner && c.owner.username === 'Source Keeper');
-            room._skCreepsTick = Game.time;
-        }
-        sks = room._skCreeps;
-        if (options.ignoreKeeper) sks = sks.filter(c => c.id !== options.ignoreKeeper);
-    }
-
-    if (sks.length) {
-        for (const sk of sks) {
-            matrix.set(sk.pos.x, sk.pos.y, Infinity);
-            const top = Math.max(0, sk.pos.y - 3);
-            const left = Math.max(0, sk.pos.x - 3);
-            const bottom = Math.min(49, sk.pos.y + 3);
-            const right = Math.min(49, sk.pos.x + 3);
-
-            for (let y = top; y <= bottom; y++) {
-                for (let x = left; x <= right; x++) {
-                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
-                        const range = Math.max(Math.abs(x - sk.pos.x), Math.abs(y - sk.pos.y));
-                        if (range > 0 && !onDestExit(x, y) && matrix.get(x, y) < 350 / range) {
-                            matrix.set(x, y, 350 / range);
-                        }
-                    }
-                }
-            }
-        }
-        return matrix;
-    }
-
-    if (!nameIsSk) return matrix;
-
-    // SK attacker walks to lairs. Source/mineral blankets at range 5 forced
-    // swamp corridors around the only plains/road into the pocket.
-    if (isSkAttacker) {
-        const anchors = (!room && intel && intel.skDangerPoints) ? intel.skDangerPoints : [];
-        for (let i = 0; i < anchors.length; i++) {
-            const pt = anchors[i];
-            const top = Math.max(0, pt.y - 2);
-            const left = Math.max(0, pt.x - 2);
-            const bottom = Math.min(49, pt.y + 2);
-            const right = Math.min(49, pt.x + 2);
-            for (let y = top; y <= bottom; y++) {
-                for (let x = left; x <= right; x++) {
-                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL && !onDestExit(x, y) && matrix.get(x, y) < 250) {
-                        matrix.set(x, y, 250);
-                    }
-                }
-            }
-        }
-        return matrix;
-    }
-
-    // No live keepers visible (or no vision at all) — fall back to the static danger
-    // anchors. With vision: imminent-respawn lairs + sources + mineral. Without vision:
-    // cached anchor positions from INTEL.skDangerPoints.
-    let dangerPoints;
-    if (room) {
-        const lairs = room.keeperLairs.filter(s => s.ticksToSpawn && s.ticksToSpawn < 25);
-        dangerPoints = _.union(lairs, room.sources, room.mineral ? [room.mineral] : [])
-            .map(o => ({x: o.pos.x, y: o.pos.y}));
-    } else {
-        dangerPoints = intel && intel.skDangerPoints;
-    }
-    if (dangerPoints && dangerPoints.length) {
-        for (const pt of dangerPoints) {
-            const top = Math.max(0, pt.y - 5);
-            const left = Math.max(0, pt.x - 5);
-            const bottom = Math.min(49, pt.y + 5);
-            const right = Math.min(49, pt.x + 5);
-            for (let y = top; y <= bottom; y++) {
-                for (let x = left; x <= right; x++) {
-                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL && !onDestExit(x, y) && matrix.get(x, y) < 250) {
-                        matrix.set(x, y, 250);
-                    }
-                }
-            }
-        }
-        return matrix;
-    }
-
-    // Unscouted SK, no vision: prefer the rim so a midline hop into the
-    // sector center does not walk through keeper pockets at the sources.
-    if (!room) {
+    if (avoid.rim) {
         for (let y = 0; y < 50; y++) {
             for (let x = 0; x < 50; x++) {
                 if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
@@ -464,8 +587,118 @@ function addSksToMatrix(roomName, matrix, options, creep) {
                 if (edge >= 4 && matrix.get(x, y) < 40) matrix.set(x, y, 40);
             }
         }
+        return matrix;
+    }
+    const origin = (creep instanceof Creep && creep.pos.roomName === roomName) ? creep.pos : null;
+    const hole = avoid.hole;
+    const centers = avoid.centers;
+    for (let i = 0; i < centers.length; i++) {
+        const c = centers[i];
+        if (hole && cheb(c.x, c.y, hole.x, hole.y) <= SK_LAIR_LINK) continue;
+        paintDisk(matrix, terrain, c.x, c.y, avoid.exitDir, origin);
     }
     return matrix;
+}
+
+function skInShot(creep, maxRange) {
+    if (!creep || !creep.pos || !creep.room) return false;
+    if (creep.memory && creep.memory.role === 'SKAttacker') return false;
+    const avoid = skAvoidCenters(creep.room.name, creep, null);
+    if (!avoid || !avoid.centers || !avoid.centers.length) return false;
+    if (avoid.exitDir && onExitEdge(avoid.exitDir, creep.pos.x, creep.pos.y)) return false;
+    const limit = maxRange == null ? SK_SHOT_RANGE : Math.min(SK_SHOT_RANGE, maxRange);
+    if (!(limit > 0)) return false;
+    const x = creep.pos.x;
+    const y = creep.pos.y;
+    for (let i = 0; i < avoid.centers.length; i++) {
+        if (centerRange(x, y, avoid.centers[i]) <= limit) return true;
+    }
+    return false;
+}
+
+// null | 'out' (already inside the shot) | 'repath' (stale path enters a blocked
+// disk) | 'hold' (miner waits outside their own pocket).
+function skAdviseStep(creep, nextPos, options) {
+    if (!creep || !creep.pos || !creep.room) return null;
+    if (options && (options.flee || options.ignoreSk)) return null;
+    const avoid = skAvoidCenters(creep.room.name, creep, options);
+    if (!avoid || avoid.rim || !avoid.centers.length) return null;
+    const x = creep.pos.x;
+    const y = creep.pos.y;
+    const leaving = !nextPos || nextPos.roomName !== creep.pos.roomName
+        || (avoid.exitDir && nextPos && onExitEdge(avoid.exitDir, nextPos.x, nextPos.y));
+    // The dest edge stays walkable so a hop can finish. Any step back inland
+    // is a normal keeper tile — allowing it here is the two-tile bounce.
+    if (leaving) return null;
+
+    if (!(options && options.skStepOnly)) {
+        for (let i = 0; i < avoid.centers.length; i++) {
+            if (centerRange(x, y, avoid.centers[i]) <= SK_SHOT_RANGE) return 'out';
+        }
+    }
+
+    let entersHole = false;
+    let entersOther = false;
+    const hole = avoid.hole;
+    for (let i = 0; i < avoid.centers.length; i++) {
+        const c = avoid.centers[i];
+        const nextR = cheb(nextPos.x, nextPos.y, c.x, c.y);
+        const curR = cheb(x, y, c.x, c.y);
+        const deeper = nextR <= SK_BLOCK_RANGE && nextR < curR;
+        const staysInShot = nextR <= SK_SHOT_RANGE && nextR <= curR;
+        if (!deeper && !staysInShot) continue;
+        if (hole && cheb(c.x, c.y, hole.x, hole.y) <= SK_LAIR_LINK) entersHole = true;
+        else entersOther = true;
+    }
+    if (entersOther) return 'repath';
+    if (entersHole) return 'hold';
+    return null;
+}
+
+function skEscapeDirection(creep) {
+    if (!creep || !creep.room || !creep.pos) return 0;
+    if (creep.hasActiveBodyparts && !creep.hasActiveBodyparts(MOVE)) return 0;
+    const avoid = skAvoidCenters(creep.room.name, creep, null);
+    if (!avoid || !avoid.centers.length) return 0;
+    const terrain = Game.map.getRoomTerrain(creep.room.name);
+    const centers = avoid.centers;
+    const cx = creep.pos.x;
+    const cy = creep.pos.y;
+    let curMin = 99;
+    for (let i = 0; i < centers.length; i++) {
+        const r = centerRange(cx, cy, centers[i]);
+        if (r < curMin) curMin = r;
+    }
+    let bestDir = 0;
+    let bestScore = curMin * 10 - 1;
+    for (let d = 0; d < SK_DIRS.length; d++) {
+        const nx = cx + SK_DIRS[d][1];
+        const ny = cy + SK_DIRS[d][2];
+        if (nx < 0 || nx > 49 || ny < 0 || ny > 49) continue;
+        const tile = terrain.get(nx, ny);
+        if (tile === TERRAIN_MASK_WALL) continue;
+        if (new RoomPosition(nx, ny, creep.room.name).checkForObstacleStructure()) continue;
+        let minR = 99;
+        for (let i = 0; i < centers.length; i++) {
+            const r = centerRange(nx, ny, centers[i]);
+            if (r < minR) minR = r;
+        }
+        if (minR <= curMin) continue;
+        const score = minR * 10 + (tile === TERRAIN_MASK_SWAMP ? 0 : 1);
+        if (score > bestScore) {
+            bestScore = score;
+            bestDir = SK_DIRS[d][0];
+        }
+    }
+    return bestDir;
+}
+
+function skStepOut(creep) {
+    if (!creep || creep.fatigue > 0) return false;
+    const dir = skEscapeDirection(creep);
+    if (!dir) return false;
+    creep.move(dir);
+    return true;
 }
 
 
@@ -493,4 +726,14 @@ module.exports = {
     addHostilesToMatrix,
     addSksToMatrix,
     getOutsideHubMatrix,
+    skAvoidCenters,
+    skRoutePoints,
+    skAdviseStep,
+    skInShot,
+    skStepOut,
+    skEscapeDirection,
+    SK_BLOCK_RANGE,
+    SK_SHOT_RANGE,
+    SK_BLOCK_COST,
+    SK_EXIT_COST,
 };
