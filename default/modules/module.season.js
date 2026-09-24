@@ -175,6 +175,40 @@ function closestOwnedDist(roomName) {
     return Number.isFinite(dist) ? dist : Infinity;
 }
 
+let _thoriumAvailTick = -1;
+let _thoriumAvail = 0;
+
+function empireThoriumAvailable() {
+    if (_thoriumAvailTick === Game.time) return _thoriumAvail;
+    _thoriumAvailTick = Game.time;
+    const t = thoriumType();
+    let n = 0;
+    const owned = typeof MY_ROOMS !== 'undefined' ? MY_ROOMS : [];
+    for (let i = 0; i < owned.length; i++) {
+        const room = Game.rooms[owned[i]];
+        if (!room) continue;
+        n += roomThoriumStored(room);
+        const rcl = (room.controller && room.controller.level) || room.level || 0;
+        const node = room.thorium;
+        if (rcl >= 6 && node && node.mineralAmount > 0) n += node.mineralAmount;
+    }
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (c.my && c.store) n += c.store[t] || 0;
+    }
+    _thoriumAvail = n;
+    return n;
+}
+
+function isFriendlyReactorOwner(owner, my) {
+    if (my || !owner) return false;
+    return typeof FRIENDLIES !== 'undefined' && FRIENDLIES.includes(owner);
+}
+
+function reactorIsActive(store, work) {
+    return (store != null && store > 0) || work > 0;
+}
+
 function pickTargetReactor() {
     const mem = getSeasonMemory();
     const known = mem.reactors || {};
@@ -185,6 +219,10 @@ function pickTargetReactor() {
         const centers = nearbySectorCenters(owned[i], 2);
         for (let j = 0; j < centers.length; j++) candidates.add(centers[j]);
     }
+
+    const tAvail = empireThoriumAvailable();
+    mem.thoriumAvailable = tAvail;
+    const stealMode = tAvail <= 0;
 
     let best = null;
     let bestScore = -Infinity;
@@ -201,16 +239,24 @@ function pickTargetReactor() {
         const store = rec.store != null ? rec.store : intel.reactorStore;
         const work = rec.continuousWork || intel.reactorWork || 0;
 
-        if (owner && typeof FRIENDLIES !== 'undefined' && FRIENDLIES.includes(owner) && !my) continue;
+        if (isFriendlyReactorOwner(owner, my)) continue;
 
         let score = 2000 - dist * 50;
         score += roomNorthValue(roomName) * 20;
+        const active = !my && owner && reactorIsActive(store, work);
 
-        if (my) {
+        if (stealMode) {
+            if (active) score += 9000 + Math.min(work, 50000) / 10 + Math.min(store || 0, 2000);
+            else if (!owner) score += 2500;
+            else if (my) score += 1500;
+            else score += 400;
+        } else if (my) {
             score += 8000 + Math.min(work, 50000) / 20;
             if (store != null && store < REACTOR_STORE_EMERGENCY) score += 4000;
         } else if (!owner) {
             score += 2500;
+        } else if (active) {
+            score += 1200;
         } else {
             score += 800;
         }
@@ -241,6 +287,12 @@ function setOperations() {
     ensureIntelStub(target);
     if (!Memory.auxiliaryTargets) Memory.auxiliaryTargets = {};
 
+    for (const key in Memory.auxiliaryTargets) {
+        if (key === target) continue;
+        const other = Memory.auxiliaryTargets[key];
+        if (other && other.type === 'reactor' && !other.manual) delete Memory.auxiliaryTargets[key];
+    }
+
     const rec = (mem.reactors || {})[target] || {};
     const intel = (typeof INTEL !== 'undefined' && INTEL[target]) || {};
     const mine = !!(rec.my || intel.reactorMy);
@@ -248,25 +300,24 @@ function setOperations() {
     const emergency = mine && store != null && store < REACTOR_STORE_EMERGENCY;
     const cap = reactorCapacity();
     const hungry = store == null || store < REACTOR_STORE_TARGET;
-    // Extractors unlock at RCL 6. Haulers before that idle with empty stores.
-    const canMine = (typeof MAX_LEVEL !== 'undefined' ? MAX_LEVEL : 0) >= 6;
+    const tAvail = empireThoriumAvailable();
+    const owner = rec.owner || intel.reactorOwner;
+    const steal = !mine && owner && !isFriendlyReactorOwner(owner, mine);
     const armed = intel.armedHostile && (Game.time - intel.armedHostile < CREEP_LIFE_TIME);
-    const hostile = !!(armed || (intel.threatLevel && intel.threatLevel > 0));
+    const hostile = !!(armed || (intel.threatLevel && intel.threatLevel > 0) || steal);
 
     const prev = Memory.auxiliaryTargets[target];
     Memory.auxiliaryTargets[target] = {
         tick: Game.time,
         type: 'reactor',
-        // PRIORITIES.high (6) sat behind remotes (4) and then *6 as siege.
-        // Feed needs to actually leave the spawn at RCL 6.
         priority: PRIORITIES.priority,
         claim: !mine,
-        haulers: (mine && canMine) ? (emergency ? 3 : (hungry ? 2 : 1)) : 0,
-        // Standing longbow on claim and feed; duo if the room is contested.
+        haulers: (mine && tAvail > 0) ? (emergency ? 3 : (hungry ? 2 : 1)) : 0,
         guards: hostile ? 2 : 1,
         feeder: mem.feederRoom,
         store: store,
-        capacity: cap
+        capacity: cap,
+        steal: steal ? 1 : 0
     };
     if (prev && prev.type === 'reactor') {
         if (prev.assignedRoom) Memory.auxiliaryTargets[target].assignedRoom = prev.assignedRoom;
@@ -538,6 +589,7 @@ module.exports = {
     reactorPos,
     planThoriumTransfers,
     getFeederKeep,
+    empireThoriumAvailable,
     shouldStarveHubUpgraders,
     isSeasonHub,
     seasonForceClaimOk,

@@ -5,7 +5,7 @@
  */
 
 const profiler = require('tools.profiler');
-const {findReactors, thoriumType} = require('module.season');
+const {findReactors, thoriumType, empireThoriumAvailable} = require('module.season');
 
 class RoleThoriumHauler {
     constructor(creep) {
@@ -23,6 +23,8 @@ class RoleThoriumHauler {
         }
         if (this.carrying()) {
             this.deliver();
+        } else if (empireThoriumAvailable() <= 0) {
+            this.creep.recycleCreep();
         } else {
             this.collect();
         }
