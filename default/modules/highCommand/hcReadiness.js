@@ -4,6 +4,8 @@
  * Empire-wide energy and combat readiness for operation gating.
  */
 
+const {usableEnergyState} = require('spawnFlow');
+
 const STRESS_STRESSED_RATIO = 0.5;
 const STRESS_CRITICAL_RATIO = 0.75;
 const STOCKPILE_COMBAT_READY_RATIO = 0.8;
@@ -35,7 +37,10 @@ function harassRoomLevel() {
 function roomStockpileRatio(room) {
     const diag = room.energyDiag;
     if (!diag || !diag.stockTarget) return 0;
-    return (diag.stockEnergy || 0) / diag.stockTarget;
+    // Spendable stock. diag.stockEnergy counts batteries, and a room whose
+    // storage is empty cannot spawn the operation that stockpile would allow.
+    const energy = (room.storage || room.terminal) ? (room.rawEnergy || 0) : (diag.stockEnergy || 0);
+    return energy / diag.stockTarget;
 }
 
 function roomHasCombatStockpile(room) {
@@ -54,7 +59,7 @@ function roomMilitaryFlowSpare(room) {
 function roomFlowStressed(room) {
     const ei = room.energyInfo;
     if (!ei) return false;
-    if ((room.energyState || 0) >= 2) return false;
+    if (usableEnergyState(room) >= 2) return false;
     if (roomHasCombatStockpile(room)) return false;
     if (typeof ei.flowStressed === 'boolean') return ei.flowStressed;
     const flowSpare = roomMilitaryFlowSpare(room);
@@ -63,7 +68,7 @@ function roomFlowStressed(room) {
 
 function isLiveCombatReadyRaw(room) {
     if (room.level < matureRoomLevel()) return false;
-    const energyState = room.energyState || 0;
+    const energyState = usableEnergyState(room);
     if (energyState >= 2) return true;
     if (energyState >= 1) {
         if (roomHasCombatStockpile(room)) return true;
@@ -84,7 +89,7 @@ function applyStickyCombatReady(room, rawReady) {
         }
         return true;
     }
-    if (sticky.combatReady && sticky.until > Game.time && (room.energyState || 0) >= 1) return true;
+    if (sticky.combatReady && sticky.until > Game.time && usableEnergyState(room) >= 1) return true;
     if (sticky.until <= Game.time && sticky.combatReady) delete sticky.combatReady;
     return false;
 }
@@ -95,13 +100,11 @@ function isLiveCombatReady(room) {
 
 function isLiveAuxReady(room) {
     if (room.level < matureRoomLevel()) return false;
-    const energyState = room.energyState || 0;
-    if (energyState >= 1) return true;
-    return room.level === 8 && !roomFlowStressed(room);
+    return usableEnergyState(room) >= 1;
 }
 
 function isRoomStruggling(room) {
-    return (room.energyState || 0) < 1;
+    return usableEnergyState(room) < 1;
 }
 
 function combatReadyWeight(room) {
@@ -123,7 +126,7 @@ function isRoomReadyForTier(room, tier) {
     if (tier === OP_TIER.HARASS) {
         if (room.level < harassRoomLevel()) return false;
         if (isRoomStruggling(room)) return false;
-        return isLiveAuxReady(room) || (room.energyState || 0) >= 1;
+        return isLiveAuxReady(room) || usableEnergyState(room) >= 1;
     }
     if (tier === OP_TIER.DENIAL) return isLiveCombatReady(room);
     if (tier === OP_TIER.SIEGE) {
@@ -131,7 +134,7 @@ function isRoomReadyForTier(room, tier) {
         // isLiveCombatReady here reimposed matureRoomLevel (usually 7).
         if (roomMilitaryFlowSpare(room) < 0) return false;
         if (isRoomStruggling(room)) return false;
-        if ((room.energyState || 0) >= 1) return true;
+        if (usableEnergyState(room) >= 1) return true;
         return roomHasCombatStockpile(room);
     }
     return isLiveCombatReady(room);

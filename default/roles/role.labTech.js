@@ -133,6 +133,33 @@ class RoleLabTech {
         return !!(typeof INTEL !== 'undefined' && INTEL[this.room.name] && INTEL[this.room.name].threatLevel);
     }
 
+    findBatteryConversionTask(factory, storage, terminal) {
+        if (!factory) return null;
+        if (FactoryControl.shouldContinueBatteryUnpack(this.room)) {
+            const feed = this.findFactoryBatterySupply(factory, storage, terminal);
+            if (feed) return feed;
+            // Output energy has to leave or the next battery batch cannot load.
+            const produced = factory.store[RESOURCE_ENERGY] || 0;
+            if (produced > 0) {
+                const dump = this.pickFactoryClogTarget(RESOURCE_ENERGY, storage, terminal);
+                if (dump) {
+                    return {
+                        withdrawTarget: factory.id,
+                        deliveryTarget: dump.id,
+                        resource: RESOURCE_ENERGY,
+                        amount: produced
+                    };
+                }
+            }
+            return null;
+        }
+        if (FactoryControl.shouldPackBatteries(this.room)
+            && (!factory.memory.producing || factory.memory.producing === RESOURCE_BATTERY)) {
+            return this.findFactoryPackEnergyTask(factory, storage, terminal);
+        }
+        return null;
+    }
+
     findTowerFillTask(floor) {
         const tower = lowestTowerUnder(this.room, floor);
         if (!tower) return null;
@@ -191,8 +218,16 @@ class RoleLabTech {
         // packed. Every branch that uses storeTarget.id must guard for null.
         const storeTarget = this.pickStoreTarget(storage, terminal);
 
-        // 1. Dry towers, and any tower that can still take a load while under attack.
-        // Half-empty is ahead of decaying thorium. The maintain line is below.
+        // Unpacking is how a dry room gets energy back; packing is how a full
+        // one frees storage. Both lose if tower top-ups run first. Live combat
+        // still fills towers before either.
+        if (!(this.room.memory && this.room.memory.dangerousAttack)) {
+            const batteryTask = this.findBatteryConversionTask(factory, storage, terminal);
+            if (batteryTask) return batteryTask;
+        }
+
+        // Dry towers, and any tower that can still take a load while under attack.
+        // Half-empty is ahead of decaying thorium. Haulers hold the peace top-up.
         const urgentTower = this.findTowerFillTask(this.roomUnderTowerThreat() ? towerFillFloor(this.room) : TOWER_FILL_URGENT);
         if (urgentTower) return urgentTower;
 
@@ -209,13 +244,6 @@ class RoleLabTech {
             && terminal.store.getFreeCapacity() < BALANCE_MIN_TRANSFER) {
             const stuck = this.findOverflowRelief(storage, terminal);
             if (stuck) return stuck;
-        }
-
-        // Keep towers near full before labs, factory, and the nuker. The hauler
-        // does the same job; this covers a room whose hauler is across the base.
-        if (!this.roomUnderTowerThreat()) {
-            const towerTask = this.findTowerFillTask(towerFillFloor(this.room));
-            if (towerTask) return towerTask;
         }
 
         // 3. Boost labs beat production, nuker, and cleanup. Pre-stage first,

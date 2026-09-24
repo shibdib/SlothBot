@@ -4,7 +4,7 @@
 const profiler = require("tools.profiler");
 const {empireOpsPaused} = require('hcReadiness');
 const {energyTarget: colonyEnergyTarget} = require('module.colonyProfile');
-const {roomCanBurnSurplus} = require('spawnFlow');
+const {roomCanBurnSurplus, usableEnergyState: roomUsableEnergyState} = require('spawnFlow');
 let tickTracker = {};
 let cooldownTracker = {};
 
@@ -63,17 +63,8 @@ class FactoryControl {
         return (ei && ei.spareIncome) || 0;
     }
 
-    // Storage energy only. energyState folds batteries in at a recovery estimate,
-    // so a room sitting on batteries stays "OK" while the energy it can spend shrinks
-    // and the factory never starts the conversion.
     static usableEnergyState(room) {
-        const target = FactoryControl.energyTarget(room);
-        const energy = (room && room.rawEnergy) || 0;
-        if (!(target > 0)) return 2;
-        if (energy > target * 1.5) return 3;
-        if (energy >= target) return 2;
-        if (energy > target * 0.5) return 1;
-        return 0;
+        return roomUsableEnergyState(room);
     }
 
     static needsBatteryUnpack(room) {

@@ -13,6 +13,7 @@ const {
     remoteHaulerMinCarry,
 } = require('bodyHelpers');
 const {reservationTicksLeft} = require('remoteMining');
+const {usableEnergyState} = require('spawnFlow');
 
 const builders = {
     claimAttacker(gen) {
@@ -66,7 +67,7 @@ const builders = {
         const recovering = ticks < 1000;
         const maxClaim = leanColony
             ? (reservationHigh ? 1 : (recovering ? Math.min(3, maxBodyNonMoveParts(!!halfMove)) : 2))
-            : (fullRouteHasRoads ? Math.min(6, 5 * (gen.room.energyState || 1)) : Math.min(4, 2 * (gen.room.energyState || 1)));
+            : (fullRouteHasRoads ? Math.min(6, 5 * (usableEnergyState(gen.room) || 1)) : Math.min(4, 2 * (usableEnergyState(gen.room) || 1)));
 
         let claim = Math.floor(gen.energyAmount / (BODYPART_COST[CLAIM] + moveCost)) || 1;
         claim = Math.min(claim, maxClaim);
@@ -77,10 +78,10 @@ const builders = {
         if (gen.room.memory.remotePenalty) claim = Math.min(claim, 1);
 
         if (leanColony) {
-            if (gen.room.energyState < 2 || gen.trend < 0) {
+            if (usableEnergyState(gen.room) < 2 || gen.trend < 0) {
                 claim = Math.max(1, Math.floor(claim * gen.flowScale(0.5, 10)));
             }
-        } else if (gen.room.energyState < 3 || gen.trend < 0) {
+        } else if (usableEnergyState(gen.room) < 3 || gen.trend < 0) {
             claim = Math.max(reservationHigh ? 1 : 2, Math.floor(claim * gen.flowScale(0.5, 10)));
         }
         claim = Math.max(claim, reservationHigh ? 1 : 2);

@@ -26,7 +26,7 @@ const UPGRADER_FEED_WORK_RECOVERING = 12;
 function upgraderFeedWorkCap(room) {
     const rcl = (room && room.controller && room.controller.level) || (room && room.level) || 0;
     if (rcl >= 8) return;
-    const state = (room && room.energyState) || 0;
+    const state = usableEnergyState(room);
     if (state <= 0) return UPGRADER_FEED_WORK_POOR;
     if (state === 1) return UPGRADER_FEED_WORK_RECOVERING;
 }
@@ -35,6 +35,36 @@ function upgraderFeedWorkCap(room) {
 function spawnEnergyState(room) {
     if (room && room._spawnEnergyState !== undefined) return room._spawnEnergyState;
     return room ? room.energyState : 0;
+}
+
+/**
+ * Energy the room can spend. Storage rooms score raw energy against the
+ * stockpile target — energyState counts batteries, so bodies stay full while
+ * the spawn cannot pay for them. Pre-storage rooms still use spawn fill.
+ */
+function usableEnergyState(room) {
+    if (!room) return 0;
+    if (room._usableEnergyTick === Game.time) return room._usableEnergyState;
+    let state;
+    if (!room.storage && !room.terminal) {
+        state = spawnEnergyState(room) || 0;
+    } else {
+        let target = 0;
+        try {
+            target = require('module.colonyProfile').energyTarget(room);
+        } catch (e) {
+            target = 0;
+        }
+        const energy = room.rawEnergy || 0;
+        if (!(target > 0)) state = 2;
+        else if (energy > target * 1.5) state = 3;
+        else if (energy >= target) state = 2;
+        else if (energy > target * 0.5) state = 1;
+        else state = 0;
+    }
+    room._usableEnergyTick = Game.time;
+    room._usableEnergyState = state;
+    return state;
 }
 
 function getFlowContext(room) {
@@ -245,6 +275,7 @@ module.exports = {
     UPGRADER_FEED_WORK_RECOVERING,
     upgraderFeedWorkCap,
     spawnEnergyState,
+    usableEnergyState,
     getFlowContext,
     roomCanBurnSurplus,
     roomCanFillNuker,

@@ -14,7 +14,11 @@ const {
     liveControllerContainer,
 } = require('bodyHelpers');
 const {getRegenSourceOperatorForRoom} = require('powerSpec');
-const {ENERGY_ACCRUAL_FLOOR, upgraderFeedWorkCap} = require('spawnFlow');
+const {ENERGY_ACCRUAL_FLOOR, upgraderFeedWorkCap, usableEnergyState} = require('spawnFlow');
+
+function bodyEnergyState(room) {
+    return usableEnergyState(room);
+}
 
 function droneHasBuildWork(room) {
     if (!room) return false;
@@ -62,19 +66,19 @@ function buildRoadDroneWaller(gen) {
             const scale = Math.max(0.65, gen.flowScale(0.7, 12));
             work *= scale;
             carry *= Math.max(0.5, gen.flowScale(0.5, 12));
-        } else if (!gen.room.energyState) {
+        } else if (!bodyEnergyState(gen.room)) {
             work *= leanColony ? 0.25 : 0.15;
             carry *= leanColony ? 0.1 : 0.05;
-        } else if ((gen.role === 'remoteBuilder' || gen.role === 'roadBuilder') && gen.room.energyState < 3) {
+        } else if ((gen.role === 'remoteBuilder' || gen.role === 'roadBuilder') && bodyEnergyState(gen.room) < 3) {
             work *= 0.4;
             carry *= 0.3;
-        } else if (!leanColony && (gen.room.energyState < 3 ||
-            (gen.room.energyState === 3 && ['drone', 'waller'].includes(gen.role)))) {
+        } else if (!leanColony && (bodyEnergyState(gen.room) < 3 ||
+            (bodyEnergyState(gen.room) === 3 && ['drone', 'waller'].includes(gen.role)))) {
             const criticalBootstrap = isDrone && roomHasCriticalBuildSites(gen.room);
             const scale = criticalBootstrap ? gen.flowScale(0.75, 10) : gen.flowScale(0.3, 15);
             work *= scale;
             carry *= scale;
-        } else if (leanColony && (gen.room.energyState < 2 || gen.trend < 0 || gen.spareIncome < ENERGY_ACCRUAL_FLOOR)) {
+        } else if (leanColony && (bodyEnergyState(gen.room) < 2 || gen.trend < 0 || gen.spareIncome < ENERGY_ACCRUAL_FLOOR)) {
             const scale = gen.flowScale(0.5, 15);
             work *= scale;
             carry *= scale;
@@ -108,7 +112,7 @@ function maxStationaryUpgraderWork(room, energyAmount) {
  * gross spare so energyState 0 does not freeze the rest of the economy.
  */
 function upgradeAccrualFloor(room, grossSpare) {
-    const state = (room && room.energyState) || 0;
+    const state = bodyEnergyState(room);
     const spare = grossSpare > 0 ? grossSpare : 0;
     if (state <= 0) return Math.max(ENERGY_ACCRUAL_FLOOR, spare * 0.55);
     if (state === 1) return Math.max(ENERGY_ACCRUAL_FLOOR, spare * 0.35);
@@ -170,7 +174,7 @@ function buildUpgrader(gen) {
             const controllerLink = Game.getObjectById(gen.room.memory.controllerLink);
             const sourceLinks = controllerLink ? gen.room.links
                     .filter(s => s.id !== gen.room.memory.controllerLink &&
-                        (gen.room.energyState >= 2 || s.id !== gen.room.memory.hubLink))
+                        (bodyEnergyState(gen.room) >= 2 || s.id !== gen.room.memory.hubLink))
                     .sort((a, b) => a.pos.getRangeTo(controllerLink) - b.pos.getRangeTo(controllerLink))
                 : [];
             // Shared source+controller link dumps harvest into the controller
@@ -192,8 +196,8 @@ function buildUpgrader(gen) {
                 // Hub only drips to the controller at energyState 2+ (RCL < 8)
                 // or when RCL8 is not pulling the link back to storage.
                 const hubFeedsController = gen.room.memory.hubLink && (
-                    (gen.room.controller.level < 8 && (gen.room.energyState || 0) >= 2)
-                    || (gen.room.controller.level >= 8 && (gen.room.energyState >= 2 || stored))
+                    (gen.room.controller.level < 8 && (bodyEnergyState(gen.room) || 0) >= 2)
+                    || (gen.room.controller.level >= 8 && (bodyEnergyState(gen.room) >= 2 || stored))
                 );
                 if (hubFeedsController) {
                     const linkCap = typeof LINK_CAPACITY === 'number' ? LINK_CAPACITY : 800;
@@ -223,7 +227,7 @@ function buildUpgrader(gen) {
         // 5W is hasDedicatedUpgrader's floor — smaller and drones leftover-upgrade.
         // True famine (empty spawn, no stock) may drop to 1W so the body can spawn.
         const stored = (gen.room.rawEnergy || 0) > 1000;
-        if ((gen.room.energyState || stored) && affordableWork >= 5) {
+        if ((bodyEnergyState(gen.room) || stored) && affordableWork >= 5) {
             work = Math.max(work, 5);
         }
 
@@ -316,7 +320,7 @@ function buildHauler(gen) {
     carry = Math.min(carry, maxHaulerCarry);
     // Income logistics: never shrink haulers for flow stress. Undersized haulers
     // leave energy in containers/drops and the room cannot recover.
-    if (!roomInSpawnRecovery(gen.room, gen.creepInfo) && !gen.room.energyState) {
+    if (!roomInSpawnRecovery(gen.room, gen.creepInfo) && !bodyEnergyState(gen.room)) {
         carry = Math.max(1, Math.floor(carry * 0.25));
     }
     return {carry, halfMove: roadsBuilt || undefined};
@@ -352,9 +356,9 @@ function buildShuttle(gen) {
 
     // Same as haulers: only shrink on a barren reboot so the body can spawn.
     // Haul backlog / harvest throughput stay at saturation otherwise.
-    if (!recovery && !gen.room.energyState && !haulUrgent) {
+    if (!recovery && !bodyEnergyState(gen.room) && !haulUrgent) {
         carry = Math.max(minCarry, Math.floor(carry * (criticalBootstrap ? 0.65 : 0.25)));
-    } else if (!recovery && !gen.room.energyState) {
+    } else if (!recovery && !bodyEnergyState(gen.room)) {
         carry = Math.max(minCarry, Math.floor(carry * 0.65));
     }
 
@@ -439,9 +443,9 @@ const builders = {
         }
         let work = Math.floor(gen.energyAmount / BODYPART_COST[WORK]) || 1;
         work = Math.min(work, 50);
-        if (!gen.room.energyState) {
+        if (!bodyEnergyState(gen.room)) {
             work *= 0.15;
-        } else if (gen.room.energyState === 1) {
+        } else if (bodyEnergyState(gen.room) === 1) {
             work *= 0.3;
         }
         return {work, move: 0};

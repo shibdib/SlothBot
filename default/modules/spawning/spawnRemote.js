@@ -5,7 +5,7 @@
  */
 
 const spawnState = require('spawnState');
-const {getFlowContext, spawnEnergyState} = require('spawnFlow');
+const {getFlowContext, usableEnergyState} = require('spawnFlow');
 const {getCreepCount, creepExpiringSoon, haulerCarryCapacity} = require('spawnCounts');
 const {queueCreepIfNeeded, queueCreep} = require('spawnQueue');
 const {
@@ -32,7 +32,7 @@ function maxRemoteHarvesters(room) {
 
 function shouldDeprioritizeRemotes(room) {
     const {spareIncome, flowHealthy} = getFlowContext(room);
-    const energyState = spawnEnergyState(room) || 0;
+    const energyState = usableEnergyState(room);
     return energyState >= 3 && room.storage && flowHealthy && spareIncome >= 8;
 }
 
@@ -516,7 +516,7 @@ function handleContestedRoom(room) {
     }
     if (intel.armedHostile && intel.armedHostile + CREEP_LIFE_TIME > Game.time) {
         const flow = getFlowContext(room);
-        const canQuad = spawnEnergyState(room) >= 2 && flow.flowHealthy && flow.spareIncome >= 8;
+        const canQuad = usableEnergyState(room) >= 2 && flow.flowHealthy && flow.spareIncome >= 8;
         const waitFor = canQuad ? 4 : 2;
         if (queueCreepIfNeeded({
             room, role: 'longbowSquad', priority: PRIORITIES.remoteHarvester + 1,

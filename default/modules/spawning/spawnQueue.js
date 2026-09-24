@@ -7,7 +7,7 @@
 const generator = require('module.bodyGenerator');
 const {getCreepCount, creepExpiringSoon, invalidateCreepCountCache} = require('spawnCounts');
 const {collectGlobalOperations, releaseAssignmentIfStuck, generatedBodyMissingBoosts} = require('spawnOperations');
-const {spawnEnergyState} = require('spawnFlow');
+const {usableEnergyState} = require('spawnFlow');
 const {roomInSpawnRecovery} = require('bodyHelpers');
 const {roleNamePrefix} = require('prototype.creep');
 
@@ -299,7 +299,7 @@ function computeSortPriority(item, room) {
         const milInfo = room.energyInfo;
         const milTrend = (milInfo && milInfo.trend) || 0;
         const milSpare = (milInfo && milInfo.spareIncome) || 0;
-        const flowReady = spawnEnergyState(room) >= 2 && milTrend >= 0 && milSpare >= 8;
+        const flowReady = usableEnergyState(room) >= 2 && milTrend >= 0 && milSpare >= 8;
         const reactorFeed = destOp.type === 'reactor'
             && (item.role === 'reactorClaimer' || item.role === 'thoriumHauler');
         if (reactorFeed) {

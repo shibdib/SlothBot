@@ -12,6 +12,7 @@ const {
     roomInSpawnRecovery,
     recoverySpawnEnergy,
 } = require('bodyHelpers');
+const {usableEnergyState} = require('spawnFlow');
 const economic = require('bodyEconomic');
 const remote = require('bodyRemote');
 const military = require('bodyMilitary');
@@ -29,6 +30,18 @@ const INCOME_BODY_ROLES = {
     remoteHauler: true,
 };
 const AVAILABLE_ENERGY_IDLE_TICKS = 30;
+
+// Energy haulers can put into spawn and extensions. Batteries are not included.
+// Below the extension cap, size to storage so a dry room can still spawn off
+// the spawn's own regen instead of waiting on a body nothing can fill.
+function liquidSpawnBudget(room) {
+    const cap = (room && room.energyCapacityAvailable) || SPAWN_ENERGY_CAPACITY;
+    if (!room || (!room.storage && !room.terminal)) return cap;
+    const raw = room.rawEnergy || 0;
+    if (raw >= cap) return cap;
+    const regen = Math.min(cap, SPAWN_ENERGY_CAPACITY);
+    return Math.max(regen, Math.min(cap, raw));
+}
 
 function shouldSpawnAtAvailableEnergy(room, role) {
     if (!room || !INCOME_BODY_ROLES[role]) return false;
@@ -94,13 +107,14 @@ class ModuleBodyGenerator {
             if (shouldSpawnAtAvailableEnergy(this.room, this.role)) {
                 this.energyAmount = Math.min(this.energyAmount, this.room.energyAvailable);
             }
+            this.energyAmount = Math.min(this.energyAmount, liquidSpawnBudget(this.room));
         }
     }
 
     getCacheKey() {
         const trendBucket = Math.round(this.trend);
         const dutyBucket = Math.round(this.upgraderDuty * 10);
-        const energyState = (this.room && this.room.energyState) || 0;
+        const energyState = usableEnergyState(this.room);
         const reboot = this.creepInfo && this.creepInfo.other && this.creepInfo.other.reboot;
         const rebootString = reboot ? 'reboot' : '';
         const recoveryString = roomInSpawnRecovery(this.room, this.creepInfo) ? 'rec' : '';

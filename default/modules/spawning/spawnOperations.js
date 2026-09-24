@@ -14,7 +14,7 @@ const {
     roomMilitaryFlowSpare,
     roomStockpileRatio,
 } = require('hcReadiness');
-const {spawnEnergyState} = require('spawnFlow');
+const {usableEnergyState} = require('spawnFlow');
 const {isOptionalSiegeBoost} = require('bodySiegeBoosts');
 const {roomHasStableWorkingSet} = require('bodyHelpers');
 const {scoreOriginMinLevel, empireDistance, empirePriority} = require('hcUtils');
@@ -832,7 +832,7 @@ function isBetterAssignmentCandidate(score, distance, load, key, best) {
 function computeAssignmentScore(myRoom, routeDistance, load, isAuxiliary) {
     let sticky = routeDistance + (COLONY_ASSIGN_PENALTY[getColonyRole(myRoom)] || 0);
 
-    const energyState = spawnEnergyState(myRoom) || 0;
+    const energyState = usableEnergyState(myRoom);
     const ei = myRoom.energyInfo;
     const trend = (ei && ei.trend) || 0;
     const flowSpare = roomMilitaryFlowSpare(myRoom);
@@ -946,7 +946,7 @@ function getPriority(operationRoom) {
     const op = Memory.targetRooms[operationRoom] || Memory.auxiliaryTargets[operationRoom];
     const colonyName = (op && op.assignedRoom) || findClosestOwnedRoom(operationRoom, false, 1);
     const colony = colonyName && Game.rooms[colonyName];
-    const energyMulti = colony && spawnEnergyState(colony) < 2 ? 1.5 : 1;
+    const energyMulti = colony && usableEnergyState(colony) < 2 ? 1.5 : 1;
     return Math.round(empirePriority(range) * typeMulti * energyMulti * 10) / 10;
 }
 

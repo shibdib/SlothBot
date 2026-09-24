@@ -5,7 +5,7 @@
  */
 
 const spawnState = require('spawnState');
-const {spawnEnergyState} = require('spawnFlow');
+const {usableEnergyState} = require('spawnFlow');
 const {getCreepCount} = require('spawnCounts');
 const {ownedSpawnCount, isColonyEarlyRush} = require('bodyHelpers');
 const {
@@ -74,7 +74,7 @@ function renewNearbyCreepIfNeeded(room, availableSpawn) {
     // aggressively than other economy creeps even in marginal state 1, because extending a
     // productive harvester directly increases net energy gain and avoids expensive full respawns
     // (especially the large 1450 bodies). Cost is still tracked and will influence spareIncome.
-    const energyState = spawnEnergyState(room);
+    const energyState = usableEnergyState(room);
     if (!energyState) return;
     const strict = energyState < 2 || renewTrend < -3;
 
@@ -209,7 +209,7 @@ function isWaveCreepMemory(memory, wave) {
 function reservationAllowed(room, waveStarted) {
     // A waitFor wave already on the pad keeps a spawn even in state 0 so the
     // remaining bodies can pop as energy trickles in. Fresh waves still wait.
-    if (spawnEnergyState(room) < 1 && !waveStarted) return false;
+    if (usableEnergyState(room) < 1 && !waveStarted) return false;
     if (!getCreepCount(room, 'stationaryHarvester')) return false;
     if (room.storage && !getCreepCount(room, 'hauler')) return false;
     return true;
@@ -223,7 +223,7 @@ function idleReserveCount(room, availableCount, owned, demand, busyWave, waitFor
     const cap = maxMilitaryReserve(owned, waitFor);
     let idleCap = Math.min(cap, demand) - busyWave;
     if (idleCap < 0) idleCap = 0;
-    const energyState = spawnEnergyState(room);
+    const energyState = usableEnergyState(room);
     // A waitFor-4 already on the pad keeps both spawns even in state 1.
     // One lock serializes 4 × 150 ticks and the first body hits the boost floor.
     const dualQuad = waitFor >= 4 && (energyState >= 2 || waveStarted);
@@ -285,7 +285,7 @@ function pickQueueItem(queue, energyLeft, energyCapacity, opts) {
             // for it (state 2+). At 0/1 the hold starved local income and
             // next-door miners while energy trickled in.
             if (ENERGY_HOLD_ROLES.has(item.role) && opts.room
-                && spawnEnergyState(opts.room) >= 2) {
+                && usableEnergyState(opts.room) >= 2) {
                 holdForEnergy = true;
                 waitingOnEnergy = true;
                 continue;
