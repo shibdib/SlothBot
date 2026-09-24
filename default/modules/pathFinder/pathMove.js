@@ -146,7 +146,20 @@ function applyLongDistanceHop(creep, origin, target, options) {
 
     const remaining = route.length - idx;
     const nextRoom = route[idx + 1];
+    // Last hop into dest: walk this room's dest-facing exit. A 2-room search
+    // to (25,25) range 23 never completes if keeper blankets seal that edge.
     if (nextRoom === destRoom || remaining <= HOP_AFTER) {
+        const lastHop = exitHopTarget(origin.roomName, nextRoom, origin, destRoom);
+        if (lastHop) {
+            options.route = [origin.roomName];
+            options.maxRooms = 1;
+            options.range = 0;
+            options.hopGoals = lastHop.goals;
+            options.hopExitDir = lastHop.exitDir;
+            const hopCap = roomNeedsMazeOps(origin.roomName) ? MAZE_MAXOPS : 2000;
+            if (options.maxOps == null || options.maxOps > hopCap) options.maxOps = hopCap;
+            return lastHop.pos;
+        }
         options.route = route.slice(idx);
         return null;
     }

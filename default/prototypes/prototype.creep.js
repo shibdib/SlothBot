@@ -437,12 +437,23 @@ Creep.prototype.getActiveBodyparts = function (type) {
 
 Creep.prototype.hasActiveBodyparts = function (type) {
     if (this.className || !this.body) return false;
+    let cache = this._activeParts;
+    if (!cache || cache.t !== Game.time) {
+        cache = this._activeParts = {t: Game.time};
+    }
+    const hit = cache[type];
+    if (hit !== undefined) return hit;
+    let found = false;
     for (let i = this.body.length; i-- > 0;) {
         if (this.body[i].hits > 0) {
-            if (this.body[i].type === type) return true;
+            if (this.body[i].type === type) {
+                found = true;
+                break;
+            }
         } else break;
     }
-    return false;
+    cache[type] = found;
+    return found;
 };
 
 Creep.prototype.wrongRoom = function () {
@@ -1339,6 +1350,19 @@ Creep.prototype.borderCheck = function () {
     if (pathIsSameRoomDetour(this)) {
         this.memory.borderCountDown = undefined;
         return false;
+    }
+
+    if (dest && dest !== this.room.name) {
+        const exits = Game.map.describeExits(this.room.name);
+        if (exits && (
+            (x === 49 && exits[RIGHT] === dest) ||
+            (x === 0 && exits[LEFT] === dest) ||
+            (y === 0 && exits[TOP] === dest) ||
+            (y === 49 && exits[BOTTOM] === dest)
+        )) {
+            this.memory.borderCountDown = undefined;
+            return false;
+        }
     }
 
     if (this.memory.borderCountDown) this.memory.borderCountDown++; else this.memory.borderCountDown = 1;

@@ -847,6 +847,10 @@ module.exports = {
 
     exitHopTarget,
 
+    exitDirToNeighbor,
+
+    greedyExitDir,
+
     travelRouteHops,
 
     onExitToward,

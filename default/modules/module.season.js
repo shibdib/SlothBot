@@ -13,6 +13,7 @@ const FEEDER_KEEP = 2000;
 const THORIUM_SEND_MIN = 100;
 const SCAN_INTERVAL = 10;
 const REACTOR_INTEL_TTL = CREEP_LIFE_TIME;
+const ABANDON_COOLDOWN = 300;
 const CLAIMER_LOG_MAX = 80;
 const CLAIMER_STUCK_TICKS = 40;
 const CLAIMER_EMAIL_EVENTS = {
@@ -378,9 +379,6 @@ function pickTargetReactor() {
     }
 
     mem.targetReactor = best || undefined;
-    // Terminals (and extractors) unlock at RCL 6. Prefer a feeder that can
-    // receive empire Thorium; fall back only if nothing that high exists.
-    mem.feederRoom = best ? (closestOwned(best, 6) || closestOwned(best, 4) || closestOwned(best, 1)) : undefined;
 }
 
 function ensureIntelStub(roomName) {
@@ -441,6 +439,165 @@ function setOperations() {
     }
 }
 
+function seasonHubCount(gcl, ownedCount) {
+    if (ownedCount <= 0) return 0;
+    if (gcl <= 1 || ownedCount === 1) return 1;
+    const want = gcl >= 6 ? 3 : 2;
+    return Math.min(ownedCount, gcl, want);
+}
+
+function hubScore(room, reactor) {
+    const rcl = (room.controller && room.controller.level) || room.level || 0;
+    let score = rcl * 1000 + roomNorthValue(room.name) * 50;
+    if (room.terminal) score += 800;
+    if (room.storage) score += 400;
+    if (rcl >= 7) score += 200;
+    if (reactor) {
+        const dist = Game.map.getRoomLinearDistance(room.name, reactor);
+        if (Number.isFinite(dist)) score -= dist * 80;
+    }
+    return score;
+}
+
+function classifySeasonRooms() {
+    const mem = getSeasonMemory();
+    const owned = typeof MY_ROOMS !== 'undefined' ? MY_ROOMS.slice() : [];
+    const gcl = (Game.gcl && Game.gcl.level) || owned.length;
+    const hubN = seasonHubCount(gcl, owned.length);
+    const reactor = mem.targetReactor;
+    const ranked = [];
+    for (let i = 0; i < owned.length; i++) {
+        const room = Game.rooms[owned[i]];
+        if (!room || !room.controller || !room.controller.my) continue;
+        ranked.push({name: owned[i], score: hubScore(room, reactor)});
+    }
+    ranked.sort((a, b) => b.score - a.score);
+    const hubs = [];
+    for (let i = 0; i < ranked.length && hubs.length < hubN; i++) hubs.push(ranked[i].name);
+    const harvest = [];
+    for (let i = 0; i < ranked.length; i++) {
+        if (hubs.indexOf(ranked[i].name) === -1) harvest.push(ranked[i].name);
+    }
+    mem.hubs = hubs;
+    mem.harvest = harvest;
+    mem.hubCount = hubN;
+    let feeder;
+    if (reactor) {
+        let bestD = Infinity;
+        for (let i = 0; i < hubs.length; i++) {
+            const room = Game.rooms[hubs[i]];
+            if (!room || !room.terminal) continue;
+            const d = Game.map.getRoomLinearDistance(hubs[i], reactor);
+            if (d < bestD) {
+                bestD = d;
+                feeder = hubs[i];
+            }
+        }
+    }
+    if (!feeder) {
+        for (let i = 0; i < hubs.length; i++) {
+            const room = Game.rooms[hubs[i]];
+            if (room && room.terminal) {
+                feeder = hubs[i];
+                break;
+            }
+        }
+    }
+    mem.feederRoom = feeder
+        || (reactor ? (closestOwned(reactor, 6) || closestOwned(reactor, 4) || closestOwned(reactor, 1)) : undefined);
+}
+
+function roomThoriumStored(room) {
+    const t = thoriumType();
+    let n = 0;
+    if (room.storage) n += room.storage.store[t] || 0;
+    if (room.terminal) n += room.terminal.store[t] || 0;
+    const containers = room.containers || [];
+    for (let i = 0; i < containers.length; i++) n += containers[i].store[t] || 0;
+    const drops = room.find(FIND_DROPPED_RESOURCES) || [];
+    for (let i = 0; i < drops.length; i++) {
+        if (drops[i].resourceType === t) n += drops[i].amount || 0;
+    }
+    return n;
+}
+
+function colonyCarryingThorium(roomName) {
+    const t = thoriumType();
+    for (const name in Game.creeps) {
+        const c = Game.creeps[name];
+        if (!c.my || !c.store) continue;
+        if ((c.store[t] || 0) <= 0) continue;
+        if (c.memory.colony === roomName || c.room.name === roomName) return true;
+    }
+    return false;
+}
+
+function harvestRoomDry(room) {
+    const intel = typeof INTEL !== 'undefined' ? INTEL[room.name] : undefined;
+    if (!intel || intel.thoriumAmount == null) return false;
+    if (intel.thoriumAmount > 0) return false;
+    const node = room.thorium;
+    if (node && node.mineralAmount > 0) return false;
+    if (roomThoriumStored(room) > 0) return false;
+    if (colonyCarryingThorium(room.name)) return false;
+    return true;
+}
+
+function maybeAbandonDepleted() {
+    const mem = getSeasonMemory();
+    if ((mem.lastAbandon || 0) + ABANDON_COOLDOWN > Game.time) return;
+    if (Game.cpu.bucket != null && Game.cpu.bucket < 500) return;
+    const hubs = mem.hubs || [];
+    const harvest = mem.harvest || [];
+    if (!harvest.length) return;
+    const owned = typeof MY_ROOMS !== 'undefined' ? MY_ROOMS.length : 0;
+    const hubN = mem.hubCount || 2;
+    if (owned <= hubN) return;
+
+    for (let i = 0; i < harvest.length; i++) {
+        const room = Game.rooms[harvest[i]];
+        if (!room || !room.controller || !room.controller.my) continue;
+        if (hubs.indexOf(room.name) !== -1) continue;
+        if (room.controller.safeMode) continue;
+        if (room.hostileCreeps && room.hostileCreeps.length) continue;
+        if (!harvestRoomDry(room)) continue;
+        log.a(`${roomLink(room.name)} thorium gone — unclaiming harvest room (hubs ${hubs.join(',')})`, 'SEASON:');
+        if (typeof abandonRoom === 'function') abandonRoom(room, true);
+        mem.lastAbandon = Game.time;
+        return;
+    }
+}
+
+function shouldStarveHubUpgraders(room) {
+    if (!isSeason() || !room || !room.controller) return false;
+    const mem = Memory.season;
+    if (!mem || !mem.hubs || mem.hubs.indexOf(room.name) === -1) return false;
+    if (room.controller.level < 6) return false;
+    const owned = typeof MY_ROOMS !== 'undefined' ? MY_ROOMS : [];
+    for (let i = 0; i < owned.length; i++) {
+        if (owned[i] === room.name) continue;
+        const other = Game.rooms[owned[i]];
+        if (!other || !other.controller || !other.controller.my) continue;
+        if (other.controller.level >= 6) continue;
+        const amt = (typeof INTEL !== 'undefined' && INTEL[owned[i]] && INTEL[owned[i]].thoriumAmount);
+        const node = other.thorium && other.thorium.mineralAmount;
+        if ((amt != null && amt > 0) || (node > 0)) return true;
+    }
+    return false;
+}
+
+function isSeasonHub(roomName) {
+    const hubs = Memory.season && Memory.season.hubs;
+    return !!(hubs && hubs.indexOf(roomName) !== -1);
+}
+
+function seasonForceClaimOk(roomName) {
+    if (!isSeason() || !roomName) return true;
+    const intel = typeof INTEL !== 'undefined' ? INTEL[roomName] : undefined;
+    if (intel && intel.thoriumAmount === 0) return false;
+    return true;
+}
+
 function run() {
     if (!isSeason()) return;
 
@@ -450,7 +607,9 @@ function run() {
 
     if (!mem.scanTick || mem.scanTick + SCAN_INTERVAL <= Game.time) {
         if (Game.cpu.bucket >= 50) pickTargetReactor();
+        classifySeasonRooms();
         setOperations();
+        maybeAbandonDepleted();
         mem.scanTick = Game.time;
     }
 }
@@ -537,6 +696,10 @@ module.exports = {
     errName,
     planThoriumTransfers,
     getFeederKeep,
+    shouldStarveHubUpgraders,
+    isSeasonHub,
+    seasonForceClaimOk,
+    seasonHubCount,
     stampThoriumIntel,
     needsThoriumIntel,
     isPossibleClaimIntel,

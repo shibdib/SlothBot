@@ -244,6 +244,8 @@ module.exports.retrievePathing = function () {
             if (_.size(RawMemory.segments[69])) {
                 try {
                     CACHE.PATH_CACHE = JSON.parse(RawMemory.segments[69]);
+                    const restored = CACHE.PATH_CACHE && Object.keys(CACHE.PATH_CACHE).length;
+                    if (restored > 800) CACHE.PATH_CACHE = {};
                     log.d('Pathing segment retrieved, restoring old path cache.', 'PATHING MANAGER: ');
                 } catch (e) {
                     CACHE.PATH_CACHE = {};

@@ -67,7 +67,9 @@ class ExpansionControl {
 
         if (allowForce && FORCE_CLAIM && roomName === FORCE_CLAIM) {
             const forceIntel = INTEL[roomName];
-            return !forceIntel || !forceIntel.owner;
+            if (forceIntel && forceIntel.owner) return false;
+            if (typeof IS_SEASON !== 'undefined' && IS_SEASON && !season.seasonForceClaimOk(roomName)) return false;
+            return true;
         }
 
         const targetIntel = INTEL[roomName];
@@ -147,7 +149,8 @@ class ExpansionControl {
         }
 
         if (FORCE_CLAIM && (!INTEL[FORCE_CLAIM] || !INTEL[FORCE_CLAIM].owner)
-            && !(Memory.noClaim && Memory.noClaim.includes(FORCE_CLAIM))) {
+            && !(Memory.noClaim && Memory.noClaim.includes(FORCE_CLAIM))
+            && season.seasonForceClaimOk(FORCE_CLAIM)) {
             this.claimTarget = {room: FORCE_CLAIM, tick: Game.time};
             Memory.claimTarget = this.claimTarget;
             return;

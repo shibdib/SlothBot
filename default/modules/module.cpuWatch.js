@@ -63,6 +63,7 @@ let pfOps = 0;
 let pfIncomplete = 0;
 let pfCpu = 0;
 let pfSkipped = 0;
+let pfCbAbort = 0;
 let pfByRoom = null;
 let marketCalls = 0;
 let marketCpu = 0;
@@ -80,6 +81,7 @@ function resetHookStats() {
     pfIncomplete = 0;
     pfCpu = 0;
     pfSkipped = 0;
+    pfCbAbort = 0;
     pfByRoom = Object.create(null);
     marketCalls = 0;
     marketCpu = 0;
@@ -185,9 +187,21 @@ function installHooks() {
             if (pfIncomplete >= PF_INCOMPLETE_CLAMP && maxOps > 1000) maxOps = 1000;
             const opsCap = Math.max(400, Math.floor(remain * 400));
             if (maxOps > opsCap) maxOps = opsCap;
-            const searchOpts = (!opts || opts.maxOps !== maxOps)
-                ? Object.assign({}, opts || {}, {maxOps: maxOps})
-                : opts;
+            const userCb = opts && opts.roomCallback;
+            const searchOpts = Object.assign({}, opts || {}, {
+                maxOps: maxOps,
+                roomCallback: function (cbRoom) {
+                    const left = ((Game.cpu && Game.cpu.tickLimit) || 500) - Game.cpu.getUsed();
+                    const h = global._cpuWatchHeap;
+                    if (h && h.lastPf) h.lastPf.cb = cbRoom;
+                    if (left < 35) {
+                        pfCbAbort++;
+                        return false;
+                    }
+                    if (typeof userCb === 'function') return userCb(cbRoom);
+                    return undefined;
+                },
+            });
 
             const t0 = used;
             const result = origPf(origin, goal, searchOpts);
@@ -236,6 +250,7 @@ function hookBits() {
         if (pfCpu >= 3) text += ` ${pfCpu.toFixed(0)}c`;
         if (pfIncomplete) text += ` ${pfIncomplete}i`;
         if (pfSkipped) text += ` skip${pfSkipped}`;
+        if (pfCbAbort) text += ` cbAbort${pfCbAbort}`;
         parts.push(text);
         if (pfByRoom) {
             const rooms = [];
@@ -511,7 +526,7 @@ function reportTimeout(missed, prevPhases, prevTick, lastPf) {
     const died = diedLabel(prevPhases, prevTick, missed, lastPf);
     send(pack([
         `[TO] -${missed} before ${Game.time} last ${lastCpu}/${limit} b${lastBucket}->${Game.cpu.bucket} ${contextBits()} died ${died}`,
-        lastPf && lastPf.r ? `lastPf ${lastPf.r} ops${lastPf.ops || 0} u${lastPf.u || 0}` : '',
+        lastPf && lastPf.r ? `lastPf ${lastPf.r} ops${lastPf.ops || 0} u${lastPf.u || 0}${lastPf.cb ? ' cb' + lastPf.cb : ''}` : '',
         formatPhases(prevPhases),
         watch.prevHooks ? `prev ${watch.prevHooks}` : '',
         watch.prevPf ? `prevPf ${watch.prevPf}` : '',

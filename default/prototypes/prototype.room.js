@@ -833,19 +833,27 @@ Room.prototype.cacheRoomIntel = function (force = false) {
                 const attackFresh = roomIntel.attackAt && roomIntel.attackAt + 750 > currentTime
                     && roomIntel.attackTowers === towerCount;
                 if (!attackFresh) {
-                    const tAtk = Game.cpu.getUsed();
-                    const attack = pickAttackRoute(this);
-                    watchPart('atk', tAtk);
-                    roomIntel.attackAt = currentTime;
-                    roomIntel.attackTowers = towerCount;
-                    if (attack) {
-                        roomIntel.attackDirection = attack.staging;
-                        delete roomIntel.attackDirectionOrigin;
-                        roomIntel.attackTowerDmg = attack.towerDmg;
+                    const usedNow = Game.cpu.getUsed();
+                    const limitNow = Game.cpu.limit || 20;
+                    const remainNow = ((Game.cpu && Game.cpu.tickLimit) || 500) - usedNow;
+                    // Keep a previous face if the tick is already over the GCL limit.
+                    if (usedNow > limitNow && roomIntel.attackDirection) {
+                        /* leave attackAt stale so a cooler observe refreshes */
                     } else {
-                        delete roomIntel.attackDirection;
-                        delete roomIntel.attackDirectionOrigin;
-                        delete roomIntel.attackTowerDmg;
+                        const tAtk = usedNow;
+                        const attack = pickAttackRoute(this, undefined, remainNow < 80 ? 6 : 12);
+                        watchPart('atk', tAtk);
+                        roomIntel.attackAt = currentTime;
+                        roomIntel.attackTowers = towerCount;
+                        if (attack) {
+                            roomIntel.attackDirection = attack.staging;
+                            delete roomIntel.attackDirectionOrigin;
+                            roomIntel.attackTowerDmg = attack.towerDmg;
+                        } else {
+                            delete roomIntel.attackDirection;
+                            delete roomIntel.attackDirectionOrigin;
+                            delete roomIntel.attackTowerDmg;
+                        }
                     }
                 }
             } else {
@@ -1447,26 +1455,30 @@ function approachDamageXY(x, y, dx, dy, coords, memo) {
     return worst;
 }
 
-function barrierHitsGrid(room) {
-    if (room._barrierHitsTick === Game.time) return room._barrierHitsGrid;
-    const grid = Object.create(null);
-    const structs = room.structures || [];
-    for (let i = 0; i < structs.length; i++) {
-        const s = structs[i];
-        if (!s || !s.pos) continue;
-        if (s.structureType !== STRUCTURE_WALL && s.structureType !== STRUCTURE_RAMPART) continue;
-        if (s.my || (s.structureType === STRUCTURE_RAMPART && s.isPublic)) continue;
-        const key = s.pos.x + ',' + s.pos.y;
+function addBorderBarriers(grid, list) {
+    if (!list || !list.length) return;
+    for (let i = 0; i < list.length; i++) {
+        const s = list[i];
+        const p = s && s.pos;
+        if (!p) continue;
+        if (p.x > 3 && p.x < 46 && p.y > 3 && p.y < 46) continue;
+        const key = p.x + ',' + p.y;
         grid[key] = (grid[key] || 0) + (s.hits || 0);
     }
-    room._barrierHitsTick = Game.time;
-    room._barrierHitsGrid = grid;
+}
+
+function borderBarrierGrid(room) {
+    if (room._borderBarrierTick === Game.time) return room._borderBarrierGrid;
+    const grid = Object.create(null);
+    addBorderBarriers(grid, room.ramparts);
+    addBorderBarriers(grid, room.walls);
+    room._borderBarrierTick = Game.time;
+    room._borderBarrierGrid = grid;
     return grid;
 }
 
-function inwardBarrierHits(room, x, y, dir) {
+function inwardBarrierHitsFromGrid(grid, x, y, dir) {
     const {dx, dy} = inwardDelta(dir);
-    const grid = barrierHitsGrid(room);
     let hits = 0;
     for (let step = 1; step <= 2; step++) {
         const tx = x + dx * step;
@@ -1477,60 +1489,42 @@ function inwardBarrierHits(room, x, y, dir) {
     return hits;
 }
 
-function obstacleGrid(room) {
-    if (room._obstacleGridTick === Game.time) return room._obstacleGrid;
-    const grid = Object.create(null);
-    const structs = room.structures || [];
-    for (let i = 0; i < structs.length; i++) {
-        const s = structs[i];
-        if (!s || !s.pos) continue;
-        const type = s.structureType;
-        if (OBSTACLE_OBJECT_TYPES.includes(type)) {
-            grid[s.pos.x + ',' + s.pos.y] = 1;
-            continue;
-        }
-        if (type === STRUCTURE_RAMPART) {
-            try {
-                if (!s.my && !s.isPublic && s.owner && !FRIENDLIES.includes(s.owner.username)) {
-                    grid[s.pos.x + ',' + s.pos.y] = 1;
-                }
-            } catch (e) {
-                grid[s.pos.x + ',' + s.pos.y] = 1;
-            }
-        }
-    }
-    room._obstacleGridTick = Game.time;
-    room._obstacleGrid = grid;
-    return grid;
-}
-
-function scoreExitEdge(room, dir, coords, memo) {
-    const tiles = room.find(dir);
-    if (!tiles.length) return null;
-    const along = (dir === TOP || dir === BOTTOM) ? (t) => t.x : (t) => t.y;
-    const terrain = room.getTerrain();
-    const blocked = obstacleGrid(room);
+// Exit tiles cannot hold structures. Sample terrain-open edge tiles instead of
+// room.find + a full-room obstacle/barrier walk (that was 200+ CPU on an RCL8).
+function scoreExitEdge(room, dir, coords, memo, barrierGrid, t0, budget) {
+    const alongIsX = (dir === TOP || dir === BOTTOM);
+    const terrain = Game.map.getRoomTerrain(room.name);
     const open = [];
-    for (let i = 0; i < tiles.length; i++) {
-        const t = tiles[i];
-        if (terrain.get(t.x, t.y) === TERRAIN_MASK_WALL) continue;
-        if (blocked[t.x + ',' + t.y]) continue;
-        open.push(t);
+    if (alongIsX) {
+        const y = dir === TOP ? 0 : 49;
+        for (let x = 1; x < 49; x++) {
+            if (terrain.get(x, y) !== TERRAIN_MASK_WALL) open.push({x: x, y: y});
+        }
+    } else {
+        const x = dir === LEFT ? 0 : 49;
+        for (let y = 1; y < 49; y++) {
+            if (terrain.get(x, y) !== TERRAIN_MASK_WALL) open.push({x: x, y: y});
+        }
     }
     if (!open.length) return null;
-    open.sort((a, b) => along(a) - along(b));
 
     const {dx, dy} = inwardDelta(dir);
+    const along = alongIsX ? (t) => t.x : (t) => t.y;
     const approach = new Array(open.length);
     for (let i = 0; i < open.length; i++) {
+        if (budget && t0 != null && Game.cpu.getUsed() - t0 > budget) {
+            open.length = i;
+            break;
+        }
         approach[i] = approachDamageXY(open[i].x, open[i].y, dx, dy, coords, memo);
     }
+    if (!open.length) return null;
 
     const scorePair = (i, j) => {
         const a = open[i];
         const towerDmg = j == null ? approach[i] : Math.max(approach[i], approach[j]);
-        let barrierHits = inwardBarrierHits(room, a.x, a.y, dir);
-        if (j != null) barrierHits += inwardBarrierHits(room, open[j].x, open[j].y, dir);
+        let barrierHits = inwardBarrierHitsFromGrid(barrierGrid, a.x, a.y, dir);
+        if (j != null) barrierHits += inwardBarrierHitsFromGrid(barrierGrid, open[j].x, open[j].y, dir);
         return {towerDmg, barrierHits, quadWidth: j != null ? 2 : 1};
     };
 
@@ -1560,7 +1554,7 @@ function scoreExitEdge(room, dir, coords, memo) {
     return best;
 }
 
-function pickAttackRoute(room, origin) {
+function pickAttackRoute(room, origin, budget) {
     const exits = Game.map.describeExits(room.name);
     if (!exits) return null;
 
@@ -1575,13 +1569,17 @@ function pickAttackRoute(room, origin) {
 
     const coords = towerCoordPairs(towers);
     const memo = Object.create(null);
+    const barrierGrid = borderBarrierGrid(room);
+    const t0 = Game.cpu.getUsed();
+    const cpuBudget = budget != null ? budget : 12;
     const candidates = [];
     const dirs = [TOP, RIGHT, BOTTOM, LEFT];
     for (let i = 0; i < dirs.length; i++) {
+        if (Game.cpu.getUsed() - t0 > cpuBudget) break;
         const dir = dirs[i];
         const staging = exits[dir];
         if (!staging || !isViableStagingRoom(staging)) continue;
-        const geom = scoreExitEdge(room, dir, coords, memo);
+        const geom = scoreExitEdge(room, dir, coords, memo, barrierGrid, t0, cpuBudget);
         if (!geom) continue;
         candidates.push({
             staging,

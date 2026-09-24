@@ -44,9 +44,13 @@ class RoleReactorClaimer {
             return true;
         }
         this.creep.say('Rx', true);
-        // Lethal range only. Range 7 kited them off the SK-ring corridor until
-        // TTL died. Invader cores in those rooms must not suicide a claimer.
-        if (this.creep.skSafety({keepMoving: true, noSuicide: true, range: 3})) {
+        // Adjacent dest: kite only melee. Range 3 parked them off the dest
+        // exit while a keeper sat in the SK room.
+        const destNow = this.creep.memory.destination;
+        const destNext = !!(destNow && destNow !== this.room.name
+            && Game.map.describeExits(this.room.name)
+            && Object.values(Game.map.describeExits(this.room.name)).includes(destNow));
+        if (this.creep.skSafety({keepMoving: true, noSuicide: true, range: destNext ? 1 : 3})) {
             if (!this.creep.memory._rxKiteLog || this.creep.memory._rxKiteLog + 10 <= Game.time) {
                 this.creep.memory._rxKiteLog = Game.time;
                 claimerNote(this.creep, 'kite', {

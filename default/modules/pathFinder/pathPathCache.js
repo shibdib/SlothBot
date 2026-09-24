@@ -17,14 +17,42 @@ const {directionBetween} = require('pathFormation');
 const PATH_CACHE_TTL = 80;
 const PATH_CACHE_MAX = 800;
 
+let prunedTick = -1;
+
 function prunePathCache() {
     const cache = CACHE.PATH_CACHE;
     if (!cache) return;
+    if (prunedTick === Game.time) return;
+    const remain = ((Game.cpu && Game.cpu.tickLimit) || 500) - Game.cpu.getUsed();
+    if (remain < 40) return;
+    prunedTick = Game.time;
+
+    let n = 0;
+    for (const _ in cache) {
+        n++;
+        if (n > PATH_CACHE_MAX * 2) {
+            CACHE.PATH_CACHE = {};
+            return;
+        }
+    }
+    if (n <= PATH_CACHE_MAX) return;
     const keys = Object.keys(cache);
-    if (keys.length <= PATH_CACHE_MAX) return;
-    keys.sort((a, b) => (cache[a].tick || 0) - (cache[b].tick || 0));
-    const drop = keys.length - PATH_CACHE_MAX;
-    for (let i = 0; i < drop; i++) delete cache[keys[i]];
+    const now = Game.time;
+    for (let i = 0; i < keys.length && n > PATH_CACHE_MAX; i++) {
+        const e = cache[keys[i]];
+        if (!e || (e.tick || 0) + PATH_CACHE_TTL < now) {
+            delete cache[keys[i]];
+            n--;
+        }
+    }
+    if (n <= PATH_CACHE_MAX) return;
+    let extra = n - PATH_CACHE_MAX;
+    for (let i = 0; i < keys.length && extra > 0; i++) {
+        if (cache[keys[i]]) {
+            delete cache[keys[i]];
+            extra--;
+        }
+    }
 }
 
 function serializePath(startPos, path) {

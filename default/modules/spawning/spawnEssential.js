@@ -302,6 +302,15 @@ function essentialCreepQueue(room) {
         upgraderAmount = 0;
         clearRoomRoleQueue(room.name, 'upgrader');
     }
+    if (upgraderAmount > 0 && typeof IS_SEASON !== 'undefined' && IS_SEASON) {
+        try {
+            if (require('module.season').shouldStarveHubUpgraders(room)) {
+                upgraderAmount = 0;
+                clearRoomRoleQueue(room.name, 'upgrader');
+            }
+        } catch (e) { /* season optional */
+        }
+    }
     if (upgraderAmount > 0) {
         const fastTrack = (room.controller.level < 8) ||
             (energyState > 1 && room.storage && trendOk) ||

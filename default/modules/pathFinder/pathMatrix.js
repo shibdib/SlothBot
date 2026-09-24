@@ -46,11 +46,27 @@ function cloneTerrainMatrix(roomName, plainCost, swampCost, flee) {
     return matrix.clone();
 }
 
+function creepMoveFlags(creep) {
+    if (!(creep instanceof Creep)) {
+        return {hasAttack: false, hasWork: false, hasRanged: false};
+    }
+    if (creep._moveFlagsTick === Game.time && creep._moveFlags) return creep._moveFlags;
+    const flags = {
+        hasAttack: creep.hasActiveBodyparts(ATTACK),
+        hasWork: creep.hasActiveBodyparts(WORK),
+        hasRanged: creep.hasActiveBodyparts(RANGED_ATTACK),
+    };
+    creep._moveFlagsTick = Game.time;
+    creep._moveFlags = flags;
+    return flags;
+}
+
 function getBaseMatrix(roomName, creep, options) {
     const room = Game.rooms[roomName];
-    const noWallWrecker = creep instanceof Creep
-        ? ((INTEL[roomName]?.owner && FRIENDLIES.includes(INTEL[roomName].owner)) || (!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(WORK)))
-        : true;
+    const flags = creepMoveFlags(creep);
+    const noWallWrecker = !(creep instanceof Creep)
+        || !!(INTEL[roomName]?.owner && FRIENDLIES.includes(INTEL[roomName].owner))
+        || (!flags.hasAttack && !flags.hasWork);
     // Terrain type follows move weight. Wall wrecking only changes wall/rampart
     // costs so fatigued combat still prefers roads.
     const type = options.offRoad || options.tunnel ? 3 : options.ignoreRoads ? 2 : options.squad ? 4 : 1;
@@ -74,6 +90,28 @@ function getBaseMatrix(roomName, creep, options) {
             roadCost = 1;
     }
 
+    const skSelf = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'SKAttacker');
+    const skHarvestCover = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'remoteHarvester');
+    const intelSk = INTEL[roomName];
+    const skPts = (intelSk && intelSk.skDangerPoints && intelSk.skDangerPoints.length) || 0;
+    const nameSk = !!(intelSk && intelSk.sk) || !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
+    const destAdj = (creep instanceof Creep && creep.memory && creep.memory.destination
+        && creep.memory.destination !== roomName) ? creep.memory.destination : '';
+    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}_${skHarvestCover}_${!!options.ignoreSk}_${nameSk ? 1 : 0}_${skPts}_${destAdj}`;
+
+    // Same-tick reuse before hashing structures. Structures do not change mid-tick
+    // enough to justify concat+sort on every PathFinder roomCallback.
+    if (ROOM_BASE_MATRIX_CACHE[roomName] &&
+        ROOM_BASE_MATRIX_CACHE[roomName].tick === Game.time &&
+        ROOM_BASE_MATRIX_CACHE[roomName].stamp === cacheStamp) {
+        return ROOM_BASE_MATRIX_CACHE[roomName].matrix;
+    }
+
+    const remain = ((Game.cpu && Game.cpu.tickLimit) || 500) - Game.cpu.getUsed();
+    if (remain < 40) {
+        return cloneTerrainMatrix(roomName, plainCost, swampCost, !!options.flee);
+    }
+
     const impassibleHash = room
         ? hashStructures(room.impassibleStructures.concat(room.constructionSites.filter((s) => OBSTACLE_OBJECT_TYPES.includes(s.structureType))) || [])
         : '';
@@ -81,22 +119,7 @@ function getBaseMatrix(roomName, creep, options) {
     const structuresHash = room
         ? (lookHash ? `${impassibleHash}|L:${lookHash}` : impassibleHash) || 'no-obstacles'
         : 'no-room';
-    const skSelf = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'SKAttacker');
-    const skHarvestCover = !!(creep instanceof Creep && creep.memory && creep.memory.role === 'remoteHarvester');
-    const intelSk = INTEL[roomName];
-    const skPts = (intelSk && intelSk.skDangerPoints && intelSk.skDangerPoints.length) || 0;
-    const nameSk = !!(intelSk && intelSk.sk) || !!(global.isSourceKeeperRoomName && global.isSourceKeeperRoomName(roomName));
-    const cacheStamp = `${type}_${noWallWrecker}_${ignoreKeeper}_${plainCost}_${swampCost}_${roadCost}_${!!options.tunnel}_${skSelf}_${skHarvestCover}_${!!options.ignoreSk}_${nameSk ? 1 : 0}_${skPts}`;
     const baseKey = `${roomName}_base_${cacheStamp}_${structuresHash}`;
-
-    // Per-tick reuse (biggest CPU win). Stamp includes type/wrecker so a
-    // civilian matrix is not reused for a combat search in the same tick.
-    if (ROOM_BASE_MATRIX_CACHE[roomName] &&
-        ROOM_BASE_MATRIX_CACHE[roomName].tick === Game.time &&
-        ROOM_BASE_MATRIX_CACHE[roomName].hash === structuresHash &&
-        ROOM_BASE_MATRIX_CACHE[roomName].stamp === cacheStamp) {
-        return ROOM_BASE_MATRIX_CACHE[roomName].matrix.clone();
-    }
 
     // MATRIX_CACHE fallback with smarter TTL
     const ttl = INTEL[roomName]?.threatLevel ? 150 : 500;   // 500 ticks in safe rooms
@@ -107,7 +130,7 @@ function getBaseMatrix(roomName, creep, options) {
             hash: structuresHash,
             stamp: cacheStamp
         };
-        return MATRIX_CACHE[baseKey].matrix.clone();
+        return MATRIX_CACHE[baseKey].matrix;
     }
 
     // Build once — terrain clone + structure overlay.
@@ -234,9 +257,10 @@ function getMatrix(roomName, creep, options) {
     if (room) {
         matrix = addCreepsToMatrix(room, matrix, creep, options);
 
+        const flags = creepMoveFlags(creep);
         const armedEnemies = room.hostileCreeps.filter(c => !c.className && (c.hasActiveBodyparts(ATTACK) || c.hasActiveBodyparts(RANGED_ATTACK)));
         if (creep instanceof Creep && armedEnemies.length) {
-            if ((!creep.hasActiveBodyparts(ATTACK) && !creep.hasActiveBodyparts(RANGED_ATTACK)) || options.flee) {
+            if ((!flags.hasAttack && !flags.hasRanged) || options.flee) {
                 matrix = addHostilesToMatrix(room, matrix);
             }
         }
@@ -322,6 +346,25 @@ function addSksToMatrix(roomName, matrix, options, creep) {
     }
 
     const terrain = Game.map.getRoomTerrain(roomName);
+    const dest = creep && creep.memory && creep.memory.destination;
+    let destExit = 0;
+    if (dest && dest !== roomName) {
+        const exits = Game.map.describeExits(roomName);
+        if (exits) {
+            if (exits[TOP] === dest) destExit = TOP;
+            else if (exits[RIGHT] === dest) destExit = RIGHT;
+            else if (exits[BOTTOM] === dest) destExit = BOTTOM;
+            else if (exits[LEFT] === dest) destExit = LEFT;
+        }
+    }
+    const onDestExit = (x, y) => {
+        if (!destExit) return false;
+        if (destExit === TOP) return y === 0;
+        if (destExit === BOTTOM) return y === 49;
+        if (destExit === LEFT) return x === 0;
+        if (destExit === RIGHT) return x === 49;
+        return false;
+    };
 
     // Live SK creep positions take priority when we have vision — they're the actual
     // current threat and may have wandered off their lair/source.
@@ -350,7 +393,7 @@ function addSksToMatrix(roomName, matrix, options, creep) {
                 for (let x = left; x <= right; x++) {
                     if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
                         const range = Math.max(Math.abs(x - sk.pos.x), Math.abs(y - sk.pos.y));
-                        if (range > 0 && matrix.get(x, y) < 350 / range) {
+                        if (range > 0 && !onDestExit(x, y) && matrix.get(x, y) < 350 / range) {
                             matrix.set(x, y, 350 / range);
                         }
                     }
@@ -374,7 +417,7 @@ function addSksToMatrix(roomName, matrix, options, creep) {
             const right = Math.min(49, pt.x + 2);
             for (let y = top; y <= bottom; y++) {
                 for (let x = left; x <= right; x++) {
-                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL && matrix.get(x, y) < 250) {
+                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL && !onDestExit(x, y) && matrix.get(x, y) < 250) {
                         matrix.set(x, y, 250);
                     }
                 }
@@ -402,7 +445,7 @@ function addSksToMatrix(roomName, matrix, options, creep) {
             const right = Math.min(49, pt.x + 5);
             for (let y = top; y <= bottom; y++) {
                 for (let x = left; x <= right; x++) {
-                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL && matrix.get(x, y) < 250) {
+                    if (terrain.get(x, y) !== TERRAIN_MASK_WALL && !onDestExit(x, y) && matrix.get(x, y) < 250) {
                         matrix.set(x, y, 250);
                     }
                 }
