@@ -300,9 +300,10 @@ class ExpansionControl {
 
     /**
      * Colonies that currently (or very recently) treat this room as a remote.
-     * Uses live ROOM_REMOTE_TARGETS plus recently-active remoteRoom parents.
-     * Does NOT use bare remoteRoom alone — that list is never pruned and
-     * includes probed-but-unmined rooms.
+     * Uses live ROOM_REMOTE_TARGETS plus remoteRoom parents. That list is
+     * pruned to colonies that still target the room, have creeps there, or
+     * tracked it in the last 500 ticks. The activeRemote window is what
+     * keeps a room protected after the workforce has left.
      * @param {object} room - intel object
      * @param {string} [roomName] - fallback when intel.name is missing
      */

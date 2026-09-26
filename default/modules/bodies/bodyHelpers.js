@@ -273,7 +273,7 @@ function routeRoomNames(route) {
 }
 
 function routeHasBuiltRoads(colonyName, destName, options = {}) {
-    if (!colonyName || !destName || !colonyRoadsBuilt(colonyName)) return false;
+    if (!colonyName || !destName) return false;
 
     let rooms;
     if (!options.forceVanillaRoute) {
@@ -294,7 +294,16 @@ function routeHasBuiltRoads(colonyName, destName, options = {}) {
         rooms = routeRoomNames(route);
     }
     if (!rooms.length) return false;
-    return rooms.every(roomName => INTEL[roomName] && INTEL[roomName].roadsBuilt);
+    // The haul is the mining route (transit rooms and the remote), not the
+    // bunker. Owned-plan leftovers were keeping colonyRoadsBuilt false, so a
+    // paved remote never spawned a half-move body.
+    let hops = 0;
+    for (let i = 0; i < rooms.length; i++) {
+        if (rooms[i] === colonyName) continue;
+        hops++;
+        if (!colonyRoadsBuilt(rooms[i])) return false;
+    }
+    return hops > 0;
 }
 
 function getHaulersBySource() {

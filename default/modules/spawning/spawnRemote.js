@@ -74,6 +74,16 @@ function countQueuedHarvesters(colonyName) {
     return n;
 }
 
+function countQueuedHaulers(colonyName) {
+    const queue = CREEP_QUEUES[colonyName];
+    if (!queue) return 0;
+    let n = 0;
+    for (const key in queue) {
+        if (queue[key] && queue[key].role === 'remoteHauler') n++;
+    }
+    return n;
+}
+
 function queuedHarvesterForSource(colonyName, sourceId) {
     if (!sourceId) return false;
     const queue = CREEP_QUEUES[colonyName];
@@ -112,6 +122,8 @@ function haulerExpiringSoon(creep, remoteRoom) {
 function maxHaulersForSource(room, dest, keeperYield) {
     if (room.memory.remotePenalty) return 1;
     if (Game.cpu.bucket < BUCKET_MAX * 0.35) return 1;
+    // Same cut as a normal remote. Keeper used to return first and keep 4–6.
+    if (remoteMining.cpuOverageThrottle(room)) return 1;
     if (keeperYield) {
         // Center is colony → SK → center (2 hops) at 4000-energy sources.
         const max = remoteMining.isSectorCenterRoomName(dest) ? 6 : 4;
@@ -119,7 +131,6 @@ function maxHaulersForSource(room, dest, keeperYield) {
     }
     // RCL7+: one fat road hauler. Second only while the route is unpaved.
     if ((room.level || 0) >= 7 && routeHasBuiltRoads(room.name, dest)) return 1;
-    if (remoteMining.cpuOverageThrottle(room)) return 1;
     return 2;
 }
 
@@ -647,14 +658,16 @@ function colonyRemoteBuilderTotal(colonyName) {
 
 function handleRemoteBuilder(room) {
     if (room.memory.remotePenalty || Game.cpu.bucket < BUCKET_MAX * 0.35) return;
-    if (remoteMining.cpuOverageThrottle(room)) return;
     const colony = room.name;
     const remoteTargets = ROOM_REMOTE_TARGETS[colony];
     if (!remoteTargets || !remoteTargets.length) return;
     if (!getCreepCount(undefined, 'remoteHarvester', undefined, undefined, colony)) return;
     if (!colonyNeedsRoadWork(colony)) return;
     let needed = remoteBuildersNeeded(colony);
-    if ((room.memory.cpuOverage || 0) > 0 || Game.cpu.bucket < BUCKET_MAX * 0.5) {
+    // Throttle keeps one builder. Stopping the crew left haulers on full MOVE,
+    // which costs more CPU than the builder that was cancelled.
+    if ((room.memory.cpuOverage || 0) > 0 || Game.cpu.bucket < BUCKET_MAX * 0.5
+        || remoteMining.cpuOverageThrottle(room)) {
         needed = Math.min(needed, 1);
     }
     if (!needed || colonyRemoteBuilderTotal(colony) >= needed) return;
@@ -734,19 +747,15 @@ function handleSectorCenterMineral(room, skRoomName) {
     });
 }
 
-function handleRemoteHarvesters(room) {
-    scanColonyRemoteCreeps();
-    const remoteSource = ROOM_REMOTE_TARGETS[room.name];
-    if (!remoteSource || !remoteSource.length) return;
+function remoteHarvesterRank(room, sourceEntry) {
+    const adjacent = remoteMining.isExitNeighbor(room.name, sourceEntry.room) ? 0 : 1;
+    const keeper = remoteMining.isKeeperYieldRoom(sourceEntry.room) ? 0 : 1;
+    return adjacent * 100000 + keeper * 10000 + remoteMining.sourcePickScore(sourceEntry);
+}
 
-    const maxH = maxRemoteHarvesters(room);
-    const live = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
-    const queued = countQueuedHarvesters(room.name);
-    const atCap = live + queued >= maxH;
-
-    const eligible = [];
-    const replacements = [];
-    const adjacentNeed = [];
+function rankRemoteSources(room) {
+    const remoteSource = ROOM_REMOTE_TARGETS[room.name] || [];
+    const ranked = [];
     for (let i = 0; i < remoteSource.length; i++) {
         const s = remoteSource[i];
         const adjacent = remoteMining.isExitNeighbor(room.name, s.room);
@@ -756,32 +765,56 @@ function handleRemoteHarvesters(room) {
         const guard = remoteMining.skGuardRoom(room.name, s.room);
         if (guard && !hasSkAttackerCoverage(guard)) continue;
         if (!adjacent && !passesNoRoadSpawnGate(room, s)) continue;
-        if (!sourceNeedsHarvester(room.name, s.source, s.room)) continue;
-        eligible.push(s);
-        if (adjacent) adjacentNeed.push(s);
-        if (getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source) === 1) {
-            replacements.push(s);
-        }
+        ranked.push(s);
     }
+    ranked.sort((a, b) => remoteHarvesterRank(room, a) - remoteHarvesterRank(room, b));
+    return ranked;
+}
 
-    const unstaffedAdjacent = adjacentNeed.filter(s =>
-        !getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source));
-    const skUnstaffed = eligible.filter(s =>
-        remoteMining.isKeeperYieldRoom(s.room)
-        && !getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source));
-    // Empty next-door first, then empty SK/center. Replacements used to win
-    // every time a regular remote was in its TTL window, so a dead SK source
-    // never got a body.
-    const pool = unstaffedAdjacent.length ? unstaffedAdjacent
-        : (skUnstaffed.length ? skUnstaffed
-            : (replacements.length ? replacements : (atCap ? [] : eligible)));
+function keptRemoteSourceIds(room, ranked) {
+    const maxH = maxRemoteHarvesters(room);
+    const keep = new Set();
+    for (let i = 0; i < ranked.length && keep.size < maxH; i++) {
+        if (ranked[i].source) keep.add(ranked[i].source);
+    }
+    return keep;
+}
+
+function handleRemoteHarvesters(room) {
+    scanColonyRemoteCreeps();
+    const remoteSource = ROOM_REMOTE_TARGETS[room.name];
+    if (!remoteSource || !remoteSource.length) return;
+
+    const maxH = maxRemoteHarvesters(room);
+    const live = getCreepCount(undefined, 'remoteHarvester', undefined, undefined, room.name);
+    const queued = countQueuedHarvesters(room.name);
+    const slots = live + queued;
+    // Over the cap, do not replace. The extra bodies have to die off.
+    if (slots > maxH) return;
+
+    const ranked = rankRemoteSources(room);
+    const needsSpawn = [];
+    for (let i = 0; i < ranked.length; i++) {
+        const s = ranked[i];
+        if (sourceNeedsHarvester(room.name, s.source, s.room)) needsSpawn.push(s);
+    }
+    if (!needsSpawn.length) return;
+
+    const keep = keptRemoteSourceIds(room, ranked);
+
+    // At the cap, only replace a source that still belongs in the kept set.
+    // An empty neighbor does not sneak in beside a full roster.
+    const atCap = slots === maxH;
     let pick = null;
-    let bestPickScore = Infinity;
-    for (let i = 0; i < pool.length; i++) {
-        const ps = remoteMining.sourcePickScore(pool[i]);
-        if (ps < bestPickScore) {
-            bestPickScore = ps;
-            pick = pool[i];
+    let bestRank = Infinity;
+    for (let i = 0; i < needsSpawn.length; i++) {
+        const s = needsSpawn[i];
+        if (!s.source || !keep.has(s.source)) continue;
+        if (atCap && getCreepCount(undefined, 'remoteHarvester', s.room, undefined, undefined, s.source) !== 1) continue;
+        const rank = remoteHarvesterRank(room, s);
+        if (rank < bestRank) {
+            bestRank = rank;
+            pick = s;
         }
     }
 
@@ -859,17 +892,56 @@ function addQueuedHarvesterSources(colony) {
 function handleRemoteHaulers(room) {
     scanColonyRemoteCreeps();
     const scan = colonyRemoteCreepScan[room.name];
-    if (!scan) return;
+    if (!scan || !scan.harvesters.length) return;
 
-    for (const harvester of scan.harvesters) {
+    const ranked = rankRemoteSources(room);
+    const keep = keptRemoteSourceIds(room, ranked);
+    const rankBySource = new Map();
+    let allowed = 0;
+    const seenKeep = new Set();
+    for (let i = 0; i < scan.harvesters.length; i++) {
+        const harvester = scan.harvesters[i];
+        const sourceId = harvester.memory.other && harvester.memory.other.source;
+        const dest = harvester.memory.destination;
+        if (!sourceId || !dest || !keep.has(sourceId) || seenKeep.has(sourceId)) continue;
+        seenKeep.add(sourceId);
+        const destIntel = INTEL[dest];
+        const keeperYield = remoteMining.isKeeperYieldRoom(dest) || !!(destIntel && destIntel.sk);
+        allowed += maxHaulersForSource(room, dest, keeperYield);
+        rankBySource.set(sourceId, remoteHarvesterRank(room, {
+            room: dest,
+            score: (harvester.memory.other && harvester.memory.other.score) || 0,
+        }));
+    }
+    const live = getCreepCount(undefined, 'remoteHauler', undefined, undefined, room.name);
+    const queued = countQueuedHaulers(room.name);
+    let slots = live + queued;
+    // Over the allowance, do not replace. Haulers on dropped sources die off.
+    if (slots > allowed) return;
+
+    const harvesters = scan.harvesters.slice().sort((a, b) => {
+        const aId = a.memory.other && a.memory.other.source;
+        const bId = b.memory.other && b.memory.other.source;
+        return (rankBySource.get(aId) || Infinity) - (rankBySource.get(bId) || Infinity);
+    });
+    const seen = new Set();
+    for (const harvester of harvesters) {
+        if (slots > allowed) break;
         if (shouldSkipRemote(room, harvester.memory.destination)) continue;
         const dest = harvester.memory.destination;
         const guard = remoteMining.skGuardRoom(room.name, dest)
             || (harvester.memory.other && harvester.memory.other.skRoom);
         if (guard && !hasSkAttackerCoverage(guard)) continue;
         const sourceId = harvester.memory.other.source;
-        const assignedHaulers = (scan.haulersBySource[sourceId] || [])
-            .filter(c => !haulerExpiringSoon(c, dest));
+        if (!sourceId || seen.has(sourceId) || !keep.has(sourceId)) continue;
+        seen.add(sourceId);
+        const allHaulers = scan.haulersBySource[sourceId] || [];
+        let expiring = 0;
+        const assignedHaulers = [];
+        for (let i = 0; i < allHaulers.length; i++) {
+            if (haulerExpiringSoon(allHaulers[i], dest)) expiring++;
+            else assignedHaulers.push(allHaulers[i]);
+        }
         let targetCapacity = harvester.memory.other.haulingRequired;
         if (!targetCapacity) {
             const srcInfo = _.find(ROOM_REMOTE_TARGETS[room.name], s => s.source === sourceId);
@@ -897,6 +969,8 @@ function handleRemoteHaulers(room) {
         const haulingCapacity = assignedHaulers.reduce((sum, creep) => sum + haulerCarryCapacity(creep), 0);
         const queuedCapacity = queuedHaulers * minCarryPerHauler * CARRY_CAPACITY;
         if (!targetCapacity || haulingCapacity + queuedCapacity >= targetCapacity) continue;
+        // At the allowance, only replace a hauler that is already dying.
+        if (slots === allowed && expiring === 0) continue;
         const srcObj = Game.getObjectById(sourceId);
         const pickupPos = srcObj && srcObj.pos;
         const priority = PRIORITIES.remoteHauler;
@@ -913,6 +987,7 @@ function handleRemoteHaulers(room) {
                 pickupY: pickupPos && pickupPos.y,
             }
         });
+        slots++;
     }
 }
 

@@ -967,6 +967,10 @@ Room.prototype.cacheRoomIntel = function (force = false) {
         // ROOM_REMOTE_TARGETS — that re-PathFind'd every assigned remote ~every 150
         // ticks and stamped refreshRemotes on parents (spawn cascade).
         if (this.sources.length && roomIntel.remoteRoom) {
+            // Drop colonies that no longer target this room before any pathfind.
+            getRemoteMining().pruneRemoteRoomParents(this.name);
+        }
+        if (this.sources.length && roomIntel.remoteRoom && roomIntel.remoteRoom.length) {
             const staleScores = Game.time - (roomIntel.activeRemote || 0) > 500;
             // Force scoring when bootstrap set remoteRoom but source data never landed
             // (path fail / incomplete first visit) so nearby remotes can still be claimed.

@@ -161,13 +161,26 @@ function colonyNeedsRemoteIncome(room) {
     return energyState < 3 || stressed || spare < ENERGY_ACCRUAL_FLOOR;
 }
 
+function roomRoadsBuiltFlag(roomName) {
+    try {
+        return !!require('planUtils').getRoadsBuiltFlag(roomName);
+    } catch (e) {
+        return !!(INTEL[roomName] && INTEL[roomName].roadsBuilt);
+    }
+}
+
 function miningRouteHasRoads(colonyName, destName) {
     const rooms = getMiningRouteRooms(colonyName, destName);
-    if (!rooms || rooms.length < 2) return false;
+    // A one-hop route is stored as [remote]. Length used to require 2, so an
+    // adjacent paved remote never counted as roaded.
+    if (!rooms || !rooms.length) return false;
+    let hops = 0;
     for (let i = 0; i < rooms.length; i++) {
-        if (!INTEL[rooms[i]] || !INTEL[rooms[i]].roadsBuilt) return false;
+        if (rooms[i] === colonyName) continue;
+        hops++;
+        if (!roomRoadsBuiltFlag(rooms[i])) return false;
     }
-    return true;
+    return hops > 0;
 }
 
 function sourceHarvestRate(colonyRoom, sourceEntry) {
@@ -428,20 +441,24 @@ function isRemoteClaimedByOther(colonyName, remoteName, sourceId) {
 
 /** Patch claim index after removing a colony's paper claim on a remote. */
 function unindexColonyRemote(colony, remoteName, removedSources) {
-    if (!roomOwnersIndex || !sourceOwnersIndex) return;
-    if (removedSources) {
-        for (let i = 0; i < removedSources.length; i++) {
-            const sid = removedSources[i];
-            if (sourceOwnersIndex[sid] === colony) delete sourceOwnersIndex[sid];
+    if (roomOwnersIndex && sourceOwnersIndex) {
+        if (removedSources) {
+            for (let i = 0; i < removedSources.length; i++) {
+                const sid = removedSources[i];
+                if (sourceOwnersIndex[sid] === colony) delete sourceOwnersIndex[sid];
+            }
+        }
+        // Drop room owner only if no remaining targets and no live work
+        const targets = ROOM_REMOTE_TARGETS[colony];
+        const stillTargeted = targets && targets.some(s => s.room === remoteName);
+        const stillLive = liveWorkIndex[colony] && liveWorkIndex[colony][remoteName];
+        if (!stillTargeted && !stillLive && roomOwnersIndex[remoteName]) {
+            delete roomOwnersIndex[remoteName][colony];
         }
     }
-    // Drop room owner only if no remaining targets and no live work
-    const targets = ROOM_REMOTE_TARGETS[colony];
-    const stillTargeted = targets && targets.some(s => s.room === remoteName);
-    const stillLive = liveWorkIndex[colony] && liveWorkIndex[colony][remoteName];
-    if (!stillTargeted && !stillLive && roomOwnersIndex[remoteName]) {
-        delete roomOwnersIndex[remoteName][colony];
-    }
+    // Runs even when the claim index is not built yet. A dropped target must
+    // leave remoteRoom, or the next vision scores the colony and reclaims it.
+    forgetRemoteParent(colony, remoteName);
 }
 
 function indexColonyRemote(colony, remoteName, sources) {
@@ -495,6 +512,16 @@ function claimRemoteForColony(colonyName, remoteName) {
         if (targets[i].room === remoteName && targets[i].source) sources.push(targets[i].source);
     }
     indexColonyRemote(colonyName, remoteName, sources);
+    // Other colonies just lost their targets. Drop them from remoteRoom unless
+    // they still have creeps out, then keep the claimant.
+    pruneRemoteRoomParents(remoteName);
+    if (!colonyRemoteBlocked(colonyName)) {
+        if (!INTEL[remoteName]) INTEL[remoteName] = {name: remoteName, shardName: Game.shard.name};
+        const claimed = INTEL[remoteName];
+        if (!claimed.remoteRoom) claimed.remoteRoom = [];
+        if (claimed.remoteRoom.indexOf(colonyName) === -1) claimed.remoteRoom.push(colonyName);
+        noteRemoteParent(remoteName, colonyName);
+    }
 }
 
 function pruneRemoteRoomCount(colonyName, colonyRoom) {
@@ -991,20 +1018,100 @@ function probeMiningRoute(colonyName, remoteName, options = {}) {
     return INTEL[remoteName].miningRoutes[colonyName];
 }
 
+// How long a colony that tracked a remote, but does not yet have targets or
+// creeps, stays a scoring parent. Long enough for the next vision. A colony
+// that stops tracking ages out instead of keeping a permanent claim.
+const REMOTE_PARENT_TTL = 500;
+/** @type {Object.<string, number>} colony|remote -> Game.time of last track */
+const remoteParentTick = Object.create(null);
+
+function remoteParentKey(colony, remoteName) {
+    return colony + '|' + remoteName;
+}
+
+function noteRemoteParent(remoteName, colony) {
+    if (!remoteName || !colony) return;
+    remoteParentTick[remoteParentKey(colony, remoteName)] = Game.time;
+}
+
+function clearRemoteParentNote(remoteName, colony) {
+    delete remoteParentTick[remoteParentKey(colony, remoteName)];
+}
+
+function recentRemoteParent(remoteName, colony) {
+    const at = remoteParentTick[remoteParentKey(colony, remoteName)];
+    return !!(at && at + REMOTE_PARENT_TTL > Game.time);
+}
+
+function colonyHasRemoteTarget(colony, remoteName) {
+    const targets = ROOM_REMOTE_TARGETS[colony];
+    if (!targets) return false;
+    for (let i = 0; i < targets.length; i++) {
+        if (targets[i] && targets[i].room === remoteName) return true;
+    }
+    return false;
+}
+
+function colonyRemoteBlocked(colony) {
+    const room = Game.rooms[colony];
+    return !!(room && room.memory && room.memory.noRemote);
+}
+
+/**
+ * A colony is a current parent when it still targets the remote, has live
+ * creeps there, or tracked it recently and has not been dropped since.
+ * @param {boolean} [allowRecent] - keep a fresh track that has no targets yet
+ */
+function colonyParentsRemote(colony, remoteName, allowRecent) {
+    if (!colony || !remoteName || !MY_ROOMS || !MY_ROOMS.includes(colony)) return false;
+    if (colonyRemoteBlocked(colony)) return false;
+    if (colonyHasRemoteTarget(colony, remoteName)) return true;
+    if (hasLiveRemoteWork(colony, remoteName)) return true;
+    return !!allowRecent && recentRemoteParent(remoteName, colony);
+}
+
+function forgetRemoteParent(colony, remoteName) {
+    if (!colony || !remoteName) return;
+    if (colonyHasRemoteTarget(colony, remoteName)) return;
+    if (!colonyRemoteBlocked(colony) && MY_ROOMS && MY_ROOMS.includes(colony)
+        && hasLiveRemoteWork(colony, remoteName)) return;
+    clearRemoteParentNote(remoteName, colony);
+    const intel = INTEL[remoteName];
+    if (!intel || !intel.remoteRoom) return;
+    const idx = intel.remoteRoom.indexOf(colony);
+    if (idx !== -1) intel.remoteRoom.splice(idx, 1);
+    if (!intel.remoteRoom.length) intel.remoteRoom = undefined;
+}
+
 function pruneRemoteRoomParents(remoteName) {
     const intel = INTEL[remoteName];
     if (!intel || !intel.remoteRoom || !intel.remoteRoom.length) return;
-    intel.remoteRoom = intel.remoteRoom.filter(c => MY_ROOMS.includes(c));
+    const keep = [];
+    for (let i = 0; i < intel.remoteRoom.length; i++) {
+        const colony = intel.remoteRoom[i];
+        if (keep.indexOf(colony) !== -1) continue;
+        if (!colonyParentsRemote(colony, remoteName, true)) {
+            clearRemoteParentNote(remoteName, colony);
+            continue;
+        }
+        keep.push(colony);
+    }
+    intel.remoteRoom = keep.length ? keep : undefined;
 }
 
 function trackRemoteRoom(remoteName, colonyRoom) {
     const colony = colonyRoom.name || colonyRoom;
     if (!INTEL[remoteName]) INTEL[remoteName] = {name: remoteName, shardName: Game.shard.name};
-    pruneRemoteRoomParents(remoteName);
-    if (!INTEL[remoteName].remoteRoom) INTEL[remoteName].remoteRoom = [];
-    if (INTEL[remoteName].remoteRoom.indexOf(colony) === -1) {
-        INTEL[remoteName].remoteRoom.push(colony);
+    const intel = INTEL[remoteName];
+    if (!intel.remoteRoom) intel.remoteRoom = [];
+    const owned = [];
+    for (let i = 0; i < intel.remoteRoom.length; i++) {
+        const parent = intel.remoteRoom[i];
+        if (MY_ROOMS && MY_ROOMS.includes(parent) && owned.indexOf(parent) === -1) owned.push(parent);
     }
+    intel.remoteRoom = owned;
+    if (intel.remoteRoom.indexOf(colony) === -1) intel.remoteRoom.push(colony);
+    noteRemoteParent(remoteName, colony);
 }
 
 function remoteIntelEligible(colonyRoom, remoteName) {
@@ -1397,13 +1504,53 @@ function bootstrapRemoteRoomOnVision(room) {
         }
     }
 
-    const colony = findClosestOwnedRoom(room.name, false, 4, false, true);
-    if (!colony || colony === room.name) return;
+    bootstrapDistantParent(room);
+}
 
-    const rec = getMiningRouteRecord(room.name, colony) || probeMiningRoute(colony, room.name);
-    if (!rec || !rec.safe) return;
+function miningRouteKnown(colonyName, remoteName) {
+    if (getMiningRouteRecord(remoteName, colonyName)) return true;
+    if (getStaleMiningRouteRecord(remoteName, colonyName)) return true;
+    const cached = getRoute(colonyName, remoteName);
+    return cached === 'failed' || !!(cached && cached.length);
+}
 
-    trackRemoteRoom(room.name, colony);
+/**
+ * Parent a non-adjacent remote to the nearest RCL4+ colony that has a safe
+ * route. The closest room is not always routable; keep walking the linear
+ * list. At most one live findRoute — later colonies use a cached route only.
+ */
+function bootstrapDistantParent(room) {
+    if (isSkRoomName(room.name)) return;
+    if (!MY_ROOMS) return;
+    const linearMax = cfg('REMOTE_LINEAR_MAX', DEFAULT_LINEAR_MAX);
+    const ordered = [];
+    for (let i = 0; i < MY_ROOMS.length; i++) {
+        const colony = MY_ROOMS[i];
+        if (!colony || colony === room.name) continue;
+        const linear = Game.map.getRoomLinearDistance(room.name, colony);
+        if (linear > linearMax) continue;
+        const colonyRoom = Game.rooms[colony];
+        if (!colonyRoom || !colonyRoom.controller || colonyRoom.controller.level < 4) continue;
+        if (colonyRoom.memory && colonyRoom.memory.noRemote) continue;
+        if (typeof roomStatus === 'function' && roomStatus(room.name) !== roomStatus(colony)) continue;
+        ordered.push({colony, linear});
+    }
+    if (!ordered.length) return;
+    ordered.sort((a, b) => a.linear - b.linear);
+
+    let liveLeft = 1;
+    for (let i = 0; i < ordered.length; i++) {
+        const colony = ordered[i].colony;
+        const known = miningRouteKnown(colony, room.name);
+        const allowLive = !known && liveLeft > 0;
+        const rec = getMiningRouteRecord(room.name, colony)
+            || probeMiningRoute(colony, room.name, {allowLive});
+        if (allowLive) liveLeft = 0;
+        if (rec && rec.safe) {
+            trackRemoteRoom(room.name, colony);
+            return;
+        }
+    }
 }
 
 function maybeRefreshRemoteIntel(rName) {
@@ -1743,6 +1890,7 @@ module.exports = {
     storeMiningRoute,
     probeMiningRoute,
     trackRemoteRoom,
+    pruneRemoteRoomParents,
     remoteIntelEligible,
     shouldProbeNewRemotes,
     hasRemoteSourceDataForColony,

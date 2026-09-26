@@ -546,12 +546,24 @@ let helpers = function () {
             .sort((a, b) => a.linear - b.linear);
 
         if (linear) {
+            // Same level rule as the route search. The old shortcut returned
+            // candidates[0] and ignored minLevel, so a low-RCL neighbor won.
+            let closestName;
+            let closestDistance = Infinity;
+            for (let i = 0; i < candidates.length; i++) {
+                const candidate = candidates[i];
+                if (!linearCandidateMeetsLevel(candidate.name, minLevel)) continue;
+                closestName = candidate.name;
+                closestDistance = candidate.linear;
+                break;
+            }
+            if (!closestName) return range ? Infinity : undefined;
             closestLinearCache[cacheKey] = {
-                closest: candidates[0]?.name,
-                distance: candidates[0]?.linear,
+                closest: closestName,
+                distance: closestDistance,
                 lastUpdated: Game.time
             };
-            return range ? closestLinearCache[cacheKey].distance : closestLinearCache[cacheKey].closest;
+            return range ? closestDistance : closestName;
         }
 
         const remain = ((Game.cpu && Game.cpu.tickLimit) || 500) - Game.cpu.getUsed();
@@ -586,6 +598,14 @@ let helpers = function () {
         closestCache[cacheKey] = {closest: closest, distance: closestDistance, lastUpdated: Game.time};
         return range ? closestDistance : closest;
     };
+
+    // Owned rooms must be visible and at minLevel. Allies were already filtered
+    // by INTEL level when the candidate list was built.
+    function linearCandidateMeetsLevel(name, minLevel) {
+        if (!MY_ROOMS || !MY_ROOMS.includes(name)) return true;
+        const room = Game.rooms[name];
+        return !!(room && room.controller && room.controller.level >= minLevel);
+    }
 
     /**
      * Difference between two numbers

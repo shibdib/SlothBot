@@ -988,8 +988,11 @@ function refreshRoadPlanMissing(room, plan) {
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
         if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
         if (isRoadSatisfied(pos)) continue;
+        // A structure on the tile cannot be paved. It must not keep the
+        // network incomplete, or half-move never turns on.
+        if (!isRoadPlaceable(pos)) continue;
         tilesDone = false;
-        if (isRoadPlaceable(pos)) missing.push(pos);
+        missing.push(pos);
     }
     plan.missing = missing;
     const hasWork = plan.targetCount > 0 && plan.origin;
@@ -1556,20 +1559,29 @@ function refreshRemotePlanMissing(room, plan) {
         const pos = new RoomPosition(Number(parts[0]), Number(parts[1]), room.name);
         if (pos.isExit() || tileHasRoadAvoid(pos)) continue;
         if (isRoadSatisfied(pos)) continue;
+        // Unplaceable tiles (a building on the path) are not work. Leaving
+        // tilesDone false camped the builder and cleared roadsBuilt forever.
+        if (!isRoadPlaceable(pos)) continue;
         tilesDone = false;
-        if (isRoadPlaceable(pos)) missing.push(pos);
+        missing.push(pos);
     }
     plan.missing = missing;
+    plan.tilesDone = tilesDone;
     plan.complete = !!(remotePlanValid(plan) && tilesDone);
-    // Vision found a gap — drop stale roadsBuilt so haulers don't half-move it
-    // and builders re-queue even if a previous plan marked the room done.
-    if (!plan.complete) {
-        const intel = INTEL[room.name];
+    // A real gap drops roadsBuilt. A path miss with nothing left to pave does
+    // not, or one failed search takes half-move away from a finished corridor.
+    // Stamp the flag here too: a paved room with no builder in it otherwise
+    // never recorded roadsBuilt, so the next hauler stayed full MOVE.
+    const intel = INTEL[room.name];
+    if (!tilesDone) {
         if (intel && intel.roadsBuilt) {
             setRoadsBuiltFlag(room, undefined);
             delete intel.roadCount;
             clearColonyRoadWorkCache();
         }
+    } else if (plan.complete && countRoadConstructionSites(room) === 0 && intel && !intel.roadsBuilt) {
+        setRoadsBuiltFlag(room, true);
+        intel.roadCount = room.roads ? room.roads.length : intel.roadCount;
     }
     return plan;
 }
@@ -1723,7 +1735,7 @@ function roomNeedsBuildWorkByName(roomName, colony) {
     if (!context) return false;
     if (countRoadConstructionSites(room) > 0) return true;
     const plan = getRemoteRoadPlan(room, colony, context);
-    return !plan.complete || plan.missing.length > 0;
+    return !!(plan.missing && plan.missing.length);
 }
 
 /**
@@ -1789,9 +1801,9 @@ function remoteRoomNeedsRoadWork(room, colony, context = {}) {
     }
     if (!needsWork) {
         const plan = getRemoteRoadPlan(room, colony, context);
-        // Incomplete plans always need work — including path failures and
-        // unplaceable leftovers (not only missing placeable tiles).
-        needsWork = !plan.complete || plan.missing.length > 0;
+        // Only tiles the builder can still place. An unplaceable leftover or a
+        // failed path is not a job, or the crew idles in that room forever.
+        needsWork = !!(plan.missing && plan.missing.length);
     }
 
     NEEDS_WORK_CACHE[cacheKey] = {tick: Game.time, needsWork};

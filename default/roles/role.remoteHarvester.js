@@ -131,8 +131,14 @@ class RoleRemoteHarvester {
         // so an invader wave in the SK room pauses this room too.
         const dest = this.creep.memory.destination;
         if (dest && skGuardRoom(this.creep.memory.colony, dest)) return false;
+        // A construction site has no hits. onContainer used to stay set and
+        // this shortcut harvested for 49 ticks between build attempts.
+        if (!this.container || !this.container.hits) {
+            this.creep.memory.onContainer = undefined;
+            return false;
+        }
         if (Game.time % 50 === 0) return false;
-        if (!this.container || !this.creep.pos.isEqualTo(this.container.pos)) {
+        if (!this.creep.pos.isEqualTo(this.container.pos)) {
             this.creep.memory.onContainer = undefined;
             return false;
         }
@@ -353,8 +359,10 @@ class RoleRemoteHarvester {
                 } else {
                     return this.creep.shibMove(padPos, {range: 0});
                 }
-            } else {
+            } else if (this.container && this.container.hits) {
                 this.creep.memory.onContainer = true;
+            } else {
+                this.creep.memory.onContainer = undefined;
             }
         } else if (!this.creep.pos.isNearTo(this.source)) {
             return this.creep.shibMove(this.source);
@@ -362,7 +370,7 @@ class RoleRemoteHarvester {
 
         const site = this.container && this.container.progressTotal && !this.container.hits
             ? this.container : null;
-        if (site && this.creep.isFull) {
+        if (site && this.creep.store[RESOURCE_ENERGY]) {
             this.creep.build(site);
             return;
         }
