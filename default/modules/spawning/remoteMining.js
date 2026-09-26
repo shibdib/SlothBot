@@ -1397,7 +1397,7 @@ function bootstrapRemoteRoomOnVision(room) {
         }
     }
 
-    const colony = findClosestOwnedRoom(room.name, false, 4);
+    const colony = findClosestOwnedRoom(room.name, false, 4, false, true);
     if (!colony || colony === room.name) return;
 
     const rec = getMiningRouteRecord(room.name, colony) || probeMiningRoute(colony, room.name);

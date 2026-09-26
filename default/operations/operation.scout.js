@@ -9,8 +9,12 @@ const {promoteToRoomDenial} = require('hcTargets');
 const {markAsPending} = require('hcSustainability');
 
 Creep.prototype.scoutRoom = function () {
-    if (this.room.name !== this.memory.destination) {
-        return this.shibMove(new RoomPosition(25, 25, this.memory.destination), {
+    const destination = this.memory.destination;
+    // Path failures clear destination. RoomPosition throws if roomName is
+    // undefined (roomNameToXY → substr), which terminates the scout.
+    if (!destination) return this.recycleCreep();
+    if (this.room.name !== destination) {
+        return this.shibMove(new RoomPosition(25, 25, destination), {
             range: 23,
             offRoad: true
         });

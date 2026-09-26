@@ -14,7 +14,13 @@ class RoleScout {
 
     performRoleActions() {
         const dest = this.creep.memory.destination;
-        if (dest && dest === this.creep.room.name) {
+        // A cleared destination used to reach scoutRoom and throw inside RoomPosition.
+        // Recycle here so a hostile site stomp does not overwrite the walk home.
+        if (!dest) {
+            this.creep.recycleCreep();
+            return;
+        }
+        if (dest === this.creep.room.name) {
             const intel = INTEL[this.room.name];
             this.room.cacheRoomIntel(!(intel && intel.cached));
         }

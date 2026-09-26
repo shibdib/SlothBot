@@ -706,6 +706,14 @@ function findSectorCenterRoute(from, center, options = {}) {
     return out;
 }
 
+function nativeFindRoute(origin, destination) {
+    const route = Game.map.findRoute(origin, destination);
+    if (typeof route === 'number' || !route || !route.length) return [];
+    const path = [];
+    for (let i = 0; i < route.length; i++) path.push(route[i].room);
+    return path;
+}
+
 function findRoute(origin, destination, options = {}) {
     if (origin === destination) return [origin];
     _.defaults(options, {useCache: true, shortest: false});
@@ -717,15 +725,27 @@ function findRoute(origin, destination, options = {}) {
         return cached.failed ? [] : route;
     }
 
+    const remain = ((Game.cpu && Game.cpu.tickLimit) || 500) - Game.cpu.getUsed();
+    const linear = Game.map.getRoomLinearDistance(origin, destination);
+    // JS routeCallback + getRoomStatus per visited room is how routeDistance
+    // timed out. Native default BFS is enough when the tick is already hot.
+    if (remain < 60 || (remain < 100 && linear > 12)) {
+        const path = nativeFindRoute(origin, destination);
+        cacheRoute(origin, destination, path.length ? path : undefined, !path.length, options);
+        return path;
+    }
+
     // Intel-weighted callback is worth it nearby. Past ~20 rooms prefer a
     // cheap highway-biased walk — the old 15-room hard fail (and W/E digit
     // compare that ignored hemisphere) left scouts with no route at all.
-    const linear = Game.map.getRoomLinearDistance(origin, destination);
     const useIntelCosts = linear <= 20 || options.shortest;
+    const originStatus = roomStatus(origin);
+    const t0 = Game.cpu.getUsed();
     const route = Game.map.findRoute(origin, destination, {
         routeCallback: (roomName, fromRoomName) => {
             if (roomName === origin || roomName === destination) return 1;
             if (isAvoided(roomName, options)) return Infinity;
+            if (Game.cpu.getUsed() - t0 > 25) return Infinity;
             // Nested engine findRoute (findExit used to do this) must not BFS.
             const nested = findRoute._cbDepth > 0;
             findRoute._cbDepth = (findRoute._cbDepth || 0) + 1;
@@ -739,7 +759,7 @@ function findRoute(origin, destination, options = {}) {
                 if (rStatus === 'closed') return Infinity;
                 if (Memory.avoidRooms?.includes(roomName)) return Infinity;
                 const intel = INTEL[roomName];
-                if (intel && !intel.isHighway && rStatus !== roomStatus(origin)) return Infinity;
+                if (intel && !intel.isHighway && rStatus !== originStatus) return Infinity;
                 if (intel?.owner && !FRIENDLIES.includes(intel.owner) && intel.towers) return Infinity;
                 const skCost = skRouteCost(roomName, intel, true, fromRoomName, destination, true);
                 if (skCost != null) return skCost;
@@ -794,6 +814,9 @@ function routeDistance(from, to, options = {}) {
     const table = getDistanceCache();
     const hit = table[key];
     if (hit && hit.tick + ROUTE_DISTANCE_TTL > Game.time) return hit.distance;
+
+    const remain = ((Game.cpu && Game.cpu.tickLimit) || 500) - Game.cpu.getUsed();
+    if (remain < 50) return Game.map.getRoomLinearDistance(from, to);
 
     const route = findRoute(from, to, Object.assign({}, options, {noSkCrossing: true}));
     const distance = Array.isArray(route) && route.length ? route.length : Infinity;

@@ -554,15 +554,17 @@ let helpers = function () {
             return range ? closestLinearCache[cacheKey].distance : closestLinearCache[cacheKey].closest;
         }
 
+        const remain = ((Game.cpu && Game.cpu.tickLimit) || 500) - Game.cpu.getUsed();
+        // Route distance here is one Game.map.findRoute per owned room. Observe
+        // bootstrap and attack-face picks were spending 140–196 CPU on that loop.
+        const useLinear = remain < 80;
         let closest = null;
         let closestDistance = Infinity;
-        for (const {name, linear} of candidates) {
-            if (linear >= closestDistance) break;
+        for (const {name, linear: linearDist} of candidates) {
+            if (linearDist >= closestDistance) break;
             const room = Game.rooms[name];
-            if (!room) continue;
-            if (!INTEL[name]) room.cacheRoomIntel();
-            if (!INTEL[name] || INTEL[name].level < minLevel) continue;
-            const distance = room.routeDistance(roomName);
+            if (!room || !room.controller || room.controller.level < minLevel) continue;
+            const distance = useLinear ? linearDist : room.routeDistance(roomName);
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closest = name;
@@ -575,7 +577,7 @@ let helpers = function () {
             const firstSpawn = Game.spawns[Object.keys(Game.spawns)[0]];
             if (firstSpawn && firstSpawn.room.controller && firstSpawn.room.controller.level >= minLevel) {
                 closest = firstSpawn.room.name;
-                closestDistance = firstSpawn.room.routeDistance(roomName);
+                closestDistance = Game.map.getRoomLinearDistance(roomName, closest);
             } else {
                 return range ? Infinity : undefined;
             }
@@ -613,21 +615,17 @@ let helpers = function () {
      * @returns {string} The status of the room.
      */
     global.roomStatus = function (roomName) {
-        const cache = CACHE.ROOM_STATUS;
-
-        // Refresh the cache if it is outdated or doesn't exist
-        if (!cache || cache.tick + 10000 < Game.time) {
-            CACHE.ROOM_STATUS = {
-                tick: Game.time
-            };
+        if (!CACHE.ROOM_STATUS) CACHE.ROOM_STATUS = Object.create(null);
+        const hit = CACHE.ROOM_STATUS[roomName];
+        if (hit) return hit;
+        let status = 'normal';
+        try {
+            const info = Game.map.getRoomStatus(roomName);
+            if (info && info.status) status = info.status;
+        } catch (e) { /* unknown room */
         }
-
-        // If the room status is not in cache, retrieve and store it
-        if (!CACHE.ROOM_STATUS[roomName]) {
-            CACHE.ROOM_STATUS[roomName] = Game.map.getRoomStatus(roomName).status;
-        }
-
-        return CACHE.ROOM_STATUS[roomName];
+        CACHE.ROOM_STATUS[roomName] = status;
+        return status;
     };
 
     /**

@@ -158,7 +158,12 @@ class Colony {
         const name = this.room.name;
         const runQueue = (label, fn, tickMap, interval, cpuKey) => {
             if (tickMap && !spawnState.throttleDue(tickMap, name, interval)) return;
-            const t0 = Game.cpu.getUsed();
+            const usedNow = Game.cpu.getUsed();
+            const limitNow = Game.cpu.limit || 20;
+            const remainNow = ((Game.cpu && Game.cpu.tickLimit) || 500) - usedNow;
+            if (remainNow < 50) return;
+            if (cpuKey !== '_colonySpawnEssCpu' && usedNow > limitNow * 0.85) return;
+            const t0 = usedNow;
             try {
                 fn(this.room);
             } catch (e) {
